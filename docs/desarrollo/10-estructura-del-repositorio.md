@@ -76,7 +76,7 @@ pasaron a `docs/referencia/`).
 Reorganización de `docs/` en `guias/` · `desarrollo/` · `referencia/`. **43 links relativos** reescritos y
 verificados (0 rotos), incluidos los de `test-data/README.md`.
 
-### ⬜ Fase 2 — CHANGELOG + versionado
+### ✅ Fase 2 — CHANGELOG + versionado *(aplicada)*
 - `CHANGELOG.md` en formato **Keep a Changelog** (ES): `[Unreleased]` + una sección por versión con
   **Added / Changed / Fixed**.
 - La versión es la **de la solución Dataverse**, 4 dígitos `X.Y.Z.B` (ej. `1.0.0.1`).
