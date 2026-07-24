@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mi Cartera — Mockup (App Localizador)</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; background:#e5e7eb; font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; display:flex; justify-content:center; padding:28px 12px; }
+  .phone { width:400px; background:#f2f4f7; border-radius:38px; overflow:hidden; box-shadow:0 12px 44px rgba(16,24,40,.20); border:1px solid #cbd2d9; }
+
+  /* Header */
+  .header { background:#0f6b6b; color:#fff; padding:12px 20px 18px; }
+  .statusbar { display:flex; justify-content:space-between; align-items:center; font-size:13px; font-weight:700; }
+  .statusbar .icons { letter-spacing:2px; font-size:12px; }
+  .titlerow { display:flex; justify-content:space-between; align-items:center; margin-top:12px; }
+  .title { font-size:23px; font-weight:700; }
+  .subtitle { color:#bfe3e3; font-size:12.5px; margin-top:2px; }
+  .sync { background:rgba(255,255,255,.16); border-radius:12px; padding:5px 11px; font-size:11px; display:flex; align-items:center; gap:6px; }
+  .sync .dot { width:8px; height:8px; border-radius:50%; background:#34d399; }
+  .total { background:rgba(255,255,255,.12); border-radius:12px; padding:10px 14px; margin-top:14px; }
+  .total .lbl { color:#bfe3e3; font-size:11px; }
+  .total .amt { font-size:17px; font-weight:700; margin-top:3px; }
+
+  /* Body */
+  .body { padding:16px; }
+
+  .seg { display:flex; background:#e4e7ec; border-radius:18px; padding:3px; }
+  .seg .opt { flex:1; text-align:center; font-size:12.5px; color:#475467; padding:7px 0; border-radius:15px; }
+  .seg .opt.active { background:#fff; color:#0f6b6b; font-weight:700; box-shadow:0 1px 3px rgba(16,24,40,.10); }
+
+  .search { margin-top:14px; background:#fff; border:1px solid #e4e7ec; border-radius:12px; padding:11px 14px; display:flex; align-items:center; gap:9px; color:#98a2b3; font-size:13px; }
+  .search svg { color:#98a2b3; }
+
+  .card { background:#fff; border:1px solid #eaecf0; border-radius:14px; padding:14px 14px 14px 16px; margin-top:12px; box-shadow:0 2px 6px rgba(16,24,40,.05); display:flex; align-items:stretch; gap:8px; }
+  .card .main { flex:1; min-width:0; }
+  .row1 { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .name { font-size:15px; font-weight:700; color:#101828; }
+  .badge { font-size:11px; font-weight:700; border-radius:11px; padding:3px 11px; white-space:nowrap; }
+  .badge.diaria { background:#dbeafe; color:#2563eb; }
+  .badge.incob  { background:#fef3c7; color:#b45309; }
+  .badge.esp    { background:#ede9fe; color:#7c3aed; }
+  .acct { color:#667085; font-size:11.5px; margin-top:4px; }
+  .divider { border-top:1px solid #f2f4f7; margin:10px 0; }
+  .row2 { display:flex; justify-content:space-between; align-items:center; }
+  .cobrar .lbl { color:#98a2b3; font-size:10px; }
+  .cobrar .amt { color:#0f6b6b; font-size:15.5px; font-weight:700; margin-top:1px; }
+  .mora { font-size:11px; border-radius:11px; padding:5px 12px; background:#f2f4f7; color:#475467; }
+  .mora.alta { background:#fee2e2; color:#dc2626; font-weight:700; }
+  .arrows { display:flex; flex-direction:column; justify-content:center; gap:16px; color:#cbd2d9; padding-left:4px; }
+  .arrows span { font-size:14px; line-height:1; }
+
+  /* Bottom nav */
+  .nav { display:flex; background:#fff; border-top:1px solid #eaecf0; padding:9px 0 16px; }
+  .nav .item { flex:1; text-align:center; color:#98a2b3; font-size:10px; }
+  .nav .item.active { color:#0f6b6b; font-weight:700; }
+  .nav .item svg { display:block; margin:0 auto 3px; }
+  .home-ind { width:78px; height:4px; border-radius:2px; background:#d0d5dd; margin:6px auto 0; }
+</style>
+</head>
+<body>
+  <div class="phone">
+
+    <!-- HEADER -->
+    <div class="header">
+      <div class="statusbar"><span>9:41</span><span class="icons">&#9679;&#9679;&#9679; &#128246; &#128267;</span></div>
+      <div class="titlerow">
+        <div>
+          <div class="title">Mi Cartera</div>
+          <div class="subtitle">24 cuentas asignadas</div>
+        </div>
+        <div class="sync"><span class="dot"></span>Sincronizado</div>
+      </div>
+      <div class="total">
+        <div class="lbl">A cobrar hoy</div>
+        <div class="amt">C$ 45,320.00 &middot; US$ 1,240.00</div>
+      </div>
+    </div>
+
+    <!-- BODY -->
+    <div class="body">
+
+      <div class="seg">
+        <div class="opt active">Todos</div>
+        <div class="opt">Diaria</div>
+        <div class="opt">Incobrable</div>
+        <div class="opt">Especial</div>
+      </div>
+
+      <div class="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="16" y1="16" x2="21" y2="21"/></svg>
+        Buscar cliente o cuenta&#8230;
+      </div>
+
+      <!-- CARD 1 -->
+      <div class="card">
+        <div class="main">
+          <div class="row1"><span class="name">Carlos Cruz Salazar</span><span class="badge diaria">Diaria</span></div>
+          <div class="acct">Tarjeta Oro &middot; 4556 &bull;&bull;&bull;&bull; 0676</div>
+          <div class="divider"></div>
+          <div class="row2">
+            <div class="cobrar"><div class="lbl">A cobrar</div><div class="amt">C$ 18,410.07</div></div>
+            <div class="mora">27 d&iacute;as &middot; Nivel 1</div>
+          </div>
+        </div>
+        <div class="arrows"><span>&#9650;</span><span>&#9660;</span></div>
+      </div>
+
+      <!-- CARD 2 -->
+      <div class="card">
+        <div class="main">
+          <div class="row1"><span class="name">Mar&iacute;a L&oacute;pez Garc&iacute;a</span><span class="badge incob">Incobrable</span></div>
+          <div class="acct">Pr&eacute;stamo &middot; 8030 &bull;&bull;&bull;&bull; 5917</div>
+          <div class="divider"></div>
+          <div class="row2">
+            <div class="cobrar"><div class="lbl">A cobrar</div><div class="amt">US$ 1,240.00</div></div>
+            <div class="mora alta">108 d&iacute;as &middot; Nivel 4</div>
+          </div>
+        </div>
+        <div class="arrows"><span>&#9650;</span><span>&#9660;</span></div>
+      </div>
+
+      <!-- CARD 3 -->
+      <div class="card">
+        <div class="main">
+          <div class="row1"><span class="name">Yelba Ortiz Reyes</span><span class="badge diaria">Diaria</span></div>
+          <div class="acct">Tarjeta Cl&aacute;sica &middot; 7011 &bull;&bull;&bull;&bull; 3402</div>
+          <div class="divider"></div>
+          <div class="row2">
+            <div class="cobrar"><div class="lbl">A cobrar</div><div class="amt">C$ 9,850.50</div></div>
+            <div class="mora">45 d&iacute;as &middot; Nivel 2</div>
+          </div>
+        </div>
+        <div class="arrows"><span>&#9650;</span><span>&#9660;</span></div>
+      </div>
+
+      <!-- CARD 4 -->
+      <div class="card">
+        <div class="main">
+          <div class="row1"><span class="name">Denis Guti&eacute;rrez M.</span><span class="badge esp">Especial</span></div>
+          <div class="acct">Pr&eacute;stamo &middot; 5412 &bull;&bull;&bull;&bull; 8821</div>
+          <div class="divider"></div>
+          <div class="row2">
+            <div class="cobrar"><div class="lbl">A cobrar</div><div class="amt">C$ 6,200.00</div></div>
+            <div class="mora">12 d&iacute;as &middot; Nivel 1</div>
+          </div>
+        </div>
+        <div class="arrows"><span>&#9650;</span><span>&#9660;</span></div>
+      </div>
+
+    </div>
+
+    <!-- BOTTOM NAV -->
+    <div class="nav">
+      <div class="item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 11 L12 3 L21 11"/><path d="M5 10 V20 H19 V10"/></svg>
+        Inicio
+      </div>
+      <div class="item active">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="5" y1="7" x2="19" y2="7"/><line x1="5" y1="12" x2="19" y2="12"/><line x1="5" y1="17" x2="19" y2="17"/></svg>
+        Cartera
+      </div>
+      <div class="item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="12" width="4" height="8" rx="1"/><rect x="10" y="6" width="4" height="14" rx="1"/><rect x="16" y="9" width="4" height="11" rx="1"/></svg>
+        Stats
+      </div>
+    </div>
+    <div class="home-ind"></div>
+
+  </div>
+</body>
+</html>

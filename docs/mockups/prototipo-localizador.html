@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prototipo — App Localizador (Cobranza Móvil)</title>
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;background:#e5e7eb;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;display:flex;justify-content:center;padding:24px 12px;}
+  .phone{width:400px;height:824px;background:#f2f4f7;border-radius:38px;overflow:hidden;box-shadow:0 12px 44px rgba(16,24,40,.20);border:1px solid #cbd2d9;display:flex;flex-direction:column;position:relative;
+    --s:1;--f2xs:calc(10px*var(--s));--fxs:calc(11px*var(--s));--fsm:calc(12.5px*var(--s));--fbase:calc(13.5px*var(--s));--fmd:calc(15px*var(--s));--flg:calc(17px*var(--s));--fxl:calc(23px*var(--s));--fbig:calc(24px*var(--s));}
+  .phone.s2{--s:1.2;} .phone.s3{--s:1.45;} .phone.s4{--s:1.7;}
+  #app{flex:1;overflow-y:auto;}
+  .badge{font-size:var(--fxs);font-weight:700;border-radius:11px;padding:3px 10px;white-space:nowrap;}
+  .badge.Diaria{background:#dbeafe;color:#2563eb;} .badge.Incobrable{background:#fef3c7;color:#b45309;} .badge.Especial{background:#ede9fe;color:#7c3aed;}
+  .hdr{background:#0f6b6b;color:#fff;padding:12px 20px 18px;}
+  .sb{display:flex;justify-content:space-between;font-size:var(--fbase);font-weight:700;}
+  .trow{display:flex;justify-content:space-between;align-items:flex-start;margin-top:12px;gap:8px;flex-wrap:wrap;}
+  .ttl{font-size:var(--fxl);font-weight:700;} .sub{color:#bfe3e3;font-size:var(--fsm);margin-top:2px;}
+  .hbtns{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
+  .aa{background:rgba(255,255,255,.18);color:#fff;border:none;border-radius:9px;padding:7px 11px;font-size:var(--fbase);font-weight:800;cursor:pointer;line-height:1;}
+  .sync{background:rgba(255,255,255,.16);border-radius:12px;padding:5px 11px;font-size:var(--fxs);display:flex;align-items:center;gap:6px;}
+  .sync .dot{width:8px;height:8px;border-radius:50%;background:#34d399;}
+  .total{background:rgba(255,255,255,.12);border-radius:12px;padding:10px 14px;margin-top:14px;}
+  .total .l{color:#bfe3e3;font-size:var(--fxs);} .total .a{font-size:var(--flg);font-weight:700;margin-top:3px;}
+  .body{padding:16px;}
+  .seg{display:flex;background:#e4e7ec;border-radius:18px;padding:3px;}
+  .seg .o{flex:1;text-align:center;font-size:var(--fsm);color:#475467;padding:7px 4px;border-radius:15px;cursor:pointer;user-select:none;line-height:1.15;}
+  .seg .o.active{background:#fff;color:#0f6b6b;font-weight:700;box-shadow:0 1px 3px rgba(16,24,40,.10);}
+  .search{margin-top:14px;background:#fff;border:1px solid #e4e7ec;border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:9px;}
+  .search input{border:none;outline:none;font-size:var(--fbase);flex:1;color:#101828;background:none;min-width:0;}
+  .resultbar{display:flex;justify-content:space-between;align-items:center;margin-top:14px;gap:8px;flex-wrap:wrap;}
+  #count{font-size:var(--fsm);color:#667085;font-weight:600;}
+  .gtoggle{display:flex;background:#e4e7ec;border-radius:10px;padding:2px;}
+  .gopt{font-size:var(--fxs);color:#475467;padding:5px 11px;border-radius:8px;cursor:pointer;user-select:none;white-space:nowrap;}
+  .gopt.active{background:#fff;color:#0f6b6b;font-weight:700;box-shadow:0 1px 2px rgba(16,24,40,.1);}
+  .card{background:#fff;border:1px solid #eaecf0;border-radius:14px;padding:14px 12px 14px 16px;margin-top:12px;box-shadow:0 2px 6px rgba(16,24,40,.05);display:flex;gap:6px;cursor:pointer;}
+  .card:active{background:#fafbfc;}
+  .card .main{flex:1;min-width:0;}
+  .r1{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;}
+  .nm{font-size:var(--fmd);font-weight:700;color:#101828;}
+  .cnt{font-size:var(--fxs);color:#667085;background:#f2f4f7;border-radius:10px;padding:3px 9px;white-space:nowrap;}
+  .acct{color:#667085;font-size:var(--fxs);margin-top:4px;}
+  .tipos{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;}
+  .dv{border-top:1px solid #f2f4f7;margin:10px 0;}
+  .r2{display:flex;justify-content:space-between;align-items:center;gap:8px 10px;flex-wrap:wrap;}
+  .cob .l{color:#98a2b3;font-size:var(--f2xs);} .cob .a{color:#0f6b6b;font-size:var(--fmd);font-weight:700;margin-top:1px;}
+  .mora{font-size:var(--fxs);border-radius:11px;padding:5px 12px;background:#f2f4f7;color:#475467;white-space:nowrap;}
+  .mora.alta{background:#fee2e2;color:#dc2626;font-weight:700;}
+  .arr{display:flex;flex-direction:column;justify-content:center;gap:14px;color:#98a2b3;}
+  .arr span{font-size:calc(15px*var(--s));line-height:1;cursor:pointer;background:#f2f4f7;border-radius:6px;padding:2px 6px;}
+  .arr span:active{background:#e4e7ec;}
+  .empty{text-align:center;color:#98a2b3;font-size:var(--fbase);padding:40px 20px;}
+  .nav{display:flex;background:#fff;border-top:1px solid #eaecf0;padding:9px 0 14px;}
+  .nav .it{flex:1;text-align:center;color:#98a2b3;font-size:var(--f2xs);cursor:pointer;}
+  .nav .it.active{color:#0f6b6b;font-weight:700;}
+  .nav .it svg{display:block;margin:0 auto 3px;width:calc(22px*var(--s));height:calc(22px*var(--s));}
+  .dhdr{background:#0f6b6b;color:#fff;padding:14px 18px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .back{background:rgba(255,255,255,.16);border:none;color:#fff;width:calc(34px*var(--s));height:calc(34px*var(--s));border-radius:10px;font-size:calc(18px*var(--s));cursor:pointer;flex:none;}
+  .dnm{font-size:var(--flg);font-weight:700;} .dac{color:#bfe3e3;font-size:var(--fsm);margin-top:2px;}
+  .dcard{background:#fff;border:1px solid #eaecf0;border-radius:14px;padding:14px 16px;margin-top:12px;box-shadow:0 2px 6px rgba(16,24,40,.05);}
+  .dcard.hl{background:#ecfdf5;border-color:#a7f3d0;}
+  .dlbl{color:#98a2b3;font-size:var(--fxs);} .dbig{color:#0f6b6b;font-size:var(--fbig);font-weight:800;margin-top:2px;}
+  .dnote{font-size:var(--fxs);color:#667085;margin-top:10px;}
+  .grid3{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+  .grid3 .g{flex:1 1 28%;min-width:96px;border:1px solid #eaecf0;border-radius:10px;padding:8px;text-align:center;background:#fff;}
+  .grid3 .gl{color:#98a2b3;font-size:var(--f2xs);} .grid3 .gv{font-size:var(--fsm);font-weight:700;color:#344054;margin-top:3px;}
+  .ct{font-size:var(--fxs);font-weight:700;color:#98a2b3;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;}
+  .crow{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f6f7f9;gap:10px;flex-wrap:wrap;}
+  .crow:last-child{border-bottom:none;} .crow .ci{flex:1 1 60%;min-width:0;}
+  .ct2{font-size:var(--f2xs);color:#98a2b3;} .cv{font-size:var(--fbase);color:#101828;margin-top:1px;}
+  .act{background:#0f6b6b;color:#fff;border:none;border-radius:9px;padding:7px 13px;font-size:var(--fsm);font-weight:600;cursor:pointer;flex:none;}
+  .act.alt{background:#eef2f6;color:#0f6b6b;}
+  .kv{display:flex;justify-content:space-between;padding:6px 0;font-size:var(--fbase);gap:10px;}
+  .kv .k{color:#667085;} .kv .v{color:#101828;font-weight:600;text-align:right;}
+  .mini{background:#fff;border:1px solid #eaecf0;border-radius:12px;padding:12px 14px;margin-top:10px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;box-shadow:0 2px 6px rgba(16,24,40,.05);gap:8px;flex-wrap:wrap;}
+  .mini:active{background:#fafbfc;}
+  .mp{font-size:var(--fbase);font-weight:700;color:#101828;} .mc{font-size:var(--fxs);color:#667085;margin-top:2px;}
+  .mr{font-size:var(--fbase);color:#0f6b6b;font-weight:700;} .mmora{font-size:var(--fxs);margin-top:3px;}
+  .cta{position:sticky;bottom:0;display:block;width:calc(100% - 28px);margin:14px;padding:15px;background:#0f6b6b;color:#fff;border:none;border-radius:14px;font-size:var(--fmd);font-weight:700;cursor:pointer;box-shadow:0 6px 18px rgba(15,107,107,.35);}
+  .cta.dis{opacity:.45;pointer-events:none;box-shadow:none;}
+  .ph{padding:60px 24px;text-align:center;color:#98a2b3;font-size:var(--fbase);}
+  .ctxcard{background:#fff;border:1px solid #eaecf0;border-radius:12px;padding:12px 14px;margin-top:4px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
+  .ctxcard .cl{font-size:var(--fbase);font-weight:700;color:#101828;} .ctxcard .cc2{font-size:var(--fxs);color:#667085;margin-top:2px;}
+  .ctxcard .crl{font-size:var(--f2xs);color:#98a2b3;text-align:right;} .ctxcard .crv{font-size:var(--fmd);font-weight:700;color:#0f6b6b;text-align:right;}
+  .field{margin-top:16px;} .flabel{font-size:var(--fsm);font-weight:700;color:#344054;margin-bottom:8px;}
+  .ta{width:100%;border:1px solid #e4e7ec;border-radius:12px;padding:12px;font-size:var(--fbase);font-family:inherit;min-height:96px;resize:vertical;color:#101828;outline:none;background:#fff;}
+  .ta:focus{border-color:#0f6b6b;}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+  .chip{background:#eef2f6;color:#0f6b6b;border:none;border-radius:16px;padding:7px 13px;font-size:var(--fxs);font-weight:600;cursor:pointer;}
+  .switchrow{display:flex;justify-content:space-between;align-items:center;background:#fff;border:1px solid #eaecf0;border-radius:12px;padding:14px 16px;margin-top:12px;gap:12px;flex-wrap:wrap;}
+  .switchrow .si{flex:1;min-width:120px;} .switchrow .sl{font-size:var(--fbase);font-weight:600;color:#101828;} .switchrow .sd{font-size:var(--fxs);color:#98a2b3;margin-top:2px;}
+  .switch{width:48px;height:28px;border-radius:14px;background:#cbd2d9;position:relative;flex:none;cursor:pointer;}
+  .switch.on{background:#0f6b6b;} .switch .knob{width:22px;height:22px;border-radius:50%;background:#fff;position:absolute;top:3px;left:3px;box-shadow:0 1px 2px rgba(0,0,0,.2);} .switch.on .knob{left:23px;}
+  .section{margin-top:12px;border-left:3px solid #0f6b6b;padding:2px 0 2px 12px;display:none;} .section.show{display:block;}
+  .stt{font-size:var(--fsm);font-weight:700;color:#0f6b6b;margin-bottom:4px;}
+  .pago-line{background:#fff;border:1px solid #eaecf0;border-radius:12px;padding:10px;margin-top:10px;}
+  .pl-row{display:flex;gap:8px;margin-top:8px;} .pl-row:first-child{margin-top:0;}
+  .inp{flex:1;border:1px solid #e4e7ec;border-radius:10px;padding:10px;font-size:var(--fbase);outline:none;color:#101828;background:#fff;min-width:0;font-family:inherit;} .inp:focus{border-color:#0f6b6b;}
+  .sel{border:1px solid #e4e7ec;border-radius:10px;padding:10px;font-size:var(--fbase);background:#fff;color:#101828;}
+  .rm{background:#fee2e2;color:#dc2626;border:none;border-radius:10px;width:42px;font-size:var(--fmd);cursor:pointer;flex:none;}
+  .addbtn{background:#eef2f6;color:#0f6b6b;border:1px dashed #a7c4c4;border-radius:10px;padding:11px;width:100%;font-size:var(--fsm);font-weight:600;cursor:pointer;margin-top:10px;}
+  .dfield{margin-top:10px;} .dfield label{display:block;font-size:var(--fxs);color:#667085;margin-bottom:4px;}
+  .savehint{font-size:var(--fxs);color:#d97706;text-align:center;margin:8px 0 0;}
+  .hero{background:#0f6b6b;color:#fff;border-radius:16px;padding:16px;margin-top:4px;box-shadow:0 6px 18px rgba(15,107,107,.25);cursor:pointer;}
+  .hero .hl{color:#bfe3e3;font-size:var(--fsm);} .hero .ha{font-size:var(--fbig);font-weight:800;margin-top:4px;} .hero .hs{color:#bfe3e3;font-size:var(--fxs);margin-top:6px;}
+  .statsrow{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;}
+  .statc{flex:1 1 28%;min-width:92px;background:#fff;border:1px solid #eaecf0;border-radius:12px;padding:12px;text-align:center;box-shadow:0 2px 6px rgba(16,24,40,.05);}
+  .statc .sv{font-size:var(--flg);font-weight:800;color:#101828;} .statc .sl2{font-size:var(--fxs);color:#98a2b3;margin-top:3px;}
+  .brow{display:flex;justify-content:space-between;align-items:center;background:#fff;border:1px solid #eaecf0;border-radius:12px;padding:12px 14px;margin-top:10px;gap:10px;cursor:pointer;}
+  .brow .bn{font-size:var(--fbase);font-weight:600;color:#101828;} .brow .bs{font-size:var(--fxs);color:#667085;margin-top:2px;}
+  .bcount{background:#ecfdf5;color:#0f6b6b;font-weight:800;border-radius:10px;padding:5px 11px;font-size:var(--fsm);white-space:nowrap;}
+  .rgrp{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;}
+  .ibadge{font-size:var(--fxs);color:#0f6b6b;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:3px 9px;font-weight:700;white-space:nowrap;cursor:pointer;}
+  .icard{background:#fff;border:1px solid #eaecf0;border-radius:12px;padding:12px 14px;margin-top:10px;box-shadow:0 2px 6px rgba(16,24,40,.05);}
+  .ihead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;}
+  .itime{font-size:var(--fxs);color:#667085;font-weight:600;} .iacct{font-size:var(--fxs);color:#98a2b3;}
+  .icom{font-size:var(--fbase);color:#101828;margin-top:8px;line-height:1.4;}
+  .itags{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  .itag{font-size:var(--fxs);font-weight:600;border-radius:10px;padding:4px 10px;}
+  .itag.pago{background:#ecfdf5;color:#065f46;} .itag.datos{background:#eff6ff;color:#2563eb;} .itag.geo{background:#f2f4f7;color:#667085;}
+  .tabbar{display:flex;background:#fff;border-bottom:1px solid #eaecf0;}
+  .tab{flex:1;text-align:center;padding:13px 4px;font-size:var(--fsm);color:#667085;cursor:pointer;border-bottom:2.5px solid transparent;font-weight:600;}
+  .tab.active{color:#0f6b6b;border-bottom-color:#0f6b6b;}
+  .sheet{position:absolute;inset:0;background:rgba(16,24,40,.45);display:none;align-items:flex-end;z-index:60;border-radius:38px;overflow:hidden;} .sheet.show{display:flex;}
+  .scard{background:#fff;width:100%;border-radius:22px 22px 0 0;padding:14px 16px 22px;}
+  .sttl{font-size:var(--fsm);font-weight:700;color:#98a2b3;text-transform:uppercase;letter-spacing:.04em;padding:6px 6px 10px;}
+  .sopt{display:flex;align-items:center;gap:16px;padding:14px;border-radius:12px;cursor:pointer;color:#101828;font-size:var(--fmd);} .sopt:active{background:#f2f4f7;} .sopt.active{background:#ecfdf5;color:#0f6b6b;font-weight:700;}
+  .sa{width:44px;text-align:center;font-weight:800;color:#0f6b6b;}
+  .statbig{border-radius:16px;padding:16px;margin-top:4px;color:#fff;display:flex;align-items:center;gap:14px;}
+  .statbig.ok{background:#0f6b6b;} .statbig.pend{background:#b45309;} .statbig.off{background:#475467;}
+  .statbig .stico{font-size:calc(28px*var(--s));line-height:1;flex:none;}
+  .statbig .st1{font-size:var(--flg);font-weight:800;} .statbig .st2{font-size:var(--fsm);opacity:.92;margin-top:3px;}
+  .pendtag{font-size:var(--fxs);font-weight:700;background:#fef3c7;color:#b45309;border-radius:10px;padding:4px 10px;white-space:nowrap;flex:none;}
+  .pendtag.okt{background:#ecfdf5;color:#065f46;}
+  .bigbtn{display:block;width:100%;padding:14px;background:#0f6b6b;color:#fff;border:none;border-radius:14px;font-size:var(--fmd);font-weight:700;cursor:pointer;margin-top:14px;box-shadow:0 6px 18px rgba(15,107,107,.3);}
+  .bigbtn:disabled{opacity:.45;box-shadow:none;cursor:default;}
+  .note2{background:#f8fafc;border:1px solid #eaecf0;border-radius:12px;padding:12px 14px;margin-top:14px;font-size:var(--fxs);color:#667085;line-height:1.5;}
+  .note2 b{color:#344054;}
+  .demo{background:#fffbeb;border:1px dashed #fcd34d;border-radius:12px;padding:10px 14px;margin-top:14px;font-size:var(--f2xs);color:#92400e;}
+</style>
+</head>
+<body>
+  <div class="phone">
+    <div id="app"></div>
+    <div id="nav" class="nav"></div>
+    <div id="sheet" class="sheet" onclick="if(event.target===this)hideSheet()">
+      <div class="scard"><div class="sttl">Tamaño de vista</div>
+        <div class="sopt" data-n="1" onclick="setScale(1)"><span class="sa" style="font-size:15px">Aa</span><span>Normal</span></div>
+        <div class="sopt" data-n="2" onclick="setScale(2)"><span class="sa" style="font-size:19px">Aa</span><span>Grande</span></div>
+        <div class="sopt" data-n="3" onclick="setScale(3)"><span class="sa" style="font-size:24px">Aa</span><span>Muy grande</span></div>
+        <div class="sopt" data-n="4" onclick="setScale(4)"><span class="sa" style="font-size:29px">Aa</span><span>Máximo</span></div>
+      </div>
+    </div>
+  </div>
+<script>
+function fmt(n){return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function m2(nio,usd){const p=[];if(nio>0)p.push('C$ '+fmt(nio));if(usd>0)p.push('US$ '+fmt(usd));return p.length?p.join(' · '):'C$ 0.00';}
+const clients=[
+ {id:1,nombre:"Carlos Cruz Salazar",depto:"León",trabajo:"Claro Nicaragua",tels:[["Celular","8606-2168"],["Casa","2513-6098"]],dirs:[["Casa","De la iglesia El Calvario, 6 c. al lago, #8305"],["Estado de cuenta","Del parque central, 5 c. arriba, #7111"],["Trabajo","Del mercado Oriental, 3 c. abajo, #284"]],cuentas:[
+   {id:101,producto:"Tarjeta Oro",cuenta:"4556 •••• 0676",tipo:"Diaria",svNio:18410.07,svUsd:0,totalUsd:503.01,contUsd:1137.76,pmNio:1455.29,pmUsd:0,retNio:18410.07,retUsd:0,dias:27,nivel:1,fechaPago:"20/07/2026",ultimoPago:"02/04/2026",ciclo:"25",fiador:"Respaldo Total",nota:"Familiar atiende"},
+   {id:102,producto:"Préstamo Personal",cuenta:"5412 •••• 8821",tipo:"Especial",svNio:6200,svUsd:150,totalUsd:333.40,contUsd:800,pmNio:620,pmUsd:15,retNio:6200,retUsd:150,dias:12,nivel:1,fechaPago:"22/07/2026",ultimoPago:"05/05/2026",ciclo:"05",fiador:"Garantías del Pacífico",nota:"Solicita arreglo de pago"}]},
+ {id:2,nombre:"María López García",depto:"Madriz",trabajo:"Hospital Vivian Pellas",tels:[["Celular","7443-3505"],["Casa","2276-2867"]],dirs:[["Casa","Del puente El Edén, 6 c. al lago, #928"],["Estado de cuenta","Del puente El Edén, 6 c. al lago, #928"],["Trabajo","De la iglesia El Calvario, 2 c. al lago, #3040"]],cuentas:[
+   {id:201,producto:"Préstamo Hipotecario",cuenta:"8030 •••• 5917",tipo:"Incobrable",svNio:0,svUsd:1240,totalUsd:1240,contUsd:3500,pmNio:0,pmUsd:258.41,retNio:0,retUsd:1240,dias:108,nivel:4,fechaPago:"02/07/2026",ultimoPago:"13/01/2025",ciclo:"10",fiador:"Avales Nicaragüenses",nota:"—"},
+   {id:202,producto:"Tarjeta Clásica",cuenta:"7011 •••• 2233",tipo:"Diaria",svNio:3400,svUsd:0,totalUsd:92.90,contUsd:250,pmNio:340,pmUsd:0,retNio:3400,retUsd:0,dias:8,nivel:1,fechaPago:"19/07/2026",ultimoPago:"28/05/2026",ciclo:"18",fiador:"—",nota:"—"}]},
+ {id:3,nombre:"Yelba Ortiz Reyes",depto:"Managua",trabajo:"Walmart Nicaragua",tels:[["Celular","8123-4567"],["Casa","2244-1100"]],dirs:[["Casa","De la rotonda Metrocentro, 2 c. al sur, #6959"],["Estado de cuenta","De la rotonda Metrocentro, 2 c. al sur, #6959"],["Trabajo","De la gasolinera Uno, 5 c. abajo, #6683"]],cuentas:[
+   {id:301,producto:"Tarjeta Clásica",cuenta:"7011 •••• 3402",tipo:"Diaria",svNio:9850.50,svUsd:0,totalUsd:269.14,contUsd:600,pmNio:985.05,pmUsd:0,retNio:9850.50,retUsd:0,dias:45,nivel:2,fechaPago:"18/07/2026",ultimoPago:"20/03/2026",ciclo:"15",fiador:"—",nota:"Cliente promete pagar fin de mes"}]},
+ {id:4,nombre:"Denis Gutiérrez M.",depto:"Granada",trabajo:"Zona Franca Las Mercedes",tels:[["Celular","8855-9012"],["Casa","2552-3344"]],dirs:[["Casa","Del parque central, 3 c. al lago, #214"],["Estado de cuenta","Del parque central, 3 c. al lago, #214"],["Trabajo","Km 12 carretera a Masaya, #50"]],cuentas:[
+   {id:401,producto:"Préstamo Vehículo",cuenta:"9020 •••• 4567",tipo:"Incobrable",svNio:22000,svUsd:0,totalUsd:601.09,contUsd:5000,pmNio:2200,pmUsd:0,retNio:22000,retUsd:0,dias:95,nivel:4,fechaPago:"10/07/2026",ultimoPago:"20/02/2026",ciclo:"12",fiador:"Inversiones del Norte",nota:"Negocio cerrado temporalmente"}]},
+ {id:5,nombre:"Xiomara Téllez Cruz",depto:"Estelí",trabajo:"BAC Credomatic",tels:[["Celular","8777-2210"],["Casa","2713-8800"]],dirs:[["Casa","De la escuela pública, 1 c. arriba, #77"],["Estado de cuenta","De la escuela pública, 1 c. arriba, #77"],["Trabajo","Reparto San Juan, casa #12"]],cuentas:[
+   {id:501,producto:"Tarjeta Oro",cuenta:"4556 •••• 1199",tipo:"Diaria",svNio:5600,svUsd:0,totalUsd:153.01,contUsd:300,pmNio:560,pmUsd:0,retNio:5600,retUsd:0,dias:18,nivel:1,fechaPago:"21/07/2026",ultimoPago:"01/06/2026",ciclo:"20",fiador:"—",nota:"—"}]},
+];
+const TODAY="23/06";
+const inter=[
+  {cid:1,aid:101,fecha:"23/06",hora:"09:15",com:"Cliente pagó parte de la cuota. Quedó en completar el viernes.",pagos:[{monto:5000,moneda:'NIO',recibo:"00123"}],datos:false,synced:true},
+  {cid:2,aid:201,fecha:"23/06",hora:"10:02",com:"Pagó en dólares. Pidió actualizar su número de celular.",pagos:[{monto:300,moneda:'USD',recibo:"00124"}],datos:true,synced:false},
+  {cid:1,aid:102,fecha:"23/06",hora:"09:20",com:"Pagó parte en córdobas y parte en dólares.",pagos:[{monto:1500,moneda:'NIO',recibo:"00125"},{monto:50,moneda:'USD',recibo:"00126"}],datos:false,synced:false},
+  {cid:1,aid:101,fecha:"20/06",hora:"11:30",com:"Primera visita. Acordamos plan de pago semanal.",pagos:[],datos:false,synced:true},
+  {cid:2,aid:201,fecha:"16/06",hora:"14:10",com:"Pagó la cuota completa el mes pasado.",pagos:[{monto:250,moneda:'USD',recibo:"00098"}],datos:false,synced:true}];
+const RED=a=>a.dias>90||a.nivel>=4;
+const clientTotal=c=>{let nio=0,usd=0;c.cuentas.forEach(a=>{nio+=a.retNio;usd+=a.retUsd;});return{nio,usd};};
+const clientTipos=c=>[...new Set(c.cuentas.map(a=>a.tipo))];
+const clientMaxMora=c=>Math.max(...c.cuentas.map(a=>a.dias));
+const allAccounts=()=>clients.flatMap(c=>c.cuentas.map(a=>({...a,_c:c})));
+let state={filter:"Todos",search:"",mode:"cliente"},detSrc='cartera',inicioMode='cliente',cliCur=null,cliTab='cuentas',cliBack='cartera',detCid=null,detAid=null,detTab='detalle';
+let ordC=JSON.parse(localStorage.getItem('cmOrdC')||'null')||clients.map(c=>c.id);
+let ordA=JSON.parse(localStorage.getItem('cmOrdA')||'null')||allAccounts().map(a=>a.id);
+let online=true,lastSync="Hoy 08:42",syncBack='inicio';
+function saveOrd(){localStorage.setItem('cmOrdC',JSON.stringify(ordC));localStorage.setItem('cmOrdA',JSON.stringify(ordA));}
+function moveC(id,dir){const i=ordC.indexOf(id),j=i+dir;if(j<0||j>=ordC.length)return;[ordC[i],ordC[j]]=[ordC[j],ordC[i]];saveOrd();renderList();}
+function moveA(id,dir){const i=ordA.indexOf(id),j=i+dir;if(j<0||j>=ordA.length)return;[ordA[i],ordA[j]]=[ordA[j],ordA[i]];saveOrd();renderList();}
+const app=document.getElementById('app'),nav=document.getElementById('nav');
+const aa='<button class="aa" onclick="showSheet()">Aa</button>';
+const SVG={home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 11 L12 3 L21 11"/><path d="M5 10 V20 H19 V10"/></svg>',list:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="5" y1="7" x2="19" y2="7"/><line x1="5" y1="12" x2="19" y2="12"/><line x1="5" y1="17" x2="19" y2="17"/></svg>',stats:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="12" width="4" height="8" rx="1"/><rect x="10" y="6" width="4" height="14" rx="1"/><rect x="16" y="9" width="4" height="11" rx="1"/></svg>'};
+const navHTML=a=>{const it=(id,ic,l)=>`<div class="it ${a===id?'active':''}" onclick="showTab('${id}')">${ic}${l}</div>`;return it('inicio',SVG.home,'Inicio')+it('cartera',SVG.list,'Cartera')+it('stats',SVG.stats,'Stats');};
+
+function carteraShell(){
+  let gn=0,gu=0;clients.forEach(c=>{const t=clientTotal(c);gn+=t.nio;gu+=t.usd;});
+  const nAcc=clients.reduce((s,c)=>s+c.cuentas.length,0);
+  return `<div class="hdr"><div class="sb"><span>9:41</span><span>●●● 📶 🔋</span></div>
+    <div class="trow"><div><div class="ttl">Mi Cartera</div><div class="sub">${clients.length} clientes · ${nAcc} cuentas</div></div><div class="hbtns">${aa}${syncPill()}</div></div>
+    <div class="total"><div class="l">A cobrar hoy</div><div class="a">${m2(gn,gu)}</div></div></div>
+   <div class="body">
+    <div class="seg" id="seg">${["Todos","Diaria","Incobrable","Especial"].map(f=>`<div class="o ${state.filter===f?'active':''}" onclick="setFilter('${f}')">${f}</div>`).join('')}</div>
+    <div class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#98a2b3" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="16" y1="16" x2="21" y2="21"/></svg><input id="q" placeholder="Buscar cliente o cuenta…" oninput="setSearch(this.value)" value="${state.search}"></div>
+    <div class="resultbar"><span id="count"></span><div class="gtoggle"><span class="gopt ${state.mode==='cliente'?'active':''}" onclick="setMode('cliente')">👤 Cliente</span><span class="gopt ${state.mode==='cuenta'?'active':''}" onclick="setMode('cuenta')">▤ Cuenta</span></div></div>
+    <div id="lista"></div></div>`;
+}
+function clientCard(c){const t=clientTotal(c),mm=clientMaxMora(c),red=mm>90,ic=inter.filter(h=>h.cid===c.id).length;
+  return `<div class="card" onclick="openCliente(${c.id})"><div class="main">
+    <div class="r1"><span class="nm">${c.nombre}</span><div class="rgrp"><span class="cnt">${c.cuentas.length} cuenta${c.cuentas.length>1?'s':''}</span>${ic>0?`<span class="ibadge" onclick="event.stopPropagation();openCliente(${c.id},'inter','cartera')">💬 ${ic}</span>`:''}</div></div>
+    <div class="tipos">${clientTipos(c).map(tp=>`<span class="badge ${tp}">${tp}</span>`).join('')}</div><div class="dv"></div>
+    <div class="r2"><div class="cob"><div class="l">Total a cobrar</div><div class="a">${m2(t.nio,t.usd)}</div></div><div class="mora ${red?'alta':''}">máx ${mm} días</div></div>
+   </div><div class="arr" onclick="event.stopPropagation()"><span onclick="moveC(${c.id},-1)">▲</span><span onclick="moveC(${c.id},1)">▼</span></div></div>`;
+}
+function accountCard(a){const ic=inter.filter(h=>h.aid===a.id).length;return `<div class="card" onclick="openDetalle(${a._c.id},${a.id},'cartera')"><div class="main">
+    <div class="r1"><span class="nm">${a._c.nombre}</span><div class="rgrp"><span class="badge ${a.tipo}">${a.tipo}</span>${ic>0?`<span class="ibadge" onclick="event.stopPropagation();openDetalle(${a._c.id},${a.id},'cartera','inter')">💬 ${ic}</span>`:''}</div></div>
+    <div class="acct">${a.producto} · ${a.cuenta}</div><div class="dv"></div>
+    <div class="r2"><div class="cob"><div class="l">A cobrar</div><div class="a">${m2(a.retNio,a.retUsd)}</div></div><div class="mora ${RED(a)?'alta':''}">${a.dias} días · Nivel ${a.nivel}</div></div>
+   </div><div class="arr" onclick="event.stopPropagation()"><span onclick="moveA(${a.id},-1)">▲</span><span onclick="moveA(${a.id},1)">▼</span></div></div>`;
+}
+function renderList(){const q=state.search.toLowerCase();let html,n;
+  if(state.mode==='cliente'){let items=ordC.map(id=>clients.find(c=>c.id===id)).filter(Boolean);
+    items=items.filter(c=>(state.filter==="Todos"||c.cuentas.some(a=>a.tipo===state.filter))&&(q===""||c.nombre.toLowerCase().includes(q)||c.cuentas.some(a=>a.cuenta.toLowerCase().includes(q))));
+    n=items.length;html=items.length?items.map(clientCard).join(''):'<div class="empty">No hay clientes con ese filtro.</div>';document.getElementById('count').textContent=n+(n===1?' cliente':' clientes');}
+  else{const all=allAccounts();let items=ordA.map(id=>all.find(a=>a.id===id)).filter(Boolean);
+    items=items.filter(a=>(state.filter==="Todos"||a.tipo===state.filter)&&(q===""||a._c.nombre.toLowerCase().includes(q)||a.cuenta.toLowerCase().includes(q)));
+    n=items.length;html=items.length?items.map(accountCard).join(''):'<div class="empty">No hay cuentas con ese filtro.</div>';document.getElementById('count').textContent=n+(n===1?' cuenta':' cuentas');}
+  document.getElementById('lista').innerHTML=html;}
+function setFilter(f){state.filter=f;document.querySelectorAll('#seg .o').forEach(o=>o.classList.toggle('active',o.textContent===f));renderList();}
+function setSearch(v){state.search=v;renderList();}
+function setMode(m){state.mode=m;app.innerHTML=carteraShell();renderList();}
+
+function contactRows(o){const tel=o.tels.map(x=>`<div class="crow"><div class="ci"><div class="ct2">${x[0]}</div><div class="cv">${x[1]}</div></div><button class="act" onclick="alert('📞 Llamar a ${x[1]}')">Llamar</button></div>`).join('');
+  const dir=o.dirs.map(x=>`<div class="crow"><div class="ci"><div class="ct2">${x[0]}</div><div class="cv">${x[1]}</div></div><button class="act alt" onclick="alert('🗺️ Cómo llegar')">Mapa</button></div>`).join('');return{tel,dir};}
+function interCards(items,scope){const k=h=>h.fecha.split('/').reverse().join('')+h.hora;
+  return [...items].sort((x,y)=>k(y).localeCompare(k(x))).map(h=>{
+    let acctLabel='';if(scope!=='cuenta'){let a;clients.forEach(cl=>cl.cuentas.forEach(cu=>{if(cu.id==h.aid)a=cu;}));acctLabel=a?a.producto+' · '+a.cuenta:'';}
+    const pagoTag=h.pagos.length?`<span class="itag pago">💵 ${h.pagos.map(p=>(p.moneda==='USD'?'US$ ':'C$ ')+fmt(p.monto)+(p.recibo?' (rec. '+p.recibo+')':'')).join(' · ')}</span>`:'';
+    const datosTag=h.datos?'<span class="itag datos">✏️ Datos actualizados</span>':'';
+    return `<div class="icard"><div class="ihead"><span class="itime">🕘 ${h.fecha} · ${h.hora}</span><span class="iacct">${acctLabel}</span></div><div class="icom">${h.com}</div><div class="itags">${pagoTag}${datosTag}<span class="itag geo">📍 Ubicación</span></div></div>`;
+  }).join('');
+}
+function clienteHTML(c){const t=clientTotal(c),{tel,dir}=contactRows(c);
+  const cu=c.cuentas.map(a=>`<div class="mini" onclick="openDetalle(${c.id},${a.id},'cliente')"><div><div class="mp">${a.producto} <span class="badge ${a.tipo}" style="margin-left:4px">${a.tipo}</span></div><div class="mc">${a.cuenta}</div></div><div style="text-align:right"><div class="mr">${m2(a.retNio,a.retUsd)}</div><div class="mmora" style="${RED(a)?'color:#dc2626;font-weight:700':'color:#98a2b3'}">${a.dias} días</div></div></div>`).join('');
+  const items=inter.filter(h=>h.cid===c.id);
+  const cuentasTab=`<div class="dcard hl"><div class="dlbl">Total a cobrar del cliente</div><div class="dbig">${m2(t.nio,t.usd)}</div></div>
+    <div class="dcard"><div class="ct">Contacto</div>${tel}<div class="ct" style="margin-top:12px">Direcciones</div>${dir}</div>
+    <div class="ct" style="margin:16px 2px 0">Cuentas a cobrar (${c.cuentas.length})</div>${cu}`;
+  const interTab=interCards(items,'cliente')||'<div class="empty">Sin interacciones registradas.</div>';
+  return `<div class="dhdr"><button class="back" onclick="showTab('${cliBack}')">←</button><div style="flex:1"><div class="dnm">${c.nombre}</div><div class="dac">${c.depto} · ${c.trabajo}</div></div>${aa}</div>
+   <div class="tabbar"><div class="tab ${cliTab==='cuentas'?'active':''}" onclick="setCliTab('cuentas')">Cuentas (${c.cuentas.length})</div><div class="tab ${cliTab==='inter'?'active':''}" onclick="setCliTab('inter')">Interacciones (${items.length})</div></div>
+   <div class="body">${cliTab==='cuentas'?cuentasTab:interTab}</div>`;
+}
+function detalleHTML(c,a){const{tel,dir}=contactRows(c);
+  const back=detSrc==='cliente'?`openCliente(${c.id})`:detSrc==='inicio'?`showTab('inicio')`:`showTab('cartera')`;
+  const items=inter.filter(h=>h.aid===a.id);
+  const detTabC=`<div class="dcard hl"><div class="dlbl">A cobrar (Retiro)</div><div class="dbig">${m2(a.retNio,a.retUsd)}</div>
+      <div class="grid3"><div class="g"><div class="gl">Saldo vencido</div><div class="gv">${m2(a.svNio,a.svUsd)}</div></div><div class="g"><div class="gl">Pago mínimo</div><div class="gv">${m2(a.pmNio,a.pmUsd)}</div></div><div class="g"><div class="gl">Total (dolariz.)</div><div class="gv">US$ ${fmt(a.totalUsd)}</div></div></div>
+      <div class="dnote">En riesgo (contagiado): US$ ${fmt(a.contUsd)}</div></div>
+    <div class="dcard"><div class="ct">Mora</div><div class="kv"><span class="k">Días en mora</span><span class="v" style="${RED(a)?'color:#dc2626':''}">${a.dias} días · Nivel ${a.nivel}</span></div><div class="kv"><span class="k">Fecha de pago</span><span class="v">${a.fechaPago}</span></div><div class="kv"><span class="k">Último pago</span><span class="v">${a.ultimoPago}</span></div><div class="kv"><span class="k">Ciclo</span><span class="v">${a.ciclo}</span></div></div>
+    <div class="dcard"><div class="ct">Contacto</div>${tel}<div class="ct" style="margin-top:12px">Direcciones</div>${dir}</div>
+    <div class="dcard"><div class="kv"><span class="k">Producto</span><span class="v">${a.producto}</span></div><div class="kv"><span class="k">Fiador</span><span class="v">${a.fiador}</span></div><div class="kv"><span class="k">Nota</span><span class="v">${a.nota}</span></div></div>`;
+  const interTabC=interCards(items,'cuenta')||'<div class="empty">Sin interacciones registradas.</div>';
+  return `<div class="dhdr"><button class="back" onclick="${back}">←</button><div style="flex:1"><div class="dnm">${c.nombre}</div><div class="dac">${a.producto} · ${a.cuenta}</div></div><span class="badge ${a.tipo}">${a.tipo}</span>${aa}</div>
+   <div class="tabbar"><div class="tab ${detTab==='detalle'?'active':''}" onclick="setDetTab('detalle')">Detalle</div><div class="tab ${detTab==='inter'?'active':''}" onclick="setDetTab('inter')">Interacciones (${items.length})</div></div>
+   <div class="body">${detTab==='detalle'?detTabC:interTabC}<button class="cta" onclick="openInteraccion(${c.id},${a.id})">＋ Registrar interacción</button></div>`;
+}
+function interaccionHTML(c,a){
+  const dat=[["inTelCasa","Teléfono casa"],["inTelCel","Teléfono celular"],["inTelTrab","Teléfono trabajo"],["inDirCasa","Dirección casa"],["inDirEC","Dirección estado de cuenta"],["inDirTrab","Dirección trabajo"],["inCorreo","Correo electrónico"]];
+  return `<div class="dhdr"><button class="back" onclick="openDetalle(${c.id},${a.id},detSrc)">←</button><div style="flex:1"><div class="dnm">Registrar interacción</div><div class="dac">${c.nombre}</div></div>${aa}</div>
+   <div class="body">
+     <div class="ctxcard"><div><div class="cl">${a.producto}</div><div class="cc2">${a.cuenta}</div></div><div><div class="crl">A cobrar</div><div class="crv">${m2(a.retNio,a.retUsd)}</div></div></div>
+     <div class="field"><div class="flabel">¿Qué pasó? *</div>
+       <textarea class="ta" id="txtCom" placeholder="Escribí el comentario de la interacción…" oninput="validate()"></textarea>
+       <div class="chips">${["Promesa de pago","No localizado","Cliente pagó","No tiene dinero hoy","Negocio cerrado","Pidió arreglo"].map(t=>`<button class="chip" onclick="addChip('${t}')">${t}</button>`).join('')}</div></div>
+     <div class="switchrow"><div class="si"><div class="sl">💵 Aplica pago</div><div class="sd">El cliente pagó algo en esta visita</div></div><div class="switch" id="tgPago" onclick="togglePago()"><div class="knob"></div></div></div>
+     <div class="section" id="secPago"><div class="stt">Pago(s)</div><div id="pagoLines"></div><button class="addbtn" onclick="addPagoLine()">＋ Agregar pago</button></div>
+     <div class="switchrow"><div class="si"><div class="sl">✏️ Actualizar datos del cliente</div><div class="sd">Cambió un teléfono, dirección o correo</div></div><div class="switch" id="tgDatos" onclick="toggleDatos()"><div class="knob"></div></div></div>
+     <div class="section" id="secDatos"><div class="stt">Nuevos datos · dejá en blanco lo que no cambió</div>${dat.map(f=>`<div class="dfield"><label>${f[1]}</label><input class="inp" id="${f[0]}" oninput="validate()"></div>`).join('')}</div>
+     <div class="geocard" style="display:flex;align-items:center;gap:10px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:12px;padding:12px 14px;margin-top:14px"><span style="font-size:calc(20px*var(--s))">📍</span><div><div style="font-size:var(--fbase);color:#065f46;font-weight:600">Ubicación capturada</div><div style="font-size:var(--fxs);color:#059669">12.1364, −86.2514 · automática</div></div></div>
+     <div class="metarow" style="font-size:var(--fxs);color:#98a2b3;margin-top:14px;text-align:center">Se registrará: 23/06/2026 09:41 · ${c.nombre}</div>
+     <button class="cta dis" id="btnSave" onclick="saveInter(${c.id},${a.id})">Guardar interacción</button>
+     <div class="savehint" id="hint"></div></div>`;
+}
+function addChip(t){const ta=document.getElementById('txtCom');ta.value=(ta.value?ta.value.trim()+'. ':'')+t;ta.focus();validate();}
+function togglePago(){const t=document.getElementById('tgPago');t.classList.toggle('on');const on=t.classList.contains('on');document.getElementById('secPago').classList.toggle('show',on);if(on&&!document.querySelector('#pagoLines .pago-line'))addPagoLine();validate();}
+function toggleDatos(){const t=document.getElementById('tgDatos');t.classList.toggle('on');document.getElementById('secDatos').classList.toggle('show',t.classList.contains('on'));validate();}
+function addPagoLine(){const d=document.createElement('div');d.className='pago-line';d.innerHTML='<div class="pl-row"><input class="inp mn" type="number" inputmode="decimal" placeholder="Monto" oninput="validate()"><select class="sel mo"><option>NIO</option><option>USD</option></select></div><div class="pl-row"><input class="inp rc" placeholder="N° de recibo" oninput="validate()"><button class="rm" onclick="this.closest(\'.pago-line\').remove();validate()">✕</button></div>';document.getElementById('pagoLines').appendChild(d);validate();}
+function pagoOk(){return [...document.querySelectorAll('#pagoLines .pago-line')].some(l=>parseFloat(l.querySelector('.mn').value)>0 && l.querySelector('.rc').value.trim()!=='');}
+function datosOk(){return [...document.querySelectorAll('#secDatos .inp')].some(i=>i.value.trim()!=='');}
+function validate(){const miss=[];if(!document.getElementById('txtCom').value.trim())miss.push('comentario');
+  const p=document.getElementById('tgPago').classList.contains('on'),d=document.getElementById('tgDatos').classList.contains('on');
+  if(p&&!pagoOk())miss.push('monto + n° de recibo');if(d&&!datosOk())miss.push('algún dato del cliente');
+  const b=document.getElementById('btnSave'),h=document.getElementById('hint');
+  b.textContent='Guardar interacción'+(p?' + pago':'')+(d?' + datos':'');
+  if(miss.length){b.classList.add('dis');h.textContent='Falta: '+miss.join(' · ');}else{b.classList.remove('dis');h.textContent='';}}
+function saveInter(cid,aid){const p=document.getElementById('tgPago').classList.contains('on'),d=document.getElementById('tgDatos').classList.contains('on');
+  const com=document.getElementById('txtCom').value.trim();
+  const pagos=p?[...document.querySelectorAll('#pagoLines .pago-line')].filter(l=>parseFloat(l.querySelector('.mn').value)>0).map(l=>({monto:parseFloat(l.querySelector('.mn').value),moneda:l.querySelector('.mo').value,recibo:l.querySelector('.rc').value.trim()})):[];
+  inter.push({cid,aid,fecha:TODAY,hora:"09:41",com,pagos,datos:d});
+  alert('✓ Guardado offline: interacción'+(p?' + pago(s)':'')+(d?' + actualización de datos':'')+'.\nSe sincroniza al volver la señal.');openDetalle(cid,aid,detSrc);}
+
+function inicioHTML(){
+  const today=inter.filter(h=>h.fecha===TODAY);
+  let pNio=0,pUsd=0,nPagos=0;today.forEach(h=>h.pagos.forEach(p=>{if(p.moneda==='USD')pUsd+=p.monto;else pNio+=p.monto;nPagos++;}));
+  const nInt=today.length,nCu=new Set(today.map(h=>h.aid)).size,nCl=new Set(today.map(h=>h.cid)).size;let rows='';
+  if(inicioMode==='cliente'){const m={};today.forEach(h=>m[h.cid]=(m[h.cid]||0)+1);rows=Object.keys(m).map(cid=>{const c=clients.find(x=>x.id==cid);return `<div class="brow" onclick="openCliente(${cid},'inter','inicio')"><div><div class="bn">${c.nombre}</div><div class="bs">${c.cuentas.length} cuenta(s) en cartera</div></div><div class="rgrp"><span class="bcount">${m[cid]} interac.</span><span style="color:#cbd2d9;font-size:var(--fmd)">›</span></div></div>`;}).join('');}
+  else{const m={};today.forEach(h=>m[h.aid]=(m[h.aid]||0)+1);rows=Object.keys(m).map(aid=>{let a,c;clients.forEach(cl=>cl.cuentas.forEach(cu=>{if(cu.id==aid){a=cu;c=cl;}}));return `<div class="brow" onclick="openDetalle(${c.id},${aid},'inicio','inter')"><div><div class="bn">${a.producto}</div><div class="bs">${c.nombre} · ${a.cuenta}</div></div><div class="rgrp"><span class="bcount">${m[aid]} interac.</span><span style="color:#cbd2d9;font-size:var(--fmd)">›</span></div></div>`;}).join('');}
+  return `<div class="hdr"><div class="sb"><span>9:41</span><span>●●● 📶 🔋</span></div><div class="trow"><div><div class="ttl">Hola, Marvin</div><div class="sub">Martes 23 de junio</div></div><div class="hbtns">${aa}${syncPill()}</div></div></div>
+   <div class="body">
+     <div class="hero" onclick="openPagos()"><div class="hl">Cobrado hoy</div><div class="ha">${m2(pNio,pUsd)}</div><div class="hs">${nPagos} pago(s) · ${nInt} interacción(es) · Ver detalle ›</div></div>
+     <div class="statsrow"><div class="statc"><div class="sv">${nInt}</div><div class="sl2">Interacciones</div></div><div class="statc"><div class="sv">${nCu}</div><div class="sl2">Cuentas</div></div><div class="statc"><div class="sv">${nCl}</div><div class="sl2">Clientes</div></div></div>
+     <div class="resultbar"><span style="font-size:var(--fsm);color:#667085;font-weight:600">Interacciones de hoy</span><div class="gtoggle"><span class="gopt ${inicioMode==='cliente'?'active':''}" onclick="setInicioMode('cliente')">👤 Cliente</span><span class="gopt ${inicioMode==='cuenta'?'active':''}" onclick="setInicioMode('cuenta')">▤ Cuenta</span></div></div>
+     ${rows||'<div class="empty">Todavía no registraste interacciones hoy.</div>'}</div>`;
+}
+function setInicioMode(m){inicioMode=m;showTab('inicio');}
+function pagosHTML(){
+  const today=inter.filter(h=>h.fecha===TODAY);let sumN=0,sumU=0;const byAcct={};
+  today.forEach(h=>h.pagos.forEach(p=>{if(p.moneda==='USD')sumU+=p.monto;else sumN+=p.monto;(byAcct[h.aid]=byAcct[h.aid]||[]).push({...p,hora:h.hora});}));
+  const groups=Object.keys(byAcct).map(aid=>{let a,c;clients.forEach(cl=>cl.cuentas.forEach(cu=>{if(cu.id==aid){a=cu;c=cl;}}));
+    const rows=byAcct[aid].map(p=>`<div class="crow"><div class="ci"><div class="cv">${(p.moneda==='USD'?'US$ ':'C$ ')+fmt(p.monto)}</div><div class="ct2">Recibo ${p.recibo||'—'} · ${p.hora}</div></div></div>`).join('');
+    return `<div class="dcard"><div class="ct">${c.nombre}</div><div class="mc" style="margin-bottom:4px">${a.producto} · ${a.cuenta}</div>${rows}</div>`;}).join('');
+  return `<div class="dhdr"><button class="back" onclick="showTab('inicio')">←</button><div style="flex:1"><div class="dnm">Pagos de hoy</div><div class="dac">Por cuenta y por moneda</div></div>${aa}</div>
+   <div class="body"><div class="dcard hl"><div class="dlbl">Total cobrado</div><div class="dbig">${m2(sumN,sumU)}</div></div>${groups||'<div class="empty">Sin pagos hoy.</div>'}</div>`;
+}
+function openPagos(){nav.style.display='none';app.innerHTML=pagosHTML();app.scrollTop=0;}
+function pendItems(){return inter.filter(h=>!h.synced);}
+function pendCounts(){const its=pendItems();let upd=0;its.forEach(h=>{upd+=1+(h.pagos?h.pagos.length:0)+(h.datos?1:0);});return{rows:its.length,upd};}
+function syncStatus(){const p=pendCounts();if(!online)return{cls:'off',ico:'📴',t:'Sin conexión',d:p.rows?`${p.rows} captura(s) guardada(s) en el dispositivo`:'Trabajando offline · todo guardado localmente'};if(p.rows)return{cls:'pend',ico:'🔼',t:'Pendiente de subir',d:`${p.rows} captura(s) · ${p.upd} actualización(es) individual(es)`};return{cls:'ok',ico:'✓',t:'Sincronizado',d:'Todo al día con el servidor'};}
+function syncPill(){const c=pendCounts(),off=!online;const dot=off?'#f59e0b':(c.rows?'#fbbf24':'#34d399');const tx=off?'Sin conexión':(c.rows?`${c.rows} pend.`:'Sincronizado');return `<div class="sync" onclick="openSync()" style="cursor:pointer"><span class="dot" style="background:${dot}"></span>${tx}</div>`;}
+function syncHTML(){
+  const st=syncStatus(),items=inter.filter(h=>h.fecha===TODAY),c=pendCounts();
+  const list=items.map(h=>{let a,cl;clients.forEach(x=>x.cuentas.forEach(cu=>{if(cu.id===h.aid){a=cu;cl=x;}}));
+    const parts=['Interacción'];if(h.pagos&&h.pagos.length)parts.push(h.pagos.length+' pago(s)');if(h.datos)parts.push('datos');
+    return `<div class="brow" style="cursor:default"><div><div class="bn">${cl.nombre} · ${a.producto}</div><div class="bs">${h.hora} · ${parts.join(' + ')}</div></div>${h.synced?'<span class="pendtag okt">Nº asignado</span>':'<span class="pendtag">sin Nº aún</span>'}</div>`;}).join('');
+  const canSync=online&&c.rows>0;
+  return `<div class="dhdr"><button class="back" onclick="showTab(syncBack)">←</button><div style="flex:1"><div class="dnm">Sincronización</div><div class="dac">Estado de tus capturas</div></div></div>
+   <div class="body">
+     <div class="statbig ${st.cls}"><span class="stico">${st.ico}</span><div><div class="st1">${st.t}</div><div class="st2">${st.d}</div></div></div>
+     <div class="dcard"><div class="kv"><span class="k">Conexión</span><span class="v">${online?'En línea':'Sin señal'}</span></div>
+       <div class="kv"><span class="k">Última sincronización</span><span class="v">${lastSync}</span></div>
+       <div class="kv"><span class="k">Pendientes por subir</span><span class="v">${c.rows} captura(s)</span></div></div>
+     <button class="bigbtn" onclick="doSync()" ${canSync?'':'disabled'}>${online?'↻ Buscar actualizaciones':'Sin conexión — no se puede sincronizar'}</button>
+     <div class="ct" style="margin-top:18px">Capturas de hoy</div>
+     ${list||'<div class="empty">No registraste capturas hoy.</div>'}
+     <div class="note2">El número <b>INT-/PAG-</b> lo asigna el <b>servidor al sincronizar</b>: por eso una captura offline aparece <b>“sin Nº aún”</b> hasta que sube. El conteo de pendientes y el forzado real de subida también viven en el <b>ícono de globo</b> de la barra nativa del player móvil (página <b>Device Status</b>) — esta pantalla es el complemento amigable dentro de la app.</div>
+     <div class="demo">🧪 Demo: <span onclick="toggleOnline()" style="text-decoration:underline;cursor:pointer;font-weight:700">simular ${online?'pérdida de señal':'recuperar señal'}</span> para ver cómo cambia el estado.</div>
+   </div>`;
+}
+function doSync(){if(!(online&&pendCounts().rows))return;inter.forEach(h=>h.synced=true);lastSync='Recién';openSync();}
+function toggleOnline(){online=!online;openSync();}
+function openSync(){syncBack=currentTab;nav.style.display='none';app.innerHTML=syncHTML();app.scrollTop=0;}
+function openInteraccion(cid,aid){const c=clients.find(x=>x.id===cid);const a=c.cuentas.find(x=>x.id===aid);nav.style.display='none';app.innerHTML=interaccionHTML(c,a);app.scrollTop=0;validate();}
+
+let currentTab='cartera';
+function showTab(id){currentTab=id;nav.style.display='flex';nav.innerHTML=navHTML(id);
+  if(id==='cartera'){app.innerHTML=carteraShell();renderList();}
+  else if(id==='inicio'){app.innerHTML=inicioHTML();}
+  else{app.innerHTML='<div class="hdr"><div class="sb"><span>9:41</span><span>●●● 📶 🔋</span></div><div class="trow"><div class="ttl">Mis Estadísticas</div><div class="hbtns">'+aa+'</div></div></div><div class="ph">📊 Ranking y gamificación<br>— próximamente —</div>';}
+  app.scrollTop=0;}
+function openCliente(id,tab,back){cliCur=id;cliTab=tab||'cuentas';cliBack=back||'cartera';nav.style.display='none';app.innerHTML=clienteHTML(clients.find(x=>x.id===id));app.scrollTop=0;}
+function setCliTab(t){cliTab=t;app.innerHTML=clienteHTML(clients.find(x=>x.id===cliCur));app.scrollTop=0;}
+function openDetalle(cid,aid,src,tab){detSrc=src;detCid=cid;detAid=aid;detTab=tab||'detalle';const c=clients.find(x=>x.id===cid);nav.style.display='none';app.innerHTML=detalleHTML(c,c.cuentas.find(x=>x.id===aid));app.scrollTop=0;}
+function setDetTab(t){detTab=t;const c=clients.find(x=>x.id===detCid);app.innerHTML=detalleHTML(c,c.cuentas.find(x=>x.id===detAid));app.scrollTop=0;}
+
+let curScale=+(localStorage.getItem('cmScale')||1);
+function applyScale(){document.querySelector('.phone').className='phone'+(curScale>1?' s'+curScale:'');}
+function setScale(n){curScale=n;localStorage.setItem('cmScale',n);applyScale();hideSheet();}
+function showSheet(){document.querySelectorAll('.sopt').forEach(o=>o.classList.toggle('active',o.dataset.n===String(curScale)));document.getElementById('sheet').classList.add('show');}
+function hideSheet(){document.getElementById('sheet').classList.remove('show');}
+applyScale();showTab('cartera');
+</script>
+</body>
+</html>

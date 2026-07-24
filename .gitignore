@@ -1,0 +1,23 @@
+# ── Secretos y credenciales — NUNCA al repo ─────────────────────────────
+.env
+*.local.json
+*.pfx
+*.snk
+
+# ── Artefactos de solución Dataverse ────────────────────────────────────
+# Los zips exportados (managed/unmanaged) van como assets de GitHub
+# Releases, no al árbol. En git solo vive solutions/unpacked/ (metadata).
+# Ver docs/desarrollo/10-estructura-del-repositorio.md §Fase 3.
+*.zip
+unpack-inspect/
+
+# ── Datos reales del banco — JAMÁS al repo ──────────────────────────────
+# En test-data/ solo viven CSVs MOCK generados por generar-mock.py.
+# Cualquier export real del core se trabaja fuera del repo.
+test-data/*real*
+test-data/*prod*
+
+# ── SO / editor ─────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
