@@ -136,13 +136,20 @@ La app del localizador **offline no resuelve navegación de relaciones** (ver
 `sanic_cm_tbl_cuenta` **las llena Smelter del CSV** (que ya trae todo denormalizado), y la app las lee
 directo (join local por número de cuenta), sin `.'[CT] Cliente'.'[CL] ...'`.
 
-| Columna | Display | Tipo | Origen CSV |
+| Columna | Display (real) | Tipo | Origen CSV |
 |---------|---------|------|-----------|
-| `sanic_cm_ct_nombrecliente` | `[CT] Nombre Cliente` | Text | `Cliente` |
-| `sanic_cm_ct_cifcliente` | `[CT] CIF Cliente` | Text | `CIF` |
-| `sanic_cm_ct_tipoproducto` | `[CT] Tipo Producto` | Text | `TipoProducto` |
-| `sanic_cm_ct_nombrefiador` | `[CT] Nombre Fiador` | Text | `NombreFianza` |
-| `sanic_cm_ct_direccionfiador` | `[CT] Direccion Fiador` | Text | `DireccionFianza` |
+| `sanic_cm_ct_nombrecliente` | `Nombre Cliente` | Text | `Cliente` |
+| `sanic_cm_ct_cifcliente` | `CIF Cliente` | Text | `CIF` |
+| `sanic_cm_ct_tipoproducto` | `Tipo Producto` | Text | `TipoProducto` |
+| `sanic_cm_ct_nombrefiador` | `Nombre Fiador` | Text | `NombreFianza` |
+| `sanic_cm_ct_direccionfiador` | `Direccion Fiador` | Text | `DireccionFianza` |
 
-> **Pendiente:** agregar estos 5 mapeos al Table Mapping de `cuenta` en Smelter
-> ([cobranza-import-config](cobranza-import-config.md)).
+Y en `sanic_cm_tbl_agente` (para resolver el localizador actual offline):
+
+| Columna | Display | Tipo | Origen |
+|---------|---------|------|--------|
+| `sanic_cm_ag_emailusuario` | `Email Usuario` | Email | lo setea el paso Admin que vincula agente↔usuario (o un flujo) |
+
+> ⚠️ Display names **sin** prefijo `[CT]`/`[AG]` (cosmético — la app las referencia por su nombre real).
+> **Pendiente:** los 5 mapeos de `cuenta` en el Table Mapping de Smelter
+> ([cobranza-import-config](cobranza-import-config.md)); poblar `sanic_cm_ag_emailusuario` al vincular usuario.
