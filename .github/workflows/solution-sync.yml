@@ -66,6 +66,12 @@ jobs:
           pac solution unpack --zipfile "$ZIP" --folder solutions/unpacked --packagetype Unmanaged
           # Podar componentes que NO hacen round-trip (la Canvas app del localizador).
           rm -rf solutions/unpacked/CanvasApps
+          # Sanitizar nombres ILEGALES en Windows (| < > : " ? *) → "-", para que el repo
+          # se pueda clonar/pull en Windows. Los roles/funciones usan "|" en el display name
+          # (ej. "SR | CM | Admin.xml"). unpacked/ es solo diff, renombrar no afecta la solución.
+          find solutions/unpacked -depth -name '*[<>:"|?*]*' | while IFS= read -r p; do
+            mv "$p" "$(dirname "$p")/$(basename "$p" | tr '<>:"|?*' '-------')"
+          done
 
       - name: Commit del metadata sincronizado
         run: |
