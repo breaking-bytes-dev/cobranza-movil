@@ -90,24 +90,41 @@ Saltá a la [sección 4](#4-cargar-los-secrets-en-github).
 
 ---
 
-## 4. Cargar los secrets en GitHub
+## 4. Cargar los secrets como ORG SECRETS
 
-Los workflows leen 4 valores desde un **Environment `dev`** del repo (patrón sigil: los jobs con entorno
-real son opt-in, los secrets no se exponen a PRs de forks).
+El repo vive en la organización **`breaking-bytes-dev`**. Por eso el SP se carga **una sola vez** como
+**Organization secret** con visibilidad **"Selected repositories"** → lo comparten cobranza, sigil y todo
+repo del mismo entorno, y **la rotación se hace en un solo lugar**.
 
-1. GitHub → repo `cobranza-movil` → **Settings → Environments → New environment** → nombre **`dev`**.
-2. Dentro de `dev` → **Add environment secret** (cuatro veces):
+Los 4 valores (de la [sección 2/3](#2-camino-a--con-pac-rápido-recomendado)):
 
-   | Secret | Valor |
-   |--------|-------|
-   | `DATAVERSE_URL` | URL del entorno (`https://orgXXXX.crm.dynamics.com`) |
-   | `PP_CLIENT_ID` | Application (Client) ID |
-   | `PP_CLIENT_SECRET` | el Client Secret (Value) |
-   | `PP_TENANT_ID` | Directory (Tenant) ID |
+| Secret | Valor | ¿Sensible? |
+|--------|-------|:---:|
+| `DATAVERSE_URL` | URL del entorno (`https://orgXXXX.crm.dynamics.com`) | no |
+| `PP_CLIENT_ID` | Application (Client) ID | no |
+| `PP_TENANT_ID` | Directory (Tenant) ID | no |
+| `PP_CLIENT_SECRET` | el Client Secret (Value) | **SÍ** |
 
-> El SP es **el mismo** para todos los repos del entorno. En cuenta personal (`bitbreaker01`), replicás
-> estos 4 secrets en cada repo. Si algún día es **organización**, usás *org secrets* scopeados y los
-> definís una sola vez.
+**Opción A — UI (recomendada para el secret):** org `breaking-bytes-dev` → **Settings → Secrets and
+variables → Actions → New organization secret** → nombre + valor → **Repository access: Selected
+repositories** → elegí `cobranza-movil` (y `sigil` cuando lo transfieras). Repetí por cada uno.
+
+**Opción B — CLI (corrés VOS, para que el secret no quede en logs de terceros):**
+```bash
+gh secret set PP_CLIENT_SECRET --org breaking-bytes-dev --visibility selected --repos cobranza-movil
+# (pide el valor por prompt, no queda en el historial de shell)
+gh secret set DATAVERSE_URL   --org breaking-bytes-dev --visibility selected --repos cobranza-movil --body "https://orgXXXX.crm.dynamics.com"
+gh secret set PP_CLIENT_ID    --org breaking-bytes-dev --visibility selected --repos cobranza-movil --body "<client-id>"
+gh secret set PP_TENANT_ID    --org breaking-bytes-dev --visibility selected --repos cobranza-movil --body "<tenant-id>"
+```
+
+> **Org secret + protección de deploy:** el org secret da el VALOR compartido; si además querés *gating*
+> (revisores requeridos antes de importar a Prod), creás un **Environment** en el repo con reglas — el org
+> secret se resuelve igual dentro del job. Para este repo privado con workflows `workflow_dispatch`
+> manuales, el opt-in ya lo da el disparador manual.
+>
+> **`PP_CLIENT_SECRET` es el único verdaderamente secreto.** `PP_CLIENT_ID` y `PP_TENANT_ID` son
+> identificadores públicos (no son contraseñas); se guardan como secrets solo por prolijidad.
 
 ---
 
