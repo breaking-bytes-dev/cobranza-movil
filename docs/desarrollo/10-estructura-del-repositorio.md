@@ -94,19 +94,28 @@ verificados (0 rotos), incluidos los de `test-data/README.md`.
 - Requisitos: solución única `Cobranza Móvil` en Dev (guía [doc 09 Parte 0](../guias/09-guia-construccion-backoffice.md))
   · Power Platform CLI (`pac`) · repo publicado en GitHub.
 
-### ⬜ Fase 4 — Workflows (GitHub Actions)
-- **`solution-release.yml`** — manual (`workflow_dispatch`, input `version`):
-  `pac auth create` con **Service Principal** → `pac solution export` (unmanaged + managed) → `gh release
-  create sol-v{version}` con ambos zips (`--clobber` si el tag existe).
-- **`solution-sync.yml`** — al publicarse un release (`release: published`, + `workflow_dispatch` /
-  `workflow_call`): descarga el zip unmanaged → `pac solution unpack` (offline, sin credenciales) → poda
-  `CanvasApps/` → reemplaza `solutions/unpacked/` → commit `chore(solution): sync de metadata no-código
-  desde el release {tag}` a `main`.
-- **Secrets** en un GitHub **Environment `dev`**: URL del entorno, `CLIENT_ID`, `CLIENT_SECRET`,
-  `TENANT_ID` del Service Principal. Los jobs que tocan el entorno real son **opt-in manual** — los
-  secrets nunca quedan expuestos a PRs (patrón de sigil).
+### ✅ Fase 4 — Workflows (GitHub Actions) *(escritos, inertes hasta configurar)*
+- **`.github/workflows/solution-release.yml`** — manual (`workflow_dispatch`, input `version`):
+  `pac auth create` con **Service Principal** → fija la versión → `pac solution export` (unmanaged +
+  managed) → `gh release create sol-v{version}` con ambos zips (`--clobber` si el tag existe) → encadena
+  el sync.
+- **`.github/workflows/solution-sync.yml`** — `release: published` + `workflow_dispatch` / `workflow_call`:
+  descarga el zip unmanaged → `pac solution unpack` (offline) → poda `CanvasApps/` → reescribe
+  `solutions/unpacked/` → commit `chore(solution): sync de metadata no-código desde el release {tag}`.
+- **Secrets**: **org secrets** de `breaking-bytes-dev` (`DATAVERSE_URL`, `PP_CLIENT_ID`, `PP_CLIENT_SECRET`,
+  `PP_TENANT_ID`) con visibilidad *Selected repositories* → `cobranza-movil` ([doc 11](../guias/11-service-principal-alm.md)).
+
+> **Gotcha de diseño (por qué el release llama al sync a mano):** un release creado por el `GITHUB_TOKEN`
+> **no dispara** el evento `release: published` (protección anti-recursión de Actions). Por eso
+> `solution-release` invoca a `solution-sync` vía `workflow_call` (`needs`), en vez de confiar en el evento.
+> El trigger `release: published` queda igual, para cubrir releases publicados **a mano por un humano**.
+
+> **⚠️ Antes de la primera corrida:** reemplazar `SOLUTION_NAME` (placeholder `sanic_CobranzaMovil`) en
+> **ambos** workflows por el *unique name* real (`pac solution list`), y tener los 4 org secrets cargados.
+> Probar con `workflow_dispatch` (input `version`, ej. `1.0.0.0`) y revisar el log del primer run.
+
 - Requisito previo: **App Registration** en Entra ID + application user en el entorno Dev con rol
-  suficiente para exportar soluciones.
+  suficiente para exportar soluciones ([doc 11](../guias/11-service-principal-alm.md)).
 
 ## 5. Convenciones adoptadas
 

@@ -1,0 +1,87 @@
+name: solution-release
+
+# Exporta la solución desde Dev (managed + unmanaged) y publica un GitHub Release.
+# Manual: Actions → solution-release → Run workflow → poné la versión (4 dígitos).
+# Requiere: org secrets DATAVERSE_URL / PP_CLIENT_ID / PP_CLIENT_SECRET / PP_TENANT_ID
+#           (ver docs/guias/11-service-principal-alm.md) y SOLUTION_NAME real (abajo).
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Versión de la solución (4 dígitos, ej. 1.0.0.0)"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: solution-release
+  cancel-in-progress: false
+
+env:
+  # ⚠️ REEMPLAZAR por el unique name REAL de la solución (no el display "Cobranza Móvil").
+  #    Sacalo con:  pac solution list   → columna "Unique Name".
+  SOLUTION_NAME: sanic_CobranzaMovil
+
+jobs:
+  export-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET (para pac)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Instalar Power Platform CLI
+        run: |
+          dotnet tool install --global Microsoft.PowerApps.CLI.Tool
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+      - name: Autenticar contra Dataverse (Service Principal)
+        run: |
+          pac auth create \
+            --applicationId "${{ secrets.PP_CLIENT_ID }}" \
+            --clientSecret "${{ secrets.PP_CLIENT_SECRET }}" \
+            --tenant "${{ secrets.PP_TENANT_ID }}" \
+            --environment "${{ secrets.DATAVERSE_URL }}"
+
+      - name: Fijar la versión de la solución en Dev
+        # Deja el zip exportado con la MISMA versión que el tag del release.
+        # Si tu versión de pac usa otro flag, ajustá/quitá este paso.
+        run: |
+          pac solution online-version \
+            --solution-name "$SOLUTION_NAME" \
+            --solution-version "${{ inputs.version }}"
+
+      - name: Exportar solución (unmanaged + managed)
+        run: |
+          mkdir -p out
+          pac solution export --path "out/${SOLUTION_NAME}_unmanaged.zip" --name "$SOLUTION_NAME" --managed false --overwrite
+          pac solution export --path "out/${SOLUTION_NAME}_managed.zip"   --name "$SOLUTION_NAME" --managed true  --overwrite
+
+      - name: Crear / actualizar el GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: sol-v${{ inputs.version }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" out/*.zip --clobber
+          else
+            gh release create "$TAG" out/*.zip \
+              --title "Cobranza Móvil ${{ inputs.version }}" \
+              --notes "Export automático (managed + unmanaged) desde Dev vía Service Principal."
+          fi
+
+  # Encadenado explícito: un release creado por GITHUB_TOKEN NO dispara el evento
+  # release:published, así que llamamos al sync a mano.
+  sync:
+    needs: export-and-release
+    uses: ./.github/workflows/solution-sync.yml
+    with:
+      tag: sol-v${{ inputs.version }}
+    permissions:
+      contents: write
+    secrets: inherit

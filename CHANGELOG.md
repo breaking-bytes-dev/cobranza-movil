@@ -22,6 +22,9 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). La
 - App Canvas del localizador **en construcción**: pantalla Mi Cartera con reorden optimizado
   (colección local + optimistic UI, guard flags, dirty tracking) según
   [docs/guias/05](docs/guias/05-guia-paso-a-paso-localizador.md).
+- Homologación de repo estilo `sigil`: repo git en org `breaking-bytes-dev`, docs en 3 capas, README
+  router, estrategia ALM de dos planos y **workflows CI/CD** `solution-release.yml` + `solution-sync.yml`
+  (inertes hasta configurar SP + `SOLUTION_NAME`). Ver [docs/desarrollo/10](docs/desarrollo/10-estructura-del-repositorio.md).
 
 ### Pendiente de construir (diseñado, sin implementar)
 - App model-driven de oficina (Entrega 1 del [doc 09](docs/guias/09-guia-construccion-backoffice.md) en curso, con errores por resolver).

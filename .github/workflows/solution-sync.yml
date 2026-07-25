@@ -1,0 +1,80 @@
+name: solution-sync
+
+# Descarga el zip unmanaged de un release, lo desempaqueta (offline, sin credenciales)
+# y commitea la metadata NO-código en solutions/unpacked/ para tener diffs históricos.
+# Se dispara: al encadenarse desde solution-release, o manual, o si un HUMANO publica
+# un release por la UI (release:published).
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag del release a sincronizar (ej. sol-v1.0.0.0)"
+        required: true
+  workflow_call:
+    inputs:
+      tag:
+        description: "Tag del release a sincronizar"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: solution-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET (para pac)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Instalar Power Platform CLI
+        run: |
+          dotnet tool install --global Microsoft.PowerApps.CLI.Tool
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+      - name: Resolver el tag
+        id: tag
+        run: |
+          TAG="${{ inputs.tag || github.event.release.tag_name }}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Descargar el zip unmanaged del release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p _dl
+          gh release download "${{ steps.tag.outputs.tag }}" --dir _dl --pattern "*unmanaged*.zip"
+
+      - name: Desempaquetar (offline) y podar código
+        run: |
+          ZIP=$(ls _dl/*unmanaged*.zip | head -1)
+          # Slate limpio: borramos y reescribimos para que git vea el diff real.
+          rm -rf solutions/unpacked
+          pac solution unpack --zipfile "$ZIP" --folder solutions/unpacked --packagetype Unmanaged
+          # Podar componentes que NO hacen round-trip (la Canvas app del localizador).
+          rm -rf solutions/unpacked/CanvasApps
+
+      - name: Commit del metadata sincronizado
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add solutions/unpacked
+          if git diff --cached --quiet; then
+            echo "Sin cambios de metadata — nada que commitear."
+          else
+            git commit -m "chore(solution): sync de metadata no-código desde el release ${{ steps.tag.outputs.tag }}"
+            git push
+          fi
