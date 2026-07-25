@@ -90,13 +90,11 @@ Saltá a la [sección 4](#4-cargar-los-secrets-en-github).
 
 ---
 
-## 4. Cargar los secrets como ORG SECRETS
+## 4. Cargar los secrets
 
-El repo vive en la organización **`breaking-bytes-dev`**. Por eso el SP se carga **una sola vez** como
-**Organization secret** con visibilidad **"Selected repositories"** → lo comparten cobranza, sigil y todo
-repo del mismo entorno, y **la rotación se hace en un solo lugar**.
-
-Los 4 valores (de la [sección 2/3](#2-camino-a--con-pac-rápido-recomendado)):
+Los workflows leen **4 valores**. La sintaxis en el YAML —`${{ secrets.NOMBRE }}`— es **idéntica** sea el
+secret a nivel **repo** o a nivel **org**: por eso la elección de dónde guardarlos **no cambia una coma de
+los workflows**.
 
 | Secret | Valor | ¿Sensible? |
 |--------|-------|:---:|
@@ -105,45 +103,48 @@ Los 4 valores (de la [sección 2/3](#2-camino-a--con-pac-rápido-recomendado)):
 | `PP_TENANT_ID` | Directory (Tenant) ID | no |
 | `PP_CLIENT_SECRET` | el Client Secret (Value) | **SÍ** |
 
-> ⚠️ **Gotcha real (visto en este proyecto):** el picker de la UI (**Repository access → Selected
-> repositories**) puede mostrar **"No repositories found"** para un repo **privado recién transferido** —
-> es un glitch de indexado de la UI, **NO** una limitación de plan (el plan `free` de org soporta org
-> secrets en repos privados). **El CLI no tiene ese problema** porque resuelve el repo directo contra la
-> API. Por eso el CLI es el camino recomendado acá.
+### 4.1 Qué funciona en org `free` (importante, no confundir)
 
-**Opción A — CLI (recomendada; corrés VOS para que el secret no quede en logs).** Un solo comando crea el
-secret, le pone el valor y le da el acceso selectivo:
+| Tipo de secret | ¿Free + repo privado? |
+|----------------|:---:|
+| **Repository secrets** | ✅ siempre |
+| **Organization secrets** (visibilidad *Selected repositories*) | ✅ sí — verificado en este proyecto vía API |
+| **Environment secrets** (Environment `dev`) + reglas de protección | ❌ requiere Pro/Team/Enterprise |
+
+> La limitación del plan `free` es sobre **environment secrets**, **NO** sobre organization secrets. Si el
+> picker de la UI (**Repository access → Selected repositories**) muestra **"No repositories found"** en un
+> repo privado, es un **glitch de indexado de la UI**, no un muro de plan — el CLI/API lo resuelve igual.
+
+### 4.2 Enfoque elegido: **repo secrets** (uno por repo)
+
+Simple y sin ambigüedad. **Corrés VOS** los comandos (el secret no pasa por logs de terceros):
 ```bash
-# 🔒 El único sensible: SIN --body → lo pide por prompt oculto (no queda en el historial)
-gh secret set PP_CLIENT_SECRET --org breaking-bytes-dev --visibility selected --repos cobranza-movil
+# 🔒 El único sensible: SIN --body → prompt oculto (no queda en el historial)
+gh secret set PP_CLIENT_SECRET --repo breaking-bytes-dev/cobranza-movil
 
 # 📋 Los no sensibles (identificadores públicos): --body inline está bien
-gh secret set DATAVERSE_URL --org breaking-bytes-dev --visibility selected --repos cobranza-movil --body "https://orgXXXX.crm.dynamics.com"
-gh secret set PP_CLIENT_ID  --org breaking-bytes-dev --visibility selected --repos cobranza-movil --body "<client-id>"
-gh secret set PP_TENANT_ID  --org breaking-bytes-dev --visibility selected --repos cobranza-movil --body "<tenant-id>"
-```
-Flags: `--org` = secret a nivel organización · `--visibility selected` = solo repos elegidos ·
-`--repos a,b` = la lista (coma para varios: `cobranza-movil,sigil`).
+gh secret set DATAVERSE_URL --repo breaking-bytes-dev/cobranza-movil --body "https://orgXXXX.crm.dynamics.com"
+gh secret set PP_CLIENT_ID  --repo breaking-bytes-dev/cobranza-movil --body "<client-id>"
+gh secret set PP_TENANT_ID  --repo breaking-bytes-dev/cobranza-movil --body "<tenant-id>"
 
-**Verificar:**
-```bash
-gh secret list --org breaking-bytes-dev
-gh api /orgs/breaking-bytes-dev/actions/secrets/PP_CLIENT_SECRET/repositories --jq '.repositories[].full_name'
+# Verificar
+gh secret list --repo breaking-bytes-dev/cobranza-movil
 ```
+> **Costo (asumido a conciencia):** al rotar el `PP_CLIENT_SECRET`, hay que actualizarlo en **cada repo**
+> que use el SP (cobranza, smelter, heartbeat…). Para pocos repos es manejable.
 
-**Agregar un repo a un secret YA creado (sin re-ingresar el valor):** `gh secret set --repos` *reemplaza*
-la lista y *pide el valor* de nuevo. Para **sumar** un repo de forma aditiva, usá la API:
+### 4.3 Alternativa: **org secrets** (rotación en un solo lugar)
+
+Si más adelante querés centralizar, se define **una vez** a nivel org con acceso selectivo:
 ```bash
-rid=$(gh api /repos/breaking-bytes-dev/sigil --jq .id)          # id del repo a habilitar
+gh secret set PP_CLIENT_SECRET --org breaking-bytes-dev --visibility selected --repos cobranza-movil,smelter
+```
+Agregar un repo a un org secret ya creado, **sin** re-ingresar el valor (aditivo, vía API):
+```bash
+rid=$(gh api /repos/breaking-bytes-dev/smelter --jq .id)
 gh api -X PUT    "/orgs/breaking-bytes-dev/actions/secrets/PP_CLIENT_SECRET/repositories/$rid"   # sumar
 gh api -X DELETE "/orgs/breaking-bytes-dev/actions/secrets/PP_CLIENT_SECRET/repositories/$rid"   # quitar
 ```
-Para habilitarlo en los 4 secrets de una: iterá los nombres con el mismo `$rid`.
-
-**Opción B — UI:** org `breaking-bytes-dev` → **Settings → Secrets and variables → Actions → New
-organization secret** → nombre + valor → **Repository access: Selected repositories** → `cobranza-movil`.
-Si el picker sale vacío, refrescá (F5) o usá el CLI. *(Alternativa: dar el acceso por API —
-`PUT /orgs/{org}/actions/secrets/{name}/repositories/{repo_id}`.)*
 
 > **Org secret + protección de deploy:** el org secret da el VALOR compartido; si además querés *gating*
 > (revisores requeridos antes de importar a Prod), creás un **Environment** en el repo con reglas — el org
