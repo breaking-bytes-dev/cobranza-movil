@@ -123,10 +123,12 @@ verificados (0 rotos), incluidos los de `test-data/README.md`.
 - **Commits:** Conventional Commits (`docs:`, `feat:`, `fix:`, `chore(solution):`…).
 - **Idioma:** docs en español; nombres de esquema Dataverse en el estándar ya definido
   ([referencia/03](../referencia/03-catalogo-de-tablas.md)).
-- **Naming de sigil NO adoptado:** sigil usa marcador de app en el schema name (`sanic_sigil_tbl_*`).
-  Nuestras 12 tablas ya existen como `sanic_*` liso — **renombrar esquemas publicados rompe todo**
-  (formularios, vistas, flujos, offline profile) y no paga el costo. Queda documentado como convención
-  para **futuros proyectos** del mismo entorno, no para este.
+- **Naming de sigil YA adoptado (corrección 2026-07-25):** el entorno real usa la convención sigil completa
+  —`sanic_cm_tbl_*` (tablas), `sanic_cm_<abrev>_*` (columnas), `sanic_cm_choice_*`, `SR | CM | *` (roles),
+  `PlugIn | CM | *`—. La afirmación previa ("tablas `sanic_*` liso, naming no adoptado") era **falsa**: se
+  basó en los docs viejos, no en el entorno. La **fuente de verdad de nomenclatura** es
+  [referencia/nomenclatura-real.md](../referencia/nomenclatura-real.md); los demás docs se están
+  reconciliando hacia ese esquema.
 
 ## 6. Trazabilidad
 
