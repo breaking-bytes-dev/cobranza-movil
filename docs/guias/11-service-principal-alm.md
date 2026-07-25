@@ -105,18 +105,36 @@ Los 4 valores (de la [sección 2/3](#2-camino-a--con-pac-rápido-recomendado)):
 | `PP_TENANT_ID` | Directory (Tenant) ID | no |
 | `PP_CLIENT_SECRET` | el Client Secret (Value) | **SÍ** |
 
-**Opción A — UI (recomendada para el secret):** org `breaking-bytes-dev` → **Settings → Secrets and
-variables → Actions → New organization secret** → nombre + valor → **Repository access: Selected
-repositories** → elegí `cobranza-movil` (y `sigil` cuando lo transfieras). Repetí por cada uno.
+> ⚠️ **Gotcha real (visto en este proyecto):** el picker de la UI (**Repository access → Selected
+> repositories**) puede mostrar **"No repositories found"** para un repo **privado recién transferido** —
+> es un glitch de indexado de la UI, **NO** una limitación de plan (el plan `free` de org soporta org
+> secrets en repos privados). **El CLI no tiene ese problema** porque resuelve el repo directo contra la
+> API. Por eso el CLI es el camino recomendado acá.
 
-**Opción B — CLI (corrés VOS, para que el secret no quede en logs de terceros):**
+**Opción A — CLI (recomendada; corrés VOS para que el secret no quede en logs).** Un solo comando crea el
+secret, le pone el valor y le da el acceso selectivo:
 ```bash
+# 🔒 El único sensible: SIN --body → lo pide por prompt oculto (no queda en el historial)
 gh secret set PP_CLIENT_SECRET --org breaking-bytes-dev --visibility selected --repos cobranza-movil
-# (pide el valor por prompt, no queda en el historial de shell)
-gh secret set DATAVERSE_URL   --org breaking-bytes-dev --visibility selected --repos cobranza-movil --body "https://orgXXXX.crm.dynamics.com"
-gh secret set PP_CLIENT_ID    --org breaking-bytes-dev --visibility selected --repos cobranza-movil --body "<client-id>"
-gh secret set PP_TENANT_ID    --org breaking-bytes-dev --visibility selected --repos cobranza-movil --body "<tenant-id>"
+
+# 📋 Los no sensibles (identificadores públicos): --body inline está bien
+gh secret set DATAVERSE_URL --org breaking-bytes-dev --visibility selected --repos cobranza-movil --body "https://orgXXXX.crm.dynamics.com"
+gh secret set PP_CLIENT_ID  --org breaking-bytes-dev --visibility selected --repos cobranza-movil --body "<client-id>"
+gh secret set PP_TENANT_ID  --org breaking-bytes-dev --visibility selected --repos cobranza-movil --body "<tenant-id>"
 ```
+Flags: `--org` = secret a nivel organización · `--visibility selected` = solo repos elegidos ·
+`--repos a,b` = la lista (coma para varios: `cobranza-movil,sigil`).
+
+**Verificar:**
+```bash
+gh secret list --org breaking-bytes-dev
+gh api /orgs/breaking-bytes-dev/actions/secrets/PP_CLIENT_SECRET/repositories --jq '.repositories[].full_name'
+```
+
+**Opción B — UI:** org `breaking-bytes-dev` → **Settings → Secrets and variables → Actions → New
+organization secret** → nombre + valor → **Repository access: Selected repositories** → `cobranza-movil`.
+Si el picker sale vacío, refrescá (F5) o usá el CLI. *(Alternativa: dar el acceso por API —
+`PUT /orgs/{org}/actions/secrets/{name}/repositories/{repo_id}`.)*
 
 > **Org secret + protección de deploy:** el org secret da el VALOR compartido; si además querés *gating*
 > (revisores requeridos antes de importar a Prod), creás un **Environment** en el repo con reglas — el org
