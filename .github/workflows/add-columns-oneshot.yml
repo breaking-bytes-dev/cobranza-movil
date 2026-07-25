@@ -1,0 +1,76 @@
+name: add-columns-oneshot
+
+# ONE-SHOT: crea las 5 columnas faltantes en la solución cm_core_cobranzamovil vía Web API de Dataverse,
+# autenticando con el Service Principal (repo secrets). Manual: Actions → add-columns-oneshot → Run.
+# Ver docs/guias/12-agregar-columnas-faltantes.md. Borrable una vez aplicado.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  add-columns:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Crear columnas (Web API)
+        env:
+          DATAVERSE_URL: ${{ secrets.DATAVERSE_URL }}
+          CLIENT_ID: ${{ secrets.PP_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT_ID: ${{ secrets.PP_TENANT_ID }}
+        run: |
+          set -uo pipefail
+          URL="${DATAVERSE_URL%/}"
+          SOL="cm_core_cobranzamovil"
+
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token" \
+            --data-urlencode "grant_type=client_credentials" \
+            --data-urlencode "client_id=${CLIENT_ID}" \
+            --data-urlencode "client_secret=${CLIENT_SECRET}" \
+            --data-urlencode "scope=${URL}/.default" | jq -r '.access_token // empty')
+          if [ -z "$TOKEN" ]; then echo "::error::No se obtuvo token (revisá el SP / secrets)"; exit 1; fi
+          echo "Token OK."
+
+          dt() { jq -nc --arg sn "$1" --arg dn "$2" '{"@odata.type":"Microsoft.Dynamics.CRM.DateTimeAttributeMetadata",SchemaName:$sn,RequiredLevel:{Value:"None"},Format:"DateAndTime",DateTimeBehavior:{Value:"UserLocal"},DisplayName:{"@odata.type":"Microsoft.Dynamics.CRM.Label","LocalizedLabels":[{"@odata.type":"Microsoft.Dynamics.CRM.LocalizedLabel",Label:$dn,LanguageCode:1033}]}}'; }
+          str() { jq -nc --arg sn "$1" --arg dn "$2" '{"@odata.type":"Microsoft.Dynamics.CRM.StringAttributeMetadata",SchemaName:$sn,RequiredLevel:{Value:"None"},MaxLength:2000,FormatName:{Value:"TextArea"},DisplayName:{"@odata.type":"Microsoft.Dynamics.CRM.Label","LocalizedLabels":[{"@odata.type":"Microsoft.Dynamics.CRM.LocalizedLabel",Label:$dn,LanguageCode:1033}]}}'; }
+
+          rc=0
+          create() { # $1 entity logical  $2 payload  $3 schemaname (para log)
+            echo "→ $3  en  $1"
+            code=$(curl -s -o /tmp/r.json -w "%{http_code}" -X POST \
+              "${URL}/api/data/v9.2/EntityDefinitions(LogicalName='$1')/Attributes" \
+              -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+              -H "MSCRM.SolutionUniqueName: ${SOL}" \
+              -H "OData-MaxVersion: 4.0" -H "OData-Version: 4.0" -d "$2")
+            if [ "$code" -ge 200 ] && [ "$code" -lt 300 ]; then
+              echo "   ✓ HTTP $code (creada)"
+            else
+              echo "   ✗ HTTP $code"; cat /tmp/r.json | jq -r '.error.message // .' 2>/dev/null || cat /tmp/r.json
+              rc=1
+            fi
+          }
+
+          create sanic_cm_tbl_interaccion "$(dt sanic_cm_in_fechacaptura 'Fecha de captura')"       sanic_cm_in_fechacaptura
+          create sanic_cm_tbl_pago        "$(dt sanic_cm_pg_fecha 'Fecha del pago')"                sanic_cm_pg_fecha
+          create sanic_cm_tbl_asignacion  "$(dt sanic_cm_as_ultimacarga 'Última carga')"            sanic_cm_as_ultimacarga
+          create sanic_cm_tbl_asignacion  "$(dt sanic_cm_as_fechacierre 'Fecha de cierre')"         sanic_cm_as_fechacierre
+          create sanic_cm_tbl_asignacion  "$(str sanic_cm_as_motivorechazo 'Motivo de rechazo')"    sanic_cm_as_motivorechazo
+
+          echo "→ PublishAllXml"
+          curl -s -o /dev/null -w "   publish HTTP %{http_code}\n" -X POST "${URL}/api/data/v9.2/PublishAllXml" \
+            -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+            -H "OData-MaxVersion: 4.0" -H "OData-Version: 4.0" -d '{}'
+
+          echo "=== Verificación ==="
+          verify() { # ent col
+            curl -s "${URL}/api/data/v9.2/EntityDefinitions(LogicalName='$1')/Attributes(LogicalName='$2')?%24select=LogicalName,AttributeType" \
+              -H "Authorization: Bearer $TOKEN" | jq -r '"   " + (.LogicalName // "NO ENCONTRADA") + "  [" + ((.AttributeType|tostring) // "?") + "]"'
+          }
+          verify sanic_cm_tbl_interaccion sanic_cm_in_fechacaptura
+          verify sanic_cm_tbl_pago sanic_cm_pg_fecha
+          verify sanic_cm_tbl_asignacion sanic_cm_as_ultimacarga
+          verify sanic_cm_tbl_asignacion sanic_cm_as_fechacierre
+          verify sanic_cm_tbl_asignacion sanic_cm_as_motivorechazo
+          exit $rc
