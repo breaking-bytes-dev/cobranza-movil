@@ -128,3 +128,21 @@ esquema real.**
 > Falta **cablearlas** en la app (`sanic_cm_in_fechacaptura: Now()` en el Patch de interacción,
 > `sanic_cm_pg_fecha: Now()` en el de pago) y en el sweep. El próximo `solution-release` las va a reflejar en
 > `solutions/unpacked/`.
+
+### Columnas DENORMALIZADAS en `cuenta` (2026-07-25) — para offline sin navegación
+
+La app del localizador **offline no resuelve navegación de relaciones** (ver
+[app-offline](../desarrollo/13-rediseno-offline-canvas.md)). Estas 5 columnas escalares en
+`sanic_cm_tbl_cuenta` **las llena Smelter del CSV** (que ya trae todo denormalizado), y la app las lee
+directo (join local por número de cuenta), sin `.'[CT] Cliente'.'[CL] ...'`.
+
+| Columna | Display | Tipo | Origen CSV |
+|---------|---------|------|-----------|
+| `sanic_cm_ct_nombrecliente` | `[CT] Nombre Cliente` | Text | `Cliente` |
+| `sanic_cm_ct_cifcliente` | `[CT] CIF Cliente` | Text | `CIF` |
+| `sanic_cm_ct_tipoproducto` | `[CT] Tipo Producto` | Text | `TipoProducto` |
+| `sanic_cm_ct_nombrefiador` | `[CT] Nombre Fiador` | Text | `NombreFianza` |
+| `sanic_cm_ct_direccionfiador` | `[CT] Direccion Fiador` | Text | `DireccionFianza` |
+
+> **Pendiente:** agregar estos 5 mapeos al Table Mapping de `cuenta` en Smelter
+> ([cobranza-import-config](cobranza-import-config.md)).
