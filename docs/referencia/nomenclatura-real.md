@@ -111,20 +111,20 @@ Documentadas **a propósito** — no las "arregles" sin evaluar el costo de reno
 > El listado completo de columnas por tabla se obtiene de `solutions/unpacked/Entities/*/Entity.xml`
 > (fuente viva). Este doc mapea lo que las guías/fórmulas referencian con más frecuencia.
 
-## 6. Columnas a AGREGAR (aún NO existen en el entorno)
+## 6. Columnas agregadas el 2026-07-25 (✅ ya existen en el entorno)
 
-Decididas el 2026-07-25 para cerrar huecos de diseño (ver
-[divergencias-diseno-vs-build.md](divergencias-diseno-vs-build.md)). **Todavía hay que crearlas en el
-portal** — guía: [guias/12](../guias/12-agregar-columnas-faltantes.md). Ya se usan (con estos nombres) en el
-resto de los docs.
+Creadas para cerrar huecos de diseño (ver [divergencias-diseno-vs-build.md](divergencias-diseno-vs-build.md)),
+vía el workflow `add-columns-oneshot` (Web API + Service Principal), verificadas por GET. **Ya son parte del
+esquema real.**
 
-| Tabla | Columna nueva | Tipo | Quién la setea | Para qué |
-|-------|---------------|------|----------------|----------|
+| Tabla | Columna | Tipo | Quién la setea | Para qué |
+|-------|---------|------|----------------|----------|
 | `sanic_cm_tbl_interaccion` | `sanic_cm_in_fechacaptura` | DateTime | **la app** (al crear, `Now()`) | fecha/hora real de la gestión en campo (offline) — `createdon` sería la hora de sync |
 | `sanic_cm_tbl_pago` | `sanic_cm_pg_fecha` | DateTime | **la app** (al crear) | fecha real del pago registrado en campo |
 | `sanic_cm_tbl_asignacion` | `sanic_cm_as_ultimacarga` | DateTime | import/servidor | ancla del sweep DEC-018 (última vez que la Diaria vino en el CSV) |
 | `sanic_cm_tbl_asignacion` | `sanic_cm_as_fechacierre` | DateTime | servidor/sweep | cuándo se cerró la asignación |
-| `sanic_cm_tbl_asignacion` | `sanic_cm_as_motivorechazo` | Text | Supervisor | motivo de rechazo de Especial (separado del `sanic_cm_as_motivo` genérico) |
+| `sanic_cm_tbl_asignacion` | `sanic_cm_as_motivorechazo` | Text (2000) | Supervisor | motivo de rechazo de Especial (separado del `sanic_cm_as_motivo` genérico) |
 
-> ⚠️ Mientras no se creen en el entorno, cualquier fórmula/flujo que las use **fallará**. Al crearlas, quitar
-> este bloque de "pendientes" y sumarlas al esquema de §2.
+> Falta **cablearlas** en la app (`sanic_cm_in_fechacaptura: Now()` en el Patch de interacción,
+> `sanic_cm_pg_fecha: Now()` en el de pago) y en el sweep. El próximo `solution-release` las va a reflejar en
+> `solutions/unpacked/`.

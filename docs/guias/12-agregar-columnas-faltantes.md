@@ -1,9 +1,8 @@
 # Guía — Agregar las columnas faltantes (5)
 
-> Estas columnas **cierran huecos de diseño** detectados en la reconciliación
-> ([divergencias](../referencia/divergencias-diseno-vs-build.md)). Se crean en el portal, **con la solución
-> `Cobranza Móvil` abierta** para que queden dentro (ALM). Respetá el naming EXACTO — los docs y fórmulas ya
-> lo usan.
+> ✅ **YA CREADAS (2026-07-25)** vía el workflow `add-columns-oneshot` (Web API + Service Principal),
+> verificadas por GET. Este doc queda como **referencia del método manual (portal)** y del **cableado
+> pendiente** en la app/sweep. Respetá el naming EXACTO — los docs y fórmulas ya lo usan.
 
 ## 📋 Precondición
 - [ ] Estás en **make.powerapps.com**, entorno correcto, **solución `cm_core_cobranzamovil` abierta**.

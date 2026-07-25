@@ -3,10 +3,10 @@
 > Surgió al reconciliar los docs con el esquema real (2026-07-25). Campos/comportamientos que **los docs
 > asumían y el entorno NO tenía**. Estado tras la decisión "agregar columnas" (2026-07-25).
 
-## ✅ Resueltos — se agregan columnas (siguiendo `sanic_cm_<abrev>_*`)
+## ✅ Resueltos — columnas creadas el 2026-07-25 (ya existen en el entorno)
 
-Los docs ya usan estos nombres nuevos. **Falta crearlas en el portal** →
-[guías/12](../guias/12-agregar-columnas-faltantes.md).
+Creadas vía workflow `add-columns-oneshot` (Web API + SP), verificadas. Falta **cablearlas** en la app/sweep
+([guías/12 §cablear](../guias/12-agregar-columnas-faltantes.md)).
 
 | Hueco original | Columna nueva | Tabla | Tipo |
 |----------------|---------------|-------|------|
