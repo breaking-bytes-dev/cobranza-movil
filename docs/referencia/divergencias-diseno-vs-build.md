@@ -24,9 +24,11 @@ Los docs ya usan estos nombres nuevos. **Falta crearlas en el portal** →
 > las **setea la app al crear** (`Now()`), NO `createdon` — porque en offline `createdon` = hora de **sync**
 > (servidor), no de captura real en campo.
 
-## ❓ Abiertos — necesitan tu decisión (NO se agregaron a ciegas)
+## ❓ Abiertos
 
-Marcados aún como `⚠️TODO(...)` en los docs.
+Marcados aún como `⚠️TODO(...)` en los docs. **Decisión 2026-07-25:** los 3 campos especulativos
+(`escalavista`, `backofficeid`, `tomadapor`) se **difieren** — NO se agregan hasta que haya necesidad real
+(evitar bloat de esquema). Quedan como TODO abierto para retomar si aparece el caso de uso.
 
 | Hueco | Dónde | Pregunta |
 |-------|-------|----------|
