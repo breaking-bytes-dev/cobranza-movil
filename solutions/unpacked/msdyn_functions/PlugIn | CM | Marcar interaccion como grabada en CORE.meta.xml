@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<msdyn_function msdyn_functionid="5c17f0d2-4377-f111-ab0e-70a8a5b226fd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <customapi>
+    <uniquename>sanic_PlugInCMMarcarinteraccioncomograbadaenCORE</uniquename>
+  </customapi>
+  <iscustomizable>1</iscustomizable>
+  <language>100000000</language>
+  <name>PlugIn | CM | Marcar interaccion como grabada en CORE</name>
+  <statecode>0</statecode>
+  <statuscode>1</statuscode>
+</msdyn_function>

@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<savedqueries xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <savedquery>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>0</CanBeDeleted>
+    <isquickfindquery>0</isquickfindquery>
+    <isprivate>0</isprivate>
+    <isdefault>0</isdefault>
+    <savedqueryid>{4104b438-52c1-4e32-a564-a36d07d5107b}</savedqueryid>
+    <layoutxml>
+      <grid name="resultset" jump="sanic_cm_ad_numero" select="1" icon="1" preview="1">
+        <row name="result" id="sanic_cm_tbl_actualizaciondatosid">
+          <cell name="sanic_cm_ad_numero" width="300" />
+          <cell name="createdon" width="125" />
+        </row>
+      </grid>
+    </layoutxml>
+    <querytype>0</querytype>
+    <fetchxml>
+      <fetch version="1.0" mapping="logical">
+        <entity name="sanic_cm_tbl_actualizaciondatos">
+          <attribute name="sanic_cm_tbl_actualizaciondatosid" />
+          <attribute name="sanic_cm_ad_numero" />
+          <attribute name="createdon" />
+          <order attribute="sanic_cm_ad_numero" descending="false" />
+          <filter type="and">
+            <condition attribute="statecode" operator="eq" value="1" />
+          </filter>
+        </entity>
+      </fetch>
+    </fetchxml>
+    <IntroducedVersion>1.0</IntroducedVersion>
+    <LocalizedNames>
+      <LocalizedName description="Inactive CM | TBL | Actualizacion de datos" languagecode="1033" />
+    </LocalizedNames>
+  </savedquery>
+</savedqueries>

@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<savedqueries xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <savedquery>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>0</CanBeDeleted>
+    <isquickfindquery>0</isquickfindquery>
+    <isprivate>0</isprivate>
+    <isdefault>1</isdefault>
+    <savedqueryid>{c6a0b95a-64fb-4d44-9ea3-a2c902d49a5e}</savedqueryid>
+    <layoutxml>
+      <grid name="resultset" jump="sanic_cm_fi_nombre" select="1" icon="1" preview="1">
+        <row name="result" id="sanic_cm_tbl_fiadorid">
+          <cell name="sanic_cm_fi_nombre" width="300" />
+          <cell name="createdon" width="125" />
+        </row>
+      </grid>
+    </layoutxml>
+    <querytype>0</querytype>
+    <fetchxml>
+      <fetch version="1.0" mapping="logical">
+        <entity name="sanic_cm_tbl_fiador">
+          <attribute name="sanic_cm_tbl_fiadorid" />
+          <attribute name="sanic_cm_fi_nombre" />
+          <attribute name="createdon" />
+          <order attribute="sanic_cm_fi_nombre" descending="false" />
+          <filter type="and">
+            <condition attribute="statecode" operator="eq" value="0" />
+          </filter>
+        </entity>
+      </fetch>
+    </fetchxml>
+    <IntroducedVersion>1.0</IntroducedVersion>
+    <LocalizedNames>
+      <LocalizedName description="Active CM | TBL | Fiadors" languagecode="1033" />
+    </LocalizedNames>
+  </savedquery>
+</savedqueries>

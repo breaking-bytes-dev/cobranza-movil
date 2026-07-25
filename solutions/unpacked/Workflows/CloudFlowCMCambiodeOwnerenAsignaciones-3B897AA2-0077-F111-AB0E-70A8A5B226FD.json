@@ -1,0 +1,145 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "wf_sharedcommondataserviceforapps_3bc81"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        }
+      },
+      "triggers": {
+        "Al_modificar_el_campo_Agente_en_una_asignacion_o_cuando_la_fila_sea_creada": {
+          "metadata": {
+            "operationMetadataId": "861d409e-03b2-49a4-8986-23a6b08fd395"
+          },
+          "type": "OpenApiConnectionWebhook",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "SubscribeWebhookTrigger",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "subscriptionRequest/message": 4,
+              "subscriptionRequest/entityname": "sanic_cm_tbl_asignacion",
+              "subscriptionRequest/scope": 4,
+              "subscriptionRequest/filteringattributes": "sanic_cm_as_agenteid"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        }
+      },
+      "actions": {
+        "Obtener_datos_del_Agente": {
+          "runAfter": {},
+          "metadata": {
+            "operationMetadataId": "5c4a33e1-c35f-47b0-ad4d-8b473b1a6aa2"
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "GetItem",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "sanic_cm_tbl_agentes",
+              "recordId": "@triggerOutputs()?['body/_sanic_cm_as_agenteid_value']"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Verificar_que_el_agente_tenga_asignado_un_usuario": {
+          "actions": {},
+          "runAfter": {
+            "Obtener_datos_del_Agente": [
+              "Succeeded"
+            ]
+          },
+          "else": {
+            "actions": {
+              "Verificar_que_el_owner_actual_sea_el_usuario_del_agente": {
+                "actions": {
+                  "Terminate": {
+                    "runAfter": {},
+                    "metadata": {
+                      "operationMetadataId": "4bf39449-084c-4916-be19-831e30a9429a"
+                    },
+                    "type": "Terminate",
+                    "inputs": {
+                      "runStatus": "Succeeded"
+                    }
+                  }
+                },
+                "runAfter": {},
+                "else": {
+                  "actions": {
+                    "Actualizar_owner_de_la_asignacion": {
+                      "runAfter": {},
+                      "metadata": {
+                        "operationMetadataId": "7c62add0-2bda-43a2-8e5a-4cdf8f23676c"
+                      },
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_commondataserviceforapps",
+                          "operationId": "UpdateOnlyRecord",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                        },
+                        "parameters": {
+                          "entityName": "sanic_cm_tbl_asignacions",
+                          "recordId": "@triggerOutputs()?['body/sanic_cm_tbl_asignacionid']",
+                          "item/ownerid@odata.bind": "@outputs('Obtener_datos_del_Agente')?['body/_sanic_cm_ag_usuarioid_value']"
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      }
+                    }
+                  }
+                },
+                "expression": {
+                  "equals": [
+                    "@triggerOutputs()?['body/_ownerid_value']",
+                    ""
+                  ]
+                },
+                "metadata": {
+                  "operationMetadataId": "db70a538-c3a0-4f33-88a8-55e6e3d0e6ff"
+                },
+                "type": "If"
+              }
+            }
+          },
+          "expression": {
+            "equals": [
+              "",
+              ""
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "175540f3-fb22-4ade-a36c-f57baa1d3d64"
+          },
+          "type": "If"
+        }
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

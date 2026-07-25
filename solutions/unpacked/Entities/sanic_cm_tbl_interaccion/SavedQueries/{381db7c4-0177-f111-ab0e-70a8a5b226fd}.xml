@@ -1,0 +1,54 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<savedqueries xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <savedquery>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <isquickfindquery>0</isquickfindquery>
+    <isprivate>0</isprivate>
+    <isdefault>0</isdefault>
+    <savedqueryid>{381db7c4-0177-f111-ab0e-70a8a5b226fd}</savedqueryid>
+    <layoutxml>
+      <grid name="resultset" jump="sanic_cm_in_numerointeraccion" select="1" icon="1" preview="1">
+        <row name="result" id="sanic_cm_tbl_interaccionid">
+          <cell name="createdon" width="220" imageproviderfunctionname="Fecha de Interaccion" />
+          <cell name="sanic_cm_in_numerointeraccion" width="200" />
+          <cell name="a_3ecb8358b88c4b74b8db0835e55b4092.sanic_cm_ct_clienteid" width="192" />
+          <cell name="a_3ecb8358b88c4b74b8db0835e55b4092.sanic_cm_ct_numerodecuenta" width="254" />
+          <cell name="sanic_cm_cd_aplicapago" width="136" />
+          <cell name="sanic_cm_in_actualizainfo" width="148" />
+          <cell name="sanic_cm_in_agente" width="109" />
+          <cell name="sanic_cm_in_grabadopor" width="138" />
+          <cell name="sanic_cm_in_fechagrabacion" width="160" />
+          <cell name="sanic_cm_in_estadograbacion" width="165" />
+          <cell name="sanic_cm_in_codigograbacion" width="171" />
+        </row>
+      </grid>
+    </layoutxml>
+    <querytype>0</querytype>
+    <fetchxml>
+      <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="true">
+        <entity name="sanic_cm_tbl_interaccion">
+          <attribute name="sanic_cm_in_numerointeraccion" />
+          <attribute name="sanic_cm_tbl_interaccionid" />
+          <attribute name="createdon" />
+          <link-entity alias="a_3ecb8358b88c4b74b8db0835e55b4092" name="sanic_cm_tbl_cuenta" to="sanic_cm_in_cuentaid" from="sanic_cm_tbl_cuentaid" link-type="outer" visible="false">
+            <attribute name="sanic_cm_ct_clienteid" />
+            <attribute name="sanic_cm_ct_numerodecuenta" />
+          </link-entity>
+          <attribute name="sanic_cm_cd_aplicapago" />
+          <attribute name="sanic_cm_in_actualizainfo" />
+          <attribute name="sanic_cm_in_agente" />
+          <attribute name="sanic_cm_in_grabadopor" />
+          <attribute name="sanic_cm_in_fechagrabacion" />
+          <attribute name="sanic_cm_in_estadograbacion" />
+          <attribute name="sanic_cm_in_codigograbacion" />
+          <order attribute="createdon" descending="false" />
+        </entity>
+      </fetch>
+    </fetchxml>
+    <IntroducedVersion>1.0.0.1</IntroducedVersion>
+    <LocalizedNames>
+      <LocalizedName description="Por Transcribir" languagecode="1033" />
+    </LocalizedNames>
+  </savedquery>
+</savedqueries>

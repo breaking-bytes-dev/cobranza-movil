@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<savedqueries xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <savedquery>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <isquickfindquery>0</isquickfindquery>
+    <isprivate>0</isprivate>
+    <isdefault>0</isdefault>
+    <savedqueryid>{a8cae391-0277-f111-ab0e-70a8a5b226fd}</savedqueryid>
+    <layoutxml>
+      <grid name="resultset" jump="sanic_cm_in_numerointeraccion" select="1" icon="1" preview="1">
+        <row name="result" id="sanic_cm_tbl_interaccionid">
+          <cell name="sanic_cm_in_fechagrabacion" width="160" />
+          <cell name="sanic_cm_in_cuentaid" width="108" />
+          <cell name="sanic_cm_in_nombreagente" width="154" />
+          <cell name="sanic_cm_in_codigograbacion" width="171" />
+          <cell name="sanic_cm_in_comentario" width="134" />
+          <cell name="sanic_cm_in_estadograbacion" width="165" />
+        </row>
+      </grid>
+    </layoutxml>
+    <querytype>0</querytype>
+    <fetchxml>
+      <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="true">
+        <entity name="sanic_cm_tbl_interaccion">
+          <attribute name="sanic_cm_tbl_interaccionid" />
+          <attribute name="sanic_cm_in_estadograbacion" />
+          <attribute name="sanic_cm_in_fechagrabacion" />
+          <order attribute="sanic_cm_in_fechagrabacion" descending="true" />
+          <attribute name="sanic_cm_in_cuentaid" />
+          <attribute name="sanic_cm_in_nombreagente" />
+          <attribute name="sanic_cm_in_codigograbacion" />
+          <attribute name="sanic_cm_in_comentario" />
+          <filter type="and">
+            <condition attribute="sanic_cm_in_fechagrabacion" operator="today" />
+            <condition attribute="sanic_cm_in_grabadopor" operator="eq-userid" />
+            <condition attribute="sanic_cm_in_estadograbacion" operator="eq" value="2" />
+          </filter>
+        </entity>
+      </fetch>
+    </fetchxml>
+    <IntroducedVersion>1.0.0.1</IntroducedVersion>
+    <LocalizedNames>
+      <LocalizedName description="Transcritas hoy" languagecode="1033" />
+    </LocalizedNames>
+  </savedquery>
+</savedqueries>

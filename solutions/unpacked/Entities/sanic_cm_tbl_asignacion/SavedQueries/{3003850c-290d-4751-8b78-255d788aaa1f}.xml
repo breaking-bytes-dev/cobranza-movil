@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<savedqueries xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <savedquery>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>0</CanBeDeleted>
+    <isquickfindquery>0</isquickfindquery>
+    <isprivate>0</isprivate>
+    <isdefault>1</isdefault>
+    <savedqueryid>{3003850c-290d-4751-8b78-255d788aaa1f}</savedqueryid>
+    <layoutxml>
+      <grid name="sanic_cm_tbl_asignacions" jump="sanic_cm_as_numero" select="1" icon="1" preview="0">
+        <row name="sanic_cm_tbl_asignacion" id="sanic_cm_tbl_asignacionid">
+          <cell name="sanic_cm_as_numero" width="300" />
+          <cell name="createdon" width="125" />
+        </row>
+      </grid>
+    </layoutxml>
+    <querytype>64</querytype>
+    <fetchxml>
+      <fetch version="1.0" mapping="logical">
+        <entity name="sanic_cm_tbl_asignacion">
+          <attribute name="sanic_cm_tbl_asignacionid" />
+          <attribute name="sanic_cm_as_numero" />
+          <attribute name="createdon" />
+          <filter type="and">
+            <condition attribute="statecode" operator="eq" value="0" />
+          </filter>
+        </entity>
+      </fetch>
+    </fetchxml>
+    <IntroducedVersion>1.0</IntroducedVersion>
+    <LocalizedNames>
+      <LocalizedName description="CM | TBL | Asignacion Lookup View" languagecode="1033" />
+    </LocalizedNames>
+  </savedquery>
+</savedqueries>

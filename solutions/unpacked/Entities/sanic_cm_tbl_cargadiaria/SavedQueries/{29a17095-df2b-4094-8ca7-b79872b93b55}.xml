@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<savedqueries xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <savedquery>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>0</CanBeDeleted>
+    <isquickfindquery>0</isquickfindquery>
+    <isprivate>0</isprivate>
+    <isdefault>0</isdefault>
+    <savedqueryid>{29a17095-df2b-4094-8ca7-b79872b93b55}</savedqueryid>
+    <layoutxml>
+      <grid name="resultset" jump="sanic_cm_cd_numerocuenta" select="1" icon="1" preview="1">
+        <row name="result" id="sanic_cm_tbl_cargadiariaid">
+          <cell name="sanic_cm_cd_numerocuenta" width="300" />
+          <cell name="createdon" width="125" />
+        </row>
+      </grid>
+    </layoutxml>
+    <querytype>0</querytype>
+    <fetchxml>
+      <fetch version="1.0" mapping="logical">
+        <entity name="sanic_cm_tbl_cargadiaria">
+          <attribute name="sanic_cm_tbl_cargadiariaid" />
+          <attribute name="sanic_cm_cd_numerocuenta" />
+          <attribute name="createdon" />
+          <order attribute="sanic_cm_cd_numerocuenta" descending="false" />
+          <filter type="and">
+            <condition attribute="statecode" operator="eq" value="1" />
+          </filter>
+        </entity>
+      </fetch>
+    </fetchxml>
+    <IntroducedVersion>1.0</IntroducedVersion>
+    <LocalizedNames>
+      <LocalizedName description="Inactive CM | TBL | Carga diarias" languagecode="1033" />
+    </LocalizedNames>
+  </savedquery>
+</savedqueries>

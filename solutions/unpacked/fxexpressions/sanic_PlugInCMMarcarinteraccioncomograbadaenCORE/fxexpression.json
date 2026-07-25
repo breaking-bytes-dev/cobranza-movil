@@ -1,0 +1,12 @@
+{
+  "fxexpression": {
+    "@uniquename": "sanic_PlugInCMMarcarinteraccioncomograbadaenCORE",
+    "category": "0",
+    "context": "{\"Tables\":[\"sanic_cm_tbl_interaccion\",\"systemuser\"],\"CustomApis\":[],\"ConnectionReferences\":[],\"TabularConnectionReferences\":[],\"ActionConnectorConnectionReferences\":[]}",
+    "iscustomizable": "1",
+    "name": "PlugIn | CM | Marcar interaccion como grabada en CORE",
+    "parameters": "{\"InputParameter\":[{\"entityLogicalName\":\"\",\"isOptional\":0,\"name\":\"TargetRecord\",\"type\":10},{\"entityLogicalName\":\"\",\"isOptional\":0,\"name\":\"EntraUserID\",\"type\":10}],\"OutputParameter\":[]}",
+    "statecode": "0",
+    "statuscode": "1"
+  }
+}

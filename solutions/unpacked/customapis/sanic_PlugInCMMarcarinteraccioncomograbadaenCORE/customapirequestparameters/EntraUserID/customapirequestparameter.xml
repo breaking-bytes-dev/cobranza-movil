@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="EntraUserID">
+  <description default="EntraUserID">
+    <label description="EntraUserID" languagecode="1033" />
+  </description>
+  <displayname default="EntraUserID">
+    <label description="EntraUserID" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>0</isoptional>
+  <name>EntraUserID</name>
+  <type>10</type>
+</customapirequestparameter>

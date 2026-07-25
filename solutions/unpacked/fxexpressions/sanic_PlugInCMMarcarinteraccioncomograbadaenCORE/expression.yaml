@@ -1,0 +1,6 @@
+Patch(sanic_cm_tbl_interaccion, 
+LookUp(sanic_cm_tbl_interaccion, sanic_cm_tbl_interaccionid = GUID(TargetRecord)),
+{ sanic_cm_in_estadograbacion: global_sanic_cm_choice_estadograbacioninteraccion.'2'
+, sanic_cm_in_fechagrabacion: Now()
+, sanic_cm_in_grabadopor: LookUp(systemuser, azureactivedirectoryobjectid = GUID(EntraUserID))
+})

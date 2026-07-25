@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<savedqueries xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <savedquery>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>0</CanBeDeleted>
+    <isquickfindquery>0</isquickfindquery>
+    <isprivate>0</isprivate>
+    <isdefault>1</isdefault>
+    <savedqueryid>{66140535-cf92-4451-92cf-0a4cbb5c449b}</savedqueryid>
+    <layoutxml>
+      <grid name="sanic_cm_tbl_actualizaciondatoses" jump="sanic_cm_ad_numero" select="1" icon="1" preview="1">
+        <row name="sanic_cm_tbl_actualizaciondatos" id="sanic_cm_tbl_actualizaciondatosid">
+          <cell name="sanic_cm_ad_numero" width="300" />
+          <cell name="createdon" width="125" />
+        </row>
+      </grid>
+    </layoutxml>
+    <querytype>2</querytype>
+    <fetchxml>
+      <fetch version="1.0" mapping="logical">
+        <entity name="sanic_cm_tbl_actualizaciondatos">
+          <attribute name="sanic_cm_tbl_actualizaciondatosid" />
+          <attribute name="sanic_cm_ad_numero" />
+          <attribute name="createdon" />
+          <order attribute="sanic_cm_ad_numero" descending="false" />
+          <filter type="and">
+            <condition attribute="statecode" operator="eq" value="0" />
+          </filter>
+        </entity>
+      </fetch>
+    </fetchxml>
+    <IntroducedVersion>1.0</IntroducedVersion>
+    <LocalizedNames>
+      <LocalizedName description="CM | TBL | Actualizacion de dato Associated View" languagecode="1033" />
+    </LocalizedNames>
+  </savedquery>
+</savedqueries>

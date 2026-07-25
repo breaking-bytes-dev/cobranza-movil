@@ -1,0 +1,14 @@
+{
+  "RequiredEntityAttributeMap": {
+    "sanic_cm_tbl_interaccion": [
+      "sanic_cm_in_estadograbacion",
+      "sanic_cm_in_fechagrabacion",
+      "sanic_cm_in_grabadopor"
+    ],
+    "systemuser": [
+      "azureactivedirectoryobjectid"
+    ]
+  },
+  "RequiredEntityReferences": {},
+  "RequiredEntityReferenceUniqueNames": null
+}

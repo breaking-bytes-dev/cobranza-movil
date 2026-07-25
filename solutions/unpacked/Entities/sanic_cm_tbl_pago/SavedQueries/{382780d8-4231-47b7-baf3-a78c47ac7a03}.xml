@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<savedqueries xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <savedquery>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>0</CanBeDeleted>
+    <isquickfindquery>0</isquickfindquery>
+    <isprivate>0</isprivate>
+    <isdefault>0</isdefault>
+    <savedqueryid>{382780d8-4231-47b7-baf3-a78c47ac7a03}</savedqueryid>
+    <layoutxml>
+      <grid name="resultset" jump="sanic_cm_pg_numero" select="1" icon="1" preview="1">
+        <row name="result" id="sanic_cm_tbl_pagoid">
+          <cell name="sanic_cm_pg_numero" width="300" />
+          <cell name="createdon" width="125" />
+        </row>
+      </grid>
+    </layoutxml>
+    <querytype>0</querytype>
+    <fetchxml>
+      <fetch version="1.0" mapping="logical">
+        <entity name="sanic_cm_tbl_pago">
+          <attribute name="sanic_cm_tbl_pagoid" />
+          <attribute name="sanic_cm_pg_numero" />
+          <attribute name="createdon" />
+          <order attribute="sanic_cm_pg_numero" descending="false" />
+          <filter type="and">
+            <condition attribute="statecode" operator="eq" value="1" />
+          </filter>
+        </entity>
+      </fetch>
+    </fetchxml>
+    <IntroducedVersion>1.0</IntroducedVersion>
+    <LocalizedNames>
+      <LocalizedName description="Inactive CM | TBL | Pagos" languagecode="1033" />
+    </LocalizedNames>
+  </savedquery>
+</savedqueries>

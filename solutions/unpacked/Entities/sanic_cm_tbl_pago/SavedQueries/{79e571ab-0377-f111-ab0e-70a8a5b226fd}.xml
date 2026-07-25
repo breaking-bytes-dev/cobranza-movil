@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<savedqueries xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <savedquery>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <isquickfindquery>0</isquickfindquery>
+    <isprivate>0</isprivate>
+    <isdefault>0</isdefault>
+    <savedqueryid>{79e571ab-0377-f111-ab0e-70a8a5b226fd}</savedqueryid>
+    <layoutxml>
+      <grid name="resultset" jump="sanic_cm_pg_numero" select="1" icon="1" preview="1">
+        <row name="result" id="sanic_cm_tbl_pagoid">
+          <cell name="sanic_cm_pg_numero" width="200" />
+          <cell name="sanic_cm_pg_monto" width="109" />
+          <cell name="sanic_cm_pg_moneda" width="117" />
+          <cell name="sanic_cm_pg_numerorecibo" width="156" />
+          <cell name="sanic_cm_pg_interaccion" width="134" />
+          <cell name="createdon" width="105" />
+        </row>
+      </grid>
+    </layoutxml>
+    <querytype>0</querytype>
+    <fetchxml>
+      <fetch version="1.0" output-format="xml-platform" mapping="logical">
+        <entity name="sanic_cm_tbl_pago">
+          <attribute name="sanic_cm_pg_numero" />
+          <attribute name="sanic_cm_tbl_pagoid" />
+          <attribute name="sanic_cm_pg_monto" />
+          <attribute name="sanic_cm_pg_moneda" />
+          <attribute name="sanic_cm_pg_numerorecibo" />
+          <attribute name="sanic_cm_pg_interaccion" />
+          <attribute name="createdon" />
+        </entity>
+      </fetch>
+    </fetchxml>
+    <IntroducedVersion>1.0.0.1</IntroducedVersion>
+    <LocalizedNames>
+      <LocalizedName description="Pagos captados en interaccion" languagecode="1033" />
+    </LocalizedNames>
+  </savedquery>
+</savedqueries>
