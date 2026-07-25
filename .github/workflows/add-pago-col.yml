@@ -1,0 +1,32 @@
+name: add-pago-col
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  add:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Crear sanic_cm_pg_numerocuenta
+        env:
+          DATAVERSE_URL: ${{ secrets.DATAVERSE_URL }}
+          CLIENT_ID: ${{ secrets.PP_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT_ID: ${{ secrets.PP_TENANT_ID }}
+        run: |
+          set -uo pipefail
+          URL="${DATAVERSE_URL%/}"; SOL="cm_core_cobranzamovil"; ENT="sanic_cm_tbl_pago"
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token" \
+            --data-urlencode "grant_type=client_credentials" --data-urlencode "client_id=${CLIENT_ID}" \
+            --data-urlencode "client_secret=${CLIENT_SECRET}" --data-urlencode "scope=${URL}/.default" | jq -r '.access_token // empty')
+          [ -n "$TOKEN" ] || { echo "::error::No token"; exit 1; }
+          body=$(jq -nc '{"@odata.type":"Microsoft.Dynamics.CRM.StringAttributeMetadata",SchemaName:"sanic_cm_pg_numerocuenta",RequiredLevel:{Value:"None"},MaxLength:100,FormatName:{Value:"Text"},DisplayName:{"@odata.type":"Microsoft.Dynamics.CRM.Label","LocalizedLabels":[{"@odata.type":"Microsoft.Dynamics.CRM.LocalizedLabel",Label:"[PG] Numero Cuenta",LanguageCode:1033}]}}')
+          code=$(curl -s -o /tmp/r.json -w "%{http_code}" -X POST \
+            "${URL}/api/data/v9.2/EntityDefinitions(LogicalName='${ENT}')/Attributes" \
+            -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+            -H "MSCRM.SolutionUniqueName: ${SOL}" -H "OData-MaxVersion: 4.0" -H "OData-Version: 4.0" -d "$body")
+          echo "create HTTP $code"; [ "$code" -ge 200 ] && [ "$code" -lt 300 ] || { jq -r '.error.message // .' /tmp/r.json; exit 1; }
+          curl -s -o /dev/null -w "publish HTTP %{http_code}\n" -X POST "${URL}/api/data/v9.2/PublishAllXml" \
+            -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -H "OData-MaxVersion: 4.0" -H "OData-Version: 4.0" -d '{}'
+          curl -s "${URL}/api/data/v9.2/EntityDefinitions(LogicalName='${ENT}')/Attributes(LogicalName='sanic_cm_pg_numerocuenta')?%24select=LogicalName,AttributeType" \
+            -H "Authorization: Bearer $TOKEN" | jq -r '"verify: " + (.LogicalName // "NO") + " [" + ((.AttributeType|tostring)//"?") + "]"'
