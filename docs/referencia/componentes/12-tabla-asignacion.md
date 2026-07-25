@@ -1,8 +1,8 @@
-# Componente: Tabla `sanic_asignacion`
+# Componente: Tabla `sanic_cm_tbl_asignacion`
 
 > **Fase 1 — Modelo de datos · Componente 12 (operativa).**
 > Qué cuenta se asignó a qué localizador, de qué **tipo**, en qué **estado**, y con qué **orden**. Es una
-> **tabla viva** (no un snapshot), separada del histórico financiero `cargadiaria`.
+> **tabla viva** (no un snapshot), separada del histórico financiero `sanic_cm_tbl_cargadiaria`.
 >
 > Materializa: **DEC-005** (tabla dedicada), **DEC-012** (3 tipos + ciclo de vida + política import),
 > **DEC-013** (flujo Especial), **DEC-015** (owner = localizador), **DEC-016** (alt key + auditoría).
@@ -20,36 +20,36 @@ persistente** (Incobrables), con su **orden** de trabajo y, para las Especiales,
 
 | Nombre lógico | Nombre físico | Tipo | Req. | Origen / descripción |
 |---------------|---------------|------|:----:|----------------------|
-| Número | `sanic_numero` | Autonumber (`ASG-{SEQNUM:6}`) | auto | **Primary name.** |
-| Número de cuenta | `sanic_numerocuenta` | Text | ✔ | Copiado para la **alt key** (patrón del import). |
-| Cuenta | `sanic_cuentaid` | Lookup → `sanic_cuenta` | ✔ | Resuelto por `NumeroCuenta`. **Toda asignación tiene cuenta** (DEC-013). |
-| Agente | `sanic_agenteid` | Lookup → `sanic_agente` | — | El localizador asignado. En Especiales lo define el **Supervisor**. |
-| Tipo | `sanic_tipo` | Choice (ver §5) | ✔ | Diaria / Incobrable / Especial. |
-| Estado | `sanic_estado` | Choice (ver §5) | ✔ | Activa / Cerrada. Default `Activa`. |
-| Orden | `sanic_orden` | Whole Number | — | **Prioridad del localizador.** **NO** se mapea en el import (no se pisa). |
-| Fecha de asignación | `sanic_fechaasignacion` | DateTime | — | Cuándo se asignó. |
-| Última carga | `sanic_ultimacarga` | DateTime | — | = `FechaCarga` en que la cuenta vino. La setea el import en cada upsert. Base del **sweep** (DEC-018). |
-| Motivo de cierre | `sanic_motivocierre` | Text | — | Al cerrar (manual en Incobrables DEC-012; *"fuera de cartera"* en el sweep DEC-018). |
+| Número | `sanic_cm_as_numero` | Autonumber (`ASG-{SEQNUM:6}`) | auto | **Primary name.** |
+| Número de cuenta | `sanic_cm_as_numerocuenta` | Text | ✔ | Copiado para la **alt key** (patrón del import). |
+| Cuenta | `sanic_cm_as_cuentaid` | Lookup → `sanic_cm_tbl_cuenta` | ✔ | Resuelto por `NumeroCuenta`. **Toda asignación tiene cuenta** (DEC-013). |
+| Agente | `sanic_cm_as_agenteid` | Lookup → `sanic_cm_tbl_agente` | — | El localizador asignado. En Especiales lo define el **Supervisor**. |
+| Tipo | `sanic_cm_as_tipo` | Choice (ver §5) | ✔ | Diaria / Incobrable / Especial. |
+| Estado | `sanic_cm_as_estado` | Choice (ver §5) | ✔ | Activa / Cerrada. Default `Activa`. |
+| Orden | `sanic_cm_as_orden` | Whole Number | — | **Prioridad del localizador.** **NO** se mapea en el import (no se pisa). |
+| Fecha de asignación | `sanic_cm_as_fechasignacion` | DateTime | — | Cuándo se asignó. |
+| Última carga | `⚠️TODO(sanic_ultimacarga)` | DateTime | — | = `FechaCarga` en que la cuenta vino. Base del **sweep** (DEC-018). **Sin equivalente en el build.** |
+| Motivo | `sanic_cm_as_motivo` | Text | — | Al cerrar (manual en Incobrables DEC-012; *"fuera de cartera"* en el sweep DEC-018). Único campo de motivo en el build (ver ⚠️ motivo de rechazo). |
 | **— Solo Especiales —** | | | | |
-| Estado de aprobación | `sanic_estadoaprobacion` | Choice (ver §5) | — | Borrador / Pendiente / Aprobada / Rechazada. |
-| Supervisor | `sanic_supervisorid` | Lookup → `systemuser` | — | Quién aprueba/rechaza. |
-| Creada por (Solicitante) | `sanic_creadaporid` | Lookup → `systemuser` | — | El rol **Solicitante** (DEC-014). |
-| Motivo de rechazo | `sanic_motivorechazo` | Text | — | Si el Supervisor la rechaza. |
+| Estado de aprobación | `sanic_cm_as_estadoaprobacion` | Choice (ver §5) | — | Borrador / Pendiente / Aprobada / Rechazada. |
+| Supervisor / Resolutor | `sanic_cm_as_resolutorid` | Lookup → `systemuser` | — | Quién aprueba/rechaza. |
+| Creada por (Solicitante) | `sanic_cm_as_solicitadopor` | Lookup → `systemuser` | — | El rol **Solicitante** (DEC-014). |
+| Motivo de rechazo | `⚠️TODO(sanic_motivorechazo)` | Text | — | Si el Supervisor la rechaza. **Sin equivalente en el build** (solo existe `sanic_cm_as_motivo`). |
 | Propietario | `ownerid` | Owner (system) | ✔ | = el **localizador** (seteado por plugin/flow, Comp. 01 §6). |
 
 ---
 
 ## 3. Alternate Key (DEC-016)
 
-- **Compuesta: `sanic_numerocuenta` + `sanic_tipo`.**
+- **Compuesta: `sanic_cm_as_numerocuenta` + `sanic_cm_as_tipo`.**
 - Garantiza **una asignación activa por (cuenta, tipo)** → una cuenta puede tener Diaria **y** Especial a la
   vez, pero no dos Diarias.
-- El import hace **upsert** por esta clave (Diaria/Incobrable). El `tipo` es un **Choice** válido en alt key
+- El import hace **upsert** por esta clave (Diaria/Incobrable). El `sanic_cm_as_tipo` es un **Choice** válido en alt key
   (Picklist soportado); el import **traduce el texto del CSV al valor** (Diaria→1, etc.) — ver
   [`../02-import-configuracion.md`](../../guias/02-import-configuracion.md) §4.
 
-> Como en el import, la alt key va sobre **texto** (`numerocuenta`), no sobre el lookup. El vínculo
-> `sanic_cuentaid` lo resuelve el Relationship Mapping aparte.
+> Como en el import, la alt key va sobre **texto** (`sanic_cm_as_numerocuenta`), no sobre el lookup. El vínculo
+> `sanic_cm_as_cuentaid` lo resuelve el Relationship Mapping aparte.
 
 ---
 
@@ -57,29 +57,29 @@ persistente** (Incobrables), con su **orden** de trabajo y, para las Especiales,
 
 | Relación | Cardinalidad | Columna |
 |----------|:------------:|---------|
-| `sanic_cuenta` → `sanic_asignacion` | 1:N | `sanic_cuentaid` |
-| `sanic_agente` → `sanic_asignacion` | 1:N | `sanic_agenteid` |
-| `systemuser` → `sanic_asignacion` (supervisor) | 1:N | `sanic_supervisorid` |
-| `systemuser` → `sanic_asignacion` (creada por) | 1:N | `sanic_creadaporid` |
+| `sanic_cm_tbl_cuenta` → `sanic_cm_tbl_asignacion` | 1:N | `sanic_cm_as_cuentaid` |
+| `sanic_cm_tbl_agente` → `sanic_cm_tbl_asignacion` | 1:N | `sanic_cm_as_agenteid` |
+| `systemuser` → `sanic_cm_tbl_asignacion` (resolutor) | 1:N | `sanic_cm_as_resolutorid` |
+| `systemuser` → `sanic_cm_tbl_asignacion` (solicitado por) | 1:N | `sanic_cm_as_solicitadopor` |
 
 ---
 
 ## 5. Choices
 
-**`sanic_tipo`** (DEC-012):
+**`sanic_cm_as_tipo`** — choice `sanic_choice_cm_tipoasignacion` (DEC-012):
 | Valor | Código | Comportamiento |
 |-------|:------:|----------------|
 | Diaria | 1 | El import diario la renueva. |
 | Incobrable | 2 | Persiste; no viene a diario; **cierre manual**. |
 | Especial | 3 | Nace en la app; **flujo de aprobación**. |
 
-**`sanic_estado`:**
+**`sanic_cm_as_estado`:**
 | Valor | Código |
 |-------|:------:|
 | Activa | 1 |
 | Cerrada | 2 |
 
-**`sanic_estadoaprobacion`** (solo Especiales, DEC-013):
+**`sanic_cm_as_estadoaprobacion`** — choice `sanic_choice_cm_estadoaprobacionespecial` (solo Especiales, DEC-013):
 | Valor | Código |
 |-------|:------:|
 | Borrador | 1 |
@@ -103,10 +103,10 @@ persistente** (Incobrables), con su **orden** de trabajo y, para las Especiales,
 
 ### Especial — los dos campos de estado (DEC-022)
 
-`estadoaprobacion` gobierna la **aprobación** (`Borrador → Pendiente → Aprobada/Rechazada`); `estado`
-(Activa/Cerrada) **recién importa al aprobar**. La **cartera del localizador** = suya + `estado = Activa` +
-`estadoaprobacion = Aprobada`. Origen App (Solicitante) **o** CSV (import → `Pendiente`, nunca pre-aprobada).
-**Guarda:** un re-import **no** revierte `estadoaprobacion` (solo se setea `Pendiente` al crear).
+`sanic_cm_as_estadoaprobacion` gobierna la **aprobación** (`Borrador → Pendiente → Aprobada/Rechazada`); `sanic_cm_as_estado`
+(Activa/Cerrada) **recién importa al aprobar**. La **cartera del localizador** = suya + `sanic_cm_as_estado = Activa` +
+`sanic_cm_as_estadoaprobacion = Aprobada`. Origen App (Solicitante) **o** CSV (import → `Pendiente`, nunca pre-aprobada).
+**Guarda:** un re-import **no** revierte `sanic_cm_as_estadoaprobacion` (solo se setea `Pendiente` al crear).
 
 > **Reclasificación (DEC-021):** Diaria e Incobrable son **mutuamente excluyentes** (clasificación del core).
 > Cuando una cuenta aparece con un core-type, el import **cierra su otro core-type activo** (motivo
@@ -117,11 +117,11 @@ persistente** (Incobrables), con su **orden** de trabajo y, para las Especiales,
 El import es **upsert-only**: nunca borra. Si una cuenta **Diaria** deja de venir, su asignación quedaría
 `Activa` colgada. La saca el **Admin** con una **función ejecutable en la PowerApp** (NO automática):
 
-1. El import setea **`sanic_ultimacarga = FechaCarga`** y `estado = Activa` en **cada upsert**.
-2. El Admin abre la función → **preview** de candidatas (`Diaria` + `Activa` + `ultimacarga < última carga`):
+1. El import setea **`⚠️TODO(sanic_ultimacarga) = FechaCarga`** y `sanic_cm_as_estado = Activa` en **cada upsert**.
+2. El Admin abre la función → **preview** de candidatas (`Diaria` + `Activa` + `⚠️TODO(sanic_ultimacarga) < última carga`):
    cantidad, **% sobre Diarias activas**, fecha de carga.
 3. **Umbral de cordura visible:** si el % es anómalo (ej. >20–30%) lo marca en rojo. El Admin decide.
-4. El Admin **confirma** → `estado = Cerrada`, `motivocierre`, `fechacierre`. **Precondición:** último import
+4. El Admin **confirma** → `sanic_cm_as_estado = Cerrada`, `sanic_cm_as_motivo`, `⚠️TODO(fechacierre)`. **Precondición:** último import
    `Completado`.
 5. **Reaparición:** si la cuenta vuelve, el upsert la **re-activa**; el Admin/Supervisor puede reabrir.
 
@@ -131,28 +131,28 @@ El import es **upsert-only**: nunca borra. Si una cuenta **Diaria** deja de veni
 
 ## 7. Pasos de construcción
 
-1. Crear la tabla `sanic_asignacion`, **User/Team owned**. Primary name autonumber `ASG-{SEQNUM:6}`.
-2. Crear columnas de §2 (incluido `sanic_numerocuenta` texto para la alt key).
-3. Crear los **Choices** de §5 con sus defaults (`estado = Activa`).
-4. Crear la **Alternate Key** `sanic_numerocuenta + sanic_tipo` y dejarla **Active** (DEC-016).
-5. Crear los lookups (cuenta, agente, supervisor, creada por).
-6. **Habilitar auditoría** en `sanic_agenteid`, `ownerid`, `sanic_tipo`, `sanic_estado` → historial de
+1. Crear la tabla `sanic_cm_tbl_asignacion`, **User/Team owned**. Primary name autonumber `ASG-{SEQNUM:6}`.
+2. Crear columnas de §2 (incluido `sanic_cm_as_numerocuenta` texto para la alt key).
+3. Crear los **Choices** de §5 con sus defaults (`sanic_cm_as_estado = Activa`).
+4. Crear la **Alternate Key** `sanic_cm_as_numerocuenta + sanic_cm_as_tipo` y dejarla **Active** (DEC-016).
+5. Crear los lookups (cuenta, agente, resolutor, solicitado por).
+6. **Habilitar auditoría** en `sanic_cm_as_agenteid`, `ownerid`, `sanic_cm_as_tipo`, `sanic_cm_as_estado` → historial de
    reasignaciones (DEC-016, reemplaza una tabla de historial).
 7. **Owner por plugin/flow** (Comp. 01 §6, paso 10): en `Create`/`Update`, setear `ownerid` =
-   `sanic_agenteid.sanic_usuario`. Para Especiales, al **Aprobar**.
-8. **Import (Fase 2):** Table Mapping de Smelter → `sanic_asignacion` para Diaria/Incobrable; **no mapear**
-   `sanic_orden` (para no pisar la prioridad del localizador).
+   `sanic_cm_as_agenteid.sanic_cm_ag_usuarioid`. Para Especiales, al **Aprobar**.
+8. **Import (Fase 2):** Table Mapping de Smelter → `sanic_cm_tbl_asignacion` para Diaria/Incobrable; **no mapear**
+   `sanic_cm_as_orden` (para no pisar la prioridad del localizador).
 9. **Flujo de Especiales (su md):** estados, transición de aprobación, asignación de agente por el Supervisor.
 
 ---
 
 ## 8. Gotchas
 
-- **8.1 El orden NO se pisa:** si `sanic_orden` se mapeara en el import, el upsert lo borraría. **No mapearlo**
+- **8.1 El orden NO se pisa:** si `sanic_cm_as_orden` se mapeara en el import, el upsert lo borraría. **No mapearlo**
   (DEC-012). El localizador reordena y sobrevive a las recargas.
-- **8.2 Owner al reasignar:** cambiar `sanic_agenteid` debe **re-setear** `ownerid` (mismo plugin del paso 7),
+- **8.2 Owner al reasignar:** cambiar `sanic_cm_as_agenteid` debe **re-setear** `ownerid` (mismo plugin del paso 7),
   o el localizador nuevo no la verá y el viejo la seguiría viendo.
-- **8.3 Especial sin agente:** mientras está `Pendiente`, `sanic_agenteid` puede estar vacío → sin owner
+- **8.3 Especial sin agente:** mientras está `Pendiente`, `sanic_cm_as_agenteid` puede estar vacío → sin owner
   visible para un localizador (correcto: todavía no se asignó). El owner se setea **al Aprobar**.
 - **8.4 Coexistencia:** una cuenta con Diaria + Especial son **dos filas** (alt key por tipo). La app de campo
   debe mostrar ambas sin confundirlas.
@@ -162,18 +162,18 @@ El import es **upsert-only**: nunca borra. Si una cuenta **Diaria** deja de veni
 ## 9. Checklist
 
 - [ ] Tabla User/Team owned, primary name autonumber.
-- [ ] Alt key `numerocuenta+tipo` **Active**.
-- [ ] Choices `tipo`, `estado`, `estadoaprobacion` con defaults.
+- [ ] Alt key `sanic_cm_as_numerocuenta + sanic_cm_as_tipo` **Active**.
+- [ ] Choices `sanic_cm_as_tipo`, `sanic_cm_as_estado`, `sanic_cm_as_estadoaprobacion` con defaults.
 - [ ] Auditoría activa en agente/owner/tipo/estado.
-- [ ] El plugin/flow setea `ownerid` desde `agente.sanic_usuario` (y al reasignar).
-- [ ] `sanic_orden` editable por el localizador y **no** mapeado en el import.
+- [ ] El plugin/flow setea `ownerid` desde `agente.sanic_cm_ag_usuarioid` (y al reasignar).
+- [ ] `sanic_cm_as_orden` editable por el localizador y **no** mapeado en el import.
 - [ ] Especial: Solicitante crea → Supervisor aprueba/asigna → owner queda en el localizador.
 
 ---
 
 ## 10. Dependencias
 
-- **Depende de:** `sanic_cuenta` (Comp. 08) y `sanic_agente` (Comp. 04) — **tablas que se construyen en
+- **Depende de:** `sanic_cm_tbl_cuenta` (Comp. 08) y `sanic_cm_tbl_agente` (Comp. 04) — **tablas que se construyen en
   esta solución** — y la seguridad (Comp. 01).
 - **Pendiente (otra fase):** el **plugin/flow de owner** y el **flujo de aprobación de Especiales** tendrán su
   propio markdown de lógica de negocio. La **config del import** de esta tabla va en la Fase 2.

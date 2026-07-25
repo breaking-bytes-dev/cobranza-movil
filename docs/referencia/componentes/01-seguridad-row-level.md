@@ -42,13 +42,13 @@
 
 El "Agente" del CSV **es** el localizador. Para conectarlo con su identidad AAD:
 
-- En `sanic_agente` se agrega la columna **`sanic_usuario`** — **Lookup → `systemuser`**.
+- En `sanic_cm_tbl_agente` se agrega la columna **`sanic_cm_ag_usuarioid`** — **Lookup → `systemuser`**.
 - **Quién lo setea:** el **Admin**, **una vez por localizador**, al darlo de alta (dato de configuración).
 - **Para qué sirve:**
   1. **Setear el owner** de la asignación cuando el import la crea (sección 6).
   2. Que la app de campo resuelva *"mi cartera"* = asignaciones cuyo **owner soy yo**.
 
-> ⚠️ **Regla:** un agente **activo sin** `sanic_usuario` vinculado generará asignaciones **sin owner
+> ⚠️ **Regla:** un agente **activo sin** `sanic_cm_ag_usuarioid` vinculado generará asignaciones **sin owner
 > correcto** → el localizador **no las verá**. Ver gotcha 9.1.
 
 ---
@@ -57,9 +57,9 @@ El "Agente" del CSV **es** el localizador. Para conectarlo con su identidad AAD:
 
 | Grupo | Tablas | Tipo de propiedad | Owner típico |
 |-------|--------|-------------------|--------------|
-| **Operativas** | `sanic_asignacion`, `sanic_interaccion`, `sanic_pago` | **User/Team owned** | El **localizador** (su `systemuser`). |
-| **Maestros** | `sanic_cliente`, `sanic_cuenta`, `sanic_direccion`, `sanic_telefono`, `sanic_cargadiaria` | User/Team owned, pero **se leen a nivel Org** | Cuenta de servicio del import (irrelevante para la lectura). |
-| **Catálogos** | `sanic_producto`, `sanic_agente`, `sanic_fiador` | User/Team owned, **Read Org** | Servicio/Admin. |
+| **Operativas** | `sanic_cm_tbl_asignacion`, `sanic_cm_tbl_interaccion`, `sanic_cm_tbl_pago` | **User/Team owned** | El **localizador** (su `systemuser`). |
+| **Maestros** | `sanic_cm_tbl_cliente`, `sanic_cm_tbl_cuenta`, `sanic_cm_tbl_direccion`, `sanic_cm_tbl_telefono`, `sanic_cm_tbl_cargadiaria` | User/Team owned, pero **se leen a nivel Org** | Cuenta de servicio del import (irrelevante para la lectura). |
+| **Catálogos** | `sanic_cm_tbl_producto`, `sanic_cm_tbl_agente`, `sanic_cm_tbl_fiador` | User/Team owned, **Read Org** | Servicio/Admin. |
 | **Config import** | Smelter (Template, Mappings, Import Job, Log) | — | Admin. |
 
 ---
@@ -69,19 +69,19 @@ El "Agente" del CSV **es** el localizador. Para conectarlo con su identidad AAD:
 > **Leyenda:** `C`=Create · `R`=Read · `U`=Update · `D`=Delete. Entre paréntesis el **nivel**:
 > `(U)`=User (solo propios) · `(O)`=Organization (todos). `—` = sin acceso.
 
-| Tabla | Localizador | Backoffice | Solicitante | Supervisor | Admin |
+| Tabla | SR \| CM \| Localizador | SR \| CM \| Backoffice | SR \| CM \| Solicitante | SR \| CM \| Supervisor | SR \| CM \| Admin |
 |-------|:-----------:|:----------:|:-----------:|:----------:|:-----:|
-| `sanic_cliente` | R(O) | R(O) | C R U (O) | R(O) | C R U D (O) |
-| `sanic_cuenta` | R(O) | R(O) | C R U (O) | R(O) | C R U D (O) |
-| `sanic_direccion` | R(O) | R(O) | C R U (O) | R(O) | C R U D (O) |
-| `sanic_telefono` | R(O) | R(O) | C R U (O) | R(O) | C R U D (O) |
-| `sanic_producto` / `sanic_fiador` | R(O) | R(O) | R(O) | R(O) | C R U D (O) |
-| `sanic_agente` | R(O) | R(O) | R(O) | R(O) | C R U D (O) |
-| `sanic_cargadiaria` | R(O) | R(O) | R(O) | R(O) | C R U D (O) |
-| `sanic_asignacion` | R(U) · U(U)¹ | R(O) | C R U (O) | R(O) · U(O)² | C R U D (O) |
-| `sanic_interaccion` | C R U (U) | R(O) · U(O)³ | R(O) | R(O) | C R U D (O) |
-| `sanic_pago` | C R U (U) | R(O) | R(O) | R(O) | C R U D (O) |
-| `sanic_actualizaciondatos` | C R U (U) | R(O) | R(O) | — | C R U D (O) |
+| `sanic_cm_tbl_cliente` | R(O) | R(O) | C R U (O) | R(O) | C R U D (O) |
+| `sanic_cm_tbl_cuenta` | R(O) | R(O) | C R U (O) | R(O) | C R U D (O) |
+| `sanic_cm_tbl_direccion` | R(O) | R(O) | C R U (O) | R(O) | C R U D (O) |
+| `sanic_cm_tbl_telefono` | R(O) | R(O) | C R U (O) | R(O) | C R U D (O) |
+| `sanic_cm_tbl_producto` / `sanic_cm_tbl_fiador` | R(O) | R(O) | R(O) | R(O) | C R U D (O) |
+| `sanic_cm_tbl_agente` | R(O) | R(O) | R(O) | R(O) | C R U D (O) |
+| `sanic_cm_tbl_cargadiaria` | R(O) | R(O) | R(O) | R(O) | C R U D (O) |
+| `sanic_cm_tbl_asignacion` | R(U) · U(U)¹ | R(O) | C R U (O) | R(O) · U(O)² | C R U D (O) |
+| `sanic_cm_tbl_interaccion` | C R U (U) | R(O) · U(O)³ | R(O) | R(O) | C R U D (O) |
+| `sanic_cm_tbl_pago` | C R U (U) | R(O) | R(O) | R(O) | C R U D (O) |
+| `sanic_cm_tbl_actualizaciondatos` | C R U (U) | R(O) | R(O) | — | C R U D (O) |
 | Config import (Smelter) | — | R(O)⁴ | — | — | C R U D (O) |
 
 **Notas:**
@@ -100,17 +100,17 @@ El "Agente" del CSV **es** el localizador. Para conectarlo con su identidad AAD:
 ## 6. Cómo se materializa "ver solo su cartera"
 
 ```
-  IMPORT (CSV) ──crea/actualiza──► sanic_asignacion
-                                        │  plugin/flow: ownerid = agente.sanic_usuario
+  IMPORT (CSV) ──crea/actualiza──► sanic_cm_tbl_asignacion
+                                        │  plugin/flow: ownerid = agente.sanic_cm_ag_usuarioid
                                         ▼
                               owner = el localizador (systemuser)
                                         │
           Localizador (rol, asignacion R User-level) ── ve SOLO las que owna ─┐
                                         │                                      │
                                         ▼                                      ▼
-                            join → sanic_cuenta (Read Org) ── datos para cobrar
+                            join → sanic_cm_tbl_cuenta (Read Org) ── datos para cobrar
                                         ▼
-                        sanic_interaccion / sanic_pago (owned por él, User-level)
+                        sanic_cm_tbl_interaccion / sanic_cm_tbl_pago (owned por él, User-level)
 ```
 
 - El localizador ve **sus asignaciones** porque las **owna** (User-level), sin filtros frágiles de UI.
@@ -129,29 +129,29 @@ El "Agente" del CSV **es** el localizador. Para conectarlo con su identidad AAD:
 2. Verificar que cada **localizador** tenga **usuario AAD** habilitado en el entorno con **licencia Power Apps**.
 
 ### B. Vínculo Agente↔Usuario (DEC-006)
-3. En `sanic_agente`, crear la columna **`sanic_usuario`** (Lookup → `systemuser`).
-4. **Alta de localizador:** el Admin setea `sanic_agente.sanic_usuario` = usuario AAD del localizador
+3. En `sanic_cm_tbl_agente`, crear la columna **`sanic_cm_ag_usuarioid`** (Lookup → `systemuser`).
+4. **Alta de localizador:** el Admin setea `sanic_cm_tbl_agente.sanic_cm_ag_usuarioid` = usuario AAD del localizador
    (una vez por persona). Es **dato de configuración**, documentarlo.
-5. Crear una **vista de control** *"Agentes sin usuario vinculado"* (filtro `sanic_usuario` is null) para
+5. Crear una **vista de control** *"Agentes sin usuario vinculado"* (filtro `sanic_cm_ag_usuarioid` is null) para
    evitar el gotcha 9.1.
 
 ### C. Roles de seguridad
-6. Crear los **5 security roles**: `Localizador`, `Backoffice`, `Solicitante`, `Supervisor`, `Admin`.
+6. Crear los **5 security roles**: `SR | CM | Localizador`, `SR | CM | Backoffice`, `SR | CM | Solicitante`, `SR | CM | Supervisor`, `SR | CM | Admin`.
 7. Aplicar a cada rol la **matriz de la sección 5** (tabla por tabla, privilegio por privilegio).
-8. **Asignar** cada rol a sus usuarios (localizadores → `Localizador`, etc.). Un usuario puede tener más de
+8. **Asignar** cada rol a sus usuarios (localizadores → `SR | CM | Localizador`, etc.). Un usuario puede tener más de
    un rol si el negocio lo permite, pero **por defecto van separados** (segregación de funciones, DEC-014).
 
 ### D. Propiedad de registros (el corazón del aislamiento)
-9. Configurar `sanic_asignacion`, `sanic_interaccion`, `sanic_pago` como **User/Team owned** (no Org-owned).
+9. Configurar `sanic_cm_tbl_asignacion`, `sanic_cm_tbl_interaccion`, `sanic_cm_tbl_pago` como **User/Team owned** (no Org-owned).
 10. **Setear el owner de la asignación** (no es nativo del import — requiere automatización):
     - **Diaria/Incobrable (import):** un **plugin** o **Power Automate flow** en `Create`/`Update` de
-      `sanic_asignacion` que setea `ownerid = sanic_agente.sanic_usuario` (resuelto por el Agente del CSV).
+      `sanic_cm_tbl_asignacion` que setea `ownerid = sanic_cm_tbl_agente.sanic_cm_ag_usuarioid` (resuelto por el Agente del CSV).
     - **Especial:** al **aprobar**, el Supervisor asigna el localizador → el mismo mecanismo setea el owner.
-11. `sanic_interaccion` / `sanic_pago`: el **owner es el creador** (el localizador, automático al crearlos
+11. `sanic_cm_tbl_interaccion` / `sanic_cm_tbl_pago`: el **owner es el creador** (el localizador, automático al crearlos
     desde la app). No requiere lógica extra.
 
 ### E. Filtrado en la app
-12. **App de campo:** la cartera = `sanic_asignacion` **owned por el usuario actual** (nativo). De ahí se
+12. **App de campo:** la cartera = `sanic_cm_tbl_asignacion` **owned por el usuario actual** (nativo). De ahí se
     navega a la cuenta y datos maestros (Read Org).
 13. **App de oficina:** vistas por rol (Backoffice → "interacciones pendientes de grabar"; Supervisor →
     "Especiales pendientes de aprobar"; etc.).
@@ -171,7 +171,7 @@ la estrategia **"Por zona"** (descartada en DEC-015).
 
 - **9.1 Agente sin usuario vinculado:** la asignación queda con owner = servicio → el localizador **no la
   ve**. **Mitigación:** vincular **antes** del import (paso 5); el plugin del paso 10 debe **registrar/alertar**
-  si `sanic_usuario` viene null.
+  si `sanic_cm_ag_usuarioid` viene null.
 - **9.2 Reasignación de Diaria:** el import (1×/día) cambia el Agente → el plugin **re-setea** el owner. Una
   reasignación **manual** intradía cambia el owner a mano; el import del **día siguiente** puede volver a
   setearlo (política DEC-012).
@@ -203,8 +203,8 @@ la estrategia **"Por zona"** (descartada en DEC-015).
 - **Depende de:** que las tablas **se construyan en esta solución** (todas desde 0 — operativas en Fase 1;
   maestras según sus componentes). Este doc define su **seguridad**, no su esquema. La matriz de §5 se
   **aplica a medida que cada tabla se crea**.
-- **Habilita:** el diseño de esquema de `sanic_agente` (con `sanic_usuario`), `sanic_interaccion`,
-  `sanic_pago`, `sanic_asignacion` — cada uno en su componente.
+- **Habilita:** el diseño de esquema de `sanic_cm_tbl_agente` (con `sanic_cm_ag_usuarioid`), `sanic_cm_tbl_interaccion`,
+  `sanic_cm_tbl_pago`, `sanic_cm_tbl_asignacion` — cada uno en su componente.
 - **Automatización del owner:** detallada en **[Componente 14](14-automatizacion-owner-asignacion.md)** —
   **Power Automate** (se descartó el low-code plugin Power Fx por ser *preview / no producción*). Setea
-  `ownerid = sanic_agenteid.sanic_usuario` en Create/Update de `sanic_asignacion`.
+  `ownerid = sanic_cm_as_agenteid.sanic_cm_ag_usuarioid` en Create/Update de `sanic_cm_tbl_asignacion`.

@@ -100,7 +100,7 @@ Cada día el core bancario **exporta un CSV** con las cuentas en mora a cobrar. 
   `telefono` (Celular/Casa) y el snapshot histórico `cargadiaria`.
 - **Dato clave para campo:** `RetiroNIO`/`RetiroUSD` = la **plata que el localizador va a ir a traer** al cliente.
 - **Asignación:** el CSV trae `TipoAsignacion` (Diaria/Incobrable/Especial) y `Agente` → de ahí se puebla
-  `sanic_asignacion` para **Diaria/Incobrable**. Las **Especiales NO vienen por CSV** (nacen en la app, DEC-013).
+  `sanic_cm_tbl_asignacion` para **Diaria/Incobrable**. Las **Especiales NO vienen por CSV** (nacen en la app, DEC-013).
 - **Detalle técnico** (mappings, alt keys, orden DAG): [`../cobranza-import-config.md`](../referencia/cobranza-import-config.md)
   y [`../smelter-overview.md`](../referencia/smelter-overview.md).
 
@@ -116,20 +116,20 @@ Detalle y porqué en [`decisiones/registro-de-decisiones.md`](../referencia/deci
 | DEC-002 | **Write-back manual; el código lo asigna el backoffice** | La gestión es comentario libre; el backoffice asigna el código del core al transcribir + estado de transcripción + auditoría anti-doble-carga. El código se guarda para futuro auto-clasificador. |
 | DEC-003 | **Pago en papel; recibo digital on/off futuro** | El pago son atributos de la interacción (monto, moneda NIO/USD, nº recibo físico). Sin entidad de pago. Recibo digital diferido. |
 | DEC-004 | **Localizadores = empleados internos (AAD)** | Identidad Entra ID, licencia Power Apps, seguridad row-level por ownership/BU. |
-| DEC-005 | **Tabla de asignación diaria dedicada** | `sanic_asignacion` separada del snapshot financiero: trazabilidad + orden del localizador no-pisable. |
-| DEC-006 | **El "Agente" del import ES el localizador** | Lookup `sanic_agente → systemuser` (AAD). No se crea entidad localizador aparte. Ancla la seguridad row-level. |
+| DEC-005 | **Tabla de asignación diaria dedicada** | `sanic_cm_tbl_asignacion` separada del snapshot financiero: trazabilidad + orden del localizador no-pisable. |
+| DEC-006 | **El "Agente" del import ES el localizador** | Lookup `sanic_cm_tbl_agente → systemuser` (AAD). No se crea entidad localizador aparte. Ancla la seguridad row-level. |
 | DEC-007 | **Numeración anti-colisión por prefijo de localizador** *(propuesta)* | `{codigoLocalizador}-{yyyymmdd}-{secuenciaLocal}`, sin coordinación. Para el recibo digital futuro. |
 | DEC-008 | **Geo-ubicación (lat/long) en cada interacción** | Trazabilidad de campo. Capturada por el dispositivo, viaja en el sync offline. |
-| DEC-009 | **La tabla de captura se llama `sanic_interaccion`** | Renombre desde `sanic_gestion`. El negocio habla de "interacción". |
-| DEC-010 | **Pago como entidad separada `sanic_pago` (1:N)** | Una interacción puede tener varios pagos (mixto NIO+USD). Reemplaza el "pago = atributos" de DEC-003. |
+| DEC-009 | **La tabla de captura se llama `sanic_cm_tbl_interaccion`** | Renombre desde `sanic_gestion`. El negocio habla de "interacción". |
+| DEC-010 | **Pago como entidad separada `sanic_cm_tbl_pago` (1:N)** | Una interacción puede tener varios pagos (mixto NIO+USD). Reemplaza el "pago = atributos" de DEC-003. |
 | DEC-011 | **Gamificación = estadísticas calculadas, sin metas aún** | Sin tabla de metas. Recuperado por moneda + dolarizado, nº interacciones. Expandible a objetivos. |
-| DEC-012 | **`sanic_asignacion`: 3 tipos + ciclo de vida + política import** | Diaria/Incobrable/Especial; tabla viva con estado; import 1x/día, manual manda, no pisa incobrables/especiales. |
+| DEC-012 | **`sanic_cm_tbl_asignacion`: 3 tipos + ciclo de vida + política import** | Diaria/Incobrable/Especial; tabla viva con estado; import 1x/día, manual manda, no pisa incobrables/especiales. |
 | DEC-013 | **Flujo de asignación Especial + el Solicitante escribe datos maestros** | El **Solicitante** crea/edita cliente/tel/dir/cuenta; la especial va a aprobación del Supervisor. |
 | DEC-014 | **5 roles: Localizador, Backoffice, Solicitante, Supervisor, Admin** | 1 Canvas (localizador) + 1 Model-driven diferenciada por roles. Segregación de funciones. |
 | DEC-015 | **Seguridad row-level "Moderado"** | Operativas User-level (solo lo suyo); maestros Read Org-level (lee el padrón, la app filtra). Sin sharing. |
-| DEC-016 | **`sanic_asignacion`: estado actual + auditoría** | Alt key `numerocuenta+tipo` (Diaria+Especial coexisten); historial de reasignación vía auditoría, no tabla aparte. |
-| DEC-017 | **Tabla de cuentas = `sanic_cuenta`** | Renombre desde `cuentamora` (impreciso por las Especiales). |
-| DEC-018 | **Sweep de Diarias desaparecidas** | `ultimacarga` + flujo post-import que cierra las `Diaria` no vistas en la última carga. Solo Diaria; guarda de import completo. |
+| DEC-016 | **`sanic_cm_tbl_asignacion`: estado actual + auditoría** | Alt key `sanic_cm_as_numerocuenta+sanic_cm_as_tipo` (Diaria+Especial coexisten); historial de reasignación vía auditoría, no tabla aparte. |
+| DEC-017 | **Tabla de cuentas = `sanic_cm_tbl_cuenta`** | Renombre desde `cuentamora` (impreciso por las Especiales). |
+| DEC-018 | **Sweep de Diarias desaparecidas** | ⚠️TODO(sanic_ultimacarga) + flujo post-import que cierra las `Diaria` no vistas en la última carga. Solo Diaria; guarda de import completo. |
 | DEC-019 | **Retención de `cargadiaria` (Bulk Delete)** | Borrado recurrente `fechacarga < hoy−N`. `cargadiaria` crece rápido; `asignacion` no. Offload a data lake si se necesita histórico largo. |
 | DEC-020 | **Ciclo de vida Incobrable** | Nace solo del CSV; persiste (no se reconcilia); reasigna el Admin (gana el CSV); cierre manual del Admin con motivo. |
 | DEC-021 | **Reclasificación Diaria↔Incobrable** | Mutuamente excluyentes; al llegar un core-type, el import cierra el otro activo (automático, presence-driven). Especial es ortogonal. |
@@ -144,10 +144,10 @@ Detalle y porqué en [`decisiones/registro-de-decisiones.md`](../referencia/deci
 
 | Entidad | Qué representa | Notas de diseño macro |
 |---------|----------------|------------------------|
-| `sanic_agente` (= localizador) | El cobrador de campo. **Es el "Agente" del import** (DEC-006). | Lookup a `systemuser` (AAD). Ancla la seguridad row-level. **No** se crea entidad localizador aparte. |
-| `sanic_interaccion` | Una interacción con el cliente, en **texto libre** (pagó, no contesta, promesa, etc.) (DEC-009). | **Núcleo de la captura.** Campos abajo. La "no localización" es **solo un comentario**, no una entidad. |
-| `sanic_pago` | Un pago cobrado al cliente (DEC-010). | **1:N** con la interacción (una interacción → varios pagos: cubre NIO + USD). Recibo **físico**. |
-| `sanic_asignacion` | Qué cuenta se asignó a qué localizador, de qué **tipo**, en qué estado (DEC-005, DEC-012). | Tabla operativa **viva** (no snapshot). 3 tipos: **Diaria / Incobrable / Especial**. Trazabilidad + orden del localizador. |
+| `sanic_cm_tbl_agente` (= localizador) | El cobrador de campo. **Es el "Agente" del import** (DEC-006). | Lookup a `systemuser` (AAD). Ancla la seguridad row-level. **No** se crea entidad localizador aparte. |
+| `sanic_cm_tbl_interaccion` | Una interacción con el cliente, en **texto libre** (pagó, no contesta, promesa, etc.) (DEC-009). | **Núcleo de la captura.** Campos abajo. La "no localización" es **solo un comentario**, no una entidad. |
+| `sanic_cm_tbl_pago` | Un pago cobrado al cliente (DEC-010). | **1:N** con la interacción (una interacción → varios pagos: cubre NIO + USD). Recibo **físico**. |
+| `sanic_cm_tbl_asignacion` | Qué cuenta se asignó a qué localizador, de qué **tipo**, en qué estado (DEC-005, DEC-012). | Tabla operativa **viva** (no snapshot). 3 tipos: **Diaria / Incobrable / Especial**. Trazabilidad + orden del localizador. |
 
 **Gamificación = estadísticas calculadas** (DEC-011): **no hay tabla de metas** todavía. Las estadísticas se
 **agregan** sobre interacciones/pagos (recuperado por moneda + dolarizado, nº de interacciones, etc.).
@@ -155,12 +155,12 @@ Detalle y porqué en [`decisiones/registro-de-decisiones.md`](../referencia/deci
 **No hay catálogo que espeje los códigos del core** (DEC-002): el código lo **asigna el backoffice** al
 transcribir, y se guarda en la interacción para un futuro auto-clasificador.
 
-### Campos de la interacción (`sanic_interaccion`) — conceptual
+### Campos de la interacción (`sanic_cm_tbl_interaccion`) — conceptual
 
 | Campo | Tipo | Quién lo llena |
 |-------|------|----------------|
-| Localizador / agente | Lookup → `sanic_agente` | localizador (auto) |
-| Cuenta | Lookup → `sanic_cuenta` | localizador |
+| Localizador / agente | Lookup → `sanic_cm_tbl_agente` | localizador (auto) |
+| Cuenta | Lookup → `sanic_cm_tbl_cuenta` | localizador |
 | Comentario | Texto largo | localizador |
 | Fecha de la interacción | DateTime | localizador (auto, en campo) |
 | ¿Actualiza info del cliente? | Boolean | localizador |
@@ -171,24 +171,24 @@ transcribir, y se guarda en la interacción para un futuro auto-clasificador.
 | Fecha grabada en core | DateTime | backoffice |
 | Grabada por | Lookup → `systemuser` | backoffice |
 
-> Los **montos** ya no están aquí: viven en `sanic_pago` (DEC-010).
+> Los **montos** ya no están aquí: viven en `sanic_cm_tbl_pago` (DEC-010).
 
-### Campos del pago (`sanic_pago`) — conceptual
+### Campos del pago (`sanic_cm_tbl_pago`) — conceptual
 
 | Campo | Tipo | Quién lo llena |
 |-------|------|----------------|
-| Interacción | Lookup → `sanic_interaccion` | localizador |
+| Interacción | Lookup → `sanic_cm_tbl_interaccion` | localizador |
 | Monto | Decimal | localizador |
 | Moneda | Choice NIO / USD | localizador |
 | Número de recibo (físico) | Texto | localizador |
 | Fecha del pago | DateTime | localizador |
 
-### Campos de la asignación (`sanic_asignacion`) — conceptual
+### Campos de la asignación (`sanic_cm_tbl_asignacion`) — conceptual
 
 | Campo | Tipo | Notas |
 |-------|------|-------|
-| Cuenta | Lookup → `sanic_cuenta` | **Requerida** (toda asignación tiene cuenta). |
-| Localizador / agente | Lookup → `sanic_agente` | En Especiales lo define el **Supervisor**. |
+| Cuenta | Lookup → `sanic_cm_tbl_cuenta` | **Requerida** (toda asignación tiene cuenta). |
+| Localizador / agente | Lookup → `sanic_cm_tbl_agente` | En Especiales lo define el **Supervisor**. |
 | Tipo | Choice Diaria / Incobrable / Especial | Ciclo de vida por tipo (DEC-012). |
 | Estado | Choice Activa / Cerrada (+ flujo de aprobación para Especiales) | Cierre **manual** para Incobrables. |
 | Orden / prioridad | Whole Number | Lo ordena el **localizador**; no lo pisa el import. |
@@ -196,8 +196,8 @@ transcribir, y se guarda en la interacción para un futuro auto-clasificador.
 | Motivo de cierre | Texto | Al cerrar manualmente. |
 | *(Especiales)* Estado de aprobación, supervisor, creada por, motivo de rechazo | varios | Flujo DEC-013. |
 
-**Relación con lo existente:** la asignación se vincula con `sanic_cuenta` (y el snapshot
-`sanic_cargadiaria` da el histórico financiero diario). `sanic_asignacion` es **operativa y viva**, separada
+**Relación con lo existente:** la asignación se vincula con `sanic_cm_tbl_cuenta` (y el snapshot
+`sanic_cm_tbl_cargadiaria` da el histórico financiero diario). `sanic_cm_tbl_asignacion` es **operativa y viva**, separada
 del snapshot, para que el import no pise el orden ni las reasignaciones manuales (DEC-005, DEC-012).
 
 ---
@@ -250,14 +250,14 @@ del snapshot, para que el import no pise el orden ni las reasignaciones manuales
 ## 9. Preguntas — estado
 
 **Resueltas:**
-- **P-1 ✅** `sanic_agente` **ES** el localizador; lookup a `systemuser` (DEC-006).
+- **P-1 ✅** `sanic_cm_tbl_agente` **ES** el localizador; lookup a `systemuser` (DEC-006).
 - **P-3 ✅** Una sola app Model-driven con **roles** (backoffice + admin juntos).
 - **P-4 ✅** No se necesita el catálogo de códigos del core por ahora; se **guarda el código que el
   backoffice asigna** a cada interacción (para futuro auto-clasificador) (DEC-002).
 - **P-5 ✅** Recibo digital **básico** y **on/off a demanda**, diferido (DEC-003).
 - **P-6 ✅** Numeración anti-colisión por **prefijo de localizador** (DEC-007), para el recibo digital futuro.
 
-- **P-2 ✅** `sanic_asignacion` confirmada como **tabla dedicada** (DEC-005).
+- **P-2 ✅** `sanic_cm_tbl_asignacion` confirmada como **tabla dedicada** (DEC-005).
 - **Geo-ubicación ✅** Se captura **lat/long** en cada interacción (DEC-008).
 - **P-7 ✅** Promesa de pago = **comentario libre**, **fuera del modelo** (sin entidad ni alertas). Reabrir si
   se quiere seguimiento de incumplimiento.

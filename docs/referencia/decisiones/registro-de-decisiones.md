@@ -44,7 +44,7 @@
 - **Implicaciones:**
   - La gestión **NO nace con código**. Se **elimina** el catálogo *"tipogestion que espeja códigos del core"*
     como mecanismo de captura.
-  - Campos en la gestión: `codigocore` (asignado por backoffice), `fechagrabacore`, `grabadopor` (user),
+  - Campos en la gestión: `sanic_cm_in_codigograbacion` (asignado por backoffice), `sanic_cm_in_fechagrabacion`, `sanic_cm_in_grabadopor` (user),
     estado de transcripción.
   - Vista de backoffice "gestiones pendientes de grabar".
 - **Reemplaza** el entendimiento previo (el código NO nace con la gestión).
@@ -64,7 +64,7 @@
 - **Porqué:** Respeta la realidad operativa (talonario en mano) y la preferencia del cliente por el papel,
   sin cerrar la puerta al recibo digital.
 - **Implicaciones:**
-  - El pago se modela como **entidad separada** `sanic_pago` (ver **DEC-010**, que reemplaza el "pago =
+  - El pago se modela como **entidad separada** `sanic_cm_tbl_pago` (ver **DEC-010**, que reemplaza el "pago =
     atributos" que decía originalmente esta decisión).
   - **Desaparece la urgencia** de numeración offline del recibo (el número lo da el talonario físico).
   - La numeración anti-colisión (DEC-007) queda relevante **solo** para el recibo digital futuro.
@@ -84,7 +84,7 @@
 - **Porqué:** Es el camino más directo y seguro: identidad corporativa nativa, sin portal externo
   (Power Pages) ni manejo de invitados.
 - **Implicaciones:**
-  - Cada localizador = un usuario AAD vinculado a un registro `sanic_localizador`.
+  - Cada localizador = un usuario AAD vinculado a un registro `sanic_cm_tbl_agente`.
   - Modelo de seguridad Dataverse por ownership/BU.
   - Costo de licenciamiento Power Apps por localizador (a dimensionar).
 - **Alternativas descartadas:** *Contratistas externos / Power Pages* (más complejo en identidad y costo).
@@ -96,8 +96,8 @@
 - **Estado:** Aceptada · 2026-06-21
 - **Contexto:** Se requiere **trazabilidad total** de "qué cuenta se asignó a qué localizador en qué día",
   y el localizador necesita **ordenar/priorizar** su cartera del día (P-2).
-- **Decisión propuesta:** Crear `sanic_asignacion` (cuenta, localizador, fecha, orden/prioridad, estado) en
-  la **capa operativa**, en vez de reusar `sanic_cargadiaria`.
+- **Decisión propuesta:** Crear `sanic_cm_tbl_asignacion` (cuenta, localizador, fecha, orden/prioridad, estado) en
+  la **capa operativa**, en vez de reusar `sanic_cm_tbl_cargadiaria`.
 - **Porqué:**
   - `cargadiaria` es un **snapshot financiero** (montos, mora) cuya alt key (`numerocuenta+fechacarga`) se
     **pisa por upsert** en cada recarga del CSV. Si guardáramos ahí el orden del localizador, **una recarga
@@ -105,7 +105,7 @@
   - Separar responsabilidades (snapshot financiero ≠ asignación operativa) mantiene el modelo limpio y
     "gritando" su propósito.
   - Da **transparencia directa** de quién tiene qué asignado.
-- **Tradeoff:** hay que **poblar** `sanic_asignacion` desde el import (un table mapping/flow adicional).
+- **Tradeoff:** hay que **poblar** `sanic_cm_tbl_asignacion` desde el import (un table mapping/flow adicional).
   Beneficio (capa operativa limpia y no-pisable) > costo.
 - **Alternativa:** reusar `cargadiaria` (cero trabajo extra) pero mezcla responsabilidades y el orden manual
   se pierde en recargas.
@@ -116,12 +116,12 @@
 
 - **Estado:** Aceptada · 2026-06-21
 - **Contexto:** P-1. El "Agente" del CSV es la misma persona que cobra en campo.
-- **Decisión:** No se crea una entidad localizador separada. Se agrega a `sanic_agente` una **columna lookup
+- **Decisión:** No se crea una entidad localizador separada. Se agrega a `sanic_cm_tbl_agente` una **columna lookup
   a `systemuser`** (usuario AAD del ambiente), ligando el agente con su identidad AAD.
 - **Porqué:** Evita duplicar entidades y **habilita la seguridad row-level**: el localizador ve su cartera
   porque su user AAD = el agente de la cuenta.
 - **Implicaciones:**
-  - La seguridad de la app de campo se ancla en `sanic_agente` ↔ `systemuser`.
+  - La seguridad de la app de campo se ancla en `sanic_cm_tbl_agente` ↔ `systemuser`.
   - El import sigue resolviendo el agente **por nombre**; el vínculo a `systemuser` lo setea admin (o un
     proceso) **una vez por localizador**.
 
@@ -151,33 +151,33 @@
 - **Decisión:** Cada interacción guarda **latitud/longitud** capturadas por el dispositivo al registrarla.
 - **Porqué:** El celular ya tiene la ubicación (costo bajo), habilita **auditar visitas reales** y mapear la
   actividad de cobro. Funciona offline (se captura local y viaja en el sync).
-- **Implicaciones:** Dos columnas (lat, long) en `sanic_gestion`. Considerar **aviso/consentimiento** de
+- **Implicaciones:** Dos columnas (`sanic_cm_in_latitud`, `sanic_cm_in_longitud`) en `sanic_cm_tbl_interaccion`. Considerar **aviso/consentimiento** de
   captura de ubicación al empleado (política interna).
 
 ---
 
-## DEC-009 — La tabla de captura se llama `sanic_interaccion` (no `sanic_gestion`)
+## DEC-009 — La tabla de captura se llama `sanic_cm_tbl_interaccion` (no `sanic_gestion`)
 
 - **Estado:** Aceptada · 2026-06-21
 - **Contexto:** El negocio habla de **"interacción"**, no de "gestión".
-- **Decisión:** La entidad núcleo de captura se llama **`sanic_interaccion`**.
+- **Decisión:** La entidad núcleo de captura se llama **`sanic_cm_tbl_interaccion`**.
 - **Porqué:** La tabla debe **gritar** su propósito en el lenguaje del negocio (screaming architecture).
 - **Implicaciones:** Renombre en todo el modelo y los docs.
 
 ---
 
-## DEC-010 — El pago es una entidad separada `sanic_pago` (1:N con la interacción)
+## DEC-010 — El pago es una entidad separada `sanic_cm_tbl_pago` (1:N con la interacción)
 
 - **Estado:** Aceptada · 2026-06-21 *(reemplaza el "pago = atributos" de DEC-003)*
 - **Contexto:** Un cliente puede pagar **parte en NIO y parte en USD** en una misma visita, y el pago
   merece historia propia.
-- **Decisión:** `sanic_pago` como **entidad separada**, relación **1:N** con `sanic_interaccion` (una
+- **Decisión:** `sanic_cm_tbl_pago` como **entidad separada**, relación **1:N** con `sanic_cm_tbl_interaccion` (una
   interacción puede tener **varios** pagos). Campos: monto, **moneda (NIO/USD)**, número de recibo físico,
   fecha.
 - **Porqué:** El pago mixto multimoneda **solo** se modela limpio con una entidad hija. Los atributos en la
   interacción no lo permitían.
 - **Implicaciones:** La interacción mantiene un booleano **"¿aplica pago?"** (lo marca el localizador); los
-  montos viven en `sanic_pago`. Recibo sigue siendo **físico** (DEC-003).
+  montos viven en `sanic_cm_tbl_pago`. Recibo sigue siendo **físico** (DEC-003).
 
 ---
 
@@ -190,16 +190,16 @@
   métricas. Diseño **expandible** a objetivos en una fase futura.
 - **Porqué:** Entregar valor temprano (ranking/visibilidad) sin el peso de un módulo de objetivos.
 - **Implicaciones:** Vistas/consultas de agregación; nada que mantener manualmente. La conversión a USD usa
-  el `TotalSaldoVencido`/lógica de dolarización ya presente en los datos.
+  el `sanic_cm_ct_totalsaldovencido`/lógica de dolarización ya presente en los datos.
 
 ---
 
-## DEC-012 — `sanic_asignacion`: 3 tipos, ciclo de vida y política de import
+## DEC-012 — `sanic_cm_tbl_asignacion`: 3 tipos, ciclo de vida y política de import
 
 - **Estado:** Aceptada · 2026-06-21 *(expande DEC-005)*
 - **Contexto:** Las asignaciones son de 3 tipos con comportamientos muy distintos: **Diaria**, **Incobrable**,
   **Especial**.
-- **Decisión:** `sanic_asignacion` es una **tabla operativa viva** (con `tipo` y `estado` activo/cerrada),
+- **Decisión:** `sanic_cm_tbl_asignacion` es una **tabla operativa viva** (con `sanic_cm_as_tipo` y `sanic_cm_as_estado` activo/cerrada),
   **no** un snapshot diario.
   - **Diaria:** el import diario la renueva.
   - **Incobrable:** persiste semanas con el mismo agente, **no viene en el CSV diario**; el import **NO la
@@ -210,7 +210,7 @@
     El import **no pisa** Incobrables ni Especiales.
 - **Porqué:** Cada tipo tiene su ciclo; tratar a todas como snapshot diario rompería las Incobrables y las
   reasignaciones manuales.
-- **Implicaciones:** `sanic_asignacion` con `tipo`, `estado`, fecha, agente, cuenta (requerida), orden del
+- **Implicaciones:** `sanic_cm_tbl_asignacion` con `sanic_cm_as_tipo`, `sanic_cm_as_estado`, fecha, agente, cuenta (requerida), orden del
   localizador, motivo de cierre. El import puebla Diaria/Incobrable; nunca borra.
 
 ---
@@ -278,40 +278,40 @@
   - Un localizador podría, vía API/Advanced Find, consultar maestros fuera de su cartera (la **app** solo le
     muestra la suya). Aceptado y documentado.
   - **No** se usa *sharing* → la tabla POA **no crece**.
-  - Requiere un **plugin/flujo** que setee el owner de `sanic_asignacion` desde `agente → systemuser`.
+  - Requiere un **plugin/flujo** que setee el owner de `sanic_cm_tbl_asignacion` desde `agente → systemuser`.
 - **Alternativas descartadas:** *Estricto* (costo alto para riesgo bajo); *Por zona/Business Units* (válido
   si los localizadores se organizaran por región; no es el caso hoy).
 
 ---
 
-## DEC-016 — `sanic_asignacion`: estado actual (1 fila por cuenta+tipo) + auditoría para historial
+## DEC-016 — `sanic_cm_tbl_asignacion`: estado actual (1 fila por cuenta+tipo) + auditoría para historial
 
 - **Estado:** Aceptada · 2026-06-21 *(a confirmar en revisión)*
 - **Contexto:** La asignación es una **tabla viva** (DEC-012). Necesitamos: (a) upsert del import por clave de
   negocio, (b) que una cuenta pueda tener a la vez una **Diaria** y una **Especial**, y (c) **trazabilidad**
   de quién la tuvo y cuándo.
 - **Decisión:**
-  - **Alt key compuesta:** `sanic_numerocuenta + sanic_tipo`. Así una cuenta tiene **a lo sumo una asignación
+  - **Alt key compuesta:** `sanic_cm_as_numerocuenta + sanic_cm_as_tipo`. Así una cuenta tiene **a lo sumo una asignación
     activa por tipo** (puede coexistir Diaria + Especial), y el import hace **upsert** limpio.
   - **Modelo de estado actual:** **una fila por (cuenta, tipo)** que se **actualiza** (no se acumulan filas).
-  - **Historial de reasignaciones:** vía **auditoría de columna de Dataverse** sobre `agente`/`owner`/`estado`
+  - **Historial de reasignaciones:** vía **auditoría de columna de Dataverse** sobre `sanic_cm_as_agenteid`/`owner`/`sanic_cm_as_estado`
     (no una tabla de historial paralela). El histórico **financiero** diario sigue en `cargadiaria`.
 - **Porqué:** Evita una tabla de eventos paralela; el upsert del import exige clave única estable; la
   auditoría nativa ya responde *"¿quién la tenía el día X?"* sin duplicar datos.
-- **Implicaciones:** Habilitar **auditoría** en `sanic_asignacion` (campos `agente`, `owner`, `tipo`,
-  `estado`). El campo **orden** del localizador **no se mapea** en el import → el upsert no lo pisa.
+- **Implicaciones:** Habilitar **auditoría** en `sanic_cm_tbl_asignacion` (campos `sanic_cm_as_agenteid`, `owner`, `sanic_cm_as_tipo`,
+  `sanic_cm_as_estado`). El campo `sanic_cm_as_orden` del localizador **no se mapea** en el import → el upsert no lo pisa.
 - **Alternativas descartadas:** *Tabla append de eventos de asignación* (más fiel al historial, pero complica
   "asignación actual" y el upsert); *alt key solo por `numerocuenta`* (no deja coexistir Diaria + Especial).
 
 ---
 
-## DEC-017 — La tabla de cuentas se llama `sanic_cuenta` (no `sanic_cuentamora`)
+## DEC-017 — La tabla de cuentas se llama `sanic_cm_tbl_cuenta` (no `sanic_cuentamora`)
 
 - **Estado:** Aceptada · 2026-06-21
 - **Contexto:** `cuentamora` no convencía y, además, es **impreciso**: con las asignaciones **Especiales**
   (DEC-013) puede haber cuentas que **no están en mora estricta**.
-- **Decisión:** Renombrar la tabla a **`sanic_cuenta`**. El lookup ya era genérico (`sanic_cuentaid`) y no
-  cambia; `sanic_numerocuenta` tampoco.
+- **Decisión:** Renombrar la tabla a **`sanic_cm_tbl_cuenta`**. La clave primaria ya era genérica (`sanic_cm_tbl_cuentaid`) y no
+  cambia; el número de cuenta `sanic_cm_ct_numerodecuenta` tampoco.
 - **Porqué:** Nombre simple y natural ("mis cuentas" en la app), correcto también para Especiales, y fiel al
   lenguaje del localizador.
 - **Implicaciones:** Renombre del componente (`08-tabla-cuenta.md`) y de todas las referencias en docs e
@@ -329,15 +329,15 @@
   la carga queda con su asignación `Activa` **colgada** del localizador para siempre.
 - **Decisión:** **Reconciliación de snapshot completo, solo para `Diaria`**, ejecutada **manualmente por el
   Admin** como una **funcionalidad dentro de la PowerApp** (NO un flujo automático):
-  1. Campo **`sanic_ultimacarga`** (DateTime) en `sanic_asignacion` = la `FechaCarga` en que la cuenta vino.
-     El import lo setea en **cada upsert** y pone `estado = Activa`.
-  2. El **Admin abre la función de reconciliación**. Esta calcula las candidatas: `tipo = Diaria` +
-     `estado = Activa` + `ultimacarga < la última carga`, y muestra un **preview**: cantidad, **% sobre las
+  1. Campo **⚠️TODO(sanic_ultimacarga)** (DateTime) en `sanic_cm_tbl_asignacion` = la `sanic_cm_cd_fechacarga` en que la cuenta vino.
+     El import lo setea en **cada upsert** y pone `sanic_cm_as_estado = Activa`.
+  2. El **Admin abre la función de reconciliación**. Esta calcula las candidatas: `sanic_cm_as_tipo = Diaria` +
+     `sanic_cm_as_estado = Activa` + `⚠️TODO(sanic_ultimacarga) < la última carga`, y muestra un **preview**: cantidad, **% sobre las
      Diarias activas** y la fecha de carga.
   3. **Umbral de cordura (visible):** si el % supera el umbral configurado (ej. >20–30%), la función lo marca
      en **rojo** ("archivo posiblemente truncado") — el Admin decide igual. El humano es el control final.
-  4. El Admin **confirma** → cierra las candidatas (`estado = Cerrada`, motivo *"fuera de cartera"*,
-     `fechacierre`). La app filtra `estado = Activa` → salen del localizador.
+  4. El Admin **confirma** → cierra las candidatas (`sanic_cm_as_estado = Cerrada`, `sanic_cm_as_motivo` *"fuera de cartera"*,
+     ⚠️TODO(fechacierre)). La app filtra `sanic_cm_as_estado = Activa` → salen del localizador.
   5. **Precondición:** la función solo habilita la ejecución si el **último import quedó Completado**.
   6. **Reporte:** vista *"Cerradas en esta corrida"* para auditoría.
   7. **Reaparición:** si la cuenta vuelve en una carga futura, el upsert la **re-activa** sola. El Admin/
@@ -345,7 +345,7 @@
 - **Porqué:** Patrón estándar de reconciliación de snapshot, pero con el **disparo en manos del Admin**
   (control humano explícito) en vez de automático.
 - **Implicaciones:** `Incobrable` (cierre manual) y `Especial` (flujo de aprobación) **NO** se barren.
-  Requiere el campo `ultimacarga`, la **función en la app** (rol Admin) con preview + umbral + confirmación,
+  Requiere el campo ⚠️TODO(sanic_ultimacarga), la **función en la app** (rol Admin) con preview + umbral + confirmación,
   y la vista de reporte. Es **lógica de negocio / app**, no Smelter.
 
 ---
@@ -354,10 +354,10 @@
 
 - **Estado:** Aceptada · 2026-06-21
 - **Contexto:** `cargadiaria` crece **1 fila/cuenta/día** → a escala (100k cuentas) son **decenas de millones
-  al año**. (`sanic_asignacion` crece **lento** — upsert por `numerocuenta+tipo`, no es el problema.)
+  al año**. (`sanic_cm_tbl_asignacion` crece **lento** — upsert por `sanic_cm_as_numerocuenta+sanic_cm_as_tipo`, no es el problema.)
 - **Decisión:** Política de **retención con Bulk Deletion** (job recurrente nativo de Dataverse): borrar de
-  `cargadiaria` las filas con `fechacarga < hoy − N` (ventana **N a definir**, ej. 6–12 meses). Para
-  `asignacion`: bulk-delete opcional de las `Cerradas` viejas (>1 año); el rastro de reasignaciones queda en
+  `sanic_cm_tbl_cargadiaria` las filas con `sanic_cm_cd_fechacarga < hoy − N` (ventana **N a definir**, ej. 6–12 meses). Para
+  `sanic_cm_tbl_asignacion`: bulk-delete opcional de las `Cerradas` viejas (>1 año); el rastro de reasignaciones queda en
   la **auditoría** (DEC-016).
 - **Porqué:** Simple y barato; el histórico reciente cubre la operación.
 - **Tradeoff:** el histórico **más viejo que la ventana se pierde** (no se archiva). Aceptado por ahora; si
@@ -378,7 +378,7 @@
     refresca cuando reaparece.
   - **Reasignación:** la hace el **Admin**. Conflicto con el CSV → **gana el CSV** (el import pisa el agente;
     lo manual es **interino**). No requiere marca especial → **consistente con la Diaria**. *Caveat:* un agente
-    que renuncia se corrige en el **core**; mitigación en la app: `sanic_agente.sanic_activo = No` + vista de
+    que renuncia se corrige en el **core**; mitigación en la app: `sanic_cm_tbl_agente.sanic_cm_ag_activo = No` + vista de
     control *"asignaciones de agentes inactivos"*.
   - **Cierre:** **manual, por el Admin**, vía función en la app **con motivo** (`Recuperada` /
     `Baja-castigada`). El **localizador NUNCA** cierra (segregación de funciones).
@@ -391,13 +391,13 @@
 ## DEC-021 — Reclasificación de tipo: Diaria e Incobrable son mutuamente excluyentes
 
 - **Estado:** Aceptada · 2026-06-22
-- **Contexto:** La alt key `numerocuenta + tipo` (DEC-016) permite que coexistan filas de distinto tipo. La
+- **Contexto:** La alt key `sanic_cm_as_numerocuenta + sanic_cm_as_tipo` (DEC-016) permite que coexistan filas de distinto tipo. La
   **Especial** **debe** poder coexistir (es ortogonal, un encargo aparte). Pero **Diaria** e **Incobrable**
   son la **clasificación del core** → **mutuamente excluyentes**. Sin regla, un Incobrable→Diaria deja **dos
   asignaciones activas** de la misma cuenta.
 - **Decisión:** **Regla de reclasificación automática en el import:** cuando una cuenta aparece con un
-  core-type (`Diaria`/`Incobrable`), se **cierra su otro core-type activo** (`estado = Cerrada`,
-  motivo *"Reclasificada a {tipo}"*). Resuelve **ambas direcciones al instante**. **Nunca** toca una `Especial`.
+  core-type (`Diaria`/`Incobrable`), se **cierra su otro core-type activo** (`sanic_cm_as_estado = Cerrada`,
+  `sanic_cm_as_motivo` *"Reclasificada a {tipo}"*). Resuelve **ambas direcciones al instante**. **Nunca** toca una `Especial`.
 - **Porqué:** Es **presence-driven** (la cuenta está en el archivo con tipo nuevo) → **sin riesgo de
   truncamiento** → seguro automatizar. (A diferencia de la reconciliación de Diarias, DEC-018, que es
   **absence-driven** y por eso es manual del Admin.)
@@ -416,22 +416,22 @@
   - **Nacimiento (dos orígenes, ambos pasan por la aprobación del Supervisor):**
     - **App:** el **Solicitante** la crea (`Borrador → Pendiente`).
     - **CSV:** si el CSV trae `TipoAsignacion = Especial`, el import la crea como **`Pendiente`** (NO
-      pre-aprobada) → va al Supervisor. **Resuelve el caso borde 8.1.** `creadaporid` = servicio de import
+      pre-aprobada) → va al Supervisor. **Resuelve el caso borde 8.1.** `sanic_cm_as_solicitadopor` = servicio de import
       (origen "CSV").
-  - **Aprobación:** el **Supervisor** aprueba (asigna localizador → owner, `estado = Activa`,
-    `estadoaprobacion = Aprobada`) o **rechaza** (`Rechazada` + motivo, terminal).
-  - **Modelo de 2 estados:** `estadoaprobacion` gobierna la fase de aprobación; `estado` (Activa/Cerrada)
-    **recién importa al aprobar**. **Cartera del localizador** = suya + `estado = Activa` +
-    `estadoaprobacion = Aprobada` (antes de aprobar no tiene owner localizador → no aparece).
+  - **Aprobación:** el **Supervisor** aprueba (asigna localizador → owner, `sanic_cm_as_estado = Activa`,
+    `sanic_cm_as_estadoaprobacion = Aprobada`) o **rechaza** (`Rechazada` + motivo, terminal).
+  - **Modelo de 2 estados:** `sanic_cm_as_estadoaprobacion` gobierna la fase de aprobación; `sanic_cm_as_estado` (Activa/Cerrada)
+    **recién importa al aprobar**. **Cartera del localizador** = suya + `sanic_cm_as_estado = Activa` +
+    `sanic_cm_as_estadoaprobacion = Aprobada` (antes de aprobar no tiene owner localizador → no aparece).
   - **Vida:** **sin vencimiento** (vive hasta cierre manual). Mitigación: vista *"Especiales activas antiguas"*.
   - **Reasignación:** la hace el **Supervisor** (él eligió al localizador). Sin conflicto con el CSV → **persiste**.
   - **Cancelación:** el **Solicitante retira** su `Borrador`/`Pendiente` (terminal `Cancelada`); cancelar una
     **Activa** = cierre por el **Admin** (motivo `Cancelada`).
   - **Cierre:** **Admin**, con motivo (`Recuperada` / `No recuperada` / `Cancelada`).
 - **Guarda (re-import):** un CSV que **reenvía** una Especial ya existente **NO** debe revertir
-  `estadoaprobacion` (preserva la decisión del Supervisor). `estadoaprobacion = Pendiente` se setea **solo al
-  crear**, nunca al re-upsertear (mismo patrón que el `orden`).
-- **Implicaciones:** el import setea `estadoaprobacion = Pendiente` solo para `tipo = Especial` **nuevas**;
+  `sanic_cm_as_estadoaprobacion` (preserva la decisión del Supervisor). `sanic_cm_as_estadoaprobacion = Pendiente` se setea **solo al
+  crear**, nunca al re-upsertear (mismo patrón que el `sanic_cm_as_orden`).
+- **Implicaciones:** el import setea `sanic_cm_as_estadoaprobacion = Pendiente` solo para `sanic_cm_as_tipo = Especial` **nuevas**;
   conviene un indicador de **origen** (App/CSV); reasignación por Supervisor; cierre por Admin.
 
 ---
@@ -449,7 +449,7 @@
   - **`Restrict`** en las **referencias de catálogo**: `producto → cuenta`, `agente → cuenta`,
     `fiador → cuenta`. Son catálogos **compartidos** por muchas cuentas → **jamás** se cascadea (borrar un
     producto NO borra sus cuentas); se **bloquea** si está en uso. `agente` además **nunca** se hard-delete
-    (soft-delete vía `sanic_activo`).
+    (soft-delete vía `sanic_cm_ag_activo`).
   - **`Restrict`** en el **único candado**: `cuenta → interaccion` **(CONFIRMADO)**. Una cuenta con
     interacciones **no se puede borrar** → protege toda la cadena `cliente → cuenta → interaccion`.
   - **`Cascade`** en **todo lo demás aguas abajo de la cuenta**: `cuenta → cargadiaria`, `cuenta → asignacion`,
@@ -460,7 +460,7 @@
     tiene **interacciones** (la `Restrict` aguas abajo **detiene la cascada** — Dataverse hace rollback). En
     criollo: *"borrás todo, salvo que haya historia de cobranza"*.
   - **No hay hard-delete de rutina** (no hay política): el fin de vida normal es **soft-deactivate**
-    (`sanic_agente.sanic_activo = No`; cuenta "fuera de cobranza" = sin asignación activa). El borrado es
+    (`sanic_cm_tbl_agente.sanic_cm_ag_activo = No`; cuenta "fuera de cobranza" = sin asignación activa). El borrado es
     **deliberado** (ej. eliminación de datos legal).
   - `direccion`/`telefono` = **dato actual** (upsert por `cif+tipo`); el histórico de cambios vive en
     `actualizaciondatos`. El **correo** **NO** se guarda en `cliente`: vive **solo** en `actualizaciondatos`.

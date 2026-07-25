@@ -17,13 +17,13 @@
 
 Para que las pruebas sean válidas, necesitás en Dataverse (en el entorno de la app):
 
-- [ ] Tu usuario ligado a un **`sanic_agente`** (`sanic_usuario` = vos, `sanic_activo` = Sí).
+- [ ] Tu usuario ligado a un **`sanic_cm_tbl_agente`** (`sanic_cm_ag_usuarioid` = vos, `sanic_cm_ag_activo` = Sí).
 - [ ] **≥ 3 clientes** asignados a vos, con **≥ 6 cuentas** en total (varios clientes con **2+ cuentas**).
-- [ ] **≥ 1 cuenta dual-moneda** (con `sanic_retironio` **y** `sanic_retirousd` > 0).
-- [ ] **≥ 1 cuenta de cada tipo**: Diaria, Incobrable, Especial (`sanic_asignacion.sanic_tipo`).
-- [ ] **≥ 1 cuenta con mora alta** (`sanic_diasmora` > 90 **o** `sanic_nivelmora` ≥ 4).
-- [ ] Cada cliente con **teléfonos** (Casa/Celular) y **direcciones** (Casa/EC/Trabajo) en `sanic_telefono` / `sanic_direccion`.
-- [ ] **≥ 1 interacción de hoy con pago** (para Inicio/Pagos) y **≥ 1 interacción de hoy sin sincronizar** (`sanic_numero` en blanco) para la pantalla Sync.
+- [ ] **≥ 1 cuenta dual-moneda** (con `sanic_cm_ct_retironio` **y** `sanic_cm_ct_retirousd` > 0).
+- [ ] **≥ 1 cuenta de cada tipo**: Diaria, Incobrable, Especial (`sanic_cm_tbl_asignacion.sanic_cm_as_tipo`).
+- [ ] **≥ 1 cuenta con mora alta** (`sanic_cm_ct_diasmora` > 90 **o** `sanic_cm_ct_nivelmora` ≥ 4).
+- [ ] Cada cliente con **teléfonos** (Casa/Celular) y **direcciones** (Casa/EC/Trabajo) en `sanic_cm_tbl_telefono` / `sanic_cm_tbl_direccion`.
+- [ ] **≥ 1 interacción de hoy con pago** (para Inicio/Pagos) y **≥ 1 interacción de hoy sin sincronizar** (`sanic_cm_in_numerointeraccion` en blanco) para la pantalla Sync.
 - [ ] Perfil **offline** configurado y **primera sincronización** hecha (probar en el **player móvil**, no solo en el navegador).
 
 > ⚠️ Las pruebas de **offline** y de **autonumber vacío** (sync) **solo son fieles en el player móvil**. El
@@ -36,7 +36,7 @@ Para que las pruebas sean válidas, necesitás en Dataverse (en el entorno de la
 | # | Prueba | Pasos | Esperado | ✓/✗ |
 |---|--------|-------|----------|-----|
 | **T-01** | OnStart corre | Abrí la app | Sin errores; la Cartera carga | |
-| **T-02** | Agente resuelto | (Studio) en una etiqueta temporal poné `gblAgente.sanic_nombre` | Muestra **tu** nombre, no vacío | |
+| **T-02** | Agente resuelto | (Studio) en una etiqueta temporal poné `gblAgente.sanic_cm_ag_nombre` | Muestra **tu** nombre, no vacío | |
 | **T-03** | Tokens de color | Header verde, badges con sus colores | Verde `#0F6B6B`, Diaria azul, Incobrable ámbar, Especial violeta | |
 | **T-04** | Fuente del tema | Cualquier texto | Se ve en Segoe UI (no la default vieja) | |
 | **T-05** | 11 tablas conectadas | Panel **Datos** | Están las 11 `sanic_*` | |
@@ -62,7 +62,7 @@ Para que las pruebas sean válidas, necesitás en Dataverse (en el entorno de la
 
 - **T-13 · Modo cuenta: badge + producto + cuenta + retiro**
   - **Pasos:** toggle en **▤ Cuenta**.
-  - **Esperado:** una fila por cuenta; badge de su tipo, producto (`sanic_productoid.sanic_tipo`), nº de cuenta, retiro bimoneda.
+  - **Esperado:** una fila por cuenta; badge de su tipo, producto (`sanic_cm_ct_productoid.sanic_cm_pr_tipo`), nº de cuenta, retiro bimoneda.
   - **Resultado:** [ ] OK [ ] Falla — _____
 
 - **T-14 · Mora alta resaltada**
@@ -110,7 +110,7 @@ Para que las pruebas sean válidas, necesitás en Dataverse (en el entorno de la
 
 - **T-30 · Inicialización del orden**
   - **Pasos:** con la cartera recién cargada (orden vacío/0), corré el botón **"Inicializar orden"** una vez.
-  - **Esperado:** cada cliente queda con un `sanic_orden` **único** (1..N); todas las cuentas de un mismo cliente comparten el mismo número.
+  - **Esperado:** cada cliente queda con un `sanic_cm_as_orden` **único** (1..N); todas las cuentas de un mismo cliente comparten el mismo número.
   - **Resultado:** [ ] OK [ ] Falla — _____
 
 - **T-31 · Subir un cliente (▲)**
@@ -135,7 +135,7 @@ Para que las pruebas sean válidas, necesitás en Dataverse (en el entorno de la
 
 - **T-35 · El orden persiste entre sesiones**
   - **Pasos:** reordená, salí de la pantalla, cerrá y reabrí la app.
-  - **Esperado:** el orden **se mantiene** (se escribió a `sanic_orden`).
+  - **Esperado:** el orden **se mantiene** (se escribió a `sanic_cm_as_orden`).
   - **Resultado:** [ ] OK [ ] Falla — _____
 
 - **T-36 · Asignaciones nuevas sin orden**
@@ -172,13 +172,13 @@ Para que las pruebas sean válidas, necesitás en Dataverse (en el entorno de la
 
 - **T-60 · Card Retiro (bimoneda)** — "A cobrar (Retiro)" bimoneda grande. [ ]
 - **T-61 · Grid de 3 — verificación de campos reales:**
-  - Saldo vencido = `Moneda(sanic_saldovencidonio, sanic_saldovencidousd)` [ ]
-  - Pago mínimo = `Moneda(sanic_pagominimonio, sanic_pagominimousd)` [ ]
-  - **Total (dolariz.) = `US$ sanic_totalsaldovencido`** (¡el campo real, no el inventado!) [ ]
-- **T-62 · En riesgo** — "En riesgo (contagiado): US$ X" usa `sanic_contagiadousd`. [ ]
+  - Saldo vencido = `Moneda(sanic_cm_ct_saldovencidonio, sanic_cm_ct_saldovencidousd)` [ ]
+  - Pago mínimo = `Moneda(sanic_cm_ct_pagominimonio, sanic_cm_ct_pagominimousd)` [ ]
+  - **Total (dolariz.) = `US$ sanic_cm_ct_totalsaldovencido`** (¡el campo real, no el inventado!) [ ]
+- **T-62 · En riesgo** — "En riesgo (contagiado): US$ X" usa `sanic_cm_ct_contagiadousd`. [ ]
 - **T-63 · Card Mora** — días/nivel (rojo si alta), fecha de pago, último pago, ciclo. [ ]
 - **T-64 · Contacto** — teléfonos y direcciones del cliente de la cuenta. [ ]
-- **T-65 · Producto/Fiador/Nota** — `sanic_productoid.sanic_tipo`, `sanic_fiadorid.sanic_nombre`, `sanic_nota`. [ ]
+- **T-65 · Producto/Fiador/Nota** — `sanic_cm_ct_productoid.sanic_cm_pr_tipo`, `sanic_cm_ct_fiador.sanic_cm_fi_nombre`, `sanic_cm_ct_nota`. [ ]
 - **T-66 · Pestaña Interacciones** — solo las de **esta cuenta**. [ ]
 - **T-67 · Botón Registrar** — fijo abajo, abre `scrInteraccion`. [ ]
 
@@ -203,18 +203,18 @@ Para que las pruebas sean válidas, necesitás en Dataverse (en el entorno de la
 - **T-73 · Texto dinámico del botón** — "Guardar interacción + pago + datos" según toggles. [ ]
 
 - **T-74 · Guardar crea la interacción**
-  - **Pasos:** comentario + Guardar. Verificá en `sanic_interaccion`.
-  - **Esperado:** fila nueva con `sanic_cuentaid`, `sanic_agenteid` = vos, `sanic_comentario`, `sanic_fechainteraccion`, `sanic_estadotranscripcion` = **Pendiente**, geo en lat/long.
+  - **Pasos:** comentario + Guardar. Verificá en `sanic_cm_tbl_interaccion`.
+  - **Esperado:** fila nueva con `sanic_cm_in_cuentaid`, `sanic_cm_in_agente` = vos, `sanic_cm_in_comentario`, ⚠️TODO(sanic_fechainteraccion), `sanic_cm_in_estadograbacion` = **Pendiente**, geo en `sanic_cm_in_latitud`/`sanic_cm_in_longitud`.
   - [ ] OK [ ] Falla — _____
 
 - **T-75 · Pago mixto (NIO + USD)**
   - **Pasos:** agregá 2 líneas (una NIO, una USD) con recibos distintos → Guardar.
-  - **Esperado:** **2 filas** en `sanic_pago` ligadas a la interacción (`sanic_interaccionid`), con `sanic_moneda` correcto y `sanic_numerorecibo`.
+  - **Esperado:** **2 filas** en `sanic_cm_tbl_pago` ligadas a la interacción (`sanic_cm_pg_interaccion`), con `sanic_cm_pg_moneda` correcto y `sanic_cm_pg_numerorecibo`.
   - [ ] OK [ ] Falla — _____
 
 - **T-76 · Actualización de datos**
   - **Pasos:** prendé datos, llená un teléfono → Guardar.
-  - **Esperado:** fila en `sanic_actualizaciondatos` ligada a la interacción; `sanic_actualizacliente` = Sí en la interacción.
+  - **Esperado:** fila en `sanic_cm_tbl_actualizaciondatos` ligada a la interacción (`sanic_cm_ad_interaccionid`); `sanic_cm_in_actualizainfo` = Sí en la interacción.
   - [ ] OK [ ] Falla — _____
 
 - **T-77 · Chips** — tocar un chip agrega la frase al comentario. [ ]
@@ -244,9 +244,9 @@ Para que las pruebas sean válidas, necesitás en Dataverse (en el entorno de la
 ## 11. Sincronización (en player móvil) 🔴
 
 - **T-100 · Estado conectado** — con señal y sin pendientes: ✓ verde "Sincronizado". [ ]
-- **T-101 · Estado pendiente** — con capturas sin `sanic_numero`: 🔼 ámbar "Pendiente de subir (N)". [ ]
+- **T-101 · Estado pendiente** — con capturas sin `sanic_cm_in_numerointeraccion`: 🔼 ámbar "Pendiente de subir (N)". [ ]
 - **T-102 · Estado sin conexión** — en modo avión: 📴 gris "Sin conexión". [ ]
-- **T-103 · Proxy de pendientes** — N = interacciones/pagos con `sanic_numero` **en blanco**. [ ]
+- **T-103 · Proxy de pendientes** — N = interacciones/pagos con `sanic_cm_in_numerointeraccion` **en blanco**. [ ]
 - **T-104 · Capturas de hoy** — "sin Nº aún" (ámbar) vs "Nº asignado" (verde) por captura. [ ]
 - **T-105 · Botón buscar** — deshabilitado sin señal; con señal hace `Refresh`. [ ]
 
@@ -283,7 +283,7 @@ Para que las pruebas sean válidas, necesitás en Dataverse (en el entorno de la
 
 - **T-131 · Volver a la cartera NO reconstruye** 🔴
   - **Pasos:** entrá a un detalle y volvé a la Cartera, con Monitor abierto.
-  - **Esperado:** al volver, **no** se dispara la consulta a `sanic_asignacion` ni el `GroupBy`/`LookUp` (el guard `!varCarteraLista` lo saltea). Entrada instantánea.
+  - **Esperado:** al volver, **no** se dispara la consulta a `sanic_cm_tbl_asignacion` ni el `GroupBy`/`LookUp` (el guard `!varCarteraLista` lo saltea). Entrada instantánea.
   - **Resultado:** [ ] OK [ ] Falla — _____
 
 - **T-132 · Persistencia solo de los sucios** 🔴
@@ -303,7 +303,7 @@ Para que las pruebas sean válidas, necesitás en Dataverse (en el entorno de la
 
 - **T-135 · Direcciones no re-consultan por render**
   - **Pasos:** scrolleá la cartera con Monitor abierto.
-  - **Esperado:** **no** hay un `LookUp` a `sanic_direccion` por fila al scrollear (ya están horneadas en `colClientes`).
+  - **Esperado:** **no** hay un `LookUp` a `sanic_cm_tbl_direccion` por fila al scrollear (ya están horneadas en `colClientes`).
   - **Resultado:** [ ] OK [ ] Falla — _____
 
 ---
@@ -313,7 +313,7 @@ Para que las pruebas sean válidas, necesitás en Dataverse (en el entorno de la
 Verificá que **no volvieron**:
 
 - **T-140 · Campo total dolarizado**
-  - **Esperado:** el "Total (dolariz.)" usa **`sanic_totalsaldovencido`** (no el inexistente `sanic_totaldolarizado`); muestra un número real, no error.
+  - **Esperado:** el "Total (dolariz.)" usa **`sanic_cm_ct_totalsaldovencido`** (no el inexistente `sanic_totaldolarizado`); muestra un número real, no error.
   - [ ] OK [ ] Falla — _____
 
 - **T-141 · Bimoneda en TODOS lados**
@@ -329,11 +329,11 @@ Verificá que **no volvieron**:
   - [ ] OK [ ] Falla — _____
 
 - **T-144 · Cliente vía cuenta (no clienteid directo)**
-  - **Esperado:** la agrupación y los datos del cliente salen por `sanic_cuentaid.sanic_clienteid` (la asignación no tiene cliente directo).
+  - **Esperado:** la agrupación y los datos del cliente salen por `sanic_cm_as_cuentaid.sanic_cm_ct_clienteid` (la asignación no tiene cliente directo).
   - [ ] OK [ ] Falla — _____
 
 - **T-145 · Choices con `.Value`**
-  - **Esperado:** filtros por tipo (`sanic_tipo.Value`) y moneda (`sanic_moneda.Value`) comparan bien; al **escribir** usan el nombre del conjunto autocompletado.
+  - **Esperado:** filtros por tipo (`sanic_cm_as_tipo.Value`) y moneda (`sanic_cm_pg_moneda.Value`) comparan bien; al **escribir** usan el nombre del conjunto autocompletado.
   - [ ] OK [ ] Falla — _____
 
 ---

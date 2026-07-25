@@ -13,7 +13,7 @@
 
 - [ ] Las **tablas `sanic_*` ya existen** en el entorno (Componentes 02–13).
 - [ ] Sos **maker / administrador** del entorno (podés crear soluciones, apps, roles).
-- [ ] Existe **≥ 1 `sanic_interaccion`** con `sanic_estadotranscripcion = Pendiente` (si no, la cola sale vacía).
+- [ ] Existe **≥ 1 `sanic_cm_tbl_interaccion`** con `sanic_cm_in_estadograbacion = Pendiente` (si no, la cola sale vacía).
 - [ ] Un **usuario de prueba** para asignarle el rol Backoffice.
 
 ---
@@ -73,7 +73,7 @@ entrega** alcanza con lo que hace falta para ver la cola; el resto (field securi
 1. **Crear el rol.** Ruta estable: **admin.powerplatform.microsoft.com** → **Entornos** → tu entorno →
    **Configuración** → **Usuarios y permisos** → **Roles de seguridad** → **+ Nuevo rol**.
    *(Alternativa moderna: dentro de la solución → **+ Nuevo → Más → Seguridad → Rol de seguridad**.)*
-   - **Nombre:** `Cobranza · Backoffice`.
+   - **Nombre:** `SR | CM | Backoffice`.
 2. **Aplicar permisos.** En el editor, cada tabla tiene una fila con círculos por privilegio (Crear, Leer,
    Escribir, Eliminar, Anexar, Anexar a, Asignar, Compartir). **Cada clic llena más el círculo** = sube el
    nivel: *(vacío = Ninguno · ¼/½ = User · lleno = Organización)*. Buscá cada tabla en la pestaña **Entidades
@@ -81,18 +81,18 @@ entrega** alcanza con lo que hace falta para ver la cola; el resto (field securi
 
    | Tabla | Leer | Escribir | Anexar a |
    |-------|:----:|:--------:|:--------:|
-   | `sanic_interaccion` | **Org** | **Org** | Org |
-   | `sanic_pago` | **Org** | — | — |
-   | `sanic_asignacion` | **Org** | — | — |
-   | `sanic_cuenta` · `sanic_cliente` | **Org** | — | — |
-   | `sanic_direccion` · `sanic_telefono` | **Org** | — | — |
-   | `sanic_producto` · `sanic_fiador` · `sanic_agente` | **Org** | — | — |
+   | `sanic_cm_tbl_interaccion` | **Org** | **Org** | Org |
+   | `sanic_cm_tbl_pago` | **Org** | — | — |
+   | `sanic_cm_tbl_asignacion` | **Org** | — | — |
+   | `sanic_cm_tbl_cuenta` · `sanic_cm_tbl_cliente` | **Org** | — | — |
+   | `sanic_cm_tbl_direccion` · `sanic_cm_tbl_telefono` | **Org** | — | — |
+   | `sanic_cm_tbl_producto` · `sanic_cm_tbl_fiador` · `sanic_cm_tbl_agente` | **Org** | — | — |
 
    *(La matriz completa —con Create/Delete/Append/Assign de todos los roles— está en Comp. 15. Esto es el
    subconjunto para que la cola funcione.)*
 3. **Guardar y cerrar.**
 4. **Asignar el rol** a tu **usuario de prueba:** mismo lugar → **Usuarios y permisos → Usuarios** → elegí el
-   usuario → **Administrar roles de seguridad** → tildá `Cobranza · Backoffice` (dejale también **Usuario
+   usuario → **Administrar roles de seguridad** → tildá `SR | CM | Backoffice` (dejale también **Usuario
    básico / Basic User**). **Guardar.**
 
 > ⚠️ Sin **Usuario básico** (o sus privilegios mínimos), el usuario no puede ni abrir la app. Es el piso común
@@ -105,13 +105,13 @@ entrega** alcanza con lo que hace falta para ver la cola; el resto (field securi
 1. Con la **solución abierta** → **+ Nuevo → Aplicación → Aplicación basada en modelo**.
 2. Se abre el **diseñador de apps moderno**. Poné el **nombre:** `Cobranza Móvil – Oficina`.
 3. **Agregar la primera página:** botón **+ Agregar página** (Add page) → **Vista y formulario basados en
-   tabla** (Table based view and form) → elegí **`sanic_interaccion`** → **Agregar**.
+   tabla** (Table based view and form) → elegí **`sanic_cm_tbl_interaccion`** → **Agregar**.
    - Dejá tildado que agregue la tabla a la **navegación**.
 4. **Organizar el menú (navegación):** en el panel de **Navegación** (izquierda del diseñador), vas a ver un
    **Área**, un **Grupo** y una **Subárea**. Renombralos:
    - **Área:** `Cobranza`
    - **Grupo:** `Transcripción`
-   - **Subárea:** `Por transcribir` (apunta a `sanic_interaccion`).
+   - **Subárea:** `Por transcribir` (apunta a `sanic_cm_tbl_interaccion`).
    *(Más adelante sumamos "Transcritas hoy", "Especiales", etc.)*
 5. **Guardar** (arriba a la derecha) → **Publicar** (Publish).
 6. **Dejá esta pestaña abierta**; volvemos en la Parte 4. Primero creamos la vista.
@@ -120,22 +120,22 @@ entrega** alcanza con lo que hace falta para ver la cola; el resto (field securi
 
 ## 📋 PARTE 3 — Vista "Por transcribir" (la cola)
 
-1. Volvé a la **solución** → **Tablas** → abrí **`sanic_interaccion`** → pestaña **Vistas** (Views).
+1. Volvé a la **solución** → **Tablas** → abrí **`sanic_cm_tbl_interaccion`** → pestaña **Vistas** (Views).
 2. **+ Nueva vista** → **Nombre:** `Por transcribir` → **Crear**. Se abre el **diseñador de vistas**.
 3. **Filtro** (el corazón de la cola): panel derecho **Editar filtros** (Edit filters) → **+ Agregar** →
-   - Columna: **`Estado de transcripción`** (`sanic_estadotranscripcion`) · Operador: **es igual a** · Valor:
+   - Columna: **`Estado de grabación`** (`sanic_cm_in_estadograbacion`) · Operador: **es igual a** · Valor:
      **`Pendiente`**.
 4. **Orden (FIFO):** clic en el encabezado de la columna **Fecha de interacción** → **Ordenar A→Z**
    (ascendente: lo más viejo primero).
 5. **Columnas** — agregá/quitá para que queden (botón **+ Ver columna** / **Related** para las de tablas
    vinculadas):
-   - **Fecha de interacción** (`sanic_fechainteraccion`)
-   - **Cliente** → columna **relacionada**: `Cuenta (sanic_cuentaid) → Cliente (sanic_clienteid) → Nombre`.
+   - **Fecha de interacción** (`⚠️TODO(sanic_fechainteraccion)`)
+   - **Cliente** → columna **relacionada**: `Cuenta (sanic_cm_in_cuentaid) → Cliente (sanic_cm_ct_clienteid) → Nombre (sanic_cm_cl_nombre)`.
      *(En el selector, entrá por la relación `Cuenta` y después `Cliente` para llegar al `Nombre`.)*
-   - **Cuenta** (`sanic_cuentaid` — el número)
-   - **Localizador** (`sanic_agenteid`)  ← clave para filtrar/agrupar por localizador (doc 07 §5.1)
-   - **¿Aplica pago?** (`sanic_aplicapago`)
-   - **Comentario** (`sanic_comentario`)
+   - **Cuenta** (`sanic_cm_in_cuentaid` — el número)
+   - **Localizador** (`sanic_cm_in_agente`)  ← clave para filtrar/agrupar por localizador (doc 07 §5.1)
+   - **¿Aplica pago?** (`sanic_cm_cd_aplicapago`)
+   - **Comentario** (`sanic_cm_in_comentario`)
 6. **Guardar** → **Publicar**.
 
 > 💡 **Ancho de columnas:** arrastrá para que **Comentario** sea la más ancha (es lo que más leen).
@@ -149,7 +149,7 @@ entrega** alcanza con lo que hace falta para ver la cola; el resto (field securi
    *(Opcional: en "Vistas disponibles", dejá solo las que querés que el backoffice pueda elegir.)*
 2. **Guardar → Publicar.**
 3. **Compartir la app** con el backoffice: en la lista de apps (o desde el diseñador) → **⋯ → Compartir** →
-   agregá tu **usuario de prueba** (o un grupo) → asignale el rol **`Cobranza · Backoffice`**.
+   agregá tu **usuario de prueba** (o un grupo) → asignale el rol **`SR | CM | Backoffice`**.
 4. **Probá como backoffice:**
    - [ ] Iniciá sesión (o "Reproducir/Play") con el **usuario de prueba**.
    - [ ] Abrí **Cobranza Móvil – Oficina** → área **Cobranza → Por transcribir**.

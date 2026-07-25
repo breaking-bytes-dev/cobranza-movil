@@ -1,4 +1,4 @@
-# Componente: Tabla `sanic_direccion`
+# Componente: Tabla `sanic_cm_tbl_direccion`
 
 > **Fase 1 — Modelo de datos · Componente 06 (maestra hija de `cliente`).**
 > Las direcciones del cliente, **normalizadas** por tipo (Casa / EC / Trabajo). Cada fila del CSV trae 3
@@ -19,10 +19,10 @@ campo muestre dónde ubicarlo.
 
 | Nombre lógico | Nombre físico | Tipo | Req. | Del CSV / descripción |
 |---------------|---------------|------|:----:|-----------------------|
-| Dirección | `sanic_direccion` | Text | ✔ | **Primary name.** `DireccionCasa` / `DireccionEC` / `DireccionTrabajo`. |
-| Cliente | `sanic_clienteid` | Lookup → `sanic_cliente` | ✔ | Resuelto por `CIF`. |
-| CIF | `sanic_cif` | Text | ✔ | **Copiado** del cliente para la **alt key compuesta**. |
-| Tipo | `sanic_tipo` | Text | ✔ | `"Casa"` / `"EC"` / `"Trabajo"` (lo fija el import por mapping). |
+| Dirección | `sanic_cm_dr_direccion` | Text | ✔ | **Primary name.** `DireccionCasa` / `DireccionEC` / `DireccionTrabajo`. |
+| Cliente | `sanic_cm_dr_clienteid` | Lookup → `sanic_cm_tbl_cliente` | ✔ | Resuelto por `CIF`. |
+| CIF | `sanic_cm_dr_cif` | Text | ✔ | **Copiado** del cliente para la **alt key compuesta**. |
+| Tipo | `sanic_cm_dr_tipo` | Text | ✔ | `"Casa"` / `"EC"` / `"Trabajo"` (lo fija el import por mapping). |
 
 > **`EC`** = dirección donde el cliente quiere recibir el **estado de cuenta**.
 
@@ -30,7 +30,7 @@ campo muestre dónde ubicarlo.
 
 ## 3. Alternate Key
 
-- **Compuesta: `sanic_cif` + `sanic_tipo`.** Una dirección por (cliente, tipo). **Debe quedar `Active`**.
+- **Compuesta: `sanic_cm_pk_direccion_cif_tipo`** (sobre `sanic_cm_dr_cif` + `sanic_cm_dr_tipo`). Una dirección por (cliente, tipo). **Debe quedar `Active`**.
 
 > El CIF se **copia como texto** dentro de la dirección; la alt key va sobre **texto**, NO sobre el lookup
 > (las alt keys sobre lookup son frágiles — `cobranza-import-config.md` §3). El vínculo real al cliente lo
@@ -42,7 +42,7 @@ campo muestre dónde ubicarlo.
 
 | Relación | Cardinalidad | Columna | Dónde |
 |----------|:------------:|---------|-------|
-| `sanic_cliente` → `sanic_direccion` | 1:N | `sanic_clienteid` | **Acá** (lookup). |
+| `sanic_cm_tbl_cliente` → `sanic_cm_tbl_direccion` | 1:N | `sanic_cm_dr_clienteid` | **Acá** (lookup). |
 
 ---
 
@@ -56,15 +56,15 @@ campo muestre dónde ubicarlo.
 
 ## 6. Pasos de construcción
 
-1. Crear la tabla `sanic_direccion` (User/Team owned), Primary name `sanic_direccion`.
-2. Crear `sanic_clienteid` (Lookup → `sanic_cliente`), `sanic_cif` (Text), `sanic_tipo` (Text).
-3. Crear la **Alternate Key** compuesta `sanic_cif + sanic_tipo` y dejarla **`Active`**.
+1. Crear la tabla `sanic_cm_tbl_direccion` (User/Team owned), Primary name `sanic_cm_dr_direccion`.
+2. Crear `sanic_cm_dr_clienteid` (Lookup → `sanic_cm_tbl_cliente`), `sanic_cm_dr_cif` (Text), `sanic_cm_dr_tipo` (Text).
+3. Crear la **Alternate Key** compuesta `sanic_cm_pk_direccion_cif_tipo` (sobre `sanic_cm_dr_cif` + `sanic_cm_dr_tipo`) y dejarla **`Active`**.
 
 ---
 
 ## 7. Gotchas
 
-- **7.1** El **`sanic_tipo`** es **texto** (no Choice), a propósito, para que el default por mapping y la alt
+- **7.1** El **`sanic_cm_dr_tipo`** es **texto** (no Choice), a propósito, para que el default por mapping y la alt
   key sean directos (decisión del import).
 - **7.2** Si el cliente no existe aún, el import resuelve el lookup por CIF en el orden del DAG (padres
   primero). Fuera del import, el Solicitante debe elegir el cliente.
@@ -73,5 +73,5 @@ campo muestre dónde ubicarlo.
 
 ## 8. Dependencias
 
-- **Depende de:** `sanic_cliente` (Comp. 02).
+- **Depende de:** `sanic_cm_tbl_cliente` (Comp. 02).
 - **Habilita:** la vista de ubicación del cliente en la app de campo.

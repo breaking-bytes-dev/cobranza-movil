@@ -6,7 +6,7 @@
 >
 > **Construimos con los DATOS REALES de Dataverse** (`sanic_*`). Lo único local es `colLineasPago` (borrador de
 > las líneas de pago que el usuario tipea antes de guardar). **Requisito:** las tablas `sanic_*` ya existen y tu
-> usuario está ligado a un `sanic_agente`.
+> usuario está ligado a un `sanic_cm_tbl_agente`.
 >
 > **Layout:** contenedores (cajas dentro de cajas que se acomodan solas).
 
@@ -50,31 +50,31 @@ Cada control se presenta como un **bloque**, así:
 
 Lo que vas a escribir. Todo `sanic_*` sale de los componentes 02–13. **Tenelo a mano.**
 
-**`sanic_asignacion`** (base de la Cartera — 1 fila por cuenta asignada):
-`sanic_cuentaid`(→cuenta) · `sanic_agenteid`(→agente) · `sanic_tipo`(Choice: Diaria/Incobrable/Especial) ·
-`sanic_estado`(Choice: Activa/Cerrada) · `sanic_orden`(Nº, prioridad) · `sanic_estadoaprobacion`(Choice).
-*(No tiene cliente directo → se llega por `sanic_cuentaid.sanic_clienteid`.)*
+**`sanic_cm_tbl_asignacion`** (base de la Cartera — 1 fila por cuenta asignada):
+`sanic_cm_as_cuentaid`(→cuenta) · `sanic_cm_as_agenteid`(→agente) · `sanic_cm_as_tipo`(Choice: Diaria/Incobrable/Especial) ·
+`sanic_cm_as_estado`(Choice: Activa/Cerrada) · `sanic_cm_as_orden`(Nº, prioridad) · `sanic_cm_as_estadoaprobacion`(Choice).
+*(No tiene cliente directo → se llega por `sanic_cm_as_cuentaid.sanic_cm_ct_clienteid`.)*
 
-**`sanic_cuenta`:** `sanic_numerocuenta`(nombre) · `sanic_clienteid` · `sanic_productoid` · `sanic_fiadorid` ·
-`sanic_retironio` · `sanic_retirousd` *(⭐ a cobrar)* · `sanic_saldovencidonio` · `sanic_saldovencidousd` ·
-`sanic_totalsaldovencido` *(el dolarizado)* · `sanic_contagiadousd` · `sanic_pagominimonio` ·
-`sanic_pagominimousd` · `sanic_diasmora` · `sanic_nivelmora` · `sanic_fechapago` · `sanic_fechaultimopago` ·
-`sanic_ciclo` · `sanic_nota`.
+**`sanic_cm_tbl_cuenta`:** `sanic_cm_ct_numerodecuenta`(nombre) · `sanic_cm_ct_clienteid` · `sanic_cm_ct_productoid` · `sanic_cm_ct_fiador` ·
+`sanic_cm_ct_retironio` · `sanic_cm_ct_retirousd` *(⭐ a cobrar)* · `sanic_cm_ct_saldovencidonio` · `sanic_cm_ct_saldovencidousd` ·
+`sanic_cm_ct_totalsaldovencido` *(el dolarizado)* · `sanic_cm_ct_contagiadousd` · `sanic_cm_ct_pagominimonio` ·
+`sanic_cm_ct_pagominimousd` · `sanic_cm_ct_diasmora` · `sanic_cm_ct_nivelmora` · `sanic_cm_ct_fechapago` · `sanic_cm_ct_fechaultimopago` ·
+`sanic_cm_ct_ciclo` · `sanic_cm_ct_nota`.
 
-**`sanic_cliente`:** `sanic_nombre` · `sanic_cif` · `sanic_departamento` · `sanic_distrito` · `sanic_trabajo`.
-**`sanic_telefono`:** `sanic_numero`(el teléfono) · `sanic_clienteid` · `sanic_tipo`(Celular/Casa).
-**`sanic_direccion`:** `sanic_direccion`(el texto) · `sanic_clienteid` · `sanic_tipo`(Casa/EC/Trabajo).
-**`sanic_producto`:** `sanic_codigo` · `sanic_tipo`(texto, ej. "Tarjeta Oro"). **`sanic_fiador`:** `sanic_nombre`.
-**`sanic_agente`:** `sanic_nombre` · `sanic_usuario`(→systemuser) · `sanic_activo`.
+**`sanic_cm_tbl_cliente`:** `sanic_cm_cl_nombre` · `sanic_cm_cl_cif` · `sanic_cm_cl_departamento` · `sanic_cm_cl_distrito` · `sanic_cm_cl_trabajo`.
+**`sanic_cm_tbl_telefono`:** `sanic_cm_tl_numero`(el teléfono) · `sanic_cm_tl_clienteid` · `sanic_cm_tl_tipo`(Celular/Casa).
+**`sanic_cm_tbl_direccion`:** `sanic_cm_dr_direccion`(el texto) · `sanic_cm_dr_clienteid` · `sanic_cm_dr_tipo`(Casa/EC/Trabajo).
+**`sanic_cm_tbl_producto`:** `sanic_cm_pr_codigo` · `sanic_cm_pr_tipo`(texto, ej. "Tarjeta Oro"). **`sanic_cm_tbl_fiador`:** `sanic_cm_fi_nombre`.
+**`sanic_cm_tbl_agente`:** `sanic_cm_ag_nombre` · `sanic_cm_ag_usuarioid`(→systemuser) · `sanic_cm_ag_activo`.
 
-**`sanic_interaccion`:** `sanic_numero`(autonumber `INT-`, **vacío hasta sincronizar**) · `sanic_cuentaid` ·
-`sanic_agenteid` · `sanic_comentario` · `sanic_fechainteraccion` · `sanic_aplicapago`(Sí/No) ·
-`sanic_actualizacliente`(Sí/No) · `sanic_latitud` · `sanic_longitud` · `sanic_estadotranscripcion`(Choice).
-**`sanic_pago`:** `sanic_numero`(`PAG-`) · `sanic_interaccionid` · `sanic_monto` · `sanic_moneda`(Choice NIO/USD) ·
-`sanic_numerorecibo` · `sanic_fechapago`.
-**`sanic_actualizaciondatos`:** `sanic_interaccionid` + campos a actualizar (ver comp. 13).
+**`sanic_cm_tbl_interaccion`:** `sanic_cm_in_numerointeraccion`(autonumber `INT-`, **vacío hasta sincronizar**) · `sanic_cm_in_cuentaid` ·
+`sanic_cm_in_agente` · `sanic_cm_in_comentario` · `⚠️TODO(sanic_fechainteraccion)` · `sanic_cm_cd_aplicapago`(Sí/No) ·
+`sanic_cm_in_actualizainfo`(Sí/No) · `sanic_cm_in_latitud` · `sanic_cm_in_longitud` · `sanic_cm_in_estadograbacion`(Choice).
+**`sanic_cm_tbl_pago`:** `sanic_cm_pg_numero`(`PAG-`) · `sanic_cm_pg_interaccion` · `sanic_cm_pg_monto` · `sanic_cm_pg_moneda`(Choice NIO/USD) ·
+`sanic_cm_pg_numerorecibo` · `⚠️TODO(sanic_fechapago-en-pago)`.
+**`sanic_cm_tbl_actualizaciondatos`:** `sanic_cm_ad_interaccionid` + campos a actualizar (ver comp. 13).
 
-> ⚠️ **Choices:** al comparar escribís `Campo.Value = "Texto"` (ej. `sanic_tipo.Value="Diaria"`). Al **escribir**
+> ⚠️ **Choices:** al comparar escribís `Campo.Value = "Texto"` (ej. `sanic_cm_as_tipo.Value="Diaria"`). Al **escribir**
 > un Choice usás `'Nombre del conjunto'.Opcion` — Power Apps **autocompleta** el nombre exacto; usá lo que ofrezca.
 
 ---
@@ -280,8 +280,8 @@ OnSelect = Set(varSyncBack, <"cartera" o "inicio">); Navigate(scrSincronizacion)
 ## 🔌 PARTE 1 — Conectar las tablas + perfil offline
 
 1. **Datos → + Agregar datos → Dataverse** → agregá las **11 tablas**:
-   `sanic_asignacion`, `sanic_cuenta`, `sanic_cliente`, `sanic_telefono`, `sanic_direccion`, `sanic_producto`,
-   `sanic_fiador`, `sanic_agente`, `sanic_interaccion`, `sanic_pago`, `sanic_actualizaciondatos`.
+   `sanic_cm_tbl_asignacion`, `sanic_cm_tbl_cuenta`, `sanic_cm_tbl_cliente`, `sanic_cm_tbl_telefono`, `sanic_cm_tbl_direccion`, `sanic_cm_tbl_producto`,
+   `sanic_cm_tbl_fiador`, `sanic_cm_tbl_agente`, `sanic_cm_tbl_interaccion`, `sanic_cm_tbl_pago`, `sanic_cm_tbl_actualizaciondatos`.
 2. **Configuración → General → Sin conexión → Activar** y configurá el **perfil offline** según el
    [doc 04, §4](../desarrollo/04-app-localizador-canvas.md).
 
@@ -313,12 +313,12 @@ Set(gblC, {
 Set(gblScale, 1);
 Set(gblT, { f2xs:10*gblScale, fxs:11*gblScale, fsm:12.5*gblScale, fbase:13.5*gblScale,
             fmd:15*gblScale, flg:17*gblScale, fxl:23*gblScale, fbig:24*gblScale });
-Set(gblAgente, LookUp(sanic_agente, sanic_usuario.'Primary Email' = User().Email));
+Set(gblAgente, LookUp(sanic_cm_tbl_agente, sanic_cm_ag_usuarioid.'Primary Email' = User().Email));
 Set(varModo, "cliente"); Set(varFiltro, "Todos"); Set(varBuscar, "");
 Set(varInicioModo, "cliente");
 ```
 **Ejecutá OnStart** (clic derecho en App → Ejecutar OnStart). Si `gblAgente` queda vacío → falta tu fila en
-`sanic_agente`.
+`sanic_cm_tbl_agente`.
 
 **Helper bimoneda** — App → propiedad **`Formulas`**:
 ```powerapps
@@ -346,7 +346,7 @@ Moneda(nio:Number, usd:Number): Text =
 > **`scrCartera`** *(Pantalla)* — renombrá `Screen1`.
 > ```
 > Fill     = gblC.screen
-> OnVisible= Set(misAsig, Filter(sanic_asignacion, sanic_estado.Value = "Activa"))
+> OnVisible= Set(misAsig, Filter(sanic_cm_tbl_asignacion, sanic_cm_as_estado.Value = "Activa"))
 > ```
 > **`conMaster`** *(Cont. vertical)* · en `scrCartera`
 > ```
@@ -356,7 +356,7 @@ Moneda(nio:Number, usd:Number): Text =
 ### Paso 2 — Header
 Armá **`conHeader`** = **`cmpHeaderVerde`** (§C.8) dentro de `conMaster`, con:
 - `lblTitulo.Text = "Mi Cartera"`
-- `lblSub.Text = CountRows(Distinct(misAsig, sanic_cuentaid.sanic_clienteid)) & " clientes · " & CountRows(misAsig) & " cuentas"`
+- `lblSub.Text = CountRows(Distinct(misAsig, sanic_cm_as_cuentaid.sanic_cm_ct_clienteid)) & " clientes · " & CountRows(misAsig) & " cuentas"`
 - `cmpSyncPill.OnSelect` → `Set(varSyncBack,"cartera"); Navigate(scrSincronizacion)`
 
 Y agregale la **tarjeta total** como último hijo del header:
@@ -367,8 +367,8 @@ Y agregale la **tarjeta total** como último hijo del header:
 > > **`lblTotalL`** *(Etiqueta)*: `Text="A cobrar hoy"` · `Color=gblC.tealSub` · `Size=gblT.fxs` · `Alto=Auto`
 > > **`lblTotalA`** *(Etiqueta)*:
 > > ```
-> > Text       = Moneda(Sum(misAsig, sanic_cuentaid.sanic_retironio),
-> >                     Sum(misAsig, sanic_cuentaid.sanic_retirousd))
+> > Text       = Moneda(Sum(misAsig, sanic_cm_as_cuentaid.sanic_cm_ct_retironio),
+> >                     Sum(misAsig, sanic_cm_as_cuentaid.sanic_cm_ct_retirousd))
 > > Color      = gblC.white
 > > Size       = gblT.flg
 > > FontWeight = FontWeight.Bold
@@ -451,28 +451,28 @@ Y agregale la **tarjeta total** como último hijo del header:
 >    If(varModo = "cuenta",
 >       SortByColumns(
 >         Filter(misAsig,
->            (varFiltro="Todos" || sanic_tipo.Value = varFiltro) &&
->            (varBuscar="" || varBuscar in sanic_cuentaid.sanic_clienteid.sanic_nombre
->                          || varBuscar in sanic_numerocuenta)),
->         "sanic_orden", SortOrder.Ascending),
+>            (varFiltro="Todos" || sanic_cm_as_tipo.Value = varFiltro) &&
+>            (varBuscar="" || varBuscar in sanic_cm_as_cuentaid.sanic_cm_ct_clienteid.sanic_cm_cl_nombre
+>                          || varBuscar in sanic_cm_as_numerocuenta)),
+>         "sanic_cm_as_orden", SortOrder.Ascending),
 >       SortByColumns(
 >         AddColumns(
 >           Filter(
 >             GroupBy(
 >               AddColumns(misAsig,
->                  "cliId",  sanic_cuentaid.sanic_clienteid.sanic_cif,
->                  "cliNom", sanic_cuentaid.sanic_clienteid.sanic_nombre),
+>                  "cliId",  sanic_cm_as_cuentaid.sanic_cm_ct_clienteid.sanic_cm_cl_cif,
+>                  "cliNom", sanic_cm_as_cuentaid.sanic_cm_ct_clienteid.sanic_cm_cl_nombre),
 >               "cliId", "cliNom", "Asigs"),
->             (varFiltro="Todos" || CountRows(Filter(Asigs, sanic_tipo.Value = varFiltro))>0) &&
+>             (varFiltro="Todos" || CountRows(Filter(Asigs, sanic_cm_as_tipo.Value = varFiltro))>0) &&
 >             (varBuscar="" || varBuscar in cliNom)),
->           "orden",    Min(Asigs, sanic_orden),
->           "totNio",   Sum(Asigs, sanic_cuentaid.sanic_retironio),
->           "totUsd",   Sum(Asigs, sanic_cuentaid.sanic_retirousd),
->           "maxDias",  Max(Asigs, sanic_cuentaid.sanic_diasmora),
+>           "orden",    Min(Asigs, sanic_cm_as_orden),
+>           "totNio",   Sum(Asigs, sanic_cm_as_cuentaid.sanic_cm_ct_retironio),
+>           "totUsd",   Sum(Asigs, sanic_cm_as_cuentaid.sanic_cm_ct_retirousd),
+>           "maxDias",  Max(Asigs, sanic_cm_as_cuentaid.sanic_cm_ct_diasmora),
 >           "nCuentas", CountRows(Asigs)),
 >         "orden", SortOrder.Ascending))
 > ```
-> 💡 El **punto** `sanic_cuentaid.sanic_clienteid.sanic_nombre` = "seguí el vínculo": de la asignación → cuenta →
+> 💡 El **punto** `sanic_cm_as_cuentaid.sanic_cm_ct_clienteid.sanic_cm_cl_nombre` = "seguí el vínculo": de la asignación → cuenta →
 > cliente → nombre. Modo cuenta filtra; modo cliente **agrupa por cliente**. Datos offline = sin avisos de delegación.
 
 **Plantilla de la fila** (con `galCartera` seleccionada, todo va adentro):
@@ -493,9 +493,9 @@ Y agregale la **tarjeta total** como último hijo del header:
 > Fill=gblC.white  Borde=gblC.cardBorder,1  RadiusAll=14  Padding=14,14,16,12  Gap=6  Ancho=Llenar  Alto=Auto
 > OnSelect =
 >    If(varModo="cliente",
->       Set(varCliente, First(ThisItem.Asigs).sanic_cuentaid.sanic_clienteid);
+>       Set(varCliente, First(ThisItem.Asigs).sanic_cm_as_cuentaid.sanic_cm_ct_clienteid);
 >          Set(varCliTab,"cuentas"); Navigate(scrCliente, ScreenTransition.Cover),
->       Set(varAsig, ThisItem); Set(varCuenta, ThisItem.sanic_cuentaid);
+>       Set(varAsig, ThisItem); Set(varCuenta, ThisItem.sanic_cm_as_cuentaid);
 >          Set(varDetTab,"detalle"); Set(varDetSrc,"cartera"); Navigate(scrDetalleCuenta, ScreenTransition.Cover))
 > ```
 
@@ -504,7 +504,7 @@ Y agregale la **tarjeta total** como último hijo del header:
 > **`conR1`** *(Cont. horizontal)* · en `conCardMain` — `Justif=SpaceBetween · Wrap=Sí · Alinear=Center · Gap=8 · Ancho=Llenar · Alto=Auto`
 > > **`lblNombre`** *(Etiqueta)*:
 > > ```
-> > Text       = If(varModo="cliente", ThisItem.cliNom, ThisItem.sanic_cuentaid.sanic_clienteid.sanic_nombre)
+> > Text       = If(varModo="cliente", ThisItem.cliNom, ThisItem.sanic_cm_as_cuentaid.sanic_cm_ct_clienteid.sanic_cm_cl_nombre)
 > > Size       = gblT.fmd   ·   FontWeight=FontWeight.Bold   ·   Color=gblC.ink   ·   Alto=Auto
 > > ```
 > > **`lblCnt`** *(Etiqueta)* — solo modo cliente:
@@ -516,13 +516,13 @@ Y agregale la **tarjeta total** como último hijo del header:
 > > **`lblBadge`** *(Etiqueta = `cmpBadge` §C.3)* — solo modo cuenta:
 > > ```
 > > Visible    = (varModo="cuenta")
-> > <tipo>     = ThisItem.sanic_tipo.Value
+> > <tipo>     = ThisItem.sanic_cm_as_tipo.Value
 > > ```
 
 > **`lblBadgeCli`** *(Etiqueta = `cmpBadge` §C.3)* · en `conCardMain` — solo modo cliente:
 > ```
 > Visible = (varModo="cliente")
-> <tipo>  = First(ThisItem.Asigs).sanic_tipo.Value
+> <tipo>  = First(ThisItem.Asigs).sanic_cm_as_tipo.Value
 > ```
 
 > **`lblDiv`** *(Etiqueta vacía = divisor)* · en `conCardMain`
@@ -537,17 +537,17 @@ Y agregale la **tarjeta total** como último hijo del header:
 > > > ```
 > > > Text = If(varModo="cliente",
 > > >           Moneda(ThisItem.totNio, ThisItem.totUsd),
-> > >           Moneda(ThisItem.sanic_cuentaid.sanic_retironio, ThisItem.sanic_cuentaid.sanic_retirousd))
+> > >           Moneda(ThisItem.sanic_cm_as_cuentaid.sanic_cm_ct_retironio, ThisItem.sanic_cm_as_cuentaid.sanic_cm_ct_retirousd))
 > > > Size=gblT.fmd · FontWeight=FontWeight.Bold · Color=gblC.teal · Alto=Auto
 > > > ```
 > > **`lblMora`** *(Etiqueta = `cmpPillMora` §C.4)*:
 > > ```
 > > <txt>  = If(varModo="cliente",
 > >            "máx " & ThisItem.maxDias & " días",
-> >            ThisItem.sanic_cuentaid.sanic_diasmora & " días · Nivel " & ThisItem.sanic_cuentaid.sanic_nivelmora)
+> >            ThisItem.sanic_cm_as_cuentaid.sanic_cm_ct_diasmora & " días · Nivel " & ThisItem.sanic_cm_as_cuentaid.sanic_cm_ct_nivelmora)
 > > <alta> = If(varModo="cliente",
 > >            ThisItem.maxDias>90,
-> >            Or(ThisItem.sanic_cuentaid.sanic_diasmora>90, ThisItem.sanic_cuentaid.sanic_nivelmora>=4))
+> >            Or(ThisItem.sanic_cm_as_cuentaid.sanic_cm_ct_diasmora>90, ThisItem.sanic_cm_as_cuentaid.sanic_cm_ct_nivelmora>=4))
 > > ```
 
 > **`conArr`** *(Cont. vertical)* · en `conCard` (a la derecha) — `Gap=14 · Alinear=Center · Justif=Center · Alto=Auto`
@@ -555,15 +555,15 @@ Y agregale la **tarjeta total** como último hijo del header:
 > > ```
 > > Color=gblC.muted2 · Fill=gblC.screen · RadiusAll=6 · Width=28 · Height=24 · Padding=2,2,2,2
 > > OnSelect =
-> >    With({ arriba: First(Sort(Filter(galCartera.AllItems, sanic_orden < ThisItem.sanic_orden),
-> >                              sanic_orden, SortOrder.Descending)) },
+> >    With({ arriba: First(Sort(Filter(galCartera.AllItems, sanic_cm_as_orden < ThisItem.sanic_cm_as_orden),
+> >                              sanic_cm_as_orden, SortOrder.Descending)) },
 > >       If(!IsBlank(arriba),
-> >          With({ act: ThisItem.sanic_orden },
-> >             Patch(sanic_asignacion, ThisItem, { sanic_orden: arriba.sanic_orden });
-> >             Patch(sanic_asignacion, arriba,   { sanic_orden: act }))))
+> >          With({ act: ThisItem.sanic_cm_as_orden },
+> >             Patch(sanic_cm_tbl_asignacion, ThisItem, { sanic_cm_as_orden: arriba.sanic_cm_as_orden });
+> >             Patch(sanic_cm_tbl_asignacion, arriba,   { sanic_cm_as_orden: act }))))
 > > ```
 > > **`icoDown`** *(Ícono `Icon.ChevronDown`)*: igual estilo. `OnSelect` = lo mismo pero
-> > `sanic_orden > ThisItem.sanic_orden` y `SortOrder.Ascending`.
+> > `sanic_cm_as_orden > ThisItem.sanic_cm_as_orden` y `SortOrder.Ascending`.
 > > 🔁 El `Patch` es local (offline) y sincroniza al volver señal — lo único que escribís sobre la asignación.
 
 ### Paso 5 — Barra inferior
@@ -587,16 +587,16 @@ Armá **`conNav`** = **`cmpNav`** (§C.10) en `conMaster`, con **Cartera** como 
 > ```
 
 > **`scrCliente`** *(Pantalla)*: `Fill=gblC.screen` ·
-> `OnVisible = Set(varCliCuentas, Filter(sanic_asignacion, sanic_cuentaid.sanic_clienteid = varCliente, sanic_estado.Value="Activa"))`
+> `OnVisible = Set(varCliCuentas, Filter(sanic_cm_tbl_asignacion, sanic_cm_as_cuentaid.sanic_cm_ct_clienteid = varCliente, sanic_cm_as_estado.Value="Activa"))`
 > **`conMaster`** *(Cont. vertical)*: `Width=Parent.Width · Height=Parent.Height · Gap=0`
 
 **Header:** **`conHeaderBack`** = **`cmpHeaderBack`** (§C.9) con
-`lblDnm.Text=varCliente.sanic_nombre`, `lblDac.Text=varCliente.sanic_departamento & " · " & varCliente.sanic_trabajo`,
+`lblDnm.Text=varCliente.sanic_cm_cl_nombre`, `lblDac.Text=varCliente.sanic_cm_cl_departamento & " · " & varCliente.sanic_cm_cl_trabajo`,
 `btnBack.OnSelect=Back()`, + `btnAa` (§C.13).
 
 **Pestañas:** **`conTabs`** = **`cmpTabBar`** (§C.12):
 - `tabCuentas`: `Text="Cuentas (" & CountRows(varCliCuentas) & ")"` · `<varTab>=varCliTab` · clave `"cuentas"`.
-- `tabInter`: `Text="Interacciones (" & CountRows(Filter(sanic_interaccion, sanic_cuentaid.sanic_clienteid = varCliente)) & ")"` · clave `"inter"`.
+- `tabInter`: `Text="Interacciones (" & CountRows(Filter(sanic_cm_tbl_interaccion, sanic_cm_in_cuentaid.sanic_cm_ct_clienteid = varCliente)) & ")"` · clave `"inter"`.
 
 > **`conBody`** *(Cont. vertical)* · en `conMaster`
 > ```
@@ -609,8 +609,8 @@ Armá **`conNav`** = **`cmpNav`** (§C.10) en `conMaster`, con **Cartera** como 
 > > **`lblTL`** *(Etiqueta)*: `Text="Total a cobrar del cliente"` · `Size=gblT.fxs` · `Color=gblC.muted2` · `Alto=Auto`
 > > **`lblTB`** *(Etiqueta)*:
 > > ```
-> > Text = Moneda(Sum(varCliCuentas, sanic_cuentaid.sanic_retironio),
-> >               Sum(varCliCuentas, sanic_cuentaid.sanic_retirousd))
+> > Text = Moneda(Sum(varCliCuentas, sanic_cm_as_cuentaid.sanic_cm_ct_retironio),
+> >               Sum(varCliCuentas, sanic_cm_as_cuentaid.sanic_cm_ct_retirousd))
 > > Size=gblT.fbig · FontWeight=FontWeight.Bold · Color=gblC.teal · Alto=Auto
 > > ```
 
@@ -618,47 +618,47 @@ Armá **`conNav`** = **`cmpNav`** (§C.10) en `conMaster`, con **Cartera** como 
 > > **`lblSecTel`** = **`cmpSecTitle`** (§C.5): `Text="CONTACTO"`
 > > **`galTels`** *(Galería vertical)*:
 > > ```
-> > Items  = Filter(sanic_telefono, sanic_clienteid = varCliente)
+> > Items  = Filter(sanic_cm_tbl_telefono, sanic_cm_tl_clienteid = varCliente)
 > > Height = CountRows(Self.AllItems) * 52
 > > Ancho  = Llenar
 > > ```
 > > > plantilla **`conFilaTel`** *(Cont. horizontal)*: `Justif=SpaceBetween · Alinear=Center · Padding=8,8,0,0 · Borde-abajo=gblC.hairline,1 · Ancho=Llenar · Alto=Auto`
-> > > > **`lblTelTipo`** *(Etiqueta)*: `Text=ThisItem.sanic_tipo` · `Size=gblT.f2xs` · `Color=gblC.muted2`
-> > > > **`lblTelVal`** *(Etiqueta)*: `Text=ThisItem.sanic_numero` · `Size=gblT.fbase` · `Color=gblC.ink`
-> > > > **`btnLlamar`** = §C.7 con `<numero>=ThisItem.sanic_numero`
+> > > > **`lblTelTipo`** *(Etiqueta)*: `Text=ThisItem.sanic_cm_tl_tipo` · `Size=gblT.f2xs` · `Color=gblC.muted2`
+> > > > **`lblTelVal`** *(Etiqueta)*: `Text=ThisItem.sanic_cm_tl_numero` · `Size=gblT.fbase` · `Color=gblC.ink`
+> > > > **`btnLlamar`** = §C.7 con `<numero>=ThisItem.sanic_cm_tl_numero`
 > > **`lblSecDir`** = **`cmpSecTitle`**: `Text="DIRECCIONES"` · `Padding=12,0,0,0`
-> > **`galDirs`** *(Galería vertical)*: `Items=Filter(sanic_direccion, sanic_clienteid = varCliente)` · `Height=CountRows(Self.AllItems)*52`
-> > > plantilla igual, pero `lblDirVal.Text=ThisItem.sanic_direccion` y **`btnMapa`** = §C.7 con `<direccion>=ThisItem.sanic_direccion`
+> > **`galDirs`** *(Galería vertical)*: `Items=Filter(sanic_cm_tbl_direccion, sanic_cm_dr_clienteid = varCliente)` · `Height=CountRows(Self.AllItems)*52`
+> > > plantilla igual, pero `lblDirVal.Text=ThisItem.sanic_cm_dr_direccion` y **`btnMapa`** = §C.7 con `<direccion>=ThisItem.sanic_cm_dr_direccion`
 
 > **`lblSecCtas`** *(Etiqueta)*: `Text="Cuentas a cobrar (" & CountRows(varCliCuentas) & ")"` · `Size=gblT.fxs` · `FontWeight=FontWeight.Bold` · `Color=gblC.muted2`
 > **`galMini`** *(Galería vertical)*: `Items=varCliCuentas` · `Ancho=Llenar` · `Alto=Auto`
 > > plantilla **`conMini`** *(Cont. horizontal)*: `Fill=gblC.white · Borde=gblC.cardBorder,1 · RadiusAll=12 · Padding=12,12,14,14 · Justif=SpaceBetween · Wrap=Sí · Alinear=Center · Alto=Auto`
 > > ```
-> > OnSelect = Set(varAsig, ThisItem); Set(varCuenta, ThisItem.sanic_cuentaid);
+> > OnSelect = Set(varAsig, ThisItem); Set(varCuenta, ThisItem.sanic_cm_as_cuentaid);
 > >            Set(varDetTab,"detalle"); Set(varDetSrc,"cliente"); Navigate(scrDetalleCuenta, ScreenTransition.Cover)
 > > ```
-> > > **`conMiniIzq`** *(vertical)*: `lblMp`(`Text=ThisItem.sanic_cuentaid.sanic_productoid.sanic_tipo`, `Size=gblT.fbase`, `FontWeight=Bold`) + `cmpBadge`(`<tipo>=ThisItem.sanic_tipo.Value`) + `lblMc`(`Text=ThisItem.sanic_numerocuenta`, `Size=gblT.fxs`, `Color=gblC.muted`)
-> > > **`conMiniDer`** *(vertical, Alinear=End)*: `lblMr`(`Text=Moneda(ThisItem.sanic_cuentaid.sanic_retironio, ThisItem.sanic_cuentaid.sanic_retirousd)`, `Color=gblC.teal`, `FontWeight=Bold`) + `lblMm`(`Text=ThisItem.sanic_cuentaid.sanic_diasmora & " días"`, `Size=gblT.fxs`, `Color=If(Or(ThisItem.sanic_cuentaid.sanic_diasmora>90, ThisItem.sanic_cuentaid.sanic_nivelmora>=4), gblC.redInk, gblC.muted2)`)
+> > > **`conMiniIzq`** *(vertical)*: `lblMp`(`Text=ThisItem.sanic_cm_as_cuentaid.sanic_cm_ct_productoid.sanic_cm_pr_tipo`, `Size=gblT.fbase`, `FontWeight=Bold`) + `cmpBadge`(`<tipo>=ThisItem.sanic_cm_as_tipo.Value`) + `lblMc`(`Text=ThisItem.sanic_cm_as_numerocuenta`, `Size=gblT.fxs`, `Color=gblC.muted`)
+> > > **`conMiniDer`** *(vertical, Alinear=End)*: `lblMr`(`Text=Moneda(ThisItem.sanic_cm_as_cuentaid.sanic_cm_ct_retironio, ThisItem.sanic_cm_as_cuentaid.sanic_cm_ct_retirousd)`, `Color=gblC.teal`, `FontWeight=Bold`) + `lblMm`(`Text=ThisItem.sanic_cm_as_cuentaid.sanic_cm_ct_diasmora & " días"`, `Size=gblT.fxs`, `Color=If(Or(ThisItem.sanic_cm_as_cuentaid.sanic_cm_ct_diasmora>90, ThisItem.sanic_cm_as_cuentaid.sanic_cm_ct_nivelmora>=4), gblC.redInk, gblC.muted2)`)
 
 **TAB INTERACCIONES** (`Visible=(varCliTab="inter")`):
-> **`galInterCli`** *(Galería vertical)*: `Items=Sort(Filter(sanic_interaccion, sanic_cuentaid.sanic_clienteid = varCliente), sanic_fechainteraccion, SortOrder.Descending)` · plantilla = **Tarjeta de interacción (§4.1)**.
+> **`galInterCli`** *(Galería vertical)*: `Items=Sort(Filter(sanic_cm_tbl_interaccion, sanic_cm_in_cuentaid.sanic_cm_ct_clienteid = varCliente), ⚠️TODO(sanic_fechainteraccion), SortOrder.Descending)` · plantilla = **Tarjeta de interacción (§4.1)**.
 
 ### §4.1 — 🧩 Tarjeta de interacción (Cliente y Detalle)
 > **`conICard`** *(Cont. vertical)*: `Fill=gblC.white · Borde=gblC.cardBorder,1 · RadiusAll=12 · Padding=12,12,14,14 · Gap=8 · Ancho=Llenar · Alto=Auto`
 > > **`conIHead`** *(horizontal)*: `Justif=SpaceBetween · Wrap=Sí · Ancho=Llenar`
-> > > **`lblITime`** *(Etiqueta)*: `Text="🕘 " & Text(ThisItem.sanic_fechainteraccion,"dd/mm · hh:mm")` · `Size=gblT.fxs` · `Color=gblC.muted` · `FontWeight=Semibold`
-> > > **`lblIAcct`** *(Etiqueta)*: `Text=ThisItem.sanic_cuentaid.sanic_productoid.sanic_tipo & " · " & ThisItem.sanic_cuentaid.sanic_numerocuenta` · `Size=gblT.fxs` · `Color=gblC.muted2` · *(en Detalle: `Visible=false`)*
-> > **`lblICom`** *(Etiqueta)*: `Text=ThisItem.sanic_comentario` · `Size=gblT.fbase` · `Color=gblC.ink` · `Alto=Auto`
+> > > **`lblITime`** *(Etiqueta)*: `Text="🕘 " & Text(ThisItem.⚠️TODO(sanic_fechainteraccion),"dd/mm · hh:mm")` · `Size=gblT.fxs` · `Color=gblC.muted` · `FontWeight=Semibold`
+> > > **`lblIAcct`** *(Etiqueta)*: `Text=ThisItem.sanic_cm_in_cuentaid.sanic_cm_ct_productoid.sanic_cm_pr_tipo & " · " & ThisItem.sanic_cm_in_cuentaid.sanic_cm_ct_numerodecuenta` · `Size=gblT.fxs` · `Color=gblC.muted2` · *(en Detalle: `Visible=false`)*
+> > **`lblICom`** *(Etiqueta)*: `Text=ThisItem.sanic_cm_in_comentario` · `Size=gblT.fbase` · `Color=gblC.ink` · `Alto=Auto`
 > > **`conITags`** *(horizontal, Wrap=Sí, Gap=8, Alto=Auto)*:
 > > > **`lblTagPago`** *(Etiqueta)*:
 > > > ```
-> > > Visible = CountRows(Filter(sanic_pago, sanic_interaccionid = ThisItem))>0
-> > > Text    = "💵 " & Concat(Filter(sanic_pago, sanic_interaccionid = ThisItem),
-> > >             If(sanic_moneda.Value="USD","US$ ","C$ ") & Text(sanic_monto,"#,##0.00") &
-> > >             " (rec. " & sanic_numerorecibo & ")", " · ")
+> > > Visible = CountRows(Filter(sanic_cm_tbl_pago, sanic_cm_pg_interaccion = ThisItem))>0
+> > > Text    = "💵 " & Concat(Filter(sanic_cm_tbl_pago, sanic_cm_pg_interaccion = ThisItem),
+> > >             If(sanic_cm_pg_moneda.Value="USD","US$ ","C$ ") & Text(sanic_cm_pg_monto,"#,##0.00") &
+> > >             " (rec. " & sanic_cm_pg_numerorecibo & ")", " · ")
 > > > Fill=gblC.accentBg · Color=gblC.accentInk · RadiusAll=10 · Padding=4,4,10,10 · Size=gblT.fxs · FontWeight=Semibold
 > > > ```
-> > > **`lblTagDatos`** *(Etiqueta)*: `Visible=ThisItem.sanic_actualizacliente` · `Text="✏️ Datos actualizados"` · `Fill=gblC.datosBg` · `Color=gblC.diariaInk` · resto igual al tag pago
+> > > **`lblTagDatos`** *(Etiqueta)*: `Visible=ThisItem.sanic_cm_in_actualizainfo` · `Text="✏️ Datos actualizados"` · `Fill=gblC.datosBg` · `Color=gblC.diariaInk` · resto igual al tag pago
 > > > **`lblTagGeo`** *(Etiqueta)*: `Text="📍 Ubicación"` · `Fill=gblC.screen` · `Color=gblC.muted` · resto igual
 
 ---
@@ -676,15 +676,15 @@ Armá **`conNav`** = **`cmpNav`** (§C.10) en `conMaster`, con **Cartera** como 
 >   └── btnRegistrar (fijo abajo)
 > ```
 
-> **`scrDetalleCuenta`** *(Pantalla)*: `Fill=gblC.screen` · *(ya tenés `varAsig` y `varCuenta=varAsig.sanic_cuentaid`)*
+> **`scrDetalleCuenta`** *(Pantalla)*: `Fill=gblC.screen` · *(ya tenés `varAsig` y `varCuenta=varAsig.sanic_cm_as_cuentaid`)*
 > **`conMaster`** *(vertical)*: `Width=Parent.Width · Height=Parent.Height · Gap=0`
 
-**Header:** **`cmpHeaderBack`** (§C.9) con `lblDnm.Text=varCuenta.sanic_clienteid.sanic_nombre`,
-`lblDac.Text=varCuenta.sanic_productoid.sanic_tipo & " · " & varCuenta.sanic_numerocuenta`, `btnBack.OnSelect=Back()`,
-+ a la derecha **`cmpBadge`** (`<tipo>=varAsig.sanic_tipo.Value`) + `btnAa`.
+**Header:** **`cmpHeaderBack`** (§C.9) con `lblDnm.Text=varCuenta.sanic_cm_ct_clienteid.sanic_cm_cl_nombre`,
+`lblDac.Text=varCuenta.sanic_cm_ct_productoid.sanic_cm_pr_tipo & " · " & varCuenta.sanic_cm_ct_numerodecuenta`, `btnBack.OnSelect=Back()`,
++ a la derecha **`cmpBadge`** (`<tipo>=varAsig.sanic_cm_as_tipo.Value`) + `btnAa`.
 
 **Pestañas:** **`cmpTabBar`**: `tabDetalle`(Text="Detalle", clave "detalle", `<varTab>=varDetTab`) ·
-`tabInterDet`(Text=`"Interacciones (" & CountRows(Filter(sanic_interaccion, sanic_cuentaid = varCuenta)) & ")"`, clave "inter").
+`tabInterDet`(Text=`"Interacciones (" & CountRows(Filter(sanic_cm_tbl_interaccion, sanic_cm_in_cuentaid = varCuenta)) & ")"`, clave "inter").
 
 > **`conBody`** *(vertical)*: `Scroll=Sí · Padding=16,16,16,16 · Gap=12 · Ancho=Llenar · Alto=Llenar`
 
@@ -692,28 +692,28 @@ Armá **`conNav`** = **`cmpNav`** (§C.10) en `conMaster`, con **Cartera** como 
 
 > **`cardRetiro`** = **`cmpTarjetaVerde`**:
 > > **`lblRL`** *(Etiqueta)*: `Text="A cobrar (Retiro)"` · `Size=gblT.fxs` · `Color=gblC.muted2`
-> > **`lblRB`** *(Etiqueta)*: `Text=Moneda(varCuenta.sanic_retironio, varCuenta.sanic_retirousd)` · `Size=gblT.fbig` · `FontWeight=Bold` · `Color=gblC.teal`
+> > **`lblRB`** *(Etiqueta)*: `Text=Moneda(varCuenta.sanic_cm_ct_retironio, varCuenta.sanic_cm_ct_retirousd)` · `Size=gblT.fbig` · `FontWeight=Bold` · `Color=gblC.teal`
 > > **`conGrid`** *(horizontal, Wrap=Sí, Gap=8, Padding=12,0,0,0, Ancho=Llenar)* — 3 celdas:
 > > > cada **`celdaG<n>`** *(vertical)*: `Borde=gblC.cardBorder,1 · RadiusAll=10 · Padding=8,8,8,8 · Ancho=Llenar · Alinear=Center · Alto=Auto`
 > > > > **`lblG<n>l`** *(Etiqueta)*: `Size=gblT.f2xs · Color=gblC.muted2 · Align=Center` — Text: `"Saldo vencido"` / `"Pago mínimo"` / `"Total (dolariz.)"`
 > > > > **`lblG<n>v`** *(Etiqueta)*: `Size=gblT.fsm · FontWeight=Bold · Color=gblC.ink2 · Align=Center` — Text:
-> > > > `Moneda(varCuenta.sanic_saldovencidonio, varCuenta.sanic_saldovencidousd)` /
-> > > > `Moneda(varCuenta.sanic_pagominimonio, varCuenta.sanic_pagominimousd)` /
-> > > > `"US$ " & Text(varCuenta.sanic_totalsaldovencido, "#,##0.00")`
-> > **`lblRiesgo`** *(Etiqueta)*: `Text="En riesgo (contagiado): US$ " & Text(varCuenta.sanic_contagiadousd, "#,##0.00")` · `Size=gblT.fxs` · `Color=gblC.muted` · `Padding=10,0,0,0`
+> > > > `Moneda(varCuenta.sanic_cm_ct_saldovencidonio, varCuenta.sanic_cm_ct_saldovencidousd)` /
+> > > > `Moneda(varCuenta.sanic_cm_ct_pagominimonio, varCuenta.sanic_cm_ct_pagominimousd)` /
+> > > > `"US$ " & Text(varCuenta.sanic_cm_ct_totalsaldovencido, "#,##0.00")`
+> > **`lblRiesgo`** *(Etiqueta)*: `Text="En riesgo (contagiado): US$ " & Text(varCuenta.sanic_cm_ct_contagiadousd, "#,##0.00")` · `Size=gblT.fxs` · `Color=gblC.muted` · `Padding=10,0,0,0`
 
 > **`cardMora`** = **`cmpTarjeta`**: **`lblSecMora`** (`cmpSecTitle`, Text="MORA") + 4 filas **`cmpKV`** (§C.6):
-> > Días en mora → `<clave>="Días en mora"`, `<valor>=varCuenta.sanic_diasmora & " días · Nivel " & varCuenta.sanic_nivelmora` *(en `lblV` poné además `Color=If(Or(varCuenta.sanic_diasmora>90, varCuenta.sanic_nivelmora>=4), gblC.redInk, gblC.ink)`)*
-> > Fecha de pago → `Text(varCuenta.sanic_fechapago,"dd/mm/yyyy")` · Último pago → `Text(varCuenta.sanic_fechaultimopago,"dd/mm/yyyy")` · Ciclo → `varCuenta.sanic_ciclo`
+> > Días en mora → `<clave>="Días en mora"`, `<valor>=varCuenta.sanic_cm_ct_diasmora & " días · Nivel " & varCuenta.sanic_cm_ct_nivelmora` *(en `lblV` poné además `Color=If(Or(varCuenta.sanic_cm_ct_diasmora>90, varCuenta.sanic_cm_ct_nivelmora>=4), gblC.redInk, gblC.ink)`)*
+> > Fecha de pago → `Text(varCuenta.sanic_cm_ct_fechapago,"dd/mm/yyyy")` · Último pago → `Text(varCuenta.sanic_cm_ct_fechaultimopago,"dd/mm/yyyy")` · Ciclo → `varCuenta.sanic_cm_ct_ciclo`
 
-> **`cardContacto`** = igual que en Cliente, pero los filtros con `varCuenta.sanic_clienteid`:
-> `galTels.Items=Filter(sanic_telefono, sanic_clienteid = varCuenta.sanic_clienteid)` (idem `galDirs` con `sanic_direccion`).
+> **`cardContacto`** = igual que en Cliente, pero los filtros con `varCuenta.sanic_cm_ct_clienteid`:
+> `galTels.Items=Filter(sanic_cm_tbl_telefono, sanic_cm_tl_clienteid = varCuenta.sanic_cm_ct_clienteid)` (idem `galDirs` con `sanic_cm_tbl_direccion`).
 
-> **`cardProd`** = **`cmpTarjeta`** con 3 filas **`cmpKV`**: Producto → `varCuenta.sanic_productoid.sanic_tipo` ·
-> Fiador → `varCuenta.sanic_fiadorid.sanic_nombre` · Nota → `varCuenta.sanic_nota`.
+> **`cardProd`** = **`cmpTarjeta`** con 3 filas **`cmpKV`**: Producto → `varCuenta.sanic_cm_ct_productoid.sanic_cm_pr_tipo` ·
+> Fiador → `varCuenta.sanic_cm_ct_fiador.sanic_cm_fi_nombre` · Nota → `varCuenta.sanic_cm_ct_nota`.
 
 **TAB INTERACCIONES** (`Visible=(varDetTab="inter")`):
-> **`galInterDet`** *(Galería vertical)*: `Items=Sort(Filter(sanic_interaccion, sanic_cuentaid = varCuenta), sanic_fechainteraccion, SortOrder.Descending)` · plantilla = **Tarjeta de interacción (§4.1)** con `lblIAcct.Visible=false`.
+> **`galInterDet`** *(Galería vertical)*: `Items=Sort(Filter(sanic_cm_tbl_interaccion, sanic_cm_in_cuentaid = varCuenta), ⚠️TODO(sanic_fechainteraccion), SortOrder.Descending)` · plantilla = **Tarjeta de interacción (§4.1)** con `lblIAcct.Visible=false`.
 
 > **`btnRegistrar`** *(Botón)* · en `conMaster`, DESPUÉS de `conBody` (queda fijo abajo):
 > ```
@@ -740,13 +740,13 @@ Armá **`conNav`** = **`cmpNav`** (§C.10) en `conMaster`, con **Cartera** como 
 > **`scrInteraccion`** *(Pantalla)*: `Fill=gblC.screen` · `OnVisible = Clear(colLineasPago)`
 > **`conMaster`** *(vertical)*: `Width=Parent.Width · Height=Parent.Height · Gap=0`
 
-**Header:** **`cmpHeaderBack`**: `lblDnm.Text="Registrar interacción"`, `lblDac.Text=varCuenta.sanic_clienteid.sanic_nombre`, `btnBack.OnSelect=Back()`.
+**Header:** **`cmpHeaderBack`**: `lblDnm.Text="Registrar interacción"`, `lblDac.Text=varCuenta.sanic_cm_ct_clienteid.sanic_cm_cl_nombre`, `btnBack.OnSelect=Back()`.
 
 > **`conBody`** *(vertical)*: `Scroll=Sí · Padding=16,16,16,16 · Gap=12 · Ancho=Llenar · Alto=Llenar`
 
 > **`cardCtx`** *(Cont. horizontal)*: `Fill=gblC.white · Borde=gblC.cardBorder,1 · RadiusAll=12 · Padding=12,12,14,14 · Justif=SpaceBetween · Wrap=Sí · Alto=Auto`
-> > **`conCtxIzq`** *(vertical)*: `lblCl`(`Text=varCuenta.sanic_productoid.sanic_tipo`, `FontWeight=Bold`, `Size=gblT.fbase`) + `lblCc2`(`Text=varCuenta.sanic_numerocuenta`, `Size=gblT.fxs`, `Color=gblC.muted`)
-> > **`conCtxDer`** *(vertical, Alinear=End)*: `lblCrl`(`Text="A cobrar"`, `Size=gblT.f2xs`, `Color=gblC.muted2`) + `lblCrv`(`Text=Moneda(varCuenta.sanic_retironio, varCuenta.sanic_retirousd)`, `Size=gblT.fmd`, `FontWeight=Bold`, `Color=gblC.teal`)
+> > **`conCtxIzq`** *(vertical)*: `lblCl`(`Text=varCuenta.sanic_cm_ct_productoid.sanic_cm_pr_tipo`, `FontWeight=Bold`, `Size=gblT.fbase`) + `lblCc2`(`Text=varCuenta.sanic_cm_ct_numerodecuenta`, `Size=gblT.fxs`, `Color=gblC.muted`)
+> > **`conCtxDer`** *(vertical, Alinear=End)*: `lblCrl`(`Text="A cobrar"`, `Size=gblT.f2xs`, `Color=gblC.muted2`) + `lblCrv`(`Text=Moneda(varCuenta.sanic_cm_ct_retironio, varCuenta.sanic_cm_ct_retirousd)`, `Size=gblT.fmd`, `FontWeight=Bold`, `Color=gblC.teal`)
 
 > **`lblComL`** *(Etiqueta)*: `Text="¿Qué pasó? *"` · `Size=gblT.fsm` · `FontWeight=Bold` · `Color=gblC.ink2`
 > **`txtComentario`** *(Entrada de texto)*:
@@ -792,7 +792,7 @@ Armá **`conNav`** = **`cmpNav`** (§C.10) en `conMaster`, con **Cartera** como 
 > > **`lblGeoIco`** *(Etiqueta)*: `Text="📍"` · `Size=20*gblScale`
 > > **`conGeoTxt`** *(vertical)*: `lblGeoT`(`Text="Ubicación capturada"`, `Color=gblC.accentInk`, `FontWeight=Semibold`, `Size=gblT.fbase`) + `lblGeoC`(`Text=Text(Location.Latitude,"0.0000") & ", " & Text(Location.Longitude,"0.0000") & " · automática"`, `Size=gblT.fxs`, `Color=gblC.accentInk2`)
 
-> **`lblMeta`** *(Etiqueta)*: `Text="Se registrará: " & Text(Now(),"dd/mm/yyyy hh:mm") & " · " & varCuenta.sanic_clienteid.sanic_nombre` · `Size=gblT.fxs` · `Color=gblC.muted2` · `Align=Center`
+> **`lblMeta`** *(Etiqueta)*: `Text="Se registrará: " & Text(Now(),"dd/mm/yyyy hh:mm") & " · " & varCuenta.sanic_cm_ct_clienteid.sanic_cm_cl_nombre` · `Size=gblT.fxs` · `Color=gblC.muted2` · `Align=Center`
 
 > **`btnGuardar`** *(Botón)*:
 > ```
@@ -806,28 +806,28 @@ Armá **`conNav`** = **`cmpNav`** (§C.10) en `conMaster`, con **Cartera** como 
 >                                !IsBlank(inCorreo.Text))),
 >       DisplayMode.Edit, DisplayMode.Disabled)
 > OnSelect =
->    Set(varInt, Patch(sanic_interaccion, Defaults(sanic_interaccion), {
->       sanic_cuentaid: varCuenta, sanic_agenteid: gblAgente, sanic_comentario: txtComentario.Text,
->       sanic_fechainteraccion: Now(), sanic_aplicapago: tgPago.Value, sanic_actualizacliente: tgDatos.Value,
->       sanic_latitud: Location.Latitude, sanic_longitud: Location.Longitude,
->       sanic_estadotranscripcion: 'Estado transcripción (sanic_interaccion)'.Pendiente }));
+>    Set(varInt, Patch(sanic_cm_tbl_interaccion, Defaults(sanic_cm_tbl_interaccion), {
+>       sanic_cm_in_cuentaid: varCuenta, sanic_cm_in_agente: gblAgente, sanic_cm_in_comentario: txtComentario.Text,
+>       ⚠️TODO(sanic_fechainteraccion): Now(), sanic_cm_cd_aplicapago: tgPago.Value, sanic_cm_in_actualizainfo: tgDatos.Value,
+>       sanic_cm_in_latitud: Location.Latitude, sanic_cm_in_longitud: Location.Longitude,
+>       sanic_cm_in_estadograbacion: 'Estado grabación interacción (sanic_cm_choice_estadograbacioninteraccion)'.Pendiente }));
 >    If(tgPago.Value,
 >       ForAll(Filter(colLineasPago, monto>0) As L,
->          Patch(sanic_pago, Defaults(sanic_pago), {
->             sanic_interaccionid: varInt, sanic_monto: L.monto,
->             sanic_moneda: Switch(L.moneda,"USD",'Moneda (sanic_pago)'.USD,'Moneda (sanic_pago)'.NIO),
->             sanic_numerorecibo: L.recibo, sanic_fechapago: Now() })));
+>          Patch(sanic_cm_tbl_pago, Defaults(sanic_cm_tbl_pago), {
+>             sanic_cm_pg_interaccion: varInt, sanic_cm_pg_monto: L.monto,
+>             sanic_cm_pg_moneda: Switch(L.moneda,"USD",'Moneda en pago (sanic_choice_cm_monedaenpago)'.USD,'Moneda en pago (sanic_choice_cm_monedaenpago)'.NIO),
+>             sanic_cm_pg_numerorecibo: L.recibo, ⚠️TODO(sanic_fechapago-en-pago): Now() })));
 >    If(tgDatos.Value,
->       Patch(sanic_actualizaciondatos, Defaults(sanic_actualizaciondatos), {
->          sanic_interaccionid: varInt, sanic_telefonocasa: inTelCasa.Text, sanic_telefonocelular: inTelCel.Text,
->          sanic_telefonotrabajo: inTelTrab.Text, sanic_direccioncasa: inDirCasa.Text,
->          sanic_direccionec: inDirEC.Text, sanic_direcciontrabajo: inDirTrab.Text, sanic_correo: inCorreo.Text }));
+>       Patch(sanic_cm_tbl_actualizaciondatos, Defaults(sanic_cm_tbl_actualizaciondatos), {
+>          sanic_cm_ad_interaccionid: varInt, sanic_cm_ad_telefonocasa: inTelCasa.Text, sanic_cm_ad_telefonocelular: inTelCel.Text,
+>          sanic_cm_ad_telefonotrabajo: inTelTrab.Text, sanic_cm_ad_direccioncasa: inDirCasa.Text,
+>          sanic_cm_ad_direccionec: inDirEC.Text, sanic_cm_ad_direcciontrabajo: inDirTrab.Text, sanic_cm_ad_correoelectronico: inCorreo.Text }));
 >    Set(varCom, "");
 >    Notify("✓ Guardado offline. Se sincroniza al volver la señal.", NotificationType.Success);
 >    Back()
 > ```
-> ⚠️ Los nombres de Choice (`'Estado transcripción (sanic_interaccion)'.Pendiente`, `'Moneda (sanic_pago)'.NIO/.USD`)
-> los **autocompleta** Power Apps. Los campos de `sanic_actualizaciondatos` confirmalos en el
+> ⚠️ Los nombres de Choice (`'Estado grabación interacción (sanic_cm_choice_estadograbacioninteraccion)'.Pendiente`, `'Moneda en pago (sanic_choice_cm_monedaenpago)'.NIO/.USD`)
+> los **autocompleta** Power Apps. Los campos de `sanic_cm_tbl_actualizaciondatos` confirmalos en el
 > [componente 13](../referencia/componentes/13-tabla-actualizacion-datos.md).
 
 > **`lblHint`** *(Etiqueta)*: `Text=If(IsBlank(txtComentario.Text),"Falta: comentario","")` · `Color=gblC.hint` · `Size=gblT.fxs` · `Align=Center`
@@ -839,14 +839,14 @@ Armá **`conNav`** = **`cmpNav`** (§C.10) en `conMaster`, con **Cartera** como 
 > **`scrInicio`** *(Pantalla)*: `Fill=gblC.screen`
 > ```
 > OnVisible =
->    Set(varIntHoy, Filter(sanic_interaccion, DateValue(sanic_fechainteraccion) = Today()));
->    Set(varPagHoy, Filter(sanic_pago, DateValue(sanic_fechapago) = Today()));
->    Set(varCobN, Sum(Filter(varPagHoy, sanic_moneda.Value="NIO"), sanic_monto));
->    Set(varCobU, Sum(Filter(varPagHoy, sanic_moneda.Value="USD"), sanic_monto))
+>    Set(varIntHoy, Filter(sanic_cm_tbl_interaccion, DateValue(⚠️TODO(sanic_fechainteraccion)) = Today()));
+>    Set(varPagHoy, Filter(sanic_cm_tbl_pago, DateValue(⚠️TODO(sanic_fechapago-en-pago)) = Today()));
+>    Set(varCobN, Sum(Filter(varPagHoy, sanic_cm_pg_moneda.Value="NIO"), sanic_cm_pg_monto));
+>    Set(varCobU, Sum(Filter(varPagHoy, sanic_cm_pg_moneda.Value="USD"), sanic_cm_pg_monto))
 > ```
 > **`conMaster`** *(vertical)*: `Width=Parent.Width · Height=Parent.Height · Gap=0`
 
-**Header:** **`cmpHeaderVerde`** (§C.8) **sin** tarjeta total: `lblTitulo.Text="Hola, " & gblAgente.sanic_nombre`,
+**Header:** **`cmpHeaderVerde`** (§C.8) **sin** tarjeta total: `lblTitulo.Text="Hola, " & gblAgente.sanic_cm_ag_nombre`,
 `lblSub.Text=Text(Today(),"dddd dd ""de"" mmmm")`, `cmpSyncPill.OnSelect=Set(varSyncBack,"inicio"); Navigate(scrSincronizacion)`.
 
 > **`conBody`** *(vertical)*: `Scroll=Sí · Padding=16,16,16,16 · Gap=12 · Ancho=Llenar · Alto=Llenar`
@@ -861,7 +861,7 @@ Armá **`conNav`** = **`cmpNav`** (§C.10) en `conMaster`, con **Cartera** como 
 
 > **`conStats`** *(Cont. horizontal)*: `Wrap=Sí · Gap=10 · Ancho=Llenar · Alto=Auto` — 3 cajitas:
 > > cada **`statc<n>`** *(vertical)*: `Fill=gblC.white · Borde=gblC.cardBorder,1 · RadiusAll=12 · Padding=12,12,12,12 · Ancho=Llenar · Alinear=Center · Alto=Auto`
-> > > **`lblSv`** *(Etiqueta)*: `Size=gblT.flg · FontWeight=Bold · Color=gblC.ink · Align=Center` — Text: `CountRows(varIntHoy)` / `CountRows(Distinct(varIntHoy, sanic_cuentaid))` / `CountRows(Distinct(varIntHoy, sanic_cuentaid.sanic_clienteid))`
+> > > **`lblSv`** *(Etiqueta)*: `Size=gblT.flg · FontWeight=Bold · Color=gblC.ink · Align=Center` — Text: `CountRows(varIntHoy)` / `CountRows(Distinct(varIntHoy, sanic_cm_in_cuentaid))` / `CountRows(Distinct(varIntHoy, sanic_cm_in_cuentaid.sanic_cm_ct_clienteid))`
 > > > **`lblSl`** *(Etiqueta)*: `Size=gblT.fxs · Color=gblC.muted2 · Align=Center` — Text: `"Interacciones"` / `"Cuentas"` / `"Clientes"`
 
 > **`conResult`** *(horizontal, Justif=SpaceBetween, Wrap=Sí, Alinear=Center)*: `lblResL`(`Text="Interacciones de hoy"`, `Size=gblT.fsm`, `Color=gblC.muted`, `FontWeight=Semibold`) + `conToggle` (igual al de Cartera, pero `Set(varInicioModo, …)`)
@@ -869,12 +869,12 @@ Armá **`conNav`** = **`cmpNav`** (§C.10) en `conMaster`, con **Cartera** como 
 > **`galDesglose`** *(Galería vertical)*:
 > ```
 > Items = If(varInicioModo="cliente",
->           GroupBy(AddColumns(varIntHoy, "cliNom", sanic_cuentaid.sanic_clienteid.sanic_nombre,
->                              "cliRec", sanic_cuentaid.sanic_clienteid), "cliNom","cliRec","Items"),
->           GroupBy(AddColumns(varIntHoy, "prod", sanic_cuentaid.sanic_productoid.sanic_tipo,
->                              "cta", sanic_cuentaid.sanic_numerocuenta,
->                              "cliNom", sanic_cuentaid.sanic_clienteid.sanic_nombre,
->                              "ctaRec", sanic_cuentaid), "prod","cta","cliNom","ctaRec","Items"))
+>           GroupBy(AddColumns(varIntHoy, "cliNom", sanic_cm_in_cuentaid.sanic_cm_ct_clienteid.sanic_cm_cl_nombre,
+>                              "cliRec", sanic_cm_in_cuentaid.sanic_cm_ct_clienteid), "cliNom","cliRec","Items"),
+>           GroupBy(AddColumns(varIntHoy, "prod", sanic_cm_in_cuentaid.sanic_cm_ct_productoid.sanic_cm_pr_tipo,
+>                              "cta", sanic_cm_in_cuentaid.sanic_cm_ct_numerodecuenta,
+>                              "cliNom", sanic_cm_in_cuentaid.sanic_cm_ct_clienteid.sanic_cm_cl_nombre,
+>                              "ctaRec", sanic_cm_in_cuentaid), "prod","cta","cliNom","ctaRec","Items"))
 > ```
 > > plantilla **`conBrow`** *(horizontal)*: `Fill=gblC.white · Borde=gblC.cardBorder,1 · RadiusAll=12 · Padding=12,12,14,14 · Justif=SpaceBetween · Alinear=Center · Gap=10 · Alto=Auto`
 > > ```
@@ -894,9 +894,9 @@ Armá **`conNav`** = **`cmpNav`** (§C.10) en `conMaster`, con **Cartera** como 
 > **`scrPagos`** *(Pantalla)*: `Fill=gblC.screen`
 > ```
 > OnVisible =
->    Set(varPagHoy, Filter(sanic_pago, DateValue(sanic_fechapago) = Today()));
->    Set(varSumN, Sum(Filter(varPagHoy, sanic_moneda.Value="NIO"), sanic_monto));
->    Set(varSumU, Sum(Filter(varPagHoy, sanic_moneda.Value="USD"), sanic_monto))
+>    Set(varPagHoy, Filter(sanic_cm_tbl_pago, DateValue(⚠️TODO(sanic_fechapago-en-pago)) = Today()));
+>    Set(varSumN, Sum(Filter(varPagHoy, sanic_cm_pg_moneda.Value="NIO"), sanic_cm_pg_monto));
+>    Set(varSumU, Sum(Filter(varPagHoy, sanic_cm_pg_moneda.Value="USD"), sanic_cm_pg_monto))
 > ```
 > **`conMaster`** *(vertical)* → **Header** `cmpHeaderBack` (`lblDnm="Pagos de hoy"`, `lblDac="Por cuenta y por moneda"`, `btnBack.OnSelect=Back()`) → **`conBody`** *(Scroll=Sí, Padding=16, Gap=12)*.
 
@@ -904,16 +904,16 @@ Armá **`conNav`** = **`cmpNav`** (§C.10) en `conMaster`, con **Cartera** como 
 > **`galGrupos`** *(Galería vertical)*:
 > ```
 > Items = GroupBy(AddColumns(varPagHoy,
->            "cliNom", sanic_interaccionid.sanic_cuentaid.sanic_clienteid.sanic_nombre,
->            "prod",   sanic_interaccionid.sanic_cuentaid.sanic_productoid.sanic_tipo,
->            "cta",    sanic_interaccionid.sanic_cuentaid.sanic_numerocuenta),
+>            "cliNom", sanic_cm_pg_interaccion.sanic_cm_in_cuentaid.sanic_cm_ct_clienteid.sanic_cm_cl_nombre,
+>            "prod",   sanic_cm_pg_interaccion.sanic_cm_in_cuentaid.sanic_cm_ct_productoid.sanic_cm_pr_tipo,
+>            "cta",    sanic_cm_pg_interaccion.sanic_cm_in_cuentaid.sanic_cm_ct_numerodecuenta),
 >          "cliNom","prod","cta","Lineas")
 > ```
 > > plantilla **`cardGrupo`** = **`cmpTarjeta`**:
 > > > **`lblGCli`** *(Etiqueta)*: `Text=ThisItem.cliNom` · `Size=gblT.fxs` · `FontWeight=Bold` · `Color=gblC.muted2`
 > > > **`lblGProd`** *(Etiqueta)*: `Text=ThisItem.prod & " · " & ThisItem.cta` · `Size=gblT.fxs` · `Color=gblC.muted`
 > > > **`galLineas`** *(Galería vertical)*: `Items=ThisItem.Lineas · Height=CountRows(Self.AllItems)*46`
-> > > > plantilla **`conLin`** *(horizontal, Justif=SpaceBetween)*: `lblLV`(`Text=If(ThisItem.sanic_moneda.Value="USD","US$ ","C$ ") & Text(ThisItem.sanic_monto,"#,##0.00")`, `Size=gblT.fbase`, `Color=gblC.ink`) + `lblLR`(`Text="Recibo " & ThisItem.sanic_numerorecibo & " · " & Text(ThisItem.sanic_fechapago,"hh:mm")`, `Size=gblT.f2xs`, `Color=gblC.muted2`)
+> > > > plantilla **`conLin`** *(horizontal, Justif=SpaceBetween)*: `lblLV`(`Text=If(ThisItem.sanic_cm_pg_moneda.Value="USD","US$ ","C$ ") & Text(ThisItem.sanic_cm_pg_monto,"#,##0.00")`, `Size=gblT.fbase`, `Color=gblC.ink`) + `lblLR`(`Text="Recibo " & ThisItem.sanic_cm_pg_numerorecibo & " · " & Text(ThisItem.⚠️TODO(sanic_fechapago-en-pago),"hh:mm")`, `Size=gblT.f2xs`, `Color=gblC.muted2`)
 
 ---
 
@@ -922,10 +922,10 @@ Armá **`conNav`** = **`cmpNav`** (§C.10) en `conMaster`, con **Cartera** como 
 > **`scrSincronizacion`** *(Pantalla)*: `Fill=gblC.screen`
 > ```
 > OnVisible =
->    Set(varPend, CountRows(Filter(sanic_interaccion, IsBlank(sanic_numero)))
->               + CountRows(Filter(sanic_pago, IsBlank(sanic_numero))));
+>    Set(varPend, CountRows(Filter(sanic_cm_tbl_interaccion, IsBlank(sanic_cm_in_numerointeraccion)))
+>               + CountRows(Filter(sanic_cm_tbl_pago, IsBlank(sanic_cm_pg_numero))));
 >    Set(varEstado, If(!Connection.Connected, "off", If(varPend>0, "pend", "ok")));
->    Set(varCapHoy, Filter(sanic_interaccion, DateValue(sanic_fechainteraccion) = Today()))
+>    Set(varCapHoy, Filter(sanic_cm_tbl_interaccion, DateValue(⚠️TODO(sanic_fechainteraccion)) = Today()))
 > ```
 > **Header** `cmpHeaderBack`: `lblDnm="Sincronización"`, `lblDac="Estado de tus capturas"`, `btnBack.OnSelect=Navigate(If(varSyncBack="inicio", scrInicio, scrCartera))`. → **`conBody`** *(Scroll=Sí, Padding=16, Gap=12)*.
 
@@ -943,18 +943,18 @@ Armá **`conNav`** = **`cmpNav`** (§C.10) en `conMaster`, con **Cartera** como 
 > Text = If(Connection.Connected,"↻ Buscar actualizaciones","Sin conexión — no se puede sincronizar")
 > Fill=gblC.teal  Color=gblC.white  RadiusAll=14  Height=54  Ancho=Llenar
 > DisplayMode = If(Connection.Connected && varPend>0, DisplayMode.Edit, DisplayMode.Disabled)
-> OnSelect = Refresh(sanic_interaccion); Refresh(sanic_pago); Notify("Actualizando…", NotificationType.Information)
+> OnSelect = Refresh(sanic_cm_tbl_interaccion); Refresh(sanic_cm_tbl_pago); Notify("Actualizando…", NotificationType.Information)
 > ```
 
 > **`lblCapTit`** *(Etiqueta `cmpSecTitle`)*: `Text="Capturas de hoy"`
 > **`galCap`** *(Galería vertical)*: `Items=varCapHoy`
 > > plantilla **`conCapRow`** *(horizontal, Justif=SpaceBetween, igual a conBrow)*:
-> > > izquierda *(vertical)*: `lblCapN`(`Text=ThisItem.sanic_cuentaid.sanic_clienteid.sanic_nombre & " · " & ThisItem.sanic_cuentaid.sanic_productoid.sanic_tipo`, `Size=gblT.fbase`, `FontWeight=Semibold`) + `lblCapH`(`Text=Text(ThisItem.sanic_fechainteraccion,"hh:mm")`, `Size=gblT.fxs`, `Color=gblC.muted`)
+> > > izquierda *(vertical)*: `lblCapN`(`Text=ThisItem.sanic_cm_in_cuentaid.sanic_cm_ct_clienteid.sanic_cm_cl_nombre & " · " & ThisItem.sanic_cm_in_cuentaid.sanic_cm_ct_productoid.sanic_cm_pr_tipo`, `Size=gblT.fbase`, `FontWeight=Semibold`) + `lblCapH`(`Text=Text(ThisItem.⚠️TODO(sanic_fechainteraccion),"hh:mm")`, `Size=gblT.fxs`, `Color=gblC.muted`)
 > > > **`lblPendTag`** *(Etiqueta)*:
 > > > ```
-> > > Text  = If(IsBlank(ThisItem.sanic_numero),"sin Nº aún","Nº asignado")
-> > > Fill  = If(IsBlank(ThisItem.sanic_numero), gblC.incobBg, gblC.accentBg)
-> > > Color = If(IsBlank(ThisItem.sanic_numero), gblC.incobInk, gblC.accentInk)
+> > > Text  = If(IsBlank(ThisItem.sanic_cm_in_numerointeraccion),"sin Nº aún","Nº asignado")
+> > > Fill  = If(IsBlank(ThisItem.sanic_cm_in_numerointeraccion), gblC.incobBg, gblC.accentBg)
+> > > Color = If(IsBlank(ThisItem.sanic_cm_in_numerointeraccion), gblC.incobInk, gblC.accentInk)
 > > > RadiusAll=10  Padding=4,4,10,10  Size=gblT.fxs  FontWeight=FontWeight.Bold
 > > > ```
 
@@ -985,7 +985,7 @@ pantalla con header (o convertilo en un **Componente** reutilizable y pegalo en 
 - [ ] **§C catálogo:** construiste los componentes una vez (tarjeta, badge, header, nav, tabs, sync pill, sheet).
 - [ ] Parte 3: Cartera anda con datos reales (agrupar, filtrar, buscar, reordenar, abrir).
 - [ ] Partes 4–5: Cliente y Detalle con pestañas y contacto (Llamar/Mapa).
-- [ ] Parte 6: registrar interacción **crea filas reales** en `sanic_interaccion` (+ pago / datos).
+- [ ] Parte 6: registrar interacción **crea filas reales** en `sanic_cm_tbl_interaccion` (+ pago / datos).
 - [ ] Partes 7–8: Inicio y Pagos. Parte 9: Sync (Connection + pendientes). Parte 10: Stats. Parte 11: "Aa".
 - [ ] **Probá en el player móvil, offline:** leer, reordenar, capturar sin señal, recuperar señal, sincronizar.
 

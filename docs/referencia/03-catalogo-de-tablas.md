@@ -17,7 +17,7 @@
 
 ---
 
-## 1. `sanic_cliente` — Cliente (deudor)
+## 1. `sanic_cm_tbl_cliente` — Cliente (deudor)
 
 ### Definición
 El **cliente / deudor**: la persona a la que se le cobra. Es la **raíz** del subárbol de cliente — de ella
@@ -26,23 +26,23 @@ cuelgan cuentas, direcciones y teléfonos. Su identidad de negocio es el **CIF**
 ### Campos
 | Campo lógico | Físico | Tipo | Req. | Descripción |
 |--------------|--------|------|:----:|-------------|
-| Nombre | `sanic_nombre` | Text | ✔ | **Primary name.** Del CSV (`Cliente`). |
-| CIF | `sanic_cif` | Text | ✔ | Identificador único interno del cliente. **Alt key.** |
-| Departamento | `sanic_departamento` | Text | — | Departamento geográfico del cliente. |
-| Distrito | `sanic_distrito` | Text | — | Distrito donde trabaja el cliente. |
-| Trabajo | `sanic_trabajo` | Text | — | Nombre del trabajo del cliente. |
+| Nombre | `sanic_cm_cl_nombre` | Text | ✔ | **Primary name.** Del CSV (`Cliente`). |
+| CIF | `sanic_cm_cl_cif` | Text | ✔ | Identificador único interno del cliente. **Alt key.** |
+| Departamento | `sanic_cm_cl_departamento` | Text | — | Departamento geográfico del cliente. |
+| Distrito | `sanic_cm_cl_distrito` | Text | — | Distrito donde trabaja el cliente. |
+| Trabajo | `sanic_cm_cl_trabajo` | Text | — | Nombre del trabajo del cliente. |
 
 > **Sin correo:** el cliente **no** tiene campo de email. El correo que el cliente quiera actualizar vive
 > **solo** en `actualizaciondatos` (decidido).
 
 ### Llaves
-- **Alternate Key: `sanic_cif`.** El import deduplica/upsertea por CIF. **Debe quedar `Active`** antes de
-  importar (sin ella → error `TargetData`).
+- **Alternate Key: `sanic_cm_pk_cliente_cif`** (sobre `sanic_cm_cl_cif`)**.** El import deduplica/upsertea por
+  CIF. **Debe quedar `Active`** antes de importar (sin ella → error `TargetData`).
 
 ### Import
 - **Origen:** CSV diario. **Table Mapping #1**, processing order **1** (es padre, va primero).
-- **Column Mappings:** `Cliente → sanic_nombre` · `CIF → sanic_cif` · `Departamento → sanic_departamento` ·
-  `Distrito → sanic_distrito` · `Trabajo → sanic_trabajo`.
+- **Column Mappings:** `Cliente → sanic_cm_cl_nombre` · `CIF → sanic_cm_cl_cif` · `Departamento → sanic_cm_cl_departamento` ·
+  `Distrito → sanic_cm_cl_distrito` · `Trabajo → sanic_cm_cl_trabajo`.
 - **Dedup:** `CIF`.
 
 ### Ciclo de vida
@@ -72,7 +72,7 @@ cuelgan cuentas, direcciones y teléfonos. Su identidad de negocio es el **CIF**
 
 ---
 
-## 2. `sanic_direccion` — Dirección del cliente
+## 2. `sanic_cm_tbl_direccion` — Dirección del cliente
 
 ### Definición
 Las **direcciones** del cliente, **normalizadas por tipo** (`Casa` / `EC` / `Trabajo`). Cada fila del CSV
@@ -81,18 +81,19 @@ trae 3 direcciones → el import crea **una fila por tipo**. `EC` = dirección d
 ### Campos
 | Campo lógico | Físico | Tipo | Req. | Descripción |
 |--------------|--------|------|:----:|-------------|
-| Dirección | `sanic_direccion` | Text | ✔ | **Primary name.** `DireccionCasa` / `DireccionEC` / `DireccionTrabajo`. |
-| Cliente | `sanic_clienteid` | Lookup → `sanic_cliente` | ✔ | Resuelto por `CIF`. |
-| CIF | `sanic_cif` | Text | ✔ | **Copiado** del cliente para la alt key compuesta. |
-| Tipo | `sanic_tipo` | Text | ✔ | `"Casa"` / `"EC"` / `"Trabajo"` (lo fija el import por mapping). |
+| Dirección | `sanic_cm_dr_direccion` | Text | ✔ | **Primary name.** `DireccionCasa` / `DireccionEC` / `DireccionTrabajo`. |
+| Cliente | `sanic_cm_dr_clienteid` | Lookup → `sanic_cm_tbl_cliente` | ✔ | Resuelto por `CIF`. |
+| CIF | `sanic_cm_dr_cif` | Text | ✔ | **Copiado** del cliente para la alt key compuesta. |
+| Tipo | `sanic_cm_dr_tipo` | Text | ✔ | `"Casa"` / `"EC"` / `"Trabajo"` (lo fija el import por mapping). |
 
 ### Llaves
-- **Alt key compuesta: `sanic_cif` + `sanic_tipo`.** Una dirección por (cliente, tipo). **Debe quedar
-  `Active`.** Va sobre **texto** (CIF copiado), no sobre el lookup — el vínculo lo arma el Relationship Mapping.
+- **Alt key compuesta: `sanic_cm_pk_direccion_cif_tipo`** (`sanic_cm_dr_cif` + `sanic_cm_dr_tipo`)**.** Una
+  dirección por (cliente, tipo). **Debe quedar `Active`.** Va sobre **texto** (CIF copiado), no sobre el lookup
+  — el vínculo lo arma el Relationship Mapping.
 
 ### Import
 - **Origen:** CSV. **3 Table Mappings** (#5 Casa, #6 EC, #7 Trabajo), processing order **2** (después de cliente).
-- Cada uno: `DireccionX → sanic_direccion`, `CIF → sanic_cif`, `sanic_tipo` = **Default** ("Casa"/"EC"/"Trabajo").
+- Cada uno: `DireccionX → sanic_cm_dr_direccion`, `CIF → sanic_cm_dr_cif`, `sanic_cm_dr_tipo` = **Default** ("Casa"/"EC"/"Trabajo").
 - **Relationship Mapping:** `Cliente → Direccion` por `CIF`.
 
 ### Ciclo de vida
@@ -117,7 +118,7 @@ trae 3 direcciones → el import crea **una fila por tipo**. `EC` = dirección d
 
 ---
 
-## 3. `sanic_telefono` — Teléfono del cliente
+## 3. `sanic_cm_tbl_telefono` — Teléfono del cliente
 
 ### Definición
 Los **teléfonos** del cliente, **normalizados por tipo** (`Celular` / `Casa`). Cada fila del CSV trae 2
@@ -126,17 +127,18 @@ teléfonos → el import crea **una fila por tipo**.
 ### Campos
 | Campo lógico | Físico | Tipo | Req. | Descripción |
 |--------------|--------|------|:----:|-------------|
-| Número | `sanic_numero` | Text | ✔ | **Primary name.** `NumeroCelular` / `NumeroCasa`. |
-| Cliente | `sanic_clienteid` | Lookup → `sanic_cliente` | ✔ | Resuelto por `CIF`. |
-| CIF | `sanic_cif` | Text | ✔ | **Copiado** del cliente para la alt key compuesta. |
-| Tipo | `sanic_tipo` | Text | ✔ | `"Celular"` / `"Casa"` (lo fija el import por mapping). |
+| Número | `sanic_cm_tl_numero` | Text | ✔ | **Primary name.** `NumeroCelular` / `NumeroCasa`. |
+| Cliente | `sanic_cm_tl_clienteid` | Lookup → `sanic_cm_tbl_cliente` | ✔ | Resuelto por `CIF`. |
+| CIF | `sanic_cm_tl_cif` | Text | ✔ | **Copiado** del cliente para la alt key compuesta. |
+| Tipo | `sanic_cm_tl_tipo` | Text | ✔ | `"Celular"` / `"Casa"` (lo fija el import por mapping). |
 
 ### Llaves
-- **Alt key compuesta: `sanic_cif` + `sanic_tipo`.** Un teléfono por (cliente, tipo). **Debe quedar `Active`.**
+- **Alt key compuesta: `sanic_cm_pk_telefono_cif_tipo`** (`sanic_cm_tl_cif` + `sanic_cm_tl_tipo`)**.** Un
+  teléfono por (cliente, tipo). **Debe quedar `Active`.**
 
 ### Import
 - **Origen:** CSV. **2 Table Mappings** (#8 Celular, #9 Casa), processing order **2**.
-- Cada uno: `NumeroX → sanic_numero`, `CIF → sanic_cif`, `sanic_tipo` = **Default** ("Celular"/"Casa").
+- Cada uno: `NumeroX → sanic_cm_tl_numero`, `CIF → sanic_cm_tl_cif`, `sanic_cm_tl_tipo` = **Default** ("Celular"/"Casa").
 - **Relationship Mapping:** `Cliente → Telefono` por `CIF`.
 
 ### Ciclo de vida
@@ -148,7 +150,7 @@ teléfonos → el import crea **una fila por tipo**.
 - **Entrante:** `cliente → telefono` = **`Cascade`** (DEC-023). Es **hoja**, no arrastra nada.
 
 ### Consideraciones al borrar
-- `sanic_numero` es **texto** (puede traer ceros a la izquierda, guiones, prefijos).
+- `sanic_cm_tl_numero` es **texto** (puede traer ceros a la izquierda, guiones, prefijos).
 - Mismas consideraciones de cascada y tipos huérfanos que `direccion`.
 - **Teléfono de trabajo = capture-only (DECIDIDO):** el master `telefono` tiene **solo** `Celular`/`Casa`
   (= el CSV). El "teléfono de trabajo" que captura `actualizaciondatos` **vive solo ahí** (no se propaga al
@@ -159,7 +161,7 @@ teléfonos → el import crea **una fila por tipo**.
 
 ---
 
-## 4. `sanic_producto` — Producto (catálogo)
+## 4. `sanic_cm_tbl_producto` — Producto (catálogo)
 
 ### Definición
 Catálogo del **producto en mora** (tarjeta o préstamo). **Clasifica** la cuenta. Es **padre** de `cuenta`.
@@ -167,15 +169,15 @@ Catálogo del **producto en mora** (tarjeta o préstamo). **Clasifica** la cuent
 ### Campos
 | Campo lógico | Físico | Tipo | Req. | Descripción |
 |--------------|--------|------|:----:|-------------|
-| Código | `sanic_codigo` | Text | ✔ | **Primary name.** `CodigoProducto`. **Alt key.** |
-| Tipo | `sanic_tipo` | Text | — | `TipoProducto` — tipo de producto. |
+| Código | `sanic_cm_pr_codigo` | Text | ✔ | **Primary name.** `CodigoProducto`. **Alt key.** |
+| Tipo | `sanic_cm_pr_tipo` | Text | — | `TipoProducto` — tipo de producto. |
 
 ### Llaves
-- **Alt key: `sanic_codigo`.** Upsert por código. **Debe quedar `Active`.**
+- **Alt key: `sanic_cm_pk_producto_codigo`** (sobre `sanic_cm_pr_codigo`)**.** Upsert por código. **Debe quedar `Active`.**
 
 ### Import
-- **Table Mapping #2**, processing order **1** (catálogo raíz). `CodigoProducto → sanic_codigo` ·
-  `TipoProducto → sanic_tipo`. Dedup `CodigoProducto`.
+- **Table Mapping #2**, processing order **1** (catálogo raíz). `CodigoProducto → sanic_cm_pr_codigo` ·
+  `TipoProducto → sanic_cm_pr_tipo`. Dedup `CodigoProducto`.
 
 ### Ciclo de vida
 - **Nace:** del **CSV** (upsert por código). **Vive:** casi **estático**; un código discontinuado se queda
@@ -194,7 +196,7 @@ Catálogo del **producto en mora** (tarjeta o préstamo). **Clasifica** la cuent
 
 ---
 
-## 5. `sanic_agente` — Agente / Localizador (catálogo + extensión operativa)
+## 5. `sanic_cm_tbl_agente` — Agente / Localizador (catálogo + extensión operativa)
 
 ### Definición
 El **Agente** del CSV **es el localizador** (DEC-006). Catálogo poblado por el import **+** la columna
@@ -203,32 +205,32 @@ operativa que lo liga a su identidad AAD. Es **padre** de `cuenta`, `asignacion`
 ### Campos
 | Campo lógico | Físico | Tipo | Req. | Descripción |
 |--------------|--------|------|:----:|-------------|
-| Nombre | `sanic_nombre` | Text | ✔ | **Primary name.** Del CSV (`Agente`). **Alt key.** |
-| Usuario | `sanic_usuario` | Lookup → `systemuser` | — | **Operativo.** Identidad AAD; lo setea el **Admin** (no viene del CSV). |
-| Activo | `sanic_activo` | Yes/No (def. Sí) | — | **Soft-delete:** marca si el localizador está operativo. |
+| Nombre | `sanic_cm_ag_nombre` | Text | ✔ | **Primary name.** Del CSV (`Agente`). **Alt key.** |
+| Usuario | `sanic_cm_ag_usuarioid` | Lookup → `systemuser` | — | **Operativo.** Identidad AAD; lo setea el **Admin** (no viene del CSV). |
+| Activo | `sanic_cm_ag_activo` | Yes/No (def. Sí) | — | **Soft-delete:** marca si el localizador está operativo. |
 
 ### Llaves
-- **Alt key: `sanic_nombre`.** Upsert por nombre. **Debe quedar `Active`.** El vínculo `sanic_usuario`
-  **NO** va en la alt key (lookup frágil).
+- **Alt key: `sanic_cm_pk_agente_nombre`** (sobre `sanic_cm_ag_nombre`)**.** Upsert por nombre. **Debe quedar
+  `Active`.** El vínculo `sanic_cm_ag_usuarioid` **NO** va en la alt key (lookup frágil).
 
 ### Import
-- **Table Mapping #3**, processing order **1**. `Agente → sanic_nombre`. Dedup `Agente`.
-- `sanic_usuario` y `sanic_activo` **NO** vienen del CSV: el **Admin** los gestiona.
+- **Table Mapping #3**, processing order **1**. `Agente → sanic_cm_ag_nombre`. Dedup `Agente`.
+- `sanic_cm_ag_usuarioid` y `sanic_cm_ag_activo` **NO** vienen del CSV: el **Admin** los gestiona.
 
 ### Ciclo de vida
 - **Nace:** del **CSV** (upsert por nombre). El **Admin lo vincula** a un `systemuser` (una vez, alta del localizador).
 - **Vive:** persiste. Ancla la **seguridad row-level** (el localizador ve su cartera vía su `systemuser`).
-- **Fin:** cuando el localizador se va → **`sanic_activo = No`** (soft-delete). **NUNCA** se hard-delete.
+- **Fin:** cuando el localizador se va → **`sanic_cm_ag_activo = No`** (soft-delete). **NUNCA** se hard-delete.
 
 ### Cómo borrar
 - **NUNCA hard-delete:** referenciado por cuentas, asignaciones, interacciones y cargas = historia + seguridad.
 - `agente → cuenta / asignacion / interaccion / cargadiaria` = **`Restrict`**.
-- **Fin de vida = soft-deactivate** (`sanic_activo = No`).
+- **Fin de vida = soft-deactivate** (`sanic_cm_ag_activo = No`).
 
 ### Consideraciones al borrar
 - **Nombre cambiante:** si el `Agente` cambia en el origen, el import crea **otro** agente (no renombra) →
-  hay que **re-vincular** `sanic_usuario`. Acordar que el `Agente` del CSV sea **estable**.
-- **Localizador que renuncia:** `sanic_activo = No` + vista de control *"asignaciones de agentes inactivos"*
+  hay que **re-vincular** `sanic_cm_ag_usuarioid`. Acordar que el `Agente` del CSV sea **estable**.
+- **Localizador que renuncia:** `sanic_cm_ag_activo = No` + vista de control *"asignaciones de agentes inactivos"*
   (el CSV puede insistir en mandarle cuentas — gana el CSV, DEC-020; se corrige en el core).
 - Borrarlo rompería **historia** y **seguridad row-level**.
 
@@ -237,7 +239,7 @@ operativa que lo liga a su identidad AAD. Es **padre** de `cuenta`, `asignacion`
 
 ---
 
-## 6. `sanic_fiador` — Fiador / Fianza (catálogo)
+## 6. `sanic_cm_tbl_fiador` — Fiador / Fianza (catálogo)
 
 ### Definición
 El **fiador** (fianza) del producto en mora. Es **padre** de `cuenta`. ~50% de las cuentas **no** tienen
@@ -246,15 +248,15 @@ fiador (`NombreFianza` vacío → no se crea fiador).
 ### Campos
 | Campo lógico | Físico | Tipo | Req. | Descripción |
 |--------------|--------|------|:----:|-------------|
-| Nombre | `sanic_nombre` | Text | ✔ | **Primary name.** `NombreFianza`. **Alt key.** |
-| Dirección | `sanic_direccion` | Text | — | `DireccionFianza`. |
+| Nombre | `sanic_cm_fi_nombre` | Text | ✔ | **Primary name.** `NombreFianza`. **Alt key.** |
+| Dirección | `sanic_cm_fi_direccion` | Text | — | `DireccionFianza`. |
 
 ### Llaves
-- **Alt key: `sanic_nombre`.** Upsert por nombre. **Debe quedar `Active`.**
+- **Alt key: `sanic_cm_pk_fi_nombre`** (sobre `sanic_cm_fi_nombre`)**.** Upsert por nombre. **Debe quedar `Active`.**
 
 ### Import
-- **Table Mapping #4**, processing order **1**. `NombreFianza → sanic_nombre` ·
-  `DireccionFianza → sanic_direccion`. Dedup `NombreFianza`.
+- **Table Mapping #4**, processing order **1**. `NombreFianza → sanic_cm_fi_nombre` ·
+  `DireccionFianza → sanic_cm_fi_direccion`. Dedup `NombreFianza`.
 
 ### Ciclo de vida
 - **Nace:** del **CSV** (upsert por nombre). **Vive:** persiste; crece poco. **Fin:** no se borra.
@@ -272,7 +274,7 @@ fiador (`NombreFianza` vacío → no se crea fiador).
 
 ---
 
-## 7. `sanic_cuenta` — Cuenta en mora (el grano)
+## 7. `sanic_cm_tbl_cuenta` — Cuenta en mora (el grano)
 
 ### Definición
 La **cuenta en mora** (tarjeta o préstamo) que se cobra. **El grano del modelo.** Guarda el **estado ACTUAL**
@@ -284,38 +286,38 @@ La **cuenta en mora** (tarjeta o préstamo) que se cobra. **El grano del modelo.
 **Identidad y vínculos**
 | Campo lógico | Físico | Tipo | Req. | Descripción |
 |--------------|--------|------|:----:|-------------|
-| Número de cuenta | `sanic_numerocuenta` | Text | ✔ | **Primary name.** `NumeroCuenta` (tarjeta o préstamo). **Alt key.** |
-| Cliente | `sanic_clienteid` | Lookup → `sanic_cliente` | ✔ | Resuelto por `CIF`. |
-| Producto | `sanic_productoid` | Lookup → `sanic_producto` | — | Resuelto por `CodigoProducto`. |
-| Agente | `sanic_agenteid` | Lookup → `sanic_agente` | — | Resuelto por `Agente`. |
-| Fiador | `sanic_fiadorid` | Lookup → `sanic_fiador` | — | Resuelto por `NombreFianza`. |
+| Número de cuenta | `sanic_cm_ct_numerodecuenta` | Text | ✔ | **Primary name.** `NumeroCuenta` (tarjeta o préstamo). **Alt key.** |
+| Cliente | `sanic_cm_ct_clienteid` | Lookup → `sanic_cm_tbl_cliente` | ✔ | Resuelto por `CIF`. |
+| Producto | `sanic_cm_ct_productoid` | Lookup → `sanic_cm_tbl_producto` | — | Resuelto por `CodigoProducto`. |
+| Agente | `sanic_cm_ct_agenteid` | Lookup → `sanic_cm_tbl_agente` | — | Resuelto por `Agente`. |
+| Fiador | `sanic_cm_ct_fiador` | Lookup → `sanic_cm_tbl_fiador` | — | Resuelto por `NombreFianza`. |
 
 **Montos** (Decimal — NO Money)
 | Campo lógico | Físico | Del CSV |
 |--------------|--------|---------|
-| Saldo vencido NIO | `sanic_saldovencidonio` | `SaldoVencidoNIO` |
-| Saldo vencido USD | `sanic_saldovencidousd` | `SaldoVencidoUSD` |
-| Total saldo vencido | `sanic_totalsaldovencido` | NIO dolarizado + USD |
-| Contagiado USD | `sanic_contagiadousd` | saldo total en riesgo |
-| Pago mínimo NIO | `sanic_pagominimonio` | `PagoMinimoNIO` |
-| Pago mínimo USD | `sanic_pagominimousd` | `PagoMinimoUSD` |
-| Retiro NIO | `sanic_retironio` | **dinero a TRAER** (objetivo de cobro) ⭐ |
-| Retiro USD | `sanic_retirousd` | **dinero a TRAER** USD ⭐ |
+| Saldo vencido NIO | `sanic_cm_ct_saldovencidonio` | `SaldoVencidoNIO` |
+| Saldo vencido USD | `sanic_cm_ct_saldovencidousd` | `SaldoVencidoUSD` |
+| Total saldo vencido | `sanic_cm_ct_totalsaldovencido` | NIO dolarizado + USD |
+| Contagiado USD | `sanic_cm_ct_contagiadousd` | saldo total en riesgo |
+| Pago mínimo NIO | `sanic_cm_ct_pagominimonio` | `PagoMinimoNIO` |
+| Pago mínimo USD | `sanic_cm_ct_pagominimousd` | `PagoMinimoUSD` |
+| Retiro NIO | `sanic_cm_ct_retironio` | **dinero a TRAER** (objetivo de cobro) ⭐ |
+| Retiro USD | `sanic_cm_ct_retirousd` | **dinero a TRAER** USD ⭐ |
 
 **Mora, fechas y atributos**
 | Campo lógico | Físico | Tipo | Del CSV |
 |--------------|--------|------|---------|
-| Días de mora | `sanic_diasmora` | Whole Number | `DiasMora` |
-| Nivel de mora | `sanic_nivelmora` | Whole Number | `NivelMora` |
-| Fecha último pago | `sanic_fechaultimopago` | DateTime | `FechaUltimoPago` |
-| Fecha de pago | `sanic_fechapago` | DateTime | `FechaPago` (cuándo le toca pagar) |
-| Ciclo | `sanic_ciclo` | Text | `Ciclo` |
-| Tipo de asignación | `sanic_tipoasignacion` | Text | `Diaria`/`Incobrable`/`Especial` (también alimenta `asignacion`) |
-| Tipo especial | `sanic_tipoespecial` | Text | `TipoEspecial` |
-| Nota | `sanic_nota` | Text | `Nota` |
+| Días de mora | `sanic_cm_ct_diasmora` | Whole Number | `DiasMora` |
+| Nivel de mora | `sanic_cm_ct_nivelmora` | Whole Number | `NivelMora` |
+| Fecha último pago | `sanic_cm_ct_fechaultimopago` | DateTime | `FechaUltimoPago` |
+| Fecha de pago | `sanic_cm_ct_fechapago` | DateTime | `FechaPago` (cuándo le toca pagar) |
+| Ciclo | `sanic_cm_ct_ciclo` | Text | `Ciclo` |
+| Tipo de asignación | `sanic_cm_ct_tipoasignacion` | Text | `Diaria`/`Incobrable`/`Especial` (también alimenta `asignacion`) |
+| Tipo especial | `sanic_cm_ct_tipoespecial` | Text | `TipoEspecial` |
+| Nota | `sanic_cm_ct_nota` | Text | `Nota` |
 
 ### Llaves
-- **Alt key: `sanic_numerocuenta`.** Upsert por número de cuenta (estado actual). **Debe quedar `Active`.**
+- **Alt key: `sanic_cm_pk_ct_numerodecuenta`** (sobre `sanic_cm_ct_numerodecuenta`)**.** Upsert por número de cuenta (estado actual). **Debe quedar `Active`.**
 - ⚠️ Caracteres prohibidos (`/ < > * % & : \ ? +`) en `NumeroCuenta` **rompen el upsert** — validar.
 
 ### Import
@@ -356,7 +358,7 @@ Restrict ⏳ a confirmar) · ✅ Consideraciones.
 
 ---
 
-## 8. `sanic_cargadiaria` — Snapshot histórico diario
+## 8. `sanic_cm_tbl_cargadiaria` — Snapshot histórico diario
 
 ### Definición
 Una **foto diaria** de cada cuenta en mora (montos, mora, agente del día). Mientras `cuenta` guarda el
@@ -368,22 +370,23 @@ Guarda un **subconjunto** de `cuenta`: solo lo que **cambia día a día** (lo es
 **Identidad y vínculos**
 | Campo lógico | Físico | Tipo | Req. | Descripción |
 |--------------|--------|------|:----:|-------------|
-| Número de cuenta | `sanic_numerocuenta` | Text | ✔ | **Primary name.** Copiado para la alt key. |
-| Fecha de carga | `sanic_fechacarga` | DateTime (Date Only) | ✔ | **`FechaCarga`** — columna NUEVA del CSV (no `createdon`). |
-| Cuenta | `sanic_cuentaid` | Lookup → `sanic_cuenta` | ✔ | Resuelto por `NumeroCuenta`. |
-| Cliente | `sanic_clienteid` | Lookup → `sanic_cliente` | — | Por `CIF` (opcional, para reportes). |
-| Agente | `sanic_agenteid` | Lookup → `sanic_agente` | — | Por `Agente` — **quién la tenía ese día**. |
-| Tipo de asignación | `sanic_tipoasignacion` | Text | — | `TipoAsignacion` del día. |
+| Número de cuenta | `sanic_cm_cd_numerocuenta` | Text | ✔ | **Primary name.** Copiado para la alt key. |
+| Fecha de carga | `sanic_cm_cd_fechacarga` | DateTime (Date Only) | ✔ | **`FechaCarga`** — columna NUEVA del CSV (no `createdon`). |
+| Cuenta | `sanic_cm_cd_cuenta` | Lookup → `sanic_cm_tbl_cuenta` | ✔ | Resuelto por `NumeroCuenta`. |
+| Cliente | `sanic_cm_cd_clienteid` | Lookup → `sanic_cm_tbl_cliente` | — | Por `CIF` (opcional, para reportes). |
+| Agente | `sanic_cm_cd_agenteid` | Lookup → `sanic_cm_tbl_agente` | — | Por `Agente` — **quién la tenía ese día**. |
+| Tipo de asignación | `sanic_cm_cd_tipoasignacion` | Text | — | `TipoAsignacion` del día. |
 
-**Montos del día** (Decimal) — los mismos 8 que `cuenta`: `sanic_saldovencidonio`, `sanic_saldovencidousd`,
-`sanic_totalsaldovencido`, `sanic_contagiadousd`, `sanic_pagominimonio`, `sanic_pagominimousd`,
-`sanic_retironio`, `sanic_retirousd`.
+**Montos del día** (Decimal) — los mismos 8 que `cuenta`: `sanic_cm_cd_saldovencidonio`, `sanic_cm_cd_saldovencidousd`,
+`sanic_cm_cd_totalsaldovencido`, `sanic_cm_cd_contagiadousd`, `sanic_cm_cd_pagominimonio`, `sanic_cm_cd_pagominimousd`,
+`sanic_cm_cd_retironio`, `sanic_cm_cd_retirousd`.
 
-**Mora del día** (Whole Number): `sanic_diasmora`, `sanic_nivelmora`.
+**Mora del día** (Whole Number): `sanic_cm_cd_diasmora`, `sanic_cm_cd_nivelmora`.
 
 ### Llaves
-- **Alt key compuesta: `sanic_numerocuenta` + `sanic_fechacarga`.** Un registro por cuenta por día; mismo día
-  re-subido = upsert (no duplica). **Debe quedar `Active`.**
+- **Alt key compuesta: `sanic_cm_pk_cd_numerocuenta_fechacarga`** (`sanic_cm_cd_numerocuenta` +
+  `sanic_cm_cd_fechacarga`)**.** Un registro por cuenta por día; mismo día re-subido = upsert (no duplica).
+  **Debe quedar `Active`.**
 
 ### Import
 - **Table Mapping #11**, processing order **4** (después de `cuenta`). Es **el mismo import diario** (no un
@@ -415,7 +418,7 @@ Guarda un **subconjunto** de `cuenta`: solo lo que **cambia día a día** (lo es
 
 ---
 
-## 9. `sanic_interaccion` — Interacción (núcleo de la captura)
+## 9. `sanic_cm_tbl_interaccion` — Interacción (núcleo de la captura)
 
 ### Definición
 Cada **interacción** del localizador con un cliente: **comentario libre**, geo, si hubo pago, si hay datos a
@@ -427,31 +430,31 @@ actualizar, y el **write-back al core**. Se crea **en la app de campo (offline)*
 **Captura del localizador (en campo, offline)**
 | Campo lógico | Físico | Tipo | Req. | Descripción |
 |--------------|--------|------|:----:|-------------|
-| Número | `sanic_numero` | Autonumber (`INT-{SEQNUM:6}`) | auto | **Primary name.** Server-assigned al sincronizar. |
-| Cuenta | `sanic_cuentaid` | Lookup → `sanic_cuenta` | ✔ | La cuenta gestionada. |
-| Agente | `sanic_agenteid` | Lookup → `sanic_agente` | ✔ | El localizador (= él mismo). |
-| Comentario | `sanic_comentario` | Multiline Text | ✔ | **Texto libre** de la interacción. |
-| Fecha de interacción | `sanic_fechainteraccion` | DateTime | ✔ | Auto al registrar, en campo. |
-| ¿Actualiza datos? | `sanic_actualizacliente` | Yes/No (def. No) | — | Marca que hay datos a actualizar (detalle en `actualizaciondatos`). |
-| ¿Aplica pago? | `sanic_aplicapago` | Yes/No (def. No) | — | Si hubo cobro (montos en `pago`). |
-| Latitud | `sanic_latitud` | Decimal (5) | — | GPS (DEC-008). |
-| Longitud | `sanic_longitud` | Decimal (5) | — | GPS. |
+| Número | `sanic_cm_in_numerointeraccion` | Autonumber (`INT-{SEQNUM:6}`) | auto | **Primary name.** Server-assigned al sincronizar. |
+| Cuenta | `sanic_cm_in_cuentaid` | Lookup → `sanic_cm_tbl_cuenta` | ✔ | La cuenta gestionada. |
+| Agente | `sanic_cm_in_agente` | Lookup → `sanic_cm_tbl_agente` | ✔ | El localizador (= él mismo). |
+| Comentario | `sanic_cm_in_comentario` | Multiline Text | ✔ | **Texto libre** de la interacción. |
+| Fecha de interacción | `⚠️TODO(sanic_fechainteraccion)` | DateTime | ✔ | Auto al registrar, en campo. **Sin equivalente en el esquema real.** |
+| ¿Actualiza datos? | `sanic_cm_in_actualizainfo` | Yes/No (def. No) | — | Marca que hay datos a actualizar (detalle en `actualizaciondatos`). |
+| ¿Aplica pago? | `sanic_cm_cd_aplicapago` | Yes/No (def. No) | — | Si hubo cobro (montos en `pago`). **(Prefijo `cd` en el esquema real, no `in`.)** |
+| Latitud | `sanic_cm_in_latitud` | Decimal (5) | — | GPS (DEC-008). |
+| Longitud | `sanic_cm_in_longitud` | Decimal (5) | — | GPS. |
 | Propietario | `ownerid` | Owner | ✔ | = el **localizador** (User-level). |
 
 **Write-back al core (backoffice)**
 | Campo lógico | Físico | Tipo | Req. | Descripción |
 |--------------|--------|------|:----:|-------------|
-| Estado de transcripción | `sanic_estadotranscripcion` | Choice (`Pendiente`/`Grabada en core`) | ✔ | Default `Pendiente`. |
-| Código del core | `sanic_codigocore` | Text | — | El código con que el backoffice la grabó (DEC-002). |
-| Fecha grabada en core | `sanic_fechagrabacore` | DateTime | — | Cuándo la transcribió. |
-| Grabada por | `sanic_grabadaporid` | Lookup → `systemuser` | — | Qué backoffice. |
+| Estado de transcripción | `sanic_cm_in_estadograbacion` | Choice (`Pendiente`/`Grabada en core`) | ✔ | Default `Pendiente`. Choice: `sanic_cm_choice_estadograbacioninteraccion`. |
+| Código del core | `sanic_cm_in_codigograbacion` | Text | — | El código con que el backoffice la grabó (DEC-002). |
+| Fecha grabada en core | `sanic_cm_in_fechagrabacion` | DateTime | — | Cuándo la transcribió. |
+| Grabada por | `sanic_cm_in_grabadopor` | Lookup → `systemuser` | — | Qué backoffice. |
 
 ### Llaves
 - **Ninguna.** Se crea en la app (no por import) → usa su **GUID**. Es un **hecho fechado** (append-only),
   no se deduplica.
 
 ### Import
-- **N/A** — **no viene del CSV.** La crea la **app de campo** (offline); el `sanic_numero` lo asigna el
+- **N/A** — **no viene del CSV.** La crea la **app de campo** (offline); el `sanic_cm_in_numerointeraccion` lo asigna el
   servidor al **sincronizar**.
 
 ### Ciclo de vida
@@ -473,7 +476,7 @@ actualizar, y el **write-back al core**. Se crea **en la app de campo (offline)*
 
 ### Consideraciones al borrar
 - Es **el candado de auditoría** de todo el modelo de borrado.
-- **Offline:** `sanic_numero` server-assigned al sync; geo opcional (no bloquear si el GPS falla).
+- **Offline:** `sanic_cm_in_numerointeraccion` server-assigned al sync; geo opcional (no bloquear si el GPS falla).
 - **Anti-doble-carga (write-back):** el filtro `estadotranscripcion = Pendiente` evita que dos backoffice la
   graben dos veces.
 
@@ -483,7 +486,7 @@ actualizar, y el **write-back al core**. Se crea **en la app de campo (offline)*
 
 ---
 
-## 10. `sanic_pago` — Pago cobrado
+## 10. `sanic_cm_tbl_pago` — Pago cobrado
 
 ### Definición
 Un **pago** cobrado al cliente, **hijo de una interacción**. La relación **1:N** permite el **pago mixto**
@@ -493,21 +496,21 @@ se **anota** monto, moneda y número de recibo.
 ### Campos
 | Campo lógico | Físico | Tipo | Req. | Descripción |
 |--------------|--------|------|:----:|-------------|
-| Número | `sanic_numero` | Autonumber (`PAG-{SEQNUM:6}`) | auto | **Primary name.** Server-assigned al sincronizar. |
-| Interacción | `sanic_interaccionid` | Lookup → `sanic_interaccion` | ✔ | El pago **pertenece** a una interacción. |
-| Monto | `sanic_monto` | Decimal (2) | ✔ | Monto cobrado. |
-| Moneda | `sanic_moneda` | Choice (`NIO`/`USD`) | ✔ | Moneda del pago. |
-| Número de recibo | `sanic_numerorecibo` | Text | ✔ | **Número del recibo físico** (talonario). |
-| Fecha del pago | `sanic_fechapago` | DateTime | ✔ | Auto al registrar. |
+| Número | `sanic_cm_pg_numero` | Autonumber (`PAG-{SEQNUM:6}`) | auto | **Primary name.** Server-assigned al sincronizar. |
+| Interacción | `sanic_cm_pg_interaccion` | Lookup → `sanic_cm_tbl_interaccion` | ✔ | El pago **pertenece** a una interacción. |
+| Monto | `sanic_cm_pg_monto` | Decimal (2) | ✔ | Monto cobrado. |
+| Moneda | `sanic_cm_pg_moneda` | Choice (`NIO`/`USD`) | ✔ | Moneda del pago. Choice: `sanic_choice_cm_monedaenpago`. |
+| Número de recibo | `sanic_cm_pg_numerorecibo` | Text | ✔ | **Número del recibo físico** (talonario). |
+| Fecha del pago | `⚠️TODO(sanic_fechapago)` | DateTime | ✔ | Auto al registrar. **Sin equivalente en el esquema real de `pago`.** |
 | Propietario | `ownerid` | Owner | ✔ | = el **localizador** (User-level). |
 
 ### Llaves
-- **Ninguna.** Se crea en la app (GUID). El `sanic_numerorecibo` es del **talonario físico**, sin constraint
+- **Ninguna.** Se crea en la app (GUID). El `sanic_cm_pg_numerorecibo` es del **talonario físico**, sin constraint
   de unicidad (ver consideraciones).
 
 ### Import
 - **N/A** — **no viene del CSV.** La crea la **app de campo** (offline) cuando el localizador marca
-  `aplicapago` en una interacción. `sanic_numero` lo asigna el servidor al **sincronizar**.
+  `aplicapago` en una interacción. `sanic_cm_pg_numero` lo asigna el servidor al **sincronizar**.
 
 ### Ciclo de vida
 - **Nace:** en la **app de campo** (offline), hijo de una interacción. Owner = el localizador.
@@ -520,8 +523,8 @@ se **anota** monto, moneda y número de recibo.
 - Es **hoja** (no tiene hijos). En la práctica **nunca se borra solo** (solo si se borra deliberadamente su interacción).
 
 ### Consideraciones al borrar
-- **Decimal, no Money** — consistente con el import; cada pago lleva **su** moneda (`sanic_moneda`).
-- **Unicidad del recibo:** el `sanic_numerorecibo` viene del **talonario físico**. Hoy es texto sin
+- **Decimal, no Money** — consistente con el import; cada pago lleva **su** moneda (`sanic_cm_pg_moneda`).
+- **Unicidad del recibo:** el `sanic_cm_pg_numerorecibo` viene del **talonario físico**. Hoy es texto sin
   constraint. Si se quisiera evitar duplicados, la clave correcta sería **`localizador + numerorecibo`** (dos
   talonarios distintos pueden repetir número). **No** se implementa ahora; queda anotado.
 
@@ -530,7 +533,7 @@ se **anota** monto, moneda y número de recibo.
 
 ---
 
-## 11. `sanic_asignacion` — Asignación (la cartera viva)
+## 11. `sanic_cm_tbl_asignacion` — Asignación (la cartera viva)
 
 ### Definición
 **Qué cuenta se asignó a qué localizador**, de qué **tipo**, en qué **estado** y con qué **orden**. Es una
@@ -542,36 +545,36 @@ localizador **tiene que cobrar**.
 **Base / operativo**
 | Campo lógico | Físico | Tipo | Req. | Descripción |
 |--------------|--------|------|:----:|-------------|
-| Número | `sanic_numero` | Autonumber (`ASG-{SEQNUM:6}`) | auto | **Primary name.** |
-| Número de cuenta | `sanic_numerocuenta` | Text | ✔ | Copiado para la alt key. |
-| Cuenta | `sanic_cuentaid` | Lookup → `sanic_cuenta` | ✔ | Resuelto por `NumeroCuenta`. **Toda asignación tiene cuenta.** |
-| Agente | `sanic_agenteid` | Lookup → `sanic_agente` | — | El localizador. En Especiales lo define el **Supervisor**. |
-| Tipo | `sanic_tipo` | Choice (`Diaria`/`Incobrable`/`Especial`) | ✔ | Ciclo de vida por tipo. |
-| Estado | `sanic_estado` | Choice (`Activa`/`Cerrada`) | ✔ | Default `Activa`. |
-| Orden | `sanic_orden` | Whole Number | — | Prioridad del localizador. **NO se mapea en el import** (no se pisa). |
-| Fecha de asignación | `sanic_fechaasignacion` | DateTime | — | — |
-| Última carga | `sanic_ultimacarga` | DateTime | — | = `FechaCarga`; la setea el import en cada upsert. Base del **sweep** (DEC-018). |
-| Motivo de cierre | `sanic_motivocierre` | Text | — | Al cerrar (sweep, manual, reclasificación). |
+| Número | `sanic_cm_as_numero` | Autonumber (`ASG-{SEQNUM:6}`) | auto | **Primary name.** |
+| Número de cuenta | `sanic_cm_as_numerocuenta` | Text | ✔ | Copiado para la alt key. |
+| Cuenta | `sanic_cm_as_cuentaid` | Lookup → `sanic_cm_tbl_cuenta` | ✔ | Resuelto por `NumeroCuenta`. **Toda asignación tiene cuenta.** |
+| Agente | `sanic_cm_as_agenteid` | Lookup → `sanic_cm_tbl_agente` | — | El localizador. En Especiales lo define el **Supervisor**. |
+| Tipo | `sanic_cm_as_tipo` | Choice (`Diaria`/`Incobrable`/`Especial`) | ✔ | Ciclo de vida por tipo. Choice: `sanic_choice_cm_tipoasignacion`. |
+| Estado | `sanic_cm_as_estado` | Choice (`Activa`/`Cerrada`) | ✔ | Default `Activa`. |
+| Orden | `sanic_cm_as_orden` | Whole Number | — | Prioridad del localizador. **NO se mapea en el import** (no se pisa). |
+| Fecha de asignación | `sanic_cm_as_fechasignacion` | DateTime | — | — |
+| Última carga | `⚠️TODO(sanic_ultimacarga)` | DateTime | — | = `FechaCarga`; la setea el import en cada upsert. Base del **sweep** (DEC-018). **Sin equivalente en el esquema real.** |
+| Motivo de cierre | `sanic_cm_as_motivo` | Text | — | Al cerrar (sweep, manual, reclasificación). |
 
 **Solo Especiales (workflow de aprobación)**
 | Campo lógico | Físico | Tipo | Req. | Descripción |
 |--------------|--------|------|:----:|-------------|
-| Estado de aprobación | `sanic_estadoaprobacion` | Choice (`Borrador`/`Pendiente`/`Aprobada`/`Rechazada`) | — | Gobierna la aprobación. |
-| Supervisor | `sanic_supervisorid` | Lookup → `systemuser` | — | Quién aprueba/rechaza. |
-| Creada por | `sanic_creadaporid` | Lookup → `systemuser` | — | El **Solicitante** (o servicio de import si vino por CSV). |
-| Motivo de rechazo | `sanic_motivorechazo` | Text | — | Si el Supervisor la rechaza. |
-| Propietario | `ownerid` | Owner | ✔ | = el **localizador** (lo setea un plugin desde `agente.sanic_usuario`). |
+| Estado de aprobación | `sanic_cm_as_estadoaprobacion` | Choice (`Borrador`/`Pendiente`/`Aprobada`/`Rechazada`) | — | Gobierna la aprobación. Choice: `sanic_choice_cm_estadoaprobacionespecial`. |
+| Supervisor | `sanic_cm_as_resolutorid` | Lookup → `systemuser` | — | Quién aprueba/rechaza (resolutor). |
+| Creada por | `sanic_cm_as_solicitadopor` | Lookup → `systemuser` | — | El **Solicitante** (o servicio de import si vino por CSV). |
+| Motivo de rechazo | `⚠️TODO(sanic_motivorechazo)` | Text | — | Si el Supervisor la rechaza. **Sin equivalente en el esquema real** (solo existe `sanic_cm_as_motivo` genérico). |
+| Propietario | `ownerid` | Owner | ✔ | = el **localizador** (lo setea un plugin desde `agente.sanic_cm_ag_usuarioid`). |
 
 ### Llaves
-- **Alt key compuesta: `sanic_numerocuenta` + `sanic_tipo`** (DEC-016). Una asignación activa por (cuenta,
-  tipo) → coexisten **`{Diaria|Incobrable}` + `Especial`**, **nunca** Diaria + Incobrable (DEC-021). **Active.**
+- **Alt key compuesta: `sanic_cm_as_numerocuenta` + `sanic_cm_as_tipo`** (DEC-016). Una asignación activa por
+  (cuenta, tipo) → coexisten **`{Diaria|Incobrable}` + `Especial`**, **nunca** Diaria + Incobrable (DEC-021). **Active.**
 
 ### Import
 - **Table Mapping #12**, processing order **4**. Puebla **Diaria/Incobrable** (y **Especial → `Pendiente`**, DEC-022).
 - **Mapea:** `NumeroCuenta → numerocuenta`, `TipoAsignacion → tipo` (texto→Choice), `FechaCarga → ultimacarga`,
   `estado` = default `Activa`. **NO mapea** `orden` (no pisar la prioridad).
 - **Relationship Mappings:** `Cuenta` (NumeroCuenta) · `Agente` (Agente).
-- **Owner:** lo setea un **plugin/flow** (no Smelter), desde `agente.sanic_usuario` (Comp. 01 §6).
+- **Owner:** lo setea un **plugin/flow** (no Smelter), desde `agente.sanic_cm_ag_usuarioid` (Comp. 01 §6).
 - **Reclasificación (DEC-021):** al llegar un core-type, el import **cierra el otro core-type activo**.
 - **Guarda Especial (DEC-022):** `estadoaprobacion = Pendiente` **solo al crear**; un re-import **no** revierte una ya aprobada.
 
@@ -595,7 +598,7 @@ localizador **tiene que cobrar**.
   un borrado. Las cerradas **se conservan** como rastro.
 - **Borrado físico** (opcional, muy posterior): bulk-delete de `Cerradas` viejas (>1 año), si hiciera falta;
   no es rutina. La tabla **crece lento** (upsert por `numerocuenta+tipo`, no por día).
-- **Owner:** si el `agente` no tiene `sanic_usuario` vinculado, la asignación queda sin owner correcto → el
+- **Owner:** si el `agente` no tiene `sanic_cm_ag_usuarioid` vinculado, la asignación queda sin owner correcto → el
   localizador no la ve (vista de control "agentes sin usuario vinculado").
 
 ### Estado de la revisión
@@ -603,7 +606,7 @@ localizador **tiene que cobrar**.
 
 ---
 
-## 12. `sanic_actualizaciondatos` — Cambios de contacto pedidos
+## 12. `sanic_cm_tbl_actualizaciondatos` — Cambios de contacto pedidos
 
 ### Definición
 Captura los **nuevos valores de contacto** que el cliente pide actualizar **durante una interacción**
@@ -614,15 +617,15 @@ para no ensuciar la tabla núcleo).
 ### Campos
 | Campo lógico | Físico | Tipo | Req. | Descripción |
 |--------------|--------|------|:----:|-------------|
-| Número | `sanic_numero` | Autonumber (`ACT-{SEQNUM:6}`) | auto | **Primary name.** Server-assigned al sincronizar. |
-| Interacción | `sanic_interaccionid` | Lookup → `sanic_interaccion` | ✔ | El vínculo (1:N, en la práctica 1:1). |
-| Teléfono casa | `sanic_telefonocasa` | Text | — | Nuevo número de casa → aplica a `telefono` (Casa). |
-| Teléfono celular | `sanic_telefonocelular` | Text | — | Nuevo celular → aplica a `telefono` (Celular). |
-| Teléfono trabajo | `sanic_telefonotrabajo` | Text | — | Nuevo trabajo → **capture-only** (no se aplica al master). |
-| Dirección casa | `sanic_direccioncasa` | Text | — | → aplica a `direccion` (Casa). |
-| Dirección EC | `sanic_direccionec` | Text | — | → aplica a `direccion` (EC). |
-| Dirección trabajo | `sanic_direcciontrabajo` | Text | — | → aplica a `direccion` (Trabajo). |
-| Correo | `sanic_correo` | Text (formato Email) | — | Nuevo correo → **capture-only** (no se aplica al master). |
+| Número | `sanic_cm_ad_numero` | Autonumber (`ACT-{SEQNUM:6}`) | auto | **Primary name.** Server-assigned al sincronizar. |
+| Interacción | `sanic_cm_ad_interaccionid` | Lookup → `sanic_cm_tbl_interaccion` | ✔ | El vínculo (1:N, en la práctica 1:1). |
+| Teléfono casa | `sanic_cm_ad_telefonocasa` | Text | — | Nuevo número de casa → aplica a `telefono` (Casa). |
+| Teléfono celular | `sanic_cm_ad_telefonocelular` | Text | — | Nuevo celular → aplica a `telefono` (Celular). |
+| Teléfono trabajo | `sanic_cm_ad_telefonotrabajo` | Text | — | Nuevo trabajo → **capture-only** (no se aplica al master). |
+| Dirección casa | `sanic_cm_ad_direccioncasa` | Text | — | → aplica a `direccion` (Casa). |
+| Dirección EC | `sanic_cm_ad_direccionec` | Text | — | → aplica a `direccion` (EC). |
+| Dirección trabajo | `sanic_cm_ad_direcciontrabajo` | Text | — | → aplica a `direccion` (Trabajo). |
+| Correo | `sanic_cm_ad_correoelectronico` | Text (formato Email) | — | Nuevo correo → **capture-only** (no se aplica al master). |
 | Propietario | `ownerid` | Owner | ✔ | = el **localizador** (User-level). |
 
 > **Todos los campos de dato son opcionales:** se completa **solo lo que cambió**.

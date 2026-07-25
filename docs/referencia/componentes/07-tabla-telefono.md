@@ -1,4 +1,4 @@
-# Componente: Tabla `sanic_telefono`
+# Componente: Tabla `sanic_cm_tbl_telefono`
 
 > **Fase 1 — Modelo de datos · Componente 07 (maestra hija de `cliente`).**
 > Los teléfonos del cliente, **normalizados** por tipo (Celular / Casa). Cada fila del CSV trae 2 teléfonos
@@ -19,16 +19,16 @@ pueda contactarlo.
 
 | Nombre lógico | Nombre físico | Tipo | Req. | Del CSV / descripción |
 |---------------|---------------|------|:----:|-----------------------|
-| Número | `sanic_numero` | Text | ✔ | **Primary name.** `NumeroCelular` / `NumeroCasa`. |
-| Cliente | `sanic_clienteid` | Lookup → `sanic_cliente` | ✔ | Resuelto por `CIF`. |
-| CIF | `sanic_cif` | Text | ✔ | **Copiado** del cliente para la **alt key compuesta**. |
-| Tipo | `sanic_tipo` | Text | ✔ | `"Celular"` / `"Casa"` (lo fija el import por mapping). |
+| Número | `sanic_cm_tl_numero` | Text | ✔ | **Primary name.** `NumeroCelular` / `NumeroCasa`. |
+| Cliente | `sanic_cm_tl_clienteid` | Lookup → `sanic_cm_tbl_cliente` | ✔ | Resuelto por `CIF`. |
+| CIF | `sanic_cm_tl_cif` | Text | ✔ | **Copiado** del cliente para la **alt key compuesta**. |
+| Tipo | `sanic_cm_tl_tipo` | Text | ✔ | `"Celular"` / `"Casa"` (lo fija el import por mapping). |
 
 ---
 
 ## 3. Alternate Key
 
-- **Compuesta: `sanic_cif` + `sanic_tipo`.** Un teléfono por (cliente, tipo). **Debe quedar `Active`**.
+- **Compuesta: `sanic_cm_pk_telefono_cif_tipo`** (sobre `sanic_cm_tl_cif` + `sanic_cm_tl_tipo`). Un teléfono por (cliente, tipo). **Debe quedar `Active`**.
 
 > Mismo patrón que `direccion`: CIF copiado como texto, alt key sobre texto (no sobre lookup).
 
@@ -38,7 +38,7 @@ pueda contactarlo.
 
 | Relación | Cardinalidad | Columna | Dónde |
 |----------|:------------:|---------|-------|
-| `sanic_cliente` → `sanic_telefono` | 1:N | `sanic_clienteid` | **Acá** (lookup). |
+| `sanic_cm_tbl_cliente` → `sanic_cm_tbl_telefono` | 1:N | `sanic_cm_tl_clienteid` | **Acá** (lookup). |
 
 ---
 
@@ -52,20 +52,20 @@ pueda contactarlo.
 
 ## 6. Pasos de construcción
 
-1. Crear la tabla `sanic_telefono` (User/Team owned), Primary name `sanic_numero`.
-2. Crear `sanic_clienteid` (Lookup → `sanic_cliente`), `sanic_cif` (Text), `sanic_tipo` (Text).
-3. Crear la **Alternate Key** compuesta `sanic_cif + sanic_tipo` y dejarla **`Active`**.
+1. Crear la tabla `sanic_cm_tbl_telefono` (User/Team owned), Primary name `sanic_cm_tl_numero`.
+2. Crear `sanic_cm_tl_clienteid` (Lookup → `sanic_cm_tbl_cliente`), `sanic_cm_tl_cif` (Text), `sanic_cm_tl_tipo` (Text).
+3. Crear la **Alternate Key** compuesta `sanic_cm_pk_telefono_cif_tipo` (sobre `sanic_cm_tl_cif` + `sanic_cm_tl_tipo`) y dejarla **`Active`**.
 
 ---
 
 ## 7. Gotchas
 
-- **7.1** `sanic_numero` es **texto** (no número): puede traer ceros a la izquierda, guiones o prefijos.
-- **7.2** El `sanic_tipo` es texto (no Choice), por el mismo motivo que en `direccion` (default por mapping).
+- **7.1** `sanic_cm_tl_numero` es **texto** (no número): puede traer ceros a la izquierda, guiones o prefijos.
+- **7.2** El `sanic_cm_tl_tipo` es texto (no Choice), por el mismo motivo que en `direccion` (default por mapping).
 
 ---
 
 ## 8. Dependencias
 
-- **Depende de:** `sanic_cliente` (Comp. 02).
+- **Depende de:** `sanic_cm_tbl_cliente` (Comp. 02).
 - **Habilita:** el contacto del cliente desde la app de campo.

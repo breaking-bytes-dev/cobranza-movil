@@ -179,14 +179,14 @@ Set(gblC, {
 
 // ----- Escala de accesibilidad (4 niveles) -----
 // Se lee de la preferencia del agente (offline-safe). 1 = Normal.
-Set(gblScale, Coalesce(LookUp(sanic_agente, sanic_usuario.'Primary Email' = User().Email).sanic_escalavista, 1));
+Set(gblScale, Coalesce(LookUp(sanic_cm_tbl_agente, sanic_cm_ag_usuarioid.'Primary Email' = User().Email).⚠️TODO(sanic_escalavista), 1));
 Set(gblT, {
     f2xs: 10*gblScale,  fxs: 11*gblScale,  fsm: 12.5*gblScale, fbase: 13.5*gblScale,
     fmd: 15*gblScale,   flg: 17*gblScale,  fxl: 23*gblScale,   fbig: 24*gblScale
 });
 
 // ----- Agente actual (el localizador) -----
-Set(gblAgente, LookUp(sanic_agente, sanic_usuario.'Primary Email' = User().Email));
+Set(gblAgente, LookUp(sanic_cm_tbl_agente, sanic_cm_ag_usuarioid.'Primary Email' = User().Email));
 
 // ----- Estado de navegación inicial -----
 Set(varModo, "cliente");      // agrupación de la Cartera: "cliente" | "cuenta"
@@ -218,15 +218,15 @@ Set(varInicioModo, "cliente");
 4. **Nada de truncar** montos, mora ni nombres (`Overflow` visible, alto automático).
 
 **Construcción:** botón **“Aa”** en el header (`cmpAa`) abre un **sheet inferior** (`cmpSheetEscala`, §6) con los
-4 niveles. Al elegir: `Set(gblScale, <valor>); Patch(sanic_agente, gblAgente, {sanic_escalavista:<valor>}); …`
-recalcular `gblT`. Persiste en `sanic_agente` (offline-safe) y aplica **al instante** en toda la app.
+4 niveles. Al elegir: `Set(gblScale, <valor>); Patch(sanic_cm_tbl_agente, gblAgente, {⚠️TODO(sanic_escalavista):<valor>}); …`
+recalcular `gblT`. Persiste en `sanic_cm_tbl_agente` (offline-safe) y aplica **al instante** en toda la app.
 
 ```powerapps
 // cmpAa  →  OnSelect del nivel "Muy grande" (1.45), por ejemplo:
 Set(gblScale, 1.45);
 Set(gblT, { f2xs:10*gblScale, fxs:11*gblScale, fsm:12.5*gblScale, fbase:13.5*gblScale,
             fmd:15*gblScale, flg:17*gblScale, fxl:23*gblScale, fbig:24*gblScale });
-Patch(sanic_agente, gblAgente, { sanic_escalavista: gblScale });
+Patch(sanic_cm_tbl_agente, gblAgente, { ⚠️TODO(sanic_escalavista): gblScale });
 Set(varSheetEscala, false)
 ```
 
@@ -240,13 +240,13 @@ Set(varSheetEscala, false)
 ### Perfil offline (qué baja al dispositivo)
 | Tabla | Modo | Filtro (FetchXML del perfil) |
 |-------|------|------------------------------|
-| `sanic_asignacion` | **Lectura + edición del `orden`** | owner = usuario actual **y** `estado = Activa` (Especial: + `estadoaprobacion = Aprobada`) |
-| `sanic_cuenta` | Lectura | las cuentas de sus asignaciones |
-| `sanic_cliente` · `sanic_direccion` · `sanic_telefono` | Lectura | de esas cuentas |
-| `sanic_producto` · `sanic_fiador` | Lectura | catálogos referenciados |
-| `sanic_interaccion` | **Escritura** (+ lectura de las propias) | las que él crea; lee recientes para historial |
-| `sanic_pago` | Escritura | idem |
-| `sanic_actualizaciondatos` | Escritura | idem |
+| `sanic_cm_tbl_asignacion` | **Lectura + edición del `orden`** | owner = usuario actual **y** `estado = Activa` (Especial: + `estadoaprobacion = Aprobada`) |
+| `sanic_cm_tbl_cuenta` | Lectura | las cuentas de sus asignaciones |
+| `sanic_cm_tbl_cliente` · `sanic_cm_tbl_direccion` · `sanic_cm_tbl_telefono` | Lectura | de esas cuentas |
+| `sanic_cm_tbl_producto` · `sanic_cm_tbl_fiador` | Lectura | catálogos referenciados |
+| `sanic_cm_tbl_interaccion` | **Escritura** (+ lectura de las propias) | las que él crea; lee recientes para historial |
+| `sanic_cm_tbl_pago` | Escritura | idem |
+| `sanic_cm_tbl_actualizaciondatos` | Escritura | idem |
 
 ### Sincronización
 - **Automática** (delta sync periódico) al haber conexión. El **manual real** (“Check for updates”) y el conteo
@@ -269,7 +269,7 @@ Ve **solo su cartera** porque es **owner** de sus asignaciones (User-level). El 
 | `gblFont` | Font | Familia tipográfica | `App.OnStart` |
 | `gblC` | Record | Paleta de colores | `App.OnStart` |
 | `gblScale` / `gblT` | Number / Record | Escala de accesibilidad y tamaños | `App.OnStart` + `cmpAa` |
-| `gblAgente` | Record | El localizador (de `sanic_agente`) | `App.OnStart` |
+| `gblAgente` | Record | El localizador (de `sanic_cm_tbl_agente`) | `App.OnStart` |
 | `varModo` | Text | Cartera: `"cliente"` / `"cuenta"` | OnStart / toggle |
 | `varFiltro` | Text | `"Todos"/"Diaria"/"Incobrable"/"Especial"` | Segmento |
 | `varBuscar` | Text | Texto de búsqueda | Caja de búsqueda |
@@ -441,27 +441,27 @@ With({ n: CountRows(galCartera.AllItems) },
     n & If(varModo="cliente", If(n=1," cliente"," clientes"), If(n=1," cuenta"," cuentas")))
 ```
 
-**`galCartera.Items`** (cambia según modo; el orden lo da `sanic_orden`):
+**`galCartera.Items`** (cambia según modo; el orden lo da `sanic_cm_as_orden`):
 ```powerapps
 If(varModo = "cliente",
     // --- AGRUPADO POR CLIENTE ---
     SortByColumns(
         AddColumns(
-            Filter( GroupBy(misAsignaciones, "sanic_clienteid", "Cuentas"),
-                    (varFiltro="Todos" || CountRows(Filter(Cuentas, sanic_tipo=varFiltro))>0)
-                    && (varBuscar="" || Lower(sanic_clienteid.sanic_nombre) in Lower(varBuscar)
-                        || CountRows(Filter(Cuentas, varBuscar in sanic_cuentaid.sanic_numerocuenta))>0) ),
-            "Orden", First(Cuentas).sanic_orden ),
+            Filter( GroupBy(misAsignaciones, "⚠️TODO(sanic_clienteid)", "Cuentas"),
+                    (varFiltro="Todos" || CountRows(Filter(Cuentas, sanic_cm_as_tipo=varFiltro))>0)
+                    && (varBuscar="" || Lower(sanic_cm_as_cuentaid.sanic_cm_ct_clienteid.sanic_cm_cl_nombre) in Lower(varBuscar)
+                        || CountRows(Filter(Cuentas, varBuscar in sanic_cm_as_cuentaid.sanic_cm_ct_numerodecuenta))>0) ),
+            "Orden", First(Cuentas).sanic_cm_as_orden ),
         "Orden", SortOrder.Ascending),
     // --- POR CUENTA ---
     SortByColumns(
         Filter(misAsignaciones,
-            (varFiltro="Todos" || sanic_tipo=varFiltro)
-            && (varBuscar="" || Lower(sanic_clienteid.sanic_nombre) in Lower(varBuscar)
-                || varBuscar in sanic_cuentaid.sanic_numerocuenta)),
-        "sanic_orden", SortOrder.Ascending))
+            (varFiltro="Todos" || sanic_cm_as_tipo=varFiltro)
+            && (varBuscar="" || Lower(sanic_cm_as_cuentaid.sanic_cm_ct_clienteid.sanic_cm_cl_nombre) in Lower(varBuscar)
+                || varBuscar in sanic_cm_as_cuentaid.sanic_cm_ct_numerodecuenta)),
+        "sanic_cm_as_orden", SortOrder.Ascending))
 ```
-> `misAsignaciones = Filter(sanic_asignacion, sanic_estado='Estado (sanic_asignacion)'.Activa)` (el perfil offline
+> `misAsignaciones = Filter(sanic_cm_tbl_asignacion, sanic_cm_as_estado='Estado (sanic_cm_tbl_asignacion)'.Activa)` (el perfil offline
 > ya bajó solo las del owner — DEC-015). En modo cliente agrupamos; el badge muestra **los tipos presentes**.
 
 **Plantilla de fila (`galCartera`)** — es una `cmpTarjeta` horizontal: a la izquierda el contenido, a la derecha
@@ -472,7 +472,7 @@ las flechas.
 | `conMain` | vertical, `FillPortions=1` | — |
 | fila `r1` | horizontal, `Justify=SpaceBetween`, `Wrap`, `Gap=8` | `lblNombre` (`gblT.fmd`, Bold, `gblC.ink`) + grupo derecho |
 | `lblCnt` *(modo cliente)* | `gblT.fxs`, `muted`, `Fill=gblC.screen`, `Radius=10`, `Padding=3 9` | `CountRows(Cuentas)&" cuenta(s)"` |
-| `cmpBadge` *(modo cuenta)* | §6.C | `sanic_tipo` |
+| `cmpBadge` *(modo cuenta)* | §6.C | `sanic_cm_as_tipo` |
 | `badge💬` (`ibadge`) | `gblT.fxs`, `Color=gblC.teal`, `Fill=gblC.accentBg`, `Border 1 gblC.accentBorder`, `Radius=10`, `Padding=3 9` | `"💬 "&<conteo interacciones>`. Solo si conteo>0. `OnSelect` (stop propagation) → abre cliente/detalle en pestaña **Interacciones** |
 | `conTipos` *(modo cliente)* | horizontal, `Wrap`, `Gap=6`, `margin-top 8` | un `cmpBadge` por **tipo distinto** del cliente |
 | `lblAcct` *(modo cuenta)* | `gblT.fxs`, `muted`, `margin-top 4` | `producto & " · " & cuenta` |
@@ -487,22 +487,22 @@ las flechas.
 `Padding=2 6`, `Color=gblC.muted2`:
 ```powerapps
 // iconUp.OnSelect — intercambia el orden con la fila inmediatamente superior
-With({ arriba: First(Sort(Filter(galCartera.AllItems, sanic_orden < ThisItem.sanic_orden),
-                          sanic_orden, SortOrder.Descending)) },
+With({ arriba: First(Sort(Filter(galCartera.AllItems, sanic_cm_as_orden < ThisItem.sanic_cm_as_orden),
+                          sanic_cm_as_orden, SortOrder.Descending)) },
     If(!IsBlank(arriba),
-        With({ act: ThisItem.sanic_orden },
-            Patch(sanic_asignacion, ThisItem, { sanic_orden: arriba.sanic_orden });
-            Patch(sanic_asignacion, arriba,   { sanic_orden: act }))))
-// iconDown.OnSelect — espejo (busca el sanic_orden inmediatamente MAYOR)
+        With({ act: ThisItem.sanic_cm_as_orden },
+            Patch(sanic_cm_tbl_asignacion, ThisItem, { sanic_cm_as_orden: arriba.sanic_cm_as_orden });
+            Patch(sanic_cm_tbl_asignacion, arriba,   { sanic_cm_as_orden: act }))))
+// iconDown.OnSelect — espejo (busca el sanic_cm_as_orden inmediatamente MAYOR)
 ```
-> Si `sanic_orden` viene vacío del import, inicializar 1..N en `OnVisible` la primera vez. El `Patch` es **local**
+> Si `sanic_cm_as_orden` viene vacío del import, inicializar 1..N en `OnVisible` la primera vez. El `Patch` es **local**
 > (offline) y sincroniza al volver señal — es lo **único** que el localizador escribe sobre `asignacion`.
 
 **`OnSelect` de la tarjeta** (zona principal, no las flechas):
 ```powerapps
 If(varModo="cliente",
-   Set(varClienteSel, ThisItem.sanic_clienteid); Set(varCliTab,"cuentas"); Navigate(scrCliente, Cover),
-   Set(varCuentaSel, ThisItem.sanic_cuentaid);  Set(varDetTab,"detalle"); Navigate(scrDetalleCuenta, Cover))
+   Set(varClienteSel, ThisItem.sanic_cm_as_cuentaid.sanic_cm_ct_clienteid); Set(varCliTab,"cuentas"); Navigate(scrCliente, Cover),
+   Set(varCuentaSel, ThisItem.sanic_cm_as_cuentaid);  Set(varDetTab,"detalle"); Navigate(scrDetalleCuenta, Cover))
 ```
 
 **Estados:** lista vacía → `lblEmpty` centrado (`gblT.fbase`, `muted2`, `Padding 40 20`): *“No hay clientes/cuentas
@@ -519,7 +519,7 @@ pestañas **[Cuentas | Interacciones]**.
 
 | Control | Estilo | Contenido / Eventos |
 |---------|--------|---------------------|
-| `conHeader` | `cmpHeaderBack` + `cmpAa` | `lblDnm = varClienteSel.sanic_nombre`, `lblDac = depto & " · " & trabajo`. `btnBack.OnSelect = Navigate(<cliBack>, UnCover)` (Cartera o Inicio) |
+| `conHeader` | `cmpHeaderBack` + `cmpAa` | `lblDnm = varClienteSel.sanic_cm_cl_nombre`, `lblDac = depto & " · " & trabajo`. `btnBack.OnSelect = Navigate(<cliBack>, UnCover)` (Cartera o Inicio) |
 | `cmpTabBar` | §6.I | `Cuentas (N)` / `Interacciones (M)`. `OnSelect=Set(varCliTab,"cuentas"|"inter")` |
 | `conBody` | vertical, `Padding 16`, scroll | muestra `tabCuentas` o `tabInter` según `varCliTab` |
 
@@ -530,7 +530,7 @@ pestañas **[Cuentas | Interacciones]**.
 2. **`cardContacto`** = `cmpTarjeta`: título `"Contacto"` (`cmpSectTitle`) + galería de teléfonos (`cmpFilaContacto`),
    luego `"Direcciones"` + galería de direcciones.
 3. **`lblCuentasN`** (`cmpSectTitle`, `margin 16 2 0`): `"Cuentas a cobrar ("&CountRows(cuentas)&")"`.
-4. **`galMiniCuentas`**: una `cmpMini` por cuenta → `OnSelect=Set(varCuentaSel, ThisItem.sanic_cuentaid);
+4. **`galMiniCuentas`**: una `cmpMini` por cuenta → `OnSelect=Set(varCuentaSel, ThisItem.sanic_cm_as_cuentaid);
    Set(varDetTab,"detalle"); Navigate(scrDetalleCuenta, Cover)`.
 
 **`cmpSectTitle`** (título de sección): `gblT.fxs`, `Bold`, `gblC.muted2`, **mayúsculas**, `letter-spacing` leve,
@@ -550,8 +550,8 @@ Der.: botón. **Teléfono** → `cmpBotonPrimario` “Llamar” (`OnSelect=Launc
 **Tab Interacciones (`varCliTab="inter"`):** ver **§8.7** (componente `cmpListaInteracciones`, scope **cliente**).
 Vacío → `lblEmpty` “Sin interacciones registradas.”
 
-**`OnVisible`:** `Set(misCtas, Filter(sanic_asignacion, sanic_cuentaid.sanic_clienteid = varClienteSel,
-sanic_estado='Estado (sanic_asignacion)'.Activa))`.
+**`OnVisible`:** `Set(misCtas, Filter(sanic_cm_tbl_asignacion, sanic_cm_as_cuentaid.sanic_cm_ct_clienteid = varClienteSel,
+sanic_cm_as_estado='Estado (sanic_cm_tbl_asignacion)'.Activa))`.
 
 ---
 
@@ -589,7 +589,7 @@ sanic_estado='Estado (sanic_asignacion)'.Activa))`.
 **Tab Interacciones:** §8.7 (scope **cuenta**).
 
 **`OnVisible`:** no carga nada (usa `varCuentaSel`). Teléfonos/direcciones:
-`Filter(sanic_telefono, sanic_clienteid = varCuentaSel.sanic_clienteid)` (idem direcciones).
+`Filter(sanic_cm_tbl_telefono, sanic_cm_tl_clienteid = varCuentaSel.sanic_cm_ct_clienteid)` (idem direcciones con `sanic_cm_tbl_direccion` / `sanic_cm_dr_clienteid`).
 
 ---
 
@@ -650,18 +650,18 @@ If(
 
 **`btnGuardar.OnSelect` — un toque crea todo (offline):**
 ```powerapps
-Set(varInt, Patch(sanic_interaccion, Defaults(sanic_interaccion), {
-    sanic_cuentaid: varCuentaSel, sanic_agenteid: gblAgente, sanic_comentario: txtComentario.Value,
-    sanic_fechainteraccion: Now(), sanic_aplicapago: tgPago.Value, sanic_actualizacliente: tgDatos.Value,
-    sanic_latitud: Location.Latitude, sanic_longitud: Location.Longitude,
-    sanic_estadotranscripcion: 'Estado transcripción'.Pendiente }));
+Set(varInt, Patch(sanic_cm_tbl_interaccion, Defaults(sanic_cm_tbl_interaccion), {
+    sanic_cm_in_cuentaid: varCuentaSel, sanic_cm_in_agente: gblAgente, sanic_cm_in_comentario: txtComentario.Value,
+    ⚠️TODO(sanic_fechainteraccion): Now(), sanic_cm_cd_aplicapago: tgPago.Value, sanic_cm_in_actualizainfo: tgDatos.Value,
+    sanic_cm_in_latitud: Location.Latitude, sanic_cm_in_longitud: Location.Longitude,
+    sanic_cm_in_estadograbacion: ⚠️TODO('Estado transcripción'.Pendiente) }));
 If(tgPago.Value, ForAll(Filter(colPagos, monto>0) As L,
-    Patch(sanic_pago, Defaults(sanic_pago), { sanic_interaccionid: varInt, sanic_monto: L.monto,
-        sanic_moneda: Switch(L.moneda,"USD",'Moneda'.USD,'Moneda'.NIO), sanic_numerorecibo: L.recibo,
-        sanic_fechapago: Now() })));
-If(tgDatos.Value, Patch(sanic_actualizaciondatos, Defaults(sanic_actualizaciondatos), {
-    sanic_interaccionid: varInt, sanic_telefonocasa: inTelCasa.Value, /* …solo los no vacíos… */
-    sanic_correo: inCorreo.Value }));
+    Patch(sanic_cm_tbl_pago, Defaults(sanic_cm_tbl_pago), { sanic_cm_pg_interaccion: varInt, sanic_cm_pg_monto: L.monto,
+        sanic_cm_pg_moneda: Switch(L.moneda,"USD",'Moneda'.USD,'Moneda'.NIO), sanic_cm_pg_numerorecibo: L.recibo,
+        ⚠️TODO(sanic_fechapago): Now() })));
+If(tgDatos.Value, Patch(sanic_cm_tbl_actualizaciondatos, Defaults(sanic_cm_tbl_actualizaciondatos), {
+    sanic_cm_ad_interaccionid: varInt, sanic_cm_ad_telefonocasa: inTelCasa.Value, /* …solo los no vacíos… */
+    sanic_cm_ad_correoelectronico: inCorreo.Value }));
 Clear(colPagos); Navigate(scrDetalleCuenta, UnCover)
 ```
 > El `Patch` de la interacción devuelve `varInt` (con su GUID) → linkea los hijos **aun sin señal**. Geo del
@@ -692,18 +692,18 @@ clickeable → detalle de pagos. Sin gamificación.
 
 **Datos (`OnVisible`):**
 ```powerapps
-Set(varIntHoy, Filter(sanic_interaccion, DateValue(sanic_fechainteraccion)=Today()));   // propias de hoy
-Set(cobradoNio, Sum(Filter(sanic_pago, DateValue(sanic_fechapago)=Today(), sanic_moneda='Moneda'.NIO), sanic_monto));
-Set(cobradoUsd, Sum(Filter(sanic_pago, DateValue(sanic_fechapago)=Today(), sanic_moneda='Moneda'.USD), sanic_monto));
+Set(varIntHoy, Filter(sanic_cm_tbl_interaccion, DateValue(⚠️TODO(sanic_fechainteraccion))=Today()));   // propias de hoy
+Set(cobradoNio, Sum(Filter(sanic_cm_tbl_pago, DateValue(⚠️TODO(sanic_fechapago))=Today(), sanic_cm_pg_moneda='Moneda'.NIO), sanic_cm_pg_monto));
+Set(cobradoUsd, Sum(Filter(sanic_cm_tbl_pago, DateValue(⚠️TODO(sanic_fechapago))=Today(), sanic_cm_pg_moneda='Moneda'.USD), sanic_cm_pg_monto));
 Set(nInt, CountRows(varIntHoy));
-Set(nCu, CountRows(Distinct(varIntHoy, sanic_cuentaid)));
-Set(nCl, CountRows(Distinct(varIntHoy, sanic_cuentaid.sanic_clienteid)));
+Set(nCu, CountRows(Distinct(varIntHoy, sanic_cm_in_cuentaid)));
+Set(nCl, CountRows(Distinct(varIntHoy, sanic_cm_in_cuentaid.sanic_cm_ct_clienteid)));
 ```
 **`galDesglose.Items`:**
 ```powerapps
 If(varInicioModo="cliente",
-   GroupBy(AddColumns(varIntHoy,"Cli", sanic_cuentaid.sanic_clienteid),"Cli","Items"),
-   GroupBy(AddColumns(varIntHoy,"Cta", sanic_cuentaid),"Cta","Items"))
+   GroupBy(AddColumns(varIntHoy,"Cli", sanic_cm_in_cuentaid.sanic_cm_ct_clienteid),"Cli","Items"),
+   GroupBy(AddColumns(varIntHoy,"Cta", sanic_cm_in_cuentaid),"Cta","Items"))
 ```
 `bcount = CountRows(ThisItem.Items)&" interac."`. **`OnSelect`** de la fila → abre el cliente/cuenta **en pestaña
 Interacciones**:
@@ -735,11 +735,11 @@ total por moneda arriba. Solo lectura.
 
 **Datos (`OnVisible`):**
 ```powerapps
-Set(varPagosHoy, Filter(sanic_pago, DateValue(sanic_fechapago)=Today()));   // propios de hoy
-Set(sumN, Sum(Filter(varPagosHoy, sanic_moneda='Moneda'.NIO), sanic_monto));
-Set(sumU, Sum(Filter(varPagosHoy, sanic_moneda='Moneda'.USD), sanic_monto));
+Set(varPagosHoy, Filter(sanic_cm_tbl_pago, DateValue(⚠️TODO(sanic_fechapago))=Today()));   // propios de hoy
+Set(sumN, Sum(Filter(varPagosHoy, sanic_cm_pg_moneda='Moneda'.NIO), sanic_cm_pg_monto));
+Set(sumU, Sum(Filter(varPagosHoy, sanic_cm_pg_moneda='Moneda'.USD), sanic_cm_pg_monto));
 // galGrupos.Items:
-GroupBy(AddColumns(varPagosHoy, "Cta", sanic_interaccionid.sanic_cuentaid), "Cta", "Lineas")
+GroupBy(AddColumns(varPagosHoy, "Cta", sanic_cm_pg_interaccion.sanic_cm_in_cuentaid), "Cta", "Lineas")
 ```
 
 ---
@@ -752,9 +752,9 @@ GroupBy(AddColumns(varPagosHoy, "Cta", sanic_interaccionid.sanic_cuentaid), "Cta
 **Items** (orden `fecha+hora` descendente):
 ```powerapps
 Sort(
-  If(scope="cuenta", Filter(sanic_interaccion, sanic_cuentaid = varCuentaSel),
-                     Filter(sanic_interaccion, sanic_cuentaid.sanic_clienteid = varClienteSel)),
-  sanic_fechainteraccion, SortOrder.Descending)
+  If(scope="cuenta", Filter(sanic_cm_tbl_interaccion, sanic_cm_in_cuentaid = varCuentaSel),
+                     Filter(sanic_cm_tbl_interaccion, sanic_cm_in_cuentaid.sanic_cm_ct_clienteid = varClienteSel)),
+  ⚠️TODO(sanic_fechainteraccion), SortOrder.Descending)
 ```
 
 **Tarjeta (`cmpICard`):** `Fill=White`, `Border 1 gblC.cardBorder`, `Radius=12`, `Padding 12 14`,
@@ -784,7 +784,7 @@ autonumber en blanco.
 | `conHeader` | `cmpHeaderBack` (sin Aa) | `lblDnm="Sincronización"`, `lblDac="Estado de tus capturas"`. `btnBack=Navigate(varSyncBack, UnCover)` |
 | `cardEstado` | `statbig`: horizontal, `Radius=16`, `Padding=16`, `Gap=14`, `Color=White` | ícono grande (`28×gblScale`) + `st1` (`gblT.flg`, Bold(800)) + `st2` (`gblT.fsm`, opacidad .92). **Fill por estado:** ok→`gblC.teal` · pendiente→`gblC.incobInk` (`#B45309`) · sin conexión→`gblC.offGray` (`#475467`) |
 | `cardDetalle` | `cmpTarjeta` | 3 `cmpKV`: Conexión (`If(Connection.Connected,"En línea","Sin señal")`) · Última sincronización · Pendientes por subir (`<proxy> & " captura(s)"`) |
-| `btnBuscar` | botón grande `bigbtn`: `Fill=gblC.teal`, `Color=White`, `Radius=14`, `Padding=14`, ancho completo, sombra `shTeal`, `margin-top 14` | texto: `If(Connection.Connected,"↻ Buscar actualizaciones","Sin conexión — no se puede sincronizar")`. `DisplayMode = If(Connection.Connected && <pendientes>0, Edit, Disabled)`. `OnSelect=Refresh(sanic_interaccion); Refresh(sanic_pago)` |
+| `btnBuscar` | botón grande `bigbtn`: `Fill=gblC.teal`, `Color=White`, `Radius=14`, `Padding=14`, ancho completo, sombra `shTeal`, `margin-top 14` | texto: `If(Connection.Connected,"↻ Buscar actualizaciones","Sin conexión — no se puede sincronizar")`. `DisplayMode = If(Connection.Connected && <pendientes>0, Edit, Disabled)`. `OnSelect=Refresh(sanic_cm_tbl_interaccion); Refresh(sanic_cm_tbl_pago)` |
 | `lblCapturas` | `cmpSectTitle`, `margin-top 18` | “Capturas de hoy” |
 | `galCapturas` | galería de `cmpBrow` (cursor default) | una fila por interacción de hoy: izq. `cliente · producto` + `hora · Interacción [+ N pago(s)] [+ datos]`; der. **pendtag** |
 | `cardNota` | `note2`: `Fill=gblC.noteBg`, `Border 1 gblC.cardBorder`, `Radius=12`, `Padding 12 14`, `margin-top 14` | `gblT.fxs`, `muted` — explica INT-/PAG- server-assigned y remite al **globo/Device Status**. **bold** en `gblC.ink2` |
@@ -795,10 +795,10 @@ autonumber en blanco.
 
 **Proxy de pendientes (en `OnVisible`):**
 ```powerapps
-Set(varPend, CountRows(Filter(sanic_interaccion, IsBlank(sanic_autonumber)))
-           + CountRows(Filter(sanic_pago, IsBlank(sanic_autonumber))));
+Set(varPend, CountRows(Filter(sanic_cm_tbl_interaccion, IsBlank(sanic_cm_in_numerointeraccion)))
+           + CountRows(Filter(sanic_cm_tbl_pago, IsBlank(sanic_cm_pg_numero))));
 Set(varEstado, If(!Connection.Connected, "off", If(varPend>0, "pend", "ok")));
-Set(varCapHoy, Filter(sanic_interaccion, DateValue(sanic_fechainteraccion)=Today()));
+Set(varCapHoy, Filter(sanic_cm_tbl_interaccion, DateValue(⚠️TODO(sanic_fechainteraccion))=Today()));
 ```
 **Estado → ícono/texto:** ok `✓ Sincronizado / Todo al día con el servidor` · pend
 `🔼 Pendiente de subir / N captura(s)` · off `📴 Sin conexión / N captura(s) en el dispositivo`.
@@ -830,7 +830,7 @@ With({ pn: If(nio>0, "C$ " & Text(nio, "[$-es]#,##0.00"), ""),
       "C$ 0.00"
    ))
 ```
-El **total dolarizado** (`sanic_totalsaldovencido`) se muestra **aparte** como la cifra **comparable** entre
+El **total dolarizado** (`sanic_cm_ct_totalsaldovencido`) se muestra **aparte** como la cifra **comparable** entre
 cuentas — nunca se suma con las otras monedas.
 
 ---
@@ -859,7 +859,7 @@ cuentas — nunca se suma con las otras monedas.
 | Canvas offline-first | DEC-001 |
 | Captura = interacción + pago(s) + datos en una pantalla | DEC-002 / DEC-010 / DEC-013 |
 | Agente = localizador (owner) | DEC-006 / DEC-015 |
-| 3 tipos de asignación + reordenar por `sanic_orden` | DEC-012 / DEC-016 |
-| Bimoneda + total dolarizado | modelo `sanic_cuenta` (DEC-017) |
+| 3 tipos de asignación + reordenar por `sanic_cm_as_orden` | DEC-012 / DEC-016 |
+| Bimoneda + total dolarizado | modelo `sanic_cm_tbl_cuenta` (DEC-017) |
 | Sin gamificación (placeholder) | DEC-011 |
 | Sync: complemento del globo nativo; `Connection` único legible | verificado (learn.microsoft.com) |

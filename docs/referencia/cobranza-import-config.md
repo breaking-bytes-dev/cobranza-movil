@@ -8,50 +8,50 @@
 > Prefijo `sanic_`. `Tipo` de Dirección/Teléfono va como **texto simple** (no Choice) para que el alt key
 > y el default sean directos.
 
-### `sanic_cliente` — Cliente (deudor) · **Alt key: `sanic_cif`**
+### `sanic_cm_tbl_cliente` — Cliente (deudor) · **Alt key: `sanic_cm_pk_cliente_cif`**
 | Columna | Tipo | Del CSV |
 |---------|------|---------|
-| `sanic_nombre` | Text | Cliente |
-| `sanic_cif` | Text | CIF |
-| `sanic_departamento` | Text | Departamento |
-| `sanic_distrito` | Text | Distrito |
-| `sanic_trabajo` | Text | Trabajo |
+| `sanic_cm_cl_nombre` | Text | Cliente |
+| `sanic_cm_cl_cif` | Text | CIF |
+| `sanic_cm_cl_departamento` | Text | Departamento |
+| `sanic_cm_cl_distrito` | Text | Distrito |
+| `sanic_cm_cl_trabajo` | Text | Trabajo |
 
-### `sanic_producto` — Producto · **Alt key: `sanic_codigo`**
-| `sanic_codigo` | Text | CodigoProducto |
-| `sanic_tipo` | Text | TipoProducto |
+### `sanic_cm_tbl_producto` — Producto · **Alt key: `sanic_cm_pk_producto_codigo`**
+| `sanic_cm_pr_codigo` | Text | CodigoProducto |
+| `sanic_cm_pr_tipo` | Text | TipoProducto |
 
-### `sanic_agente` — Agente · **Alt key: `sanic_nombre`**
-| `sanic_nombre` | Text | Agente |
+### `sanic_cm_tbl_agente` — Agente · **Alt key: `sanic_cm_pk_agente_nombre`**
+| `sanic_cm_ag_nombre` | Text | Agente |
 
-### `sanic_fiador` — Fiador · **Alt key: `sanic_nombre`**
-| `sanic_nombre` | Text | NombreFianza |
-| `sanic_direccion` | Text | DireccionFianza |
+### `sanic_cm_tbl_fiador` — Fiador · **Alt key: `sanic_cm_pk_fi_nombre`**
+| `sanic_cm_fi_nombre` | Text | NombreFianza |
+| `sanic_cm_fi_direccion` | Text | DireccionFianza |
 
-### `sanic_direccion` — Dirección · **Alt key compuesta: `sanic_cif` + `sanic_tipo`**
-| `sanic_clienteid` | Lookup → Cliente | (resuelto por CIF) |
-| `sanic_cif` | Text | CIF *(copiado para la alt key)* |
-| `sanic_tipo` | Text | "Casa" / "EC" / "Trabajo" *(default por mapping)* |
-| `sanic_direccion` | Text | DireccionCasa / EC / Trabajo |
+### `sanic_cm_tbl_direccion` — Dirección · **Alt key compuesta: `sanic_cm_pk_direccion_cif_tipo`**
+| `sanic_cm_dr_clienteid` | Lookup → Cliente | (resuelto por CIF) |
+| `sanic_cm_dr_cif` | Text | CIF *(copiado para la alt key)* |
+| `sanic_cm_dr_tipo` | Text | "Casa" / "EC" / "Trabajo" *(default por mapping)* |
+| `sanic_cm_dr_direccion` | Text | DireccionCasa / EC / Trabajo |
 
-### `sanic_telefono` — Teléfono · **Alt key compuesta: `sanic_cif` + `sanic_tipo`**
-| `sanic_clienteid` | Lookup → Cliente | (resuelto por CIF) |
-| `sanic_cif` | Text | CIF *(copiado para la alt key)* |
-| `sanic_tipo` | Text | "Celular" / "Casa" *(default)* |
-| `sanic_numero` | Text | NumeroCelular / NumeroCasa |
+### `sanic_cm_tbl_telefono` — Teléfono · **Alt key compuesta: `sanic_cm_pk_telefono_cif_tipo`**
+| `sanic_cm_tl_clienteid` | Lookup → Cliente | (resuelto por CIF) |
+| `sanic_cm_tl_cif` | Text | CIF *(copiado para la alt key)* |
+| `sanic_cm_tl_tipo` | Text | "Celular" / "Casa" *(default)* |
+| `sanic_cm_tl_numero` | Text | NumeroCelular / NumeroCasa |
 
-### `sanic_cuenta` — Cuenta en Mora (el grano) · **Alt key: `sanic_numerocuenta`**
+### `sanic_cm_tbl_cuenta` — Cuenta en Mora (el grano) · **Alt key: `sanic_cm_pk_ct_numerodecuenta`**
 | Columna | Tipo | Del CSV |
 |---------|------|---------|
-| `sanic_numerocuenta` | Text | NumeroCuenta |
-| `sanic_clienteid` | Lookup → Cliente | (por CIF) |
-| `sanic_productoid` | Lookup → Producto | (por CodigoProducto) |
-| `sanic_agenteid` | Lookup → Agente | (por Agente) |
-| `sanic_fiadorid` | Lookup → Fiador | (por NombreFianza) |
-| `sanic_saldovencidonio` `sanic_saldovencidousd` `sanic_totalsaldovencido` `sanic_contagiadousd` `sanic_pagominimonio` `sanic_pagominimousd` `sanic_retironio` `sanic_retirousd` | Decimal | montos |
-| `sanic_diasmora` `sanic_nivelmora` | Whole Number | DiasMora, NivelMora |
-| `sanic_fechaultimopago` `sanic_fechapago` | DateTime | FechaUltimoPago, FechaPago |
-| `sanic_ciclo` `sanic_tipoasignacion` `sanic_tipoespecial` `sanic_nota` | Text | Ciclo, TipoAsignacion, TipoEspecial, Nota |
+| `sanic_cm_ct_numerodecuenta` | Text | NumeroCuenta |
+| `sanic_cm_ct_clienteid` | Lookup → Cliente | (por CIF) |
+| `sanic_cm_ct_productoid` | Lookup → Producto | (por CodigoProducto) |
+| `sanic_cm_ct_agenteid` | Lookup → Agente | (por Agente) |
+| `sanic_cm_ct_fiador` | Lookup → Fiador | (por NombreFianza) |
+| `sanic_cm_ct_saldovencidonio` `sanic_cm_ct_saldovencidousd` `sanic_cm_ct_totalsaldovencido` `sanic_cm_ct_contagiadousd` `sanic_cm_ct_pagominimonio` `sanic_cm_ct_pagominimousd` `sanic_cm_ct_retironio` `sanic_cm_ct_retirousd` | Decimal | montos |
+| `sanic_cm_ct_diasmora` `sanic_cm_ct_nivelmora` | Whole Number | DiasMora, NivelMora |
+| `sanic_cm_ct_fechaultimopago` `sanic_cm_ct_fechapago` | DateTime | FechaUltimoPago, FechaPago |
+| `sanic_cm_ct_ciclo` `sanic_cm_ct_tipoasignacion` `sanic_cm_ct_tipoespecial` `sanic_cm_ct_nota` | Text | Ciclo, TipoAsignacion, TipoEspecial, Nota |
 
 ### Relaciones (1:N)
 `Cliente → Direccion` · `Cliente → Telefono` · `Cliente → CuentaMora` · `Producto → CuentaMora` ·
@@ -71,58 +71,58 @@
 
 | # | Target Table | Processing Order | Dedup Columns |
 |---|--------------|:---:|---------------|
-| 1 | `sanic_cliente` | 1 | `sanic_cif` |
-| 2 | `sanic_producto` | 1 | `sanic_codigo` |
-| 3 | `sanic_agente` | 1 | `sanic_nombre` |
-| 4 | `sanic_fiador` | 1 | `sanic_nombre` |
-| 5 | `sanic_direccion` (Casa) | 2 | `sanic_cif,sanic_tipo` |
-| 6 | `sanic_direccion` (EC) | 2 | `sanic_cif,sanic_tipo` |
-| 7 | `sanic_direccion` (Trabajo) | 2 | `sanic_cif,sanic_tipo` |
-| 8 | `sanic_telefono` (Celular) | 2 | `sanic_cif,sanic_tipo` |
-| 9 | `sanic_telefono` (Casa) | 2 | `sanic_cif,sanic_tipo` |
-| 10 | `sanic_cuenta` | 3 | `sanic_numerocuenta` |
+| 1 | `sanic_cm_tbl_cliente` | 1 | `sanic_cm_cl_cif` |
+| 2 | `sanic_cm_tbl_producto` | 1 | `sanic_cm_pr_codigo` |
+| 3 | `sanic_cm_tbl_agente` | 1 | `sanic_cm_ag_nombre` |
+| 4 | `sanic_cm_tbl_fiador` | 1 | `sanic_cm_fi_nombre` |
+| 5 | `sanic_cm_tbl_direccion` (Casa) | 2 | `sanic_cm_dr_cif,sanic_cm_dr_tipo` |
+| 6 | `sanic_cm_tbl_direccion` (EC) | 2 | `sanic_cm_dr_cif,sanic_cm_dr_tipo` |
+| 7 | `sanic_cm_tbl_direccion` (Trabajo) | 2 | `sanic_cm_dr_cif,sanic_cm_dr_tipo` |
+| 8 | `sanic_cm_tbl_telefono` (Celular) | 2 | `sanic_cm_tl_cif,sanic_cm_tl_tipo` |
+| 9 | `sanic_cm_tbl_telefono` (Casa) | 2 | `sanic_cm_tl_cif,sanic_cm_tl_tipo` |
+| 10 | `sanic_cm_tbl_cuenta` | 3 | `sanic_cm_ct_numerodecuenta` |
 
 > 💡 **La sutileza clave:** Smelter genera **1 registro por Table Mapping por fila**. Como cada fila trae
 > 3 direcciones y 2 teléfonos, creás **un Table Mapping por cada una**, todos apuntando a la misma tabla,
-> diferenciados por el **DefaultValue del campo `sanic_tipo`** y por qué columna del CSV mapean.
+> diferenciados por el **DefaultValue del campo tipo** (`sanic_cm_dr_tipo` / `sanic_cm_tl_tipo`) y por qué columna del CSV mapean.
 
 ### Column Mappings por Table Mapping
 
-**Cliente:** Cliente→`sanic_nombre`, CIF→`sanic_cif`, Departamento→`sanic_departamento`, Distrito→`sanic_distrito`, Trabajo→`sanic_trabajo`.
+**Cliente:** Cliente→`sanic_cm_cl_nombre`, CIF→`sanic_cm_cl_cif`, Departamento→`sanic_cm_cl_departamento`, Distrito→`sanic_cm_cl_distrito`, Trabajo→`sanic_cm_cl_trabajo`.
 
-**Producto:** CodigoProducto→`sanic_codigo`, TipoProducto→`sanic_tipo`.
+**Producto:** CodigoProducto→`sanic_cm_pr_codigo`, TipoProducto→`sanic_cm_pr_tipo`.
 
-**Agente:** Agente→`sanic_nombre`.
+**Agente:** Agente→`sanic_cm_ag_nombre`.
 
-**Fiador:** NombreFianza→`sanic_nombre`, DireccionFianza→`sanic_direccion`.
+**Fiador:** NombreFianza→`sanic_cm_fi_nombre`, DireccionFianza→`sanic_cm_fi_direccion`.
 
-**Direccion (Casa):** DireccionCasa→`sanic_direccion`, CIF→`sanic_cif`, `sanic_tipo` = **Default "Casa"** (Source Column vacío).
-**Direccion (EC):** DireccionEC→`sanic_direccion`, CIF→`sanic_cif`, `sanic_tipo` = Default "EC".
-**Direccion (Trabajo):** DireccionTrabajo→`sanic_direccion`, CIF→`sanic_cif`, `sanic_tipo` = Default "Trabajo".
+**Direccion (Casa):** DireccionCasa→`sanic_cm_dr_direccion`, CIF→`sanic_cm_dr_cif`, `sanic_cm_dr_tipo` = **Default "Casa"** (Source Column vacío).
+**Direccion (EC):** DireccionEC→`sanic_cm_dr_direccion`, CIF→`sanic_cm_dr_cif`, `sanic_cm_dr_tipo` = Default "EC".
+**Direccion (Trabajo):** DireccionTrabajo→`sanic_cm_dr_direccion`, CIF→`sanic_cm_dr_cif`, `sanic_cm_dr_tipo` = Default "Trabajo".
 
-**Telefono (Celular):** NumeroCelular→`sanic_numero`, CIF→`sanic_cif`, `sanic_tipo` = Default "Celular".
-**Telefono (Casa):** NumeroCasa→`sanic_numero`, CIF→`sanic_cif`, `sanic_tipo` = Default "Casa".
+**Telefono (Celular):** NumeroCelular→`sanic_cm_tl_numero`, CIF→`sanic_cm_tl_cif`, `sanic_cm_tl_tipo` = Default "Celular".
+**Telefono (Casa):** NumeroCasa→`sanic_cm_tl_numero`, CIF→`sanic_cm_tl_cif`, `sanic_cm_tl_tipo` = Default "Casa".
 
-**CuentaMora:** NumeroCuenta→`sanic_numerocuenta`; los 8 montos→sus decimales (Data Type **Decimal**); DiasMora/NivelMora→**Whole Number**; FechaUltimoPago/FechaPago→**DateTime**; Ciclo/TipoAsignacion/TipoEspecial/Nota→Text. (Los valores de CIF, CodigoProducto, Agente, NombreFianza los lee el Relationship Mapping, no hace falta column mapping propio salvo que quieras guardarlos.)
+**CuentaMora:** NumeroCuenta→`sanic_cm_ct_numerodecuenta`; los 8 montos→sus decimales (Data Type **Decimal**); DiasMora/NivelMora→**Whole Number**; FechaUltimoPago/FechaPago→**DateTime**; Ciclo/TipoAsignacion/TipoEspecial/Nota→Text. (Los valores de CIF, CodigoProducto, Agente, NombreFianza los lee el Relationship Mapping, no hace falta column mapping propio salvo que quieras guardarlos.)
 
 ### Relationship Mappings (resuelven los lookups por valor de negocio)
 
 | Parent | Child | Lookup Column On Child | Parent Dedup Columns (del CSV) |
 |--------|-------|------------------------|--------------------------------|
-| Cliente | Direccion (x3) | `sanic_clienteid` | CIF |
-| Cliente | Telefono (x2) | `sanic_clienteid` | CIF |
-| Cliente | CuentaMora | `sanic_clienteid` | CIF |
-| Producto | CuentaMora | `sanic_productoid` | CodigoProducto |
-| Agente | CuentaMora | `sanic_agenteid` | Agente |
-| Fiador | CuentaMora | `sanic_fiadorid` | NombreFianza |
+| Cliente | Direccion (x3) | `sanic_cm_dr_clienteid` | CIF |
+| Cliente | Telefono (x2) | `sanic_cm_tl_clienteid` | CIF |
+| Cliente | CuentaMora | `sanic_cm_ct_clienteid` | CIF |
+| Producto | CuentaMora | `sanic_cm_ct_productoid` | CodigoProducto |
+| Agente | CuentaMora | `sanic_cm_ct_agenteid` | Agente |
+| Fiador | CuentaMora | `sanic_cm_ct_fiador` | NombreFianza |
 
 ---
 
 ## 3. Advertencias (las que te van a morder si no las cuidás)
 
-1. **TODAS las alt keys deben estar `Active`** antes de importar: `sanic_cif`, `sanic_codigo`,
-   `sanic_nombre` (agente y fiador), `sanic_numerocuenta`, y las **compuestas** `sanic_cif+sanic_tipo`
-   (dirección y teléfono). Sin ellas → `TargetData` (lo que ya viviste con `contact`).
+1. **TODAS las alt keys deben estar `Active`** antes de importar: `sanic_cm_pk_cliente_cif`, `sanic_cm_pk_producto_codigo`,
+   `sanic_cm_pk_agente_nombre` (agente) y `sanic_cm_pk_fi_nombre` (fiador), `sanic_cm_pk_ct_numerodecuenta`, y las **compuestas** `sanic_cm_pk_direccion_cif_tipo`
+   y `sanic_cm_pk_telefono_cif_tipo` (dirección y teléfono). Sin ellas → `TargetData` (lo que ya viviste con `contact`).
 2. **El truco de la alt key compuesta:** copiamos el `CIF` como texto dentro de Dirección/Teléfono y la
    alt key es `cif+tipo` (texto), NO sobre el lookup. Así el upsert es directo; el lookup al Cliente lo
    setea el Relationship Mapping aparte. (Una alt key sobre un lookup es más frágil — la evitamos.)
@@ -137,28 +137,28 @@
 
 ## 4. Histórico diario (el archivo se sube cada día)
 
-`sanic_cuenta` guarda el **estado ACTUAL** (upsert por NumeroCuenta → pisa lo anterior). Para la
+`sanic_cm_tbl_cuenta` guarda el **estado ACTUAL** (upsert por NumeroCuenta → pisa lo anterior). Para la
 **historia** (cuántas veces se cargó, qué agente cada día) se agrega una tabla snapshot diaria.
 
 > **Requiere una columna nueva en el CSV: `FechaCarga`** (la fecha del día, puesta por el sistema origen).
 > Sin esa columna no hay forma de fechar el snapshot.
 
-### `sanic_cargadiaria` — Snapshot diario · **Alt key: `sanic_numerocuenta` + `sanic_fechacarga`**
+### `sanic_cm_tbl_cargadiaria` — Snapshot diario · **Alt key: `sanic_cm_pk_cd_numerocuenta_fechacarga`**
 | Columna | Tipo | Del CSV |
 |---------|------|---------|
-| `sanic_numerocuenta` | Text | NumeroCuenta *(copiado para la alt key)* |
-| `sanic_fechacarga` | DateTime (Date Only) | **FechaCarga** *(columna nueva)* |
-| `sanic_cuentaid` | Lookup → CuentaMora | (por NumeroCuenta) |
-| `sanic_clienteid` | Lookup → Cliente | (por CIF) — opcional, para reportes por cliente |
-| `sanic_agenteid` | Lookup → Agente | (por Agente) |
-| `sanic_tipoasignacion` | Text | TipoAsignacion |
-| `sanic_saldovencidonio` … `sanic_retirousd` | Decimal | snapshot de montos del día |
-| `sanic_diasmora` `sanic_nivelmora` | Whole Number | mora del día |
+| `sanic_cm_cd_numerocuenta` | Text | NumeroCuenta *(copiado para la alt key)* |
+| `sanic_cm_cd_fechacarga` | DateTime (Date Only) | **FechaCarga** *(columna nueva)* |
+| `sanic_cm_cd_cuenta` | Lookup → CuentaMora | (por NumeroCuenta) |
+| `sanic_cm_cd_clienteid` | Lookup → Cliente | (por CIF) — opcional, para reportes por cliente |
+| `sanic_cm_cd_agenteid` | Lookup → Agente | (por Agente) |
+| `sanic_cm_cd_tipoasignacion` | Text | TipoAsignacion |
+| `sanic_cm_cd_saldovencidonio` … `sanic_cm_cd_retirousd` | Decimal | snapshot de montos del día |
+| `sanic_cm_cd_diasmora` `sanic_cm_cd_nivelmora` | Whole Number | mora del día |
 
 ### Cómo encaja en el template
-- **Table Mapping #11**: target `sanic_cargadiaria`, Processing Order **4**, dedup `sanic_numerocuenta,sanic_fechacarga`.
-- **Column Mappings**: NumeroCuenta→`sanic_numerocuenta`, FechaCarga→`sanic_fechacarga` (DateTime; si el formato no es ISO, `DATEPARSE(FechaCarga,"dd/MM/yyyy")`), Agente→lookup, TipoAsignacion, + los 8 montos (Decimal) y DiasMora/NivelMora (Whole Number).
-- **Relationship Mappings**: `CuentaMora → CargaDiaria` (`sanic_cuentaid`, por NumeroCuenta) · `Agente → CargaDiaria` (`sanic_agenteid`, por Agente) · `Cliente → CargaDiaria` (`sanic_clienteid`, por CIF, opcional).
+- **Table Mapping #11**: target `sanic_cm_tbl_cargadiaria`, Processing Order **4**, dedup `sanic_cm_cd_numerocuenta,sanic_cm_cd_fechacarga`.
+- **Column Mappings**: NumeroCuenta→`sanic_cm_cd_numerocuenta`, FechaCarga→`sanic_cm_cd_fechacarga` (DateTime; si el formato no es ISO, `DATEPARSE(FechaCarga,"dd/MM/yyyy")`), Agente→lookup, TipoAsignacion, + los 8 montos (Decimal) y DiasMora/NivelMora (Whole Number).
+- **Relationship Mappings**: `CuentaMora → CargaDiaria` (`sanic_cm_cd_cuenta`, por NumeroCuenta) · `Agente → CargaDiaria` (`sanic_cm_cd_agenteid`, por Agente) · `Cliente → CargaDiaria` (`sanic_cm_cd_clienteid`, por CIF, opcional).
 
 ### Por qué NO "guardar solo si cambió"
 En cobranza `DiasMora` sube +1 cada día y los saldos varían → casi nunca dos días traen lo mismo, así que
@@ -166,6 +166,6 @@ el ahorro de un snapshot "liviano condicional" no se activa. Y detectar el cambi
 lógica custom en el plugin) que Smelter no tiene. Snapshot completo diario = simple y sin desperdicio real.
 
 ### Consultas que habilita
-- *"¿Cuántas veces se cargó la cuenta X?"* → `count` de `cargadiaria` por `sanic_cuentaid`.
-- *"¿Qué agente la tenía el día X?"* → `cargadiaria` filtrada por cuenta + `sanic_fechacarga` = X.
-- *"Evolución de la mora"* → serie de `sanic_diasmora` / saldos por `sanic_fechacarga`.
+- *"¿Cuántas veces se cargó la cuenta X?"* → `count` de `cargadiaria` por `sanic_cm_cd_cuenta`.
+- *"¿Qué agente la tenía el día X?"* → `cargadiaria` filtrada por cuenta + `sanic_cm_cd_fechacarga` = X.
+- *"Evolución de la mora"* → serie de `sanic_cm_cd_diasmora` / saldos por `sanic_cm_cd_fechacarga`.

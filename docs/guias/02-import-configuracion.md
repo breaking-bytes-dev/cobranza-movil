@@ -19,7 +19,7 @@
 | `cargadiaria` (snapshot) | |
 | **`asignacion`** (Diaria/Incobrable) ← **NUEVO** | |
 
-> `agente.sanic_usuario` **no** lo pone el import (lo setea el Admin, Comp. 04). Las **asignaciones
+> `agente.sanic_cm_ag_usuarioid` **no** lo pone el import (lo setea el Admin, Comp. 04). Las **asignaciones
 > Especiales** **no** vienen por CSV (nacen en la app, DEC-013).
 
 ---
@@ -30,44 +30,44 @@
   `cargadiaria`), sus Column/Relationship Mappings, alt keys y advertencias.
 - 🟡 **Reconciliado:** rename `cuentamora` → `cuenta` (aplicado); `FechaCarga` confirmado como **columna del
   CSV** (no `createdon`).
-- 🆕 **Nuevo (este doc):** Table Mapping de **`sanic_asignacion`** + manejo del `tipo` Choice.
+- 🆕 **Nuevo (este doc):** Table Mapping de **`sanic_cm_tbl_asignacion`** + manejo del `tipo` Choice.
 
 ---
 
-## 3. Nuevo Table Mapping #12 — `sanic_asignacion`
+## 3. Nuevo Table Mapping #12 — `sanic_cm_tbl_asignacion`
 
 Puebla la asignación operativa **Diaria/Incobrable** desde el CSV (las Especiales **no** pasan por acá).
 
 | Propiedad | Valor |
 |-----------|-------|
-| Target Table | `sanic_asignacion` |
+| Target Table | `sanic_cm_tbl_asignacion` |
 | Processing Order | **4** (después de `cuenta` y `agente`; junto a `cargadiaria`) |
-| Dedup / Alt key | **`sanic_numerocuenta` + `sanic_tipo`** |
+| Dedup / Alt key | **`sanic_cm_as_numerocuenta` + `sanic_cm_as_tipo`** |
 
 ### Column Mappings
 | CSV | → Columna | Notas |
 |-----|-----------|-------|
-| `NumeroCuenta` | `sanic_numerocuenta` | Copiado (texto) para la alt key. |
-| `TipoAsignacion` | `sanic_tipo` | **Texto → Choice** (ver §4). |
-| — | `sanic_estado` | **Default `Activa`** (no viene del CSV). El upsert la re-activa si reaparece (DEC-018). |
-| `FechaCarga` | `sanic_ultimacarga` | Marca la última carga en que la cuenta vino → base del **sweep** (DEC-018, §9). |
-| — | `sanic_fechaasignacion` | Default = fecha del archivo (o `FechaCarga`), a definir en config. |
-| `sanic_orden` | — | **NO se mapea** (no pisar la prioridad del localizador, DEC-012). |
+| `NumeroCuenta` | `sanic_cm_as_numerocuenta` | Copiado (texto) para la alt key. |
+| `TipoAsignacion` | `sanic_cm_as_tipo` | **Texto → Choice** (ver §4). |
+| — | `sanic_cm_as_estado` | **Default `Activa`** (no viene del CSV). El upsert la re-activa si reaparece (DEC-018). |
+| `FechaCarga` | `⚠️TODO(sanic_ultimacarga)` | Marca la última carga en que la cuenta vino → base del **sweep** (DEC-018, §9). |
+| — | `sanic_cm_as_fechasignacion` | Default = fecha del archivo (o `FechaCarga`), a definir en config. |
+| `sanic_cm_as_orden` | — | **NO se mapea** (no pisar la prioridad del localizador, DEC-012). |
 
 ### Relationship Mappings (resuelven los lookups por valor de negocio)
 | Parent | Lookup en asignacion | Dedup del parent (CSV) |
 |--------|----------------------|------------------------|
-| `cuenta` | `sanic_cuentaid` | `NumeroCuenta` |
-| `agente` | `sanic_agenteid` | `Agente` |
+| `cuenta` | `sanic_cm_as_cuentaid` | `NumeroCuenta` |
+| `agente` | `sanic_cm_as_agenteid` | `Agente` |
 
 > El **owner** de la asignación **NO** lo pone Smelter: lo setea un **plugin/flow** en Create/Update desde
-> `agente.sanic_usuario` (Comp. 01 §6, Comp. 12). Es lógica de negocio, no import.
+> `agente.sanic_cm_ag_usuarioid` (Comp. 01 §6, Comp. 12). Es lógica de negocio, no import.
 
 ---
 
 ## 4. Manejo del `tipo` (Choice) en el import
 
-`sanic_tipo` es un **Choice** (Diaria=1 / Incobrable=2 / Especial=3), válido en la alt key
+`sanic_cm_as_tipo` es un **Choice** (Diaria=1 / Incobrable=2 / Especial=3), válido en la alt key
 (`PicklistAttributeMetadata` está soportado — [doc MS](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/define-alternate-keys-entity)).
 El CSV trae **texto**, así que el upsert necesita el **valor**:
 
@@ -103,15 +103,15 @@ El CSV trae **texto**, así que el upsert necesita el **valor**:
 
 | Tabla | Alt key |
 |-------|---------|
-| `cliente` | `sanic_cif` |
-| `producto` | `sanic_codigo` |
-| `agente` | `sanic_nombre` |
-| `fiador` | `sanic_nombre` |
-| `direccion` | `sanic_cif` + `sanic_tipo` |
-| `telefono` | `sanic_cif` + `sanic_tipo` |
-| `cuenta` | `sanic_numerocuenta` |
-| `cargadiaria` | `sanic_numerocuenta` + `sanic_fechacarga` |
-| **`asignacion`** | **`sanic_numerocuenta` + `sanic_tipo`** ← nueva |
+| `cliente` | `sanic_cm_pk_cliente_cif` |
+| `producto` | `sanic_cm_pk_producto_codigo` |
+| `agente` | `sanic_cm_pk_agente_nombre` |
+| `fiador` | `sanic_cm_pk_fi_nombre` |
+| `direccion` | `sanic_cm_pk_direccion_cif_tipo` |
+| `telefono` | `sanic_cm_pk_telefono_cif_tipo` |
+| `cuenta` | `sanic_cm_pk_ct_numerodecuenta` |
+| `cargadiaria` | `sanic_cm_pk_cd_numerocuenta_fechacarga` |
+| **`asignacion`** | **`sanic_cm_as_numerocuenta` + `sanic_cm_as_tipo`** ← nueva |
 
 > ⚠️ **Regla de oro:** alt key faltante o no-`Active` → el import de esa tabla falla con `TargetData`.
 > Máximo **10 alt keys por tabla** y el valor **no** debe contener `/ < > * % & : \ ? +` (rompe el upsert).
@@ -147,7 +147,7 @@ archivo truncado). **Nunca** toca una `Especial`.
 Una cuenta **`Diaria`** que deja de venir en la carga quedaría `Activa` colgada del localizador. Para sacarla,
 **el Admin ejecuta una función en la PowerApp** (NO es automática):
 
-1. El import setea **`sanic_ultimacarga = FechaCarga`** y `estado = Activa` en **cada upsert** de `asignacion`.
+1. El import setea **`⚠️TODO(sanic_ultimacarga) = FechaCarga`** y `estado = Activa` en **cada upsert** de `asignacion`.
 2. El **Admin abre la función**. Calcula candidatas (`Diaria` + `Activa` + `ultimacarga < última carga`) y
    muestra **preview**: cantidad, **% sobre Diarias activas** y fecha de carga.
 3. **Umbral de cordura visible:** si el % supera el umbral (ej. >20–30%), lo marca en rojo ("archivo

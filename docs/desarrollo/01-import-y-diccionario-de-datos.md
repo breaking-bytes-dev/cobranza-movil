@@ -115,7 +115,7 @@
 - Una **reasignación manual** hecha durante el día **se respeta hasta el próximo import**.
 - Al día siguiente, el CSV es la **nueva foto** **solo para las Diarias**.
 - El import **nunca** pisa **Incobrables** ni **Especiales**, ni el **orden** que el localizador puso a su
-  cartera (ese orden vive en `sanic_asignacion`, fuera del snapshot).
+  cartera (ese orden vive en `sanic_cm_tbl_asignacion`, fuera del snapshot).
 
 ---
 
@@ -125,5 +125,5 @@
 |-------------|-----------|
 | `cuenta`, `cliente`, direcciones, teléfonos | La **cartera** que ve el localizador. |
 | `RetiroNIO/USD` | El **objetivo de cobro** del día en la app de campo. |
-| `TipoAsignacion` + `Agente` | Puebla `sanic_asignacion` (Diaria/Incobrable). |
+| `TipoAsignacion` + `Agente` | Puebla `sanic_cm_tbl_asignacion` (Diaria/Incobrable). |
 | `cargadiaria` (snapshot) | El **histórico financiero** diario (evolución de mora/saldos). |

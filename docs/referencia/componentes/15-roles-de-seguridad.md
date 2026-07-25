@@ -36,7 +36,7 @@
 | **As** | Assign | Cambiar el **owner** (reasignar). |
 
 > 🧨 **El asesino silencioso: Append / AppendTo.** Para **crear una interacción ligada a una cuenta** hacen
-> falta **DOS** permisos: `Append` en `sanic_interaccion` **y** `AppendTo` en `sanic_cuenta`. Si te olvidás el
+> falta **DOS** permisos: `Append` en `sanic_cm_tbl_interaccion` **y** `AppendTo` en `sanic_cm_tbl_cuenta`. Si te olvidás el
 > `AppendTo` del **maestro** (aunque sea solo-lectura), la creación **falla** con un error críptico. Por eso los
 > maestros llevan `ApA = O` para el localizador. **Regla:** todo lookup necesita `AppendTo` en la tabla
 > **apuntada**.
@@ -57,94 +57,94 @@ Cada rol de abajo se **combina** con un piso mínimo para poder entrar y usar ap
 
 ---
 
-## 3. Rol `Localizador`
+## 3. Rol `SR | CM | Localizador`
 
 > Gestiona **solo su cartera** (owner). Captura interacciones/pagos. **No** edita maestros; **solo** reordena.
 
 | Tabla | C | R | E | D | Ap | ApA | As |
 |-------|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
-| `sanic_asignacion` | — | **U** | **U** ¹ | — | U | U | — |
-| `sanic_interaccion` | **U** | U | U | — | **U** | U | — |
-| `sanic_pago` | **U** | U | U | — | **U** | U | — |
-| `sanic_actualizaciondatos` | **U** | U | U | — | U | U | — |
-| `sanic_cuenta` | — | **O** | — | — | — | **O** ² | — |
-| `sanic_cliente` | — | **O** | — | — | — | O | — |
-| `sanic_direccion` | — | **O** | — | — | — | — | — |
-| `sanic_telefono` | — | **O** | — | — | — | — | — |
-| `sanic_producto` | — | O | — | — | — | O | — |
-| `sanic_fiador` | — | O | — | — | — | O | — |
-| `sanic_agente` | — | O | — | — | — | **O** ² | — |
-| `sanic_cargadiaria` | — | — | — | — | — | — | — |
+| `sanic_cm_tbl_asignacion` | — | **U** | **U** ¹ | — | U | U | — |
+| `sanic_cm_tbl_interaccion` | **U** | U | U | — | **U** | U | — |
+| `sanic_cm_tbl_pago` | **U** | U | U | — | **U** | U | — |
+| `sanic_cm_tbl_actualizaciondatos` | **U** | U | U | — | U | U | — |
+| `sanic_cm_tbl_cuenta` | — | **O** | — | — | — | **O** ² | — |
+| `sanic_cm_tbl_cliente` | — | **O** | — | — | — | O | — |
+| `sanic_cm_tbl_direccion` | — | **O** | — | — | — | — | — |
+| `sanic_cm_tbl_telefono` | — | **O** | — | — | — | — | — |
+| `sanic_cm_tbl_producto` | — | O | — | — | — | O | — |
+| `sanic_cm_tbl_fiador` | — | O | — | — | — | O | — |
+| `sanic_cm_tbl_agente` | — | O | — | — | — | **O** ² | — |
+| `sanic_cm_tbl_cargadiaria` | — | — | — | — | — | — | — |
 
 **Notas:**
-1. **Escribe solo `sanic_orden`.** Para que no pueda tocar otros campos de la asignación, aplicá **seguridad a
-   nivel de columna** (Field Security Profile): todas las columnas de `sanic_asignacion` **restringidas**, menos
-   `sanic_orden` (Read+Update para el localizador). El `E=U` de la matriz habilita el privilegio; la columna lo acota.
-2. `AppendTo O` en **cuenta** y **agente** es **obligatorio**: la interacción tiene lookups a `sanic_cuentaid` y
-   `sanic_agenteid` → sin esto, **no puede crear la interacción**. En `producto/fiador/cliente` va por prolijidad
+1. **Escribe solo `sanic_cm_as_orden`.** Para que no pueda tocar otros campos de la asignación, aplicá **seguridad a
+   nivel de columna** (Field Security Profile): todas las columnas de `sanic_cm_tbl_asignacion` **restringidas**, menos
+   `sanic_cm_as_orden` (Read+Update para el localizador). El `E=U` de la matriz habilita el privilegio; la columna lo acota.
+2. `AppendTo O` en **cuenta** y **agente** es **obligatorio**: la interacción tiene lookups a `sanic_cm_in_cuentaid` y
+   `sanic_cm_as_agenteid` → sin esto, **no puede crear la interacción**. En `producto/fiador/cliente` va por prolijidad
    (navegación y futuros lookups).
 
 ---
 
-## 4. Rol `Backoffice`
+## 4. Rol `SR | CM | Backoffice`
 
 > **Transcribe al core.** Lee todo lo operativo; **escribe solo** los campos de transcripción de la interacción.
 
 | Tabla | C | R | E | D | Ap | ApA | As |
 |-------|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
-| `sanic_interaccion` | — | **O** | **O** ¹ | — | — | O | — |
-| `sanic_pago` | — | **O** | — | — | — | — | — |
-| `sanic_asignacion` | — | **O** | — | — | — | — | — |
-| `sanic_cuenta` / `sanic_cliente` | — | O | — | — | — | — | — |
-| `sanic_direccion` / `sanic_telefono` | — | O | — | — | — | — | — |
-| `sanic_producto` / `sanic_fiador` / `sanic_agente` | — | O | — | — | — | — | — |
-| `sanic_cargadiaria` | — | O ² | — | — | — | — | — |
+| `sanic_cm_tbl_interaccion` | — | **O** | **O** ¹ | — | — | O | — |
+| `sanic_cm_tbl_pago` | — | **O** | — | — | — | — | — |
+| `sanic_cm_tbl_asignacion` | — | **O** | — | — | — | — | — |
+| `sanic_cm_tbl_cuenta` / `sanic_cm_tbl_cliente` | — | O | — | — | — | — | — |
+| `sanic_cm_tbl_direccion` / `sanic_cm_tbl_telefono` | — | O | — | — | — | — | — |
+| `sanic_cm_tbl_producto` / `sanic_cm_tbl_fiador` / `sanic_cm_tbl_agente` | — | O | — | — | — | — | — |
+| `sanic_cm_tbl_cargadiaria` | — | O ² | — | — | — | — | — |
 
 **Notas:**
-1. **Escribe solo** `sanic_codigocore`, `sanic_estadotranscripcion`, `sanic_fechagrabacore`, `sanic_grabadaporid`.
+1. **Escribe solo** `sanic_cm_in_codigograbacion`, `sanic_cm_in_estadograbacion`, `sanic_cm_in_fechagrabacion`, `sanic_cm_in_grabadopor`.
    Acotalo con **seguridad a nivel de columna** (el resto de la interacción — comentario, geo — **inmutable**).
 2. Lectura del monitoreo del import **opcional** (Comp. 01 §5 nota 4). Disparar el import es del **Admin**.
 
 ---
 
-## 5. Rol `Solicitante`
+## 5. Rol `SR | CM | Solicitante`
 
 > Crea **asignaciones Especiales** y, si faltan, los **datos maestros** del cliente/cuenta (DEC-013).
 
 | Tabla | C | R | E | D | Ap | ApA | As |
 |-------|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
-| `sanic_asignacion` | **O** | O | O | — | O | O | — |
-| `sanic_cliente` | **O** | O | O | — | O | O | — |
-| `sanic_cuenta` | **O** | O | O | — | O | O | — |
-| `sanic_direccion` | **O** | O | O | — | O | O | — |
-| `sanic_telefono` | **O** | O | O | — | O | O | — |
-| `sanic_producto` / `sanic_fiador` | — | O | — | — | — | O | — |
-| `sanic_agente` | — | O | — | — | — | O | — |
-| `sanic_interaccion` / `sanic_pago` | — | — | — | — | — | — | — |
+| `sanic_cm_tbl_asignacion` | **O** | O | O | — | O | O | — |
+| `sanic_cm_tbl_cliente` | **O** | O | O | — | O | O | — |
+| `sanic_cm_tbl_cuenta` | **O** | O | O | — | O | O | — |
+| `sanic_cm_tbl_direccion` | **O** | O | O | — | O | O | — |
+| `sanic_cm_tbl_telefono` | **O** | O | O | — | O | O | — |
+| `sanic_cm_tbl_producto` / `sanic_cm_tbl_fiador` | — | O | — | — | — | O | — |
+| `sanic_cm_tbl_agente` | — | O | — | — | — | O | — |
+| `sanic_cm_tbl_interaccion` / `sanic_cm_tbl_pago` | — | — | — | — | — | — | — |
 
 > La Especial nace `estado=Activa`, `estadoaprobacion=Pendiente`. El **owner** lo pone el flujo cuando el
 > Supervisor asigne el localizador (§8 / Comp. 14). El Solicitante **no** aprueba.
 
 ---
 
-## 6. Rol `Supervisor`
+## 6. Rol `SR | CM | Supervisor`
 
-> **Aprueba/rechaza** Especiales y **asigna el localizador** (setea `sanic_agenteid`).
+> **Aprueba/rechaza** Especiales y **asigna el localizador** (setea `sanic_cm_as_agenteid`).
 
 | Tabla | C | R | E | D | Ap | ApA | As |
 |-------|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
-| `sanic_asignacion` | — | **O** | **O** ¹ | — | O | O | — |
-| `sanic_interaccion` / `sanic_pago` | — | O | — | — | — | — | — |
-| `sanic_cuenta` / `sanic_cliente` | — | O | — | — | — | — | — |
-| `sanic_direccion` / `sanic_telefono` | — | O | — | — | — | — | — |
-| `sanic_producto` / `sanic_fiador` / `sanic_agente` | — | O | — | — | — | O | — |
+| `sanic_cm_tbl_asignacion` | — | **O** | **O** ¹ | — | O | O | — |
+| `sanic_cm_tbl_interaccion` / `sanic_cm_tbl_pago` | — | O | — | — | — | — | — |
+| `sanic_cm_tbl_cuenta` / `sanic_cm_tbl_cliente` | — | O | — | — | — | — | — |
+| `sanic_cm_tbl_direccion` / `sanic_cm_tbl_telefono` | — | O | — | — | — | — | — |
+| `sanic_cm_tbl_producto` / `sanic_cm_tbl_fiador` / `sanic_cm_tbl_agente` | — | O | — | — | — | O | — |
 
-**Nota 1:** escribe `sanic_estadoaprobacion`, `sanic_supervisorid`, `sanic_agenteid`, `sanic_motivorechazo`.
+**Nota 1:** escribe `sanic_cm_as_estadoaprobacion`, `sanic_cm_as_resolutorid` ⚠️TODO(sanic_supervisorid→resolutorid: confirmar), `sanic_cm_as_agenteid`, `sanic_cm_as_motivo` ⚠️TODO(sanic_motivorechazo→motivo: confirmar).
 **No** necesita `Assign` — cambia el **lookup del agente** (Write), y el **owner lo pone el flujo** (Comp. 14).
 
 ---
 
-## 7. Rol `Admin`
+## 7. Rol `SR | CM | Admin`
 
 > Administra **todo**: reconciliación (DEC-018), cierres (DEC-020), links agente↔usuario, import.
 
@@ -159,28 +159,28 @@ Cada rol de abajo se **combina** con un piso mínimo para poder entrar y usar ap
 
 ---
 
-## 8. Rol `Servicio · Cobranza` (cuentas de servicio — flujo + import) 🔑
+## 8. Rol `SR | CM | Servicio - Cobranza` (cuentas de servicio — flujo + import) 🔑
 
 > **No es para personas.** Es el rol de las **cuentas de servicio / connection references** de: (a) el **flujo
 > del owner** ([Comp. 14](14-automatizacion-owner-asignacion.md)) y (b) el **import Smelter**.
 
 | Tabla | C | R | E | D | Ap | ApA | **As** |
 |-------|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
-| `sanic_asignacion` | **O** | O | **O** | — | O | O | **O** ¹ |
-| `sanic_agente` | O ² | O | O ² | — | O | O | — |
-| `sanic_cuenta` | O ² | O | O ² | — | O | O | — |
-| `sanic_cliente` / `sanic_direccion` / `sanic_telefono` | O ² | O | O ² | — | O | O | — |
-| `sanic_producto` / `sanic_fiador` | O ² | O | O ² | — | O | O | — |
-| `sanic_cargadiaria` | O ² | O | O ² | — | O | O | — |
+| `sanic_cm_tbl_asignacion` | **O** | O | **O** | — | O | O | **O** ¹ |
+| `sanic_cm_tbl_agente` | O ² | O | O ² | — | O | O | — |
+| `sanic_cm_tbl_cuenta` | O ² | O | O ² | — | O | O | — |
+| `sanic_cm_tbl_cliente` / `sanic_cm_tbl_direccion` / `sanic_cm_tbl_telefono` | O ² | O | O ² | — | O | O | — |
+| `sanic_cm_tbl_producto` / `sanic_cm_tbl_fiador` | O ² | O | O ² | — | O | O | — |
+| `sanic_cm_tbl_cargadiaria` | O ² | O | O ² | — | O | O | — |
 | `systemuser` (tabla del sistema) | — | **O** ³ | — | — | — | — | — |
 
 **Notas:**
-1. **`Assign O` en `sanic_asignacion` es LA razón de ser de este rol.** Sin `Assign`, el flujo **no puede
+1. **`Assign O` en `sanic_cm_tbl_asignacion` es LA razón de ser de este rol.** Sin `Assign`, el flujo **no puede
    cambiar el owner** → todo el aislamiento no funciona (Comp. 14 §5).
 2. **Create/Write** en maestros = para el **import (Smelter)**, que upsertea. Si separás la cuenta del **flujo**
-   de la del **import**, la del flujo solo necesita `sanic_asignacion` (R/W/Assign) + `sanic_agente` (R) +
+   de la del **import**, la del flujo solo necesita `sanic_cm_tbl_asignacion` (R/W/Assign) + `sanic_cm_tbl_agente` (R) +
    `systemuser` (R); la del import lleva el resto.
-3. **Read en `systemuser`** = para que el flujo resuelva `sanic_agente.sanic_usuario` → el usuario destino.
+3. **Read en `systemuser`** = para que el flujo resuelva `sanic_cm_tbl_agente.sanic_cm_ag_usuarioid` → el usuario destino.
 
 > **Buenas prácticas:** cuenta de servicio **dedicada** (no un humano), con este rol y **nada más**; conexión vía
 > **connection reference** en la solución (ALM), no credenciales embebidas.
@@ -191,8 +191,8 @@ Cada rol de abajo se **combina** con un piso mínimo para poder entrar y usar ap
 
 - **Append/AppendTo faltantes** → el error más común. Si "no puede guardar la interacción/pago", revisá
   `Append` en la tabla hija y `AppendTo` en **cada** tabla apuntada por un lookup (incluidos maestros).
-- **`Assign` del servicio** → si el owner "no cambia", casi seguro le falta `Assign O` en `sanic_asignacion`.
-- **Seguridad de columna (Field Security)** → recomendada para acotar Localizador (solo `sanic_orden`) y
+- **`Assign` del servicio** → si el owner "no cambia", casi seguro le falta `Assign O` en `sanic_cm_tbl_asignacion`.
+- **Seguridad de columna (Field Security)** → recomendada para acotar Localizador (solo `sanic_cm_as_orden`) y
   Backoffice (solo campos de transcripción). El privilegio de tabla habilita; la columna acota.
 - **Compartir apagado** salvo Admin → mantiene `PrincipalObjectAccess` chico (performance).
 

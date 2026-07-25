@@ -1,4 +1,4 @@
-# Componente: Tabla `sanic_producto`
+# Componente: Tabla `sanic_cm_tbl_producto`
 
 > **Fase 1 — Modelo de datos · Componente 03 (maestra padre / catálogo).**
 > Catálogo del **producto en mora** (tarjeta o préstamo). La puebla el import por `CodigoProducto`.
@@ -17,14 +17,14 @@ Clasificar el producto que está en mora, para reportes y agrupaciones. Es **pad
 
 | Nombre lógico | Nombre físico | Tipo | Req. | Del CSV / descripción |
 |---------------|---------------|------|:----:|-----------------------|
-| Código | `sanic_codigo` | Text | ✔ | **Primary name.** `CodigoProducto` — código del producto. **Alt key.** |
-| Tipo | `sanic_tipo` | Text | — | `TipoProducto` — tipo de producto en mora. |
+| Código | `sanic_cm_pr_codigo` | Text | ✔ | **Primary name.** `CodigoProducto` — código del producto. **Alt key.** |
+| Tipo | `sanic_cm_pr_tipo` | Text | — | `TipoProducto` — tipo de producto en mora. |
 
 ---
 
 ## 3. Alternate Key
 
-- **`sanic_codigo`** — el import upsertea por código. **Debe quedar `Active`**.
+- **`sanic_cm_pk_producto_codigo`** (sobre `sanic_cm_pr_codigo`) — el import upsertea por código. **Debe quedar `Active`**.
 
 ---
 
@@ -32,7 +32,7 @@ Clasificar el producto que está en mora, para reportes y agrupaciones. Es **pad
 
 | Relación | Cardinalidad | Columna | Dónde |
 |----------|:------------:|---------|-------|
-| `sanic_producto` → `sanic_cuenta` | 1:N | `sanic_productoid` | Comp. 08 |
+| `sanic_cm_tbl_producto` → `sanic_cm_tbl_cuenta` | 1:N | `sanic_cm_ct_productoid` | Comp. 08 |
 
 ---
 
@@ -45,19 +45,19 @@ Clasificar el producto que está en mora, para reportes y agrupaciones. Es **pad
 
 ## 6. Pasos de construcción
 
-1. Crear la tabla `sanic_producto` (User/Team owned), Primary name `sanic_codigo`.
-2. Crear `sanic_tipo` (Text).
-3. Crear la **Alternate Key** `sanic_codigo` y dejarla **`Active`**.
+1. Crear la tabla `sanic_cm_tbl_producto` (User/Team owned), Primary name `sanic_cm_pr_codigo`.
+2. Crear `sanic_cm_pr_tipo` (Text).
+3. Crear la **Alternate Key** `sanic_cm_pk_producto_codigo` (sobre `sanic_cm_pr_codigo`) y dejarla **`Active`**.
 
 ---
 
 ## 7. Gotchas
 
-- **7.1** Sin la alt key `sanic_codigo` **Active**, el import del producto falla (`TargetData`).
+- **7.1** Sin la alt key `sanic_cm_pk_producto_codigo` **Active**, el import del producto falla (`TargetData`).
 
 ---
 
 ## 8. Dependencias
 
 - **Depende de:** nada (catálogo raíz).
-- **Habilita:** `cuenta` (08).
+- **Habilita:** cuenta (08).
