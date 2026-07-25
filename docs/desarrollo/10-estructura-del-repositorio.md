@@ -110,9 +110,9 @@ verificados (0 rotos), incluidos los de `test-data/README.md`.
 > `solution-release` invoca a `solution-sync` vía `workflow_call` (`needs`), en vez de confiar en el evento.
 > El trigger `release: published` queda igual, para cubrir releases publicados **a mano por un humano**.
 
-> **⚠️ Antes de la primera corrida:** reemplazar `SOLUTION_NAME` (placeholder `sanic_CobranzaMovil`) en
-> **ambos** workflows por el *unique name* real (`pac solution list`), y tener los 4 org secrets cargados.
-> Probar con `workflow_dispatch` (input `version`, ej. `1.0.0.0`) y revisar el log del primer run.
+> **⚠️ Antes de la primera corrida:** `SOLUTION_NAME` ya está seteado en `solution-release.yml`
+> (`cm_core_cobranzamovil`). Falta solo tener los 4 secrets cargados (hecho, repo secrets) y probar con
+> `workflow_dispatch` (input `version`, ej. `1.0.0.0`), revisando el log del primer run.
 
 - Requisito previo: **App Registration** en Entra ID + application user en el entorno Dev con rol
   suficiente para exportar soluciones ([doc 11](../guias/11-service-principal-alm.md)).

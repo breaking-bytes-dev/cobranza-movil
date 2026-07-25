@@ -20,9 +20,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  # ⚠️ REEMPLAZAR por el unique name REAL de la solución (no el display "Cobranza Móvil").
-  #    Sacalo con:  pac solution list   → columna "Unique Name".
-  SOLUTION_NAME: sanic_CobranzaMovil
+  # Unique name de la solución en Dev (columna "Unique Name" de `pac solution list`).
+  SOLUTION_NAME: cm_core_cobranzamovil
 
 jobs:
   export-and-release:
