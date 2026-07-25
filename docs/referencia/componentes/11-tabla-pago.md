@@ -25,7 +25,7 @@ solo se **anota**.
 | Monto | `sanic_cm_pg_monto` | Decimal (2 dec.) | ✔ | localizador — monto cobrado. |
 | Moneda | `sanic_cm_pg_moneda` | Choice NIO / USD | ✔ | localizador — moneda del pago. |
 | Número de recibo | `sanic_cm_pg_numerorecibo` | Text | ✔ | localizador — **número del recibo físico** (talonario). |
-| Fecha del pago | `⚠️TODO(sanic_fechapago)` | DateTime | ✔ | localizador (auto al registrar). **Sin equivalente en el build.** |
+| Fecha del pago | `sanic_cm_pg_fecha` | DateTime | ✔ | localizador (auto al registrar). **Sin equivalente en el build.** |
 | Propietario | `ownerid` | Owner (system) | ✔ | = el **localizador** (creador). User-level. |
 
 > **Decimal, no Money** — consistente con la decisión del import de NO usar el tipo Money para NIO/USD

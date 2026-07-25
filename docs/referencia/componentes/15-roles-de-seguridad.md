@@ -139,7 +139,7 @@ Cada rol de abajo se **combina** con un piso mínimo para poder entrar y usar ap
 | `sanic_cm_tbl_direccion` / `sanic_cm_tbl_telefono` | — | O | — | — | — | — | — |
 | `sanic_cm_tbl_producto` / `sanic_cm_tbl_fiador` / `sanic_cm_tbl_agente` | — | O | — | — | — | O | — |
 
-**Nota 1:** escribe `sanic_cm_as_estadoaprobacion`, `sanic_cm_as_resolutorid` ⚠️TODO(sanic_supervisorid→resolutorid: confirmar), `sanic_cm_as_agenteid`, `sanic_cm_as_motivo` ⚠️TODO(sanic_motivorechazo→motivo: confirmar).
+**Nota 1:** escribe `sanic_cm_as_estadoaprobacion`, `sanic_cm_as_resolutorid` sanic_cm_as_resolutorid, `sanic_cm_as_agenteid`, `sanic_cm_as_motivo` sanic_cm_as_motivorechazo.
 **No** necesita `Assign` — cambia el **lookup del agente** (Write), y el **owner lo pone el flujo** (Comp. 14).
 
 ---

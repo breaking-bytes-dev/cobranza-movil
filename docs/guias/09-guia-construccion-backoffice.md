@@ -129,7 +129,7 @@ entrega** alcanza con lo que hace falta para ver la cola; el resto (field securi
    (ascendente: lo más viejo primero).
 5. **Columnas** — agregá/quitá para que queden (botón **+ Ver columna** / **Related** para las de tablas
    vinculadas):
-   - **Fecha de interacción** (`⚠️TODO(sanic_fechainteraccion)`)
+   - **Fecha de interacción** (`sanic_cm_in_fechacaptura`)
    - **Cliente** → columna **relacionada**: `Cuenta (sanic_cm_in_cuentaid) → Cliente (sanic_cm_ct_clienteid) → Nombre (sanic_cm_cl_nombre)`.
      *(En el selector, entrá por la relación `Cuenta` y después `Cliente` para llegar al `Nombre`.)*
    - **Cuenta** (`sanic_cm_in_cuentaid` — el número)

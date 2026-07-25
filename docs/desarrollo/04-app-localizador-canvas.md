@@ -652,13 +652,13 @@ If(
 ```powerapps
 Set(varInt, Patch(sanic_cm_tbl_interaccion, Defaults(sanic_cm_tbl_interaccion), {
     sanic_cm_in_cuentaid: varCuentaSel, sanic_cm_in_agente: gblAgente, sanic_cm_in_comentario: txtComentario.Value,
-    ⚠️TODO(sanic_fechainteraccion): Now(), sanic_cm_cd_aplicapago: tgPago.Value, sanic_cm_in_actualizainfo: tgDatos.Value,
+    sanic_cm_in_fechacaptura: Now(), sanic_cm_cd_aplicapago: tgPago.Value, sanic_cm_in_actualizainfo: tgDatos.Value,
     sanic_cm_in_latitud: Location.Latitude, sanic_cm_in_longitud: Location.Longitude,
     sanic_cm_in_estadograbacion: ⚠️TODO('Estado transcripción'.Pendiente) }));
 If(tgPago.Value, ForAll(Filter(colPagos, monto>0) As L,
     Patch(sanic_cm_tbl_pago, Defaults(sanic_cm_tbl_pago), { sanic_cm_pg_interaccion: varInt, sanic_cm_pg_monto: L.monto,
         sanic_cm_pg_moneda: Switch(L.moneda,"USD",'Moneda'.USD,'Moneda'.NIO), sanic_cm_pg_numerorecibo: L.recibo,
-        ⚠️TODO(sanic_fechapago): Now() })));
+        sanic_cm_pg_fecha: Now() })));
 If(tgDatos.Value, Patch(sanic_cm_tbl_actualizaciondatos, Defaults(sanic_cm_tbl_actualizaciondatos), {
     sanic_cm_ad_interaccionid: varInt, sanic_cm_ad_telefonocasa: inTelCasa.Value, /* …solo los no vacíos… */
     sanic_cm_ad_correoelectronico: inCorreo.Value }));
@@ -692,9 +692,9 @@ clickeable → detalle de pagos. Sin gamificación.
 
 **Datos (`OnVisible`):**
 ```powerapps
-Set(varIntHoy, Filter(sanic_cm_tbl_interaccion, DateValue(⚠️TODO(sanic_fechainteraccion))=Today()));   // propias de hoy
-Set(cobradoNio, Sum(Filter(sanic_cm_tbl_pago, DateValue(⚠️TODO(sanic_fechapago))=Today(), sanic_cm_pg_moneda='Moneda'.NIO), sanic_cm_pg_monto));
-Set(cobradoUsd, Sum(Filter(sanic_cm_tbl_pago, DateValue(⚠️TODO(sanic_fechapago))=Today(), sanic_cm_pg_moneda='Moneda'.USD), sanic_cm_pg_monto));
+Set(varIntHoy, Filter(sanic_cm_tbl_interaccion, DateValue(sanic_cm_in_fechacaptura)=Today()));   // propias de hoy
+Set(cobradoNio, Sum(Filter(sanic_cm_tbl_pago, DateValue(sanic_cm_pg_fecha)=Today(), sanic_cm_pg_moneda='Moneda'.NIO), sanic_cm_pg_monto));
+Set(cobradoUsd, Sum(Filter(sanic_cm_tbl_pago, DateValue(sanic_cm_pg_fecha)=Today(), sanic_cm_pg_moneda='Moneda'.USD), sanic_cm_pg_monto));
 Set(nInt, CountRows(varIntHoy));
 Set(nCu, CountRows(Distinct(varIntHoy, sanic_cm_in_cuentaid)));
 Set(nCl, CountRows(Distinct(varIntHoy, sanic_cm_in_cuentaid.sanic_cm_ct_clienteid)));
@@ -735,7 +735,7 @@ total por moneda arriba. Solo lectura.
 
 **Datos (`OnVisible`):**
 ```powerapps
-Set(varPagosHoy, Filter(sanic_cm_tbl_pago, DateValue(⚠️TODO(sanic_fechapago))=Today()));   // propios de hoy
+Set(varPagosHoy, Filter(sanic_cm_tbl_pago, DateValue(sanic_cm_pg_fecha)=Today()));   // propios de hoy
 Set(sumN, Sum(Filter(varPagosHoy, sanic_cm_pg_moneda='Moneda'.NIO), sanic_cm_pg_monto));
 Set(sumU, Sum(Filter(varPagosHoy, sanic_cm_pg_moneda='Moneda'.USD), sanic_cm_pg_monto));
 // galGrupos.Items:
@@ -754,7 +754,7 @@ GroupBy(AddColumns(varPagosHoy, "Cta", sanic_cm_pg_interaccion.sanic_cm_in_cuent
 Sort(
   If(scope="cuenta", Filter(sanic_cm_tbl_interaccion, sanic_cm_in_cuentaid = varCuentaSel),
                      Filter(sanic_cm_tbl_interaccion, sanic_cm_in_cuentaid.sanic_cm_ct_clienteid = varClienteSel)),
-  ⚠️TODO(sanic_fechainteraccion), SortOrder.Descending)
+  sanic_cm_in_fechacaptura, SortOrder.Descending)
 ```
 
 **Tarjeta (`cmpICard`):** `Fill=White`, `Border 1 gblC.cardBorder`, `Radius=12`, `Padding 12 14`,
@@ -798,7 +798,7 @@ autonumber en blanco.
 Set(varPend, CountRows(Filter(sanic_cm_tbl_interaccion, IsBlank(sanic_cm_in_numerointeraccion)))
            + CountRows(Filter(sanic_cm_tbl_pago, IsBlank(sanic_cm_pg_numero))));
 Set(varEstado, If(!Connection.Connected, "off", If(varPend>0, "pend", "ok")));
-Set(varCapHoy, Filter(sanic_cm_tbl_interaccion, DateValue(⚠️TODO(sanic_fechainteraccion))=Today()));
+Set(varCapHoy, Filter(sanic_cm_tbl_interaccion, DateValue(sanic_cm_in_fechacaptura)=Today()));
 ```
 **Estado → ícono/texto:** ok `✓ Sincronizado / Todo al día con el servidor` · pend
 `🔼 Pendiente de subir / N captura(s)` · off `📴 Sin conexión / N captura(s) en el dispositivo`.

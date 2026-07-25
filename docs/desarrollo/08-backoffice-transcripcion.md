@@ -51,7 +51,7 @@ Del [Comp. 15 §4](../referencia/componentes/15-roles-de-seguridad.md):
 |-----------|-------|
 | Tabla | `sanic_cm_tbl_interaccion` |
 | Filtro | `sanic_cm_in_estadograbacion = Pendiente` |
-| Orden | `⚠️TODO(sanic_fechainteraccion)` **ascendente** (lo más viejo primero — FIFO) |
+| Orden | `sanic_cm_in_fechacaptura` **ascendente** (lo más viejo primero — FIFO) |
 | Columnas | Fecha interacción · Cliente (`sanic_cm_in_cuentaid.sanic_cm_ct_clienteid.sanic_cm_cl_nombre`) · Cuenta (`sanic_cm_in_cuentaid.sanic_cm_ct_numerodecuenta`) · **Localizador** (`sanic_cm_in_agente`) · ¿Aplica pago? (`sanic_cm_cd_aplicapago`) · Comentario |
 
 - **Filtrar/agrupar por localizador** (doc 07 §5.1): *Group by → Localizador* en la grilla moderna, o **vista
@@ -83,14 +83,14 @@ Un solo formulario, **secciones claras**: lo de campo arriba (solo lectura), la 
 | `sanic_cm_in_cuentaid` | Lookup (link a la cuenta) |
 | Cliente | `sanic_cm_in_cuentaid.sanic_cm_ct_clienteid` (columna calculada o Quick View) |
 | `sanic_cm_in_agente` | Localizador (lookup) |
-| `⚠️TODO(sanic_fechainteraccion)` | Fecha/hora |
+| `sanic_cm_in_fechacaptura` | Fecha/hora |
 | `sanic_cm_in_comentario` | Texto multilínea (RO) |
 | `sanic_cm_cd_aplicapago` / `sanic_cm_in_actualizainfo` | Sí/No (RO) |
 | Ubicación | `sanic_cm_in_latitud` / `sanic_cm_in_longitud` (+ botón/enlace a mapa) |
 
 ### Sección 2 — "Pagos" *(subgrid, solo lectura)*
 - **Subgrid** de `sanic_cm_tbl_pago` (relación `sanic_cm_pg_interaccion`): `sanic_cm_pg_monto` · `sanic_cm_pg_moneda` ·
-  `sanic_cm_pg_numerorecibo` · `⚠️TODO(sanic_fechapago)`. Son los pagos que el backoffice tiene que **grabar en el core**.
+  `sanic_cm_pg_numerorecibo` · `sanic_cm_pg_fecha`. Son los pagos que el backoffice tiene que **grabar en el core**.
 
 ### Sección 3 — "Transcripción al core"
 | Campo | Control | Editable a mano |
@@ -185,7 +185,7 @@ garantizarlo:
 - **Perfil de seguridad de campo** "Backoffice — transcripción":
   - `sanic_cm_in_codigograbacion`, `sanic_cm_in_estadograbacion` → **Update = Sí**.
   - `sanic_cm_in_comentario`, `sanic_cm_in_latitud`, `sanic_cm_in_longitud`, `sanic_cm_cd_aplicapago`, `sanic_cm_in_actualizainfo`,
-    `⚠️TODO(sanic_fechainteraccion)` → **Update = No** (solo lectura, **inmutables**).
+    `sanic_cm_in_fechacaptura` → **Update = No** (solo lectura, **inmutables**).
   - `sanic_cm_in_fechagrabacion`, `sanic_cm_in_grabadopor` → **Update = No** para personas (los pone el flujo, que corre con
     la cuenta de servicio).
 - Asigná el perfil al **equipo/rol SR | CM | Backoffice**.

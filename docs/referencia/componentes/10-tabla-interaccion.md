@@ -27,7 +27,7 @@ llevar el **estado de transcripción** al core (lo completa el Backoffice).
 | Agente | `sanic_cm_in_agente` | Lookup → `sanic_cm_tbl_agente` | ✔ | localizador (auto, = él mismo). |
 | Nombre agente | `sanic_cm_in_nombreagente` | Text | — | Nombre del agente (real en el build). |
 | Comentario | `sanic_cm_in_comentario` | Multiline Text | ✔ | localizador — **texto libre** de la interacción. |
-| Fecha de interacción | `⚠️TODO(sanic_fechainteraccion)` | DateTime | ✔ | localizador (auto al registrar, en campo). **Sin equivalente en el build.** |
+| Fecha de interacción | `sanic_cm_in_fechacaptura` | DateTime | ✔ | localizador (auto al registrar, en campo). **Sin equivalente en el build.** |
 | ¿Actualiza info cliente? | `sanic_cm_in_actualizainfo` | Yes/No (def. No) | — | localizador — **marca** que hay datos a actualizar (no los edita). |
 | ¿Aplica pago? | `sanic_cm_cd_aplicapago` | Yes/No (def. No) | — | localizador — si hubo cobro (los montos van en `sanic_cm_tbl_pago`). ⚠️ lleva prefijo `cd`, NO `in`. |
 | Latitud | `sanic_cm_in_latitud` | Decimal (5 dec.) | — | localizador (auto, GPS). DEC-008. |

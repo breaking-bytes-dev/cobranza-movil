@@ -68,10 +68,10 @@ Lo que vas a escribir. Todo `sanic_*` sale de los componentes 02–13. **Tenelo 
 **`sanic_cm_tbl_agente`:** `sanic_cm_ag_nombre` · `sanic_cm_ag_usuarioid`(→systemuser) · `sanic_cm_ag_activo`.
 
 **`sanic_cm_tbl_interaccion`:** `sanic_cm_in_numerointeraccion`(autonumber `INT-`, **vacío hasta sincronizar**) · `sanic_cm_in_cuentaid` ·
-`sanic_cm_in_agente` · `sanic_cm_in_comentario` · `⚠️TODO(sanic_fechainteraccion)` · `sanic_cm_cd_aplicapago`(Sí/No) ·
+`sanic_cm_in_agente` · `sanic_cm_in_comentario` · `sanic_cm_in_fechacaptura` · `sanic_cm_cd_aplicapago`(Sí/No) ·
 `sanic_cm_in_actualizainfo`(Sí/No) · `sanic_cm_in_latitud` · `sanic_cm_in_longitud` · `sanic_cm_in_estadograbacion`(Choice).
 **`sanic_cm_tbl_pago`:** `sanic_cm_pg_numero`(`PAG-`) · `sanic_cm_pg_interaccion` · `sanic_cm_pg_monto` · `sanic_cm_pg_moneda`(Choice NIO/USD) ·
-`sanic_cm_pg_numerorecibo` · `⚠️TODO(sanic_fechapago-en-pago)`.
+`sanic_cm_pg_numerorecibo` · `sanic_cm_pg_fecha`.
 **`sanic_cm_tbl_actualizaciondatos`:** `sanic_cm_ad_interaccionid` + campos a actualizar (ver comp. 13).
 
 > ⚠️ **Choices:** al comparar escribís `Campo.Value = "Texto"` (ej. `sanic_cm_as_tipo.Value="Diaria"`). Al **escribir**
@@ -641,12 +641,12 @@ Armá **`conNav`** = **`cmpNav`** (§C.10) en `conMaster`, con **Cartera** como 
 > > > **`conMiniDer`** *(vertical, Alinear=End)*: `lblMr`(`Text=Moneda(ThisItem.sanic_cm_as_cuentaid.sanic_cm_ct_retironio, ThisItem.sanic_cm_as_cuentaid.sanic_cm_ct_retirousd)`, `Color=gblC.teal`, `FontWeight=Bold`) + `lblMm`(`Text=ThisItem.sanic_cm_as_cuentaid.sanic_cm_ct_diasmora & " días"`, `Size=gblT.fxs`, `Color=If(Or(ThisItem.sanic_cm_as_cuentaid.sanic_cm_ct_diasmora>90, ThisItem.sanic_cm_as_cuentaid.sanic_cm_ct_nivelmora>=4), gblC.redInk, gblC.muted2)`)
 
 **TAB INTERACCIONES** (`Visible=(varCliTab="inter")`):
-> **`galInterCli`** *(Galería vertical)*: `Items=Sort(Filter(sanic_cm_tbl_interaccion, sanic_cm_in_cuentaid.sanic_cm_ct_clienteid = varCliente), ⚠️TODO(sanic_fechainteraccion), SortOrder.Descending)` · plantilla = **Tarjeta de interacción (§4.1)**.
+> **`galInterCli`** *(Galería vertical)*: `Items=Sort(Filter(sanic_cm_tbl_interaccion, sanic_cm_in_cuentaid.sanic_cm_ct_clienteid = varCliente), sanic_cm_in_fechacaptura, SortOrder.Descending)` · plantilla = **Tarjeta de interacción (§4.1)**.
 
 ### §4.1 — 🧩 Tarjeta de interacción (Cliente y Detalle)
 > **`conICard`** *(Cont. vertical)*: `Fill=gblC.white · Borde=gblC.cardBorder,1 · RadiusAll=12 · Padding=12,12,14,14 · Gap=8 · Ancho=Llenar · Alto=Auto`
 > > **`conIHead`** *(horizontal)*: `Justif=SpaceBetween · Wrap=Sí · Ancho=Llenar`
-> > > **`lblITime`** *(Etiqueta)*: `Text="🕘 " & Text(ThisItem.⚠️TODO(sanic_fechainteraccion),"dd/mm · hh:mm")` · `Size=gblT.fxs` · `Color=gblC.muted` · `FontWeight=Semibold`
+> > > **`lblITime`** *(Etiqueta)*: `Text="🕘 " & Text(ThisItem.sanic_cm_in_fechacaptura,"dd/mm · hh:mm")` · `Size=gblT.fxs` · `Color=gblC.muted` · `FontWeight=Semibold`
 > > > **`lblIAcct`** *(Etiqueta)*: `Text=ThisItem.sanic_cm_in_cuentaid.sanic_cm_ct_productoid.sanic_cm_pr_tipo & " · " & ThisItem.sanic_cm_in_cuentaid.sanic_cm_ct_numerodecuenta` · `Size=gblT.fxs` · `Color=gblC.muted2` · *(en Detalle: `Visible=false`)*
 > > **`lblICom`** *(Etiqueta)*: `Text=ThisItem.sanic_cm_in_comentario` · `Size=gblT.fbase` · `Color=gblC.ink` · `Alto=Auto`
 > > **`conITags`** *(horizontal, Wrap=Sí, Gap=8, Alto=Auto)*:
@@ -713,7 +713,7 @@ Armá **`conNav`** = **`cmpNav`** (§C.10) en `conMaster`, con **Cartera** como 
 > Fiador → `varCuenta.sanic_cm_ct_fiador.sanic_cm_fi_nombre` · Nota → `varCuenta.sanic_cm_ct_nota`.
 
 **TAB INTERACCIONES** (`Visible=(varDetTab="inter")`):
-> **`galInterDet`** *(Galería vertical)*: `Items=Sort(Filter(sanic_cm_tbl_interaccion, sanic_cm_in_cuentaid = varCuenta), ⚠️TODO(sanic_fechainteraccion), SortOrder.Descending)` · plantilla = **Tarjeta de interacción (§4.1)** con `lblIAcct.Visible=false`.
+> **`galInterDet`** *(Galería vertical)*: `Items=Sort(Filter(sanic_cm_tbl_interaccion, sanic_cm_in_cuentaid = varCuenta), sanic_cm_in_fechacaptura, SortOrder.Descending)` · plantilla = **Tarjeta de interacción (§4.1)** con `lblIAcct.Visible=false`.
 
 > **`btnRegistrar`** *(Botón)* · en `conMaster`, DESPUÉS de `conBody` (queda fijo abajo):
 > ```
@@ -808,7 +808,7 @@ Armá **`conNav`** = **`cmpNav`** (§C.10) en `conMaster`, con **Cartera** como 
 > OnSelect =
 >    Set(varInt, Patch(sanic_cm_tbl_interaccion, Defaults(sanic_cm_tbl_interaccion), {
 >       sanic_cm_in_cuentaid: varCuenta, sanic_cm_in_agente: gblAgente, sanic_cm_in_comentario: txtComentario.Text,
->       ⚠️TODO(sanic_fechainteraccion): Now(), sanic_cm_cd_aplicapago: tgPago.Value, sanic_cm_in_actualizainfo: tgDatos.Value,
+>       sanic_cm_in_fechacaptura: Now(), sanic_cm_cd_aplicapago: tgPago.Value, sanic_cm_in_actualizainfo: tgDatos.Value,
 >       sanic_cm_in_latitud: Location.Latitude, sanic_cm_in_longitud: Location.Longitude,
 >       sanic_cm_in_estadograbacion: 'Estado grabación interacción (sanic_cm_choice_estadograbacioninteraccion)'.Pendiente }));
 >    If(tgPago.Value,
@@ -816,7 +816,7 @@ Armá **`conNav`** = **`cmpNav`** (§C.10) en `conMaster`, con **Cartera** como 
 >          Patch(sanic_cm_tbl_pago, Defaults(sanic_cm_tbl_pago), {
 >             sanic_cm_pg_interaccion: varInt, sanic_cm_pg_monto: L.monto,
 >             sanic_cm_pg_moneda: Switch(L.moneda,"USD",'Moneda en pago (sanic_choice_cm_monedaenpago)'.USD,'Moneda en pago (sanic_choice_cm_monedaenpago)'.NIO),
->             sanic_cm_pg_numerorecibo: L.recibo, ⚠️TODO(sanic_fechapago-en-pago): Now() })));
+>             sanic_cm_pg_numerorecibo: L.recibo, sanic_cm_pg_fecha: Now() })));
 >    If(tgDatos.Value,
 >       Patch(sanic_cm_tbl_actualizaciondatos, Defaults(sanic_cm_tbl_actualizaciondatos), {
 >          sanic_cm_ad_interaccionid: varInt, sanic_cm_ad_telefonocasa: inTelCasa.Text, sanic_cm_ad_telefonocelular: inTelCel.Text,
@@ -839,8 +839,8 @@ Armá **`conNav`** = **`cmpNav`** (§C.10) en `conMaster`, con **Cartera** como 
 > **`scrInicio`** *(Pantalla)*: `Fill=gblC.screen`
 > ```
 > OnVisible =
->    Set(varIntHoy, Filter(sanic_cm_tbl_interaccion, DateValue(⚠️TODO(sanic_fechainteraccion)) = Today()));
->    Set(varPagHoy, Filter(sanic_cm_tbl_pago, DateValue(⚠️TODO(sanic_fechapago-en-pago)) = Today()));
+>    Set(varIntHoy, Filter(sanic_cm_tbl_interaccion, DateValue(sanic_cm_in_fechacaptura) = Today()));
+>    Set(varPagHoy, Filter(sanic_cm_tbl_pago, DateValue(sanic_cm_pg_fecha) = Today()));
 >    Set(varCobN, Sum(Filter(varPagHoy, sanic_cm_pg_moneda.Value="NIO"), sanic_cm_pg_monto));
 >    Set(varCobU, Sum(Filter(varPagHoy, sanic_cm_pg_moneda.Value="USD"), sanic_cm_pg_monto))
 > ```
@@ -894,7 +894,7 @@ Armá **`conNav`** = **`cmpNav`** (§C.10) en `conMaster`, con **Cartera** como 
 > **`scrPagos`** *(Pantalla)*: `Fill=gblC.screen`
 > ```
 > OnVisible =
->    Set(varPagHoy, Filter(sanic_cm_tbl_pago, DateValue(⚠️TODO(sanic_fechapago-en-pago)) = Today()));
+>    Set(varPagHoy, Filter(sanic_cm_tbl_pago, DateValue(sanic_cm_pg_fecha) = Today()));
 >    Set(varSumN, Sum(Filter(varPagHoy, sanic_cm_pg_moneda.Value="NIO"), sanic_cm_pg_monto));
 >    Set(varSumU, Sum(Filter(varPagHoy, sanic_cm_pg_moneda.Value="USD"), sanic_cm_pg_monto))
 > ```
@@ -913,7 +913,7 @@ Armá **`conNav`** = **`cmpNav`** (§C.10) en `conMaster`, con **Cartera** como 
 > > > **`lblGCli`** *(Etiqueta)*: `Text=ThisItem.cliNom` · `Size=gblT.fxs` · `FontWeight=Bold` · `Color=gblC.muted2`
 > > > **`lblGProd`** *(Etiqueta)*: `Text=ThisItem.prod & " · " & ThisItem.cta` · `Size=gblT.fxs` · `Color=gblC.muted`
 > > > **`galLineas`** *(Galería vertical)*: `Items=ThisItem.Lineas · Height=CountRows(Self.AllItems)*46`
-> > > > plantilla **`conLin`** *(horizontal, Justif=SpaceBetween)*: `lblLV`(`Text=If(ThisItem.sanic_cm_pg_moneda.Value="USD","US$ ","C$ ") & Text(ThisItem.sanic_cm_pg_monto,"#,##0.00")`, `Size=gblT.fbase`, `Color=gblC.ink`) + `lblLR`(`Text="Recibo " & ThisItem.sanic_cm_pg_numerorecibo & " · " & Text(ThisItem.⚠️TODO(sanic_fechapago-en-pago),"hh:mm")`, `Size=gblT.f2xs`, `Color=gblC.muted2`)
+> > > > plantilla **`conLin`** *(horizontal, Justif=SpaceBetween)*: `lblLV`(`Text=If(ThisItem.sanic_cm_pg_moneda.Value="USD","US$ ","C$ ") & Text(ThisItem.sanic_cm_pg_monto,"#,##0.00")`, `Size=gblT.fbase`, `Color=gblC.ink`) + `lblLR`(`Text="Recibo " & ThisItem.sanic_cm_pg_numerorecibo & " · " & Text(ThisItem.sanic_cm_pg_fecha,"hh:mm")`, `Size=gblT.f2xs`, `Color=gblC.muted2`)
 
 ---
 
@@ -925,7 +925,7 @@ Armá **`conNav`** = **`cmpNav`** (§C.10) en `conMaster`, con **Cartera** como 
 >    Set(varPend, CountRows(Filter(sanic_cm_tbl_interaccion, IsBlank(sanic_cm_in_numerointeraccion)))
 >               + CountRows(Filter(sanic_cm_tbl_pago, IsBlank(sanic_cm_pg_numero))));
 >    Set(varEstado, If(!Connection.Connected, "off", If(varPend>0, "pend", "ok")));
->    Set(varCapHoy, Filter(sanic_cm_tbl_interaccion, DateValue(⚠️TODO(sanic_fechainteraccion)) = Today()))
+>    Set(varCapHoy, Filter(sanic_cm_tbl_interaccion, DateValue(sanic_cm_in_fechacaptura) = Today()))
 > ```
 > **Header** `cmpHeaderBack`: `lblDnm="Sincronización"`, `lblDac="Estado de tus capturas"`, `btnBack.OnSelect=Navigate(If(varSyncBack="inicio", scrInicio, scrCartera))`. → **`conBody`** *(Scroll=Sí, Padding=16, Gap=12)*.
 
@@ -949,7 +949,7 @@ Armá **`conNav`** = **`cmpNav`** (§C.10) en `conMaster`, con **Cartera** como 
 > **`lblCapTit`** *(Etiqueta `cmpSecTitle`)*: `Text="Capturas de hoy"`
 > **`galCap`** *(Galería vertical)*: `Items=varCapHoy`
 > > plantilla **`conCapRow`** *(horizontal, Justif=SpaceBetween, igual a conBrow)*:
-> > > izquierda *(vertical)*: `lblCapN`(`Text=ThisItem.sanic_cm_in_cuentaid.sanic_cm_ct_clienteid.sanic_cm_cl_nombre & " · " & ThisItem.sanic_cm_in_cuentaid.sanic_cm_ct_productoid.sanic_cm_pr_tipo`, `Size=gblT.fbase`, `FontWeight=Semibold`) + `lblCapH`(`Text=Text(ThisItem.⚠️TODO(sanic_fechainteraccion),"hh:mm")`, `Size=gblT.fxs`, `Color=gblC.muted`)
+> > > izquierda *(vertical)*: `lblCapN`(`Text=ThisItem.sanic_cm_in_cuentaid.sanic_cm_ct_clienteid.sanic_cm_cl_nombre & " · " & ThisItem.sanic_cm_in_cuentaid.sanic_cm_ct_productoid.sanic_cm_pr_tipo`, `Size=gblT.fbase`, `FontWeight=Semibold`) + `lblCapH`(`Text=Text(ThisItem.sanic_cm_in_fechacaptura,"hh:mm")`, `Size=gblT.fxs`, `Color=gblC.muted`)
 > > > **`lblPendTag`** *(Etiqueta)*:
 > > > ```
 > > > Text  = If(IsBlank(ThisItem.sanic_cm_in_numerointeraccion),"sin Nº aún","Nº asignado")

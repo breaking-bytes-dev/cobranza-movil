@@ -28,13 +28,13 @@ persistente** (Incobrables), con su **orden** de trabajo y, para las Especiales,
 | Estado | `sanic_cm_as_estado` | Choice (ver §5) | ✔ | Activa / Cerrada. Default `Activa`. |
 | Orden | `sanic_cm_as_orden` | Whole Number | — | **Prioridad del localizador.** **NO** se mapea en el import (no se pisa). |
 | Fecha de asignación | `sanic_cm_as_fechasignacion` | DateTime | — | Cuándo se asignó. |
-| Última carga | `⚠️TODO(sanic_ultimacarga)` | DateTime | — | = `FechaCarga` en que la cuenta vino. Base del **sweep** (DEC-018). **Sin equivalente en el build.** |
+| Última carga | `sanic_cm_as_ultimacarga` | DateTime | — | = `FechaCarga` en que la cuenta vino. Base del **sweep** (DEC-018). **Sin equivalente en el build.** |
 | Motivo | `sanic_cm_as_motivo` | Text | — | Al cerrar (manual en Incobrables DEC-012; *"fuera de cartera"* en el sweep DEC-018). Único campo de motivo en el build (ver ⚠️ motivo de rechazo). |
 | **— Solo Especiales —** | | | | |
 | Estado de aprobación | `sanic_cm_as_estadoaprobacion` | Choice (ver §5) | — | Borrador / Pendiente / Aprobada / Rechazada. |
 | Supervisor / Resolutor | `sanic_cm_as_resolutorid` | Lookup → `systemuser` | — | Quién aprueba/rechaza. |
 | Creada por (Solicitante) | `sanic_cm_as_solicitadopor` | Lookup → `systemuser` | — | El rol **Solicitante** (DEC-014). |
-| Motivo de rechazo | `⚠️TODO(sanic_motivorechazo)` | Text | — | Si el Supervisor la rechaza. **Sin equivalente en el build** (solo existe `sanic_cm_as_motivo`). |
+| Motivo de rechazo | `sanic_cm_as_motivorechazo` | Text | — | Si el Supervisor la rechaza. **Sin equivalente en el build** (solo existe `sanic_cm_as_motivo`). |
 | Propietario | `ownerid` | Owner (system) | ✔ | = el **localizador** (seteado por plugin/flow, Comp. 01 §6). |
 
 ---
@@ -117,11 +117,11 @@ persistente** (Incobrables), con su **orden** de trabajo y, para las Especiales,
 El import es **upsert-only**: nunca borra. Si una cuenta **Diaria** deja de venir, su asignación quedaría
 `Activa` colgada. La saca el **Admin** con una **función ejecutable en la PowerApp** (NO automática):
 
-1. El import setea **`⚠️TODO(sanic_ultimacarga) = FechaCarga`** y `sanic_cm_as_estado = Activa` en **cada upsert**.
-2. El Admin abre la función → **preview** de candidatas (`Diaria` + `Activa` + `⚠️TODO(sanic_ultimacarga) < última carga`):
+1. El import setea **`sanic_cm_as_ultimacarga = FechaCarga`** y `sanic_cm_as_estado = Activa` en **cada upsert**.
+2. El Admin abre la función → **preview** de candidatas (`Diaria` + `Activa` + `sanic_cm_as_ultimacarga < última carga`):
    cantidad, **% sobre Diarias activas**, fecha de carga.
 3. **Umbral de cordura visible:** si el % es anómalo (ej. >20–30%) lo marca en rojo. El Admin decide.
-4. El Admin **confirma** → `sanic_cm_as_estado = Cerrada`, `sanic_cm_as_motivo`, `⚠️TODO(fechacierre)`. **Precondición:** último import
+4. El Admin **confirma** → `sanic_cm_as_estado = Cerrada`, `sanic_cm_as_motivo`, `sanic_cm_as_fechacierre`. **Precondición:** último import
    `Completado`.
 5. **Reaparición:** si la cuenta vuelve, el upsert la **re-activa**; el Admin/Supervisor puede reabrir.
 

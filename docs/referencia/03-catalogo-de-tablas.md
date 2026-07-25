@@ -434,7 +434,7 @@ actualizar, y el **write-back al core**. Se crea **en la app de campo (offline)*
 | Cuenta | `sanic_cm_in_cuentaid` | Lookup → `sanic_cm_tbl_cuenta` | ✔ | La cuenta gestionada. |
 | Agente | `sanic_cm_in_agente` | Lookup → `sanic_cm_tbl_agente` | ✔ | El localizador (= él mismo). |
 | Comentario | `sanic_cm_in_comentario` | Multiline Text | ✔ | **Texto libre** de la interacción. |
-| Fecha de interacción | `⚠️TODO(sanic_fechainteraccion)` | DateTime | ✔ | Auto al registrar, en campo. **Sin equivalente en el esquema real.** |
+| Fecha de interacción | `sanic_cm_in_fechacaptura` | DateTime | ✔ | Auto al registrar, en campo. **Sin equivalente en el esquema real.** |
 | ¿Actualiza datos? | `sanic_cm_in_actualizainfo` | Yes/No (def. No) | — | Marca que hay datos a actualizar (detalle en `actualizaciondatos`). |
 | ¿Aplica pago? | `sanic_cm_cd_aplicapago` | Yes/No (def. No) | — | Si hubo cobro (montos en `pago`). **(Prefijo `cd` en el esquema real, no `in`.)** |
 | Latitud | `sanic_cm_in_latitud` | Decimal (5) | — | GPS (DEC-008). |
@@ -501,7 +501,7 @@ se **anota** monto, moneda y número de recibo.
 | Monto | `sanic_cm_pg_monto` | Decimal (2) | ✔ | Monto cobrado. |
 | Moneda | `sanic_cm_pg_moneda` | Choice (`NIO`/`USD`) | ✔ | Moneda del pago. Choice: `sanic_choice_cm_monedaenpago`. |
 | Número de recibo | `sanic_cm_pg_numerorecibo` | Text | ✔ | **Número del recibo físico** (talonario). |
-| Fecha del pago | `⚠️TODO(sanic_fechapago)` | DateTime | ✔ | Auto al registrar. **Sin equivalente en el esquema real de `pago`.** |
+| Fecha del pago | `sanic_cm_pg_fecha` | DateTime | ✔ | Auto al registrar. **Sin equivalente en el esquema real de `pago`.** |
 | Propietario | `ownerid` | Owner | ✔ | = el **localizador** (User-level). |
 
 ### Llaves
@@ -553,7 +553,7 @@ localizador **tiene que cobrar**.
 | Estado | `sanic_cm_as_estado` | Choice (`Activa`/`Cerrada`) | ✔ | Default `Activa`. |
 | Orden | `sanic_cm_as_orden` | Whole Number | — | Prioridad del localizador. **NO se mapea en el import** (no se pisa). |
 | Fecha de asignación | `sanic_cm_as_fechasignacion` | DateTime | — | — |
-| Última carga | `⚠️TODO(sanic_ultimacarga)` | DateTime | — | = `FechaCarga`; la setea el import en cada upsert. Base del **sweep** (DEC-018). **Sin equivalente en el esquema real.** |
+| Última carga | `sanic_cm_as_ultimacarga` | DateTime | — | = `FechaCarga`; la setea el import en cada upsert. Base del **sweep** (DEC-018). **Sin equivalente en el esquema real.** |
 | Motivo de cierre | `sanic_cm_as_motivo` | Text | — | Al cerrar (sweep, manual, reclasificación). |
 
 **Solo Especiales (workflow de aprobación)**
@@ -562,7 +562,7 @@ localizador **tiene que cobrar**.
 | Estado de aprobación | `sanic_cm_as_estadoaprobacion` | Choice (`Borrador`/`Pendiente`/`Aprobada`/`Rechazada`) | — | Gobierna la aprobación. Choice: `sanic_choice_cm_estadoaprobacionespecial`. |
 | Supervisor | `sanic_cm_as_resolutorid` | Lookup → `systemuser` | — | Quién aprueba/rechaza (resolutor). |
 | Creada por | `sanic_cm_as_solicitadopor` | Lookup → `systemuser` | — | El **Solicitante** (o servicio de import si vino por CSV). |
-| Motivo de rechazo | `⚠️TODO(sanic_motivorechazo)` | Text | — | Si el Supervisor la rechaza. **Sin equivalente en el esquema real** (solo existe `sanic_cm_as_motivo` genérico). |
+| Motivo de rechazo | `sanic_cm_as_motivorechazo` | Text | — | Si el Supervisor la rechaza. **Sin equivalente en el esquema real** (solo existe `sanic_cm_as_motivo` genérico). |
 | Propietario | `ownerid` | Owner | ✔ | = el **localizador** (lo setea un plugin desde `agente.sanic_cm_ag_usuarioid`). |
 
 ### Llaves

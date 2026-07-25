@@ -50,7 +50,7 @@ Puebla la asignación operativa **Diaria/Incobrable** desde el CSV (las Especial
 | `NumeroCuenta` | `sanic_cm_as_numerocuenta` | Copiado (texto) para la alt key. |
 | `TipoAsignacion` | `sanic_cm_as_tipo` | **Texto → Choice** (ver §4). |
 | — | `sanic_cm_as_estado` | **Default `Activa`** (no viene del CSV). El upsert la re-activa si reaparece (DEC-018). |
-| `FechaCarga` | `⚠️TODO(sanic_ultimacarga)` | Marca la última carga en que la cuenta vino → base del **sweep** (DEC-018, §9). |
+| `FechaCarga` | `sanic_cm_as_ultimacarga` | Marca la última carga en que la cuenta vino → base del **sweep** (DEC-018, §9). |
 | — | `sanic_cm_as_fechasignacion` | Default = fecha del archivo (o `FechaCarga`), a definir en config. |
 | `sanic_cm_as_orden` | — | **NO se mapea** (no pisar la prioridad del localizador, DEC-012). |
 
@@ -147,7 +147,7 @@ archivo truncado). **Nunca** toca una `Especial`.
 Una cuenta **`Diaria`** que deja de venir en la carga quedaría `Activa` colgada del localizador. Para sacarla,
 **el Admin ejecuta una función en la PowerApp** (NO es automática):
 
-1. El import setea **`⚠️TODO(sanic_ultimacarga) = FechaCarga`** y `estado = Activa` en **cada upsert** de `asignacion`.
+1. El import setea **`sanic_cm_as_ultimacarga = FechaCarga`** y `estado = Activa` en **cada upsert** de `asignacion`.
 2. El **Admin abre la función**. Calcula candidatas (`Diaria` + `Activa` + `ultimacarga < última carga`) y
    muestra **preview**: cantidad, **% sobre Diarias activas** y fecha de carga.
 3. **Umbral de cordura visible:** si el % supera el umbral (ej. >20–30%), lo marca en rojo ("archivo

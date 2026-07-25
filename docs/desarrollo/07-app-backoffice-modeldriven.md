@@ -23,7 +23,7 @@ Una app, cuatro roles. Cada uno ve **solo lo suyo** vía **roles de seguridad de
 | **SR | CM | Backoffice** | Revisa interacciones del día y las **transcribe al core**: asigna `sanic_cm_in_codigograbacion`, marca `Grabada en core`. | `sanic_cm_tbl_interaccion` (lee), `sanic_cm_tbl_pago` (lee), cuenta/cliente (lee) | `sanic_cm_in_codigograbacion`, `sanic_cm_in_estadograbacion`, `sanic_cm_in_fechagrabacion`, `sanic_cm_in_grabadopor` |
 | **SR | CM | Solicitante** | Crea **asignaciones Especiales** (encargos) → nacen en `Pendiente`. Carga datos maestros si faltan (DEC-013). | `sanic_cm_tbl_asignacion` (crea), cliente/cuenta (puede crear) | nueva asignación Especial + maestros |
 | **SR | CM | Supervisor** | **Aprueba / rechaza** las Especiales pendientes; reasigna localizador. | `sanic_cm_tbl_asignacion` | `sanic_cm_as_estadoaprobacion`, `sanic_cm_as_resolutorid`, `sanic_cm_as_agenteid`, `sanic_cm_as_motivo` |
-| **SR | CM | Admin** | **Reconciliación** de Diarias desaparecidas (DEC-018), **cierre** de Incobrables/Especiales (DEC-020), liga usuarios↔agentes, monitorea el import. | todas | `sanic_cm_as_estado`, `⚠️TODO(sanic_motivocierre)`, links `sanic_cm_ag_usuarioid`, ejecuta funciones |
+| **SR | CM | Admin** | **Reconciliación** de Diarias desaparecidas (DEC-018), **cierre** de Incobrables/Especiales (DEC-020), liga usuarios↔agentes, monitorea el import. | todas | `sanic_cm_as_estado`, `sanic_cm_as_motivo`, links `sanic_cm_ag_usuarioid`, ejecuta funciones |
 
 > **Principio:** **segregación de funciones.** El que captura (localizador) **no** transcribe; el que crea una
 > Especial (Solicitante) **no** la aprueba (Supervisor); el que aprueba **no** la cierra (Admin). Cada estado lo
@@ -122,10 +122,10 @@ recomendación abajo.
 |------|-------|--------|----------------|
 | Cobranza | **Por transcribir** | `sanic_cm_in_estadograbacion = Pendiente` | fecha, cliente, cuenta, **Localizador** (`sanic_cm_in_agente`), ¿pago?, comentario |
 | Cobranza | **Transcritas hoy** | `sanic_cm_in_estadograbacion = Grabada` **y** `sanic_cm_in_fechagrabacion = hoy` **y** grabada por mí | fecha, cuenta, **Localizador**, **código core**, hora |
-| Pagos | **Pagos del día** | `⚠️TODO(sanic_fechapago) = hoy` | cuenta, monto, moneda, recibo, interacción |
+| Pagos | **Pagos del día** | `sanic_cm_pg_fecha = hoy` | cuenta, monto, moneda, recibo, interacción |
 | Especiales | **Aprobaciones pendientes** | `sanic_cm_as_tipo = Especial` **y** `sanic_cm_as_estadoaprobacion = Pendiente` | cliente, cuenta, creada por, fecha |
 | Admin | **Incobrables abiertas** | `sanic_cm_as_tipo = Incobrable` **y** `sanic_cm_as_estado = Activa` | cuenta, días mora, última carga |
-| Admin | **Diarias “desaparecidas”** | `sanic_cm_as_tipo = Diaria` **y** `sanic_cm_as_estado = Activa` **y** `⚠️TODO(sanic_ultimacarga) < hoy` | cuenta, última carga (base del sweep DEC-018) |
+| Admin | **Diarias “desaparecidas”** | `sanic_cm_as_tipo = Diaria` **y** `sanic_cm_as_estado = Activa` **y** `sanic_cm_as_ultimacarga < hoy` | cuenta, última carga (base del sweep DEC-018) |
 
 ### 5.1 — Filtrar / agrupar por LOCALIZADOR
 
@@ -161,7 +161,7 @@ Supervisor: cola "Aprobaciones pendientes"
         │
    (Aprobada) → entra al perfil offline del localizador → se gestiona en campo
         │
-Admin: cuando termina → cierra → sanic_cm_as_estado=Cerrada · ⚠️TODO(sanic_motivocierre)
+Admin: cuando termina → cierra → sanic_cm_as_estado=Cerrada · sanic_cm_as_motivo
 ```
 
 > **Dos estados ortogonales** (DEC-022): `sanic_cm_as_estado` (Activa/Cerrada, ciclo de vida) y `sanic_cm_as_estadoaprobacion`
@@ -179,18 +179,18 @@ Estas **no** son formularios: son **acciones con lógica** (preview + umbral + c
 **páginas personalizadas (canvas embebida en la model-driven)** o **comandos + Power Automate**.
 
 ### 7.1 Reconciliación de Diarias desaparecidas (DEC-018)
-Una Diaria que **dejó de venir** en el CSV (su `⚠️TODO(sanic_ultimacarga) < hoy`) significa que salió de cartera. **No es
+Una Diaria que **dejó de venir** en el CSV (su `sanic_cm_as_ultimacarga < hoy`) significa que salió de cartera. **No es
 automático** — es una **función que ejecuta el Admin**:
-1. **Preview:** lista las Diarias con `⚠️TODO(sanic_ultimacarga) < última fecha de carga` (candidatas a cerrar).
+1. **Preview:** lista las Diarias con `sanic_cm_as_ultimacarga < última fecha de carga` (candidatas a cerrar).
 2. **Umbral de seguridad:** si la cantidad supera un % (ej. >30% de la cartera), **avisa y frena** (puede ser un
    import roto, no un cierre real).
-3. **Confirmación:** el Admin revisa y confirma → cierra en lote (`sanic_cm_as_estado=Cerrada`, `⚠️TODO(sanic_motivocierre)="fuera de cartera"`).
+3. **Confirmación:** el Admin revisa y confirma → cierra en lote (`sanic_cm_as_estado=Cerrada`, `sanic_cm_as_motivo="fuera de cartera"`).
 
 ### 7.2 Cierre de Incobrables / Especiales (DEC-020)
-Vista + comando **"Cerrar"**: setea `sanic_cm_as_estado=Cerrada` + pide `⚠️TODO(sanic_motivocierre)`. Manual, del Admin.
+Vista + comando **"Cerrar"**: setea `sanic_cm_as_estado=Cerrada` + pide `sanic_cm_as_motivo`. Manual, del Admin.
 
 ### 7.3 Monitoreo del import
-Tablero sobre `sanic_cm_tbl_cargadiaria` / `⚠️TODO(sanic_ultimacarga)`: ¿llegó el CSV de hoy?, ¿cuántas cuentas?, ¿última carga
+Tablero sobre `sanic_cm_tbl_cargadiaria` / `sanic_cm_as_ultimacarga`: ¿llegó el CSV de hoy?, ¿cuántas cuentas?, ¿última carga
 por cuenta? Detecta el "no llegó el import" antes de que sea un problema.
 
 ---

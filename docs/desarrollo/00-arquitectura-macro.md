@@ -129,7 +129,7 @@ Detalle y porqué en [`decisiones/registro-de-decisiones.md`](../referencia/deci
 | DEC-015 | **Seguridad row-level "Moderado"** | Operativas User-level (solo lo suyo); maestros Read Org-level (lee el padrón, la app filtra). Sin sharing. |
 | DEC-016 | **`sanic_cm_tbl_asignacion`: estado actual + auditoría** | Alt key `sanic_cm_as_numerocuenta+sanic_cm_as_tipo` (Diaria+Especial coexisten); historial de reasignación vía auditoría, no tabla aparte. |
 | DEC-017 | **Tabla de cuentas = `sanic_cm_tbl_cuenta`** | Renombre desde `cuentamora` (impreciso por las Especiales). |
-| DEC-018 | **Sweep de Diarias desaparecidas** | ⚠️TODO(sanic_ultimacarga) + flujo post-import que cierra las `Diaria` no vistas en la última carga. Solo Diaria; guarda de import completo. |
+| DEC-018 | **Sweep de Diarias desaparecidas** | sanic_cm_as_ultimacarga + flujo post-import que cierra las `Diaria` no vistas en la última carga. Solo Diaria; guarda de import completo. |
 | DEC-019 | **Retención de `cargadiaria` (Bulk Delete)** | Borrado recurrente `fechacarga < hoy−N`. `cargadiaria` crece rápido; `asignacion` no. Offload a data lake si se necesita histórico largo. |
 | DEC-020 | **Ciclo de vida Incobrable** | Nace solo del CSV; persiste (no se reconcilia); reasigna el Admin (gana el CSV); cierre manual del Admin con motivo. |
 | DEC-021 | **Reclasificación Diaria↔Incobrable** | Mutuamente excluyentes; al llegar un core-type, el import cierra el otro activo (automático, presence-driven). Especial es ortogonal. |

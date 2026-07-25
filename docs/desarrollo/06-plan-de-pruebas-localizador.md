@@ -204,7 +204,7 @@ Para que las pruebas sean válidas, necesitás en Dataverse (en el entorno de la
 
 - **T-74 · Guardar crea la interacción**
   - **Pasos:** comentario + Guardar. Verificá en `sanic_cm_tbl_interaccion`.
-  - **Esperado:** fila nueva con `sanic_cm_in_cuentaid`, `sanic_cm_in_agente` = vos, `sanic_cm_in_comentario`, ⚠️TODO(sanic_fechainteraccion), `sanic_cm_in_estadograbacion` = **Pendiente**, geo en `sanic_cm_in_latitud`/`sanic_cm_in_longitud`.
+  - **Esperado:** fila nueva con `sanic_cm_in_cuentaid`, `sanic_cm_in_agente` = vos, `sanic_cm_in_comentario`, sanic_cm_in_fechacaptura, `sanic_cm_in_estadograbacion` = **Pendiente**, geo en `sanic_cm_in_latitud`/`sanic_cm_in_longitud`.
   - [ ] OK [ ] Falla — _____
 
 - **T-75 · Pago mixto (NIO + USD)**

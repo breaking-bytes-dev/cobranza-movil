@@ -329,15 +329,15 @@
   la carga queda con su asignación `Activa` **colgada** del localizador para siempre.
 - **Decisión:** **Reconciliación de snapshot completo, solo para `Diaria`**, ejecutada **manualmente por el
   Admin** como una **funcionalidad dentro de la PowerApp** (NO un flujo automático):
-  1. Campo **⚠️TODO(sanic_ultimacarga)** (DateTime) en `sanic_cm_tbl_asignacion` = la `sanic_cm_cd_fechacarga` en que la cuenta vino.
+  1. Campo **sanic_cm_as_ultimacarga** (DateTime) en `sanic_cm_tbl_asignacion` = la `sanic_cm_cd_fechacarga` en que la cuenta vino.
      El import lo setea en **cada upsert** y pone `sanic_cm_as_estado = Activa`.
   2. El **Admin abre la función de reconciliación**. Esta calcula las candidatas: `sanic_cm_as_tipo = Diaria` +
-     `sanic_cm_as_estado = Activa` + `⚠️TODO(sanic_ultimacarga) < la última carga`, y muestra un **preview**: cantidad, **% sobre las
+     `sanic_cm_as_estado = Activa` + `sanic_cm_as_ultimacarga < la última carga`, y muestra un **preview**: cantidad, **% sobre las
      Diarias activas** y la fecha de carga.
   3. **Umbral de cordura (visible):** si el % supera el umbral configurado (ej. >20–30%), la función lo marca
      en **rojo** ("archivo posiblemente truncado") — el Admin decide igual. El humano es el control final.
   4. El Admin **confirma** → cierra las candidatas (`sanic_cm_as_estado = Cerrada`, `sanic_cm_as_motivo` *"fuera de cartera"*,
-     ⚠️TODO(fechacierre)). La app filtra `sanic_cm_as_estado = Activa` → salen del localizador.
+     sanic_cm_as_fechacierre). La app filtra `sanic_cm_as_estado = Activa` → salen del localizador.
   5. **Precondición:** la función solo habilita la ejecución si el **último import quedó Completado**.
   6. **Reporte:** vista *"Cerradas en esta corrida"* para auditoría.
   7. **Reaparición:** si la cuenta vuelve en una carga futura, el upsert la **re-activa** sola. El Admin/
@@ -345,7 +345,7 @@
 - **Porqué:** Patrón estándar de reconciliación de snapshot, pero con el **disparo en manos del Admin**
   (control humano explícito) en vez de automático.
 - **Implicaciones:** `Incobrable` (cierre manual) y `Especial` (flujo de aprobación) **NO** se barren.
-  Requiere el campo ⚠️TODO(sanic_ultimacarga), la **función en la app** (rol Admin) con preview + umbral + confirmación,
+  Requiere el campo sanic_cm_as_ultimacarga, la **función en la app** (rol Admin) con preview + umbral + confirmación,
   y la vista de reporte. Es **lógica de negocio / app**, no Smelter.
 
 ---
