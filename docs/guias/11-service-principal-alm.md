@@ -131,6 +131,15 @@ gh secret list --org breaking-bytes-dev
 gh api /orgs/breaking-bytes-dev/actions/secrets/PP_CLIENT_SECRET/repositories --jq '.repositories[].full_name'
 ```
 
+**Agregar un repo a un secret YA creado (sin re-ingresar el valor):** `gh secret set --repos` *reemplaza*
+la lista y *pide el valor* de nuevo. Para **sumar** un repo de forma aditiva, usá la API:
+```bash
+rid=$(gh api /repos/breaking-bytes-dev/sigil --jq .id)          # id del repo a habilitar
+gh api -X PUT    "/orgs/breaking-bytes-dev/actions/secrets/PP_CLIENT_SECRET/repositories/$rid"   # sumar
+gh api -X DELETE "/orgs/breaking-bytes-dev/actions/secrets/PP_CLIENT_SECRET/repositories/$rid"   # quitar
+```
+Para habilitarlo en los 4 secrets de una: iterá los nombres con el mismo `$rid`.
+
 **Opción B — UI:** org `breaking-bytes-dev` → **Settings → Secrets and variables → Actions → New
 organization secret** → nombre + valor → **Repository access: Selected repositories** → `cobranza-movil`.
 Si el picker sale vacío, refrescá (F5) o usá el CLI. *(Alternativa: dar el acceso por API —
