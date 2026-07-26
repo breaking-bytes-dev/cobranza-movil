@@ -1,7 +1,7 @@
 name: verify-data
 
-# Consulta de diagnóstico: qué datos hay en Direccion (existencia + valores de Tipo)
-# y en Cuenta (saldos). Para decidir si la card vacía es problema de datos o de diseño.
+# Diagnóstico de datos: tipos de direccion (¿hay Trabajo?), direccion de Martha,
+# y cuentas con nombrecliente/cifcliente en blanco (la card sin nombre).
 
 on:
   workflow_dispatch:
@@ -24,22 +24,36 @@ jobs:
           TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" \
             -d "client_id=$CID" -d "client_secret=$SECRET" \
             -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
-          echo "token len: ${#TOKEN}"
-          H="Authorization: Bearer $TOKEN"
-          A="Accept: application/json"
-          P="Prefer: odata.include-annotations=\"*\""
+          H="Authorization: Bearer $TOKEN"; A="Accept: application/json"
 
-          echo "===================== DIRECCION: total ====================="
-          curl -s -H "$H" -H "$A" "$URL/api/data/v9.2/sanic_cm_tbl_direccions?\$count=true&\$top=1" | jq '{total:.["@odata.count"]}'
+          echo "===================== 1) DIRECCION: distribución por TIPO (¿hay Trabajo?) ====================="
+          curl -s -H "$H" -H "$A" \
+            "$URL/api/data/v9.2/sanic_cm_tbl_direccions?\$apply=groupby((sanic_cm_dr_tipo),aggregate(\$count%20as%20cnt))" \
+            | jq '.value'
 
-          echo "===================== DIRECCION: 5 filas (todas las columnas) ====================="
-          curl -s -H "$H" -H "$A" -H "$P" "$URL/api/data/v9.2/sanic_cm_tbl_direccions?\$top=5" \
-            | jq '.value | map(with_entries(select(.key|test("sanic_cm_dr_|_dr_|direccion|tipo|cif";"i"))))'
+          echo "===================== 2) MARTHA: su cuenta (CIF) ====================="
+          MARTHA=$(curl -s -H "$H" -H "$A" \
+            "$URL/api/data/v9.2/sanic_cm_tbl_cuentas?\$filter=contains(sanic_cm_ct_nombrecliente,'Martha%20Sandra')&\$select=sanic_cm_ct_cifcliente,sanic_cm_ct_nombrecliente&\$top=2")
+          echo "$MARTHA" | jq '.value'
+          CIF=$(echo "$MARTHA" | jq -r '.value[0].sanic_cm_ct_cifcliente // empty')
+          echo "CIF de Martha: '$CIF'"
 
-          echo "===================== DIRECCION: valores DISTINTOS de tipo (si es choice, viene *_tipo) ====================="
-          curl -s -H "$H" -H "$A" -H "$P" "$URL/api/data/v9.2/sanic_cm_tbl_direccions?\$top=50" \
-            | jq '[.value[] | to_entries[] | select(.key|test("tipo";"i")) | {(.key):.value}] | unique'
+          echo "===================== 3) MARTHA: ¿tiene direccion con ese CIF? ====================="
+          if [ -n "$CIF" ]; then
+            curl -s -H "$H" -H "$A" \
+              "$URL/api/data/v9.2/sanic_cm_tbl_direccions?\$filter=sanic_cm_dr_cif%20eq%20'$CIF'&\$select=sanic_cm_dr_tipo,sanic_cm_dr_cif,sanic_cm_dr_direccion" \
+              | jq '.value'
+          else
+            echo "sin CIF, no consulto"
+          fi
 
-          echo "===================== CUENTA: 3 filas con columnas de saldo/denorm ====================="
-          curl -s -H "$H" -H "$A" -H "$P" "$URL/api/data/v9.2/sanic_cm_tbl_cuentas?\$top=3" \
-            | jq '.value | map(with_entries(select(.key|test("saldo|nombrecliente|cifcliente|_ct_|numero";"i"))))'
+          echo "===================== 4) CUENTAS con nombrecliente NULO (la card sin nombre) ====================="
+          curl -s -H "$H" -H "$A" \
+            "$URL/api/data/v9.2/sanic_cm_tbl_cuentas?\$filter=sanic_cm_ct_nombrecliente%20eq%20null&\$count=true&\$top=1" \
+            | jq '{cuentas_sin_nombrecliente:.["@odata.count"]}'
+          curl -s -H "$H" -H "$A" \
+            "$URL/api/data/v9.2/sanic_cm_tbl_cuentas?\$filter=sanic_cm_ct_cifcliente%20eq%20null&\$count=true&\$top=1" \
+            | jq '{cuentas_sin_cifcliente:.["@odata.count"]}'
+
+          echo "===================== 5) DIRECCION: total y cuántos CIF distintos ====================="
+          curl -s -H "$H" -H "$A" "$URL/api/data/v9.2/sanic_cm_tbl_direccions?\$count=true&\$top=1" | jq '{total_direcciones:.["@odata.count"]}'
