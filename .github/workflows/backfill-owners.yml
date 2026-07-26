@@ -1,0 +1,66 @@
+name: backfill-owners
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Backfill owner de asignaciones + email de agentes
+        env:
+          DATAVERSE_URL: ${{ secrets.DATAVERSE_URL }}
+          CLIENT_ID: ${{ secrets.PP_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT_ID: ${{ secrets.PP_TENANT_ID }}
+        run: |
+          set -uo pipefail
+          URL="${DATAVERSE_URL%/}"
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token" \
+            --data-urlencode "grant_type=client_credentials" --data-urlencode "client_id=${CLIENT_ID}" \
+            --data-urlencode "client_secret=${CLIENT_SECRET}" --data-urlencode "scope=${URL}/.default" | jq -r '.access_token // empty')
+          [ -n "$TOKEN" ] || { echo "::error::No token"; exit 1; }
+          AUTH="Authorization: Bearer $TOKEN"
+
+          echo "== 1) Agentes vinculados a usuario =="
+          curl -s "${URL}/api/data/v9.2/sanic_cm_tbl_agentes?\$select=sanic_cm_tbl_agenteid,sanic_cm_ag_nombre,_sanic_cm_ag_usuarioid_value&\$filter=_sanic_cm_ag_usuarioid_value ne null&\$top=5000" \
+            -H "$AUTH" > /tmp/ag.json
+          jq -c '.value | map({(.sanic_cm_tbl_agenteid|ascii_downcase): (._sanic_cm_ag_usuarioid_value|ascii_downcase)}) | add // {}' /tmp/ag.json > /tmp/agmap.json
+          echo "  agentes vinculados: $(jq '.value|length' /tmp/ag.json)"
+          jq -r '.value[] | "    \(.sanic_cm_ag_nombre) → user \(._sanic_cm_ag_usuarioid_value)"' /tmp/ag.json
+
+          echo "== 2) Email de cada usuario vinculado + PATCH sanic_cm_ag_emailusuario =="
+          for u in $(jq -r '[.value[]._sanic_cm_ag_usuarioid_value] | unique | .[]' /tmp/ag.json); do
+            EMAIL=$(curl -s "${URL}/api/data/v9.2/systemusers(${u})?\$select=domainname,internalemailaddress" -H "$AUTH" | jq -r '.internalemailaddress // .domainname // ""')
+            # patch todos los agentes de ese usuario
+            for ag in $(jq -r --arg u "$u" '.value[] | select((._sanic_cm_ag_usuarioid_value|ascii_downcase)==($u|ascii_downcase)) | .sanic_cm_tbl_agenteid' /tmp/ag.json); do
+              curl -s -o /dev/null -X PATCH "${URL}/api/data/v9.2/sanic_cm_tbl_agentes(${ag})" -H "$AUTH" -H "Content-Type: application/json" -d "{\"sanic_cm_ag_emailusuario\": \"${EMAIL}\"}"
+            done
+            echo "    user $u → email $EMAIL (agentes actualizados)"
+          done
+
+          echo "== 3) Backfill OWNER de asignaciones (owner = usuario del agente) =="
+          NEXT="${URL}/api/data/v9.2/sanic_cm_tbl_asignacions?\$select=sanic_cm_tbl_asignacionid,_sanic_cm_as_agenteid_value&\$top=1000"
+          patched=0; skipped=0
+          while [ -n "$NEXT" ] && [ "$NEXT" != "null" ]; do
+            RESP=$(curl -s "$NEXT" -H "$AUTH" -H "Prefer: odata.maxpagesize=1000")
+            while read -r row; do
+              aid=$(echo "$row" | jq -r '.sanic_cm_tbl_asignacionid')
+              agid=$(echo "$row" | jq -r '(._sanic_cm_as_agenteid_value//"")|ascii_downcase')
+              uid=$(jq -r --arg k "$agid" '.[$k] // ""' /tmp/agmap.json)
+              if [ -n "$uid" ]; then
+                curl -s -o /dev/null -X PATCH "${URL}/api/data/v9.2/sanic_cm_tbl_asignacions(${aid})" -H "$AUTH" -H "Content-Type: application/json" \
+                  -d "{\"ownerid@odata.bind\": \"/systemusers(${uid})\"}"
+                patched=$((patched+1))
+              else
+                skipped=$((skipped+1))
+              fi
+            done < <(echo "$RESP" | jq -c '.value[]')
+            NEXT=$(echo "$RESP" | jq -r '."@odata.nextLink" // empty')
+          done
+          echo "  ✓ asignaciones re-asignadas: $patched  | sin agente vinculado (skip): $skipped"
+
+          echo "== 4) Verificación: distribución de owner ahora =="
+          curl -s "${URL}/api/data/v9.2/sanic_cm_tbl_asignacions?\$select=_ownerid_value&\$top=5000" \
+            -H "$AUTH" -H 'Prefer: odata.include-annotations="OData.Community.Display.V1.FormattedValue"' \
+            | jq -r '.value | group_by(._ownerid_value) | map({owner:(.[0]["_ownerid_value@OData.Community.Display.V1.FormattedValue"]//"?"), n:length}) | sort_by(-.n)[] | "    \(.n) → \(.owner)"'
