@@ -23,7 +23,7 @@ jobs:
           AUTH="Authorization: Bearer $TOKEN"
 
           echo "== 1) Agentes vinculados a usuario =="
-          curl -s "${URL}/api/data/v9.2/sanic_cm_tbl_agentes?\$select=sanic_cm_tbl_agenteid,sanic_cm_ag_nombre,_sanic_cm_ag_usuarioid_value&\$filter=_sanic_cm_ag_usuarioid_value ne null&\$top=5000" \
+          curl -s "${URL}/api/data/v9.2/sanic_cm_tbl_agentes?\$select=sanic_cm_tbl_agenteid,sanic_cm_ag_nombre,_sanic_cm_ag_usuarioid_value&\$filter=_sanic_cm_ag_usuarioid_value%20ne%20null&\$top=5000" \
             -H "$AUTH" > /tmp/ag.json
           jq -c '.value | map({(.sanic_cm_tbl_agenteid|ascii_downcase): (._sanic_cm_ag_usuarioid_value|ascii_downcase)}) | add // {}' /tmp/ag.json > /tmp/agmap.json
           echo "  agentes vinculados: $(jq '.value|length' /tmp/ag.json)"
