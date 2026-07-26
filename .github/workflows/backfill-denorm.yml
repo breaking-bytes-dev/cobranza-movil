@@ -1,0 +1,61 @@
+name: backfill-denorm
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rellenar columnas denormalizadas de cuenta
+        env:
+          DATAVERSE_URL: ${{ secrets.DATAVERSE_URL }}
+          CLIENT_ID: ${{ secrets.PP_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT_ID: ${{ secrets.PP_TENANT_ID }}
+        run: |
+          set -uo pipefail
+          URL="${DATAVERSE_URL%/}"
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token" \
+            --data-urlencode "grant_type=client_credentials" --data-urlencode "client_id=${CLIENT_ID}" \
+            --data-urlencode "client_secret=${CLIENT_SECRET}" --data-urlencode "scope=${URL}/.default" | jq -r '.access_token // empty')
+          [ -n "$TOKEN" ] || { echo "::error::No token"; exit 1; }
+          AUTH="Authorization: Bearer $TOKEN"
+
+          echo "== Cargar mapas de relacionados =="
+          curl -s "${URL}/api/data/v9.2/sanic_cm_tbl_clientes?\$select=sanic_cm_tbl_clienteid,sanic_cm_cl_cif,sanic_cm_cl_nombre" -H "$AUTH" -H "Prefer: odata.maxpagesize=5000" \
+            | jq -c '.value | map({(.sanic_cm_tbl_clienteid|ascii_downcase): {cif:(.sanic_cm_cl_cif//""), nombre:(.sanic_cm_cl_nombre//"")}}) | add // {}' > /tmp/cli.json
+          curl -s "${URL}/api/data/v9.2/sanic_cm_tbl_productos?\$select=sanic_cm_tbl_productoid,sanic_cm_pr_tipo" -H "$AUTH" -H "Prefer: odata.maxpagesize=5000" \
+            | jq -c '.value | map({(.sanic_cm_tbl_productoid|ascii_downcase): (.sanic_cm_pr_tipo//"")}) | add // {}' > /tmp/prod.json
+          curl -s "${URL}/api/data/v9.2/sanic_cm_tbl_fiadors?\$select=sanic_cm_tbl_fiadorid,sanic_cm_fi_nombre,sanic_cm_fi_direccion" -H "$AUTH" -H "Prefer: odata.maxpagesize=5000" \
+            | jq -c '.value | map({(.sanic_cm_tbl_fiadorid|ascii_downcase): {nombre:(.sanic_cm_fi_nombre//""), direccion:(.sanic_cm_fi_direccion//"")}}) | add // {}' > /tmp/fia.json
+          echo "  clientes: $(jq 'length' /tmp/cli.json) · productos: $(jq 'length' /tmp/prod.json) · fiadores: $(jq 'length' /tmp/fia.json)"
+
+          echo "== Diagnóstico: cuentas totales y con CIF ya cargado =="
+          TOT=$(curl -s "${URL}/api/data/v9.2/sanic_cm_tbl_cuentas?\$count=true&\$top=1" -H "$AUTH" -H "Prefer: odata.include-annotations=OData.Community.Display.V1.FormattedValue" | jq -r '."@odata.count" // "?"')
+          echo "  total cuentas: $TOT"
+
+          echo "== Backfill (PATCH por cuenta) =="
+          NEXT="${URL}/api/data/v9.2/sanic_cm_tbl_cuentas?\$select=sanic_cm_tbl_cuentaid,_sanic_cm_ct_clienteid_value,_sanic_cm_ct_productoid_value,_sanic_cm_ct_fiador_value"
+          n=0
+          while [ -n "$NEXT" ] && [ "$NEXT" != "null" ]; do
+            RESP=$(curl -s "$NEXT" -H "$AUTH" -H "Prefer: odata.maxpagesize=1000")
+            while read -r row; do
+              id=$(echo "$row" | jq -r '.sanic_cm_tbl_cuentaid')
+              clid=$(echo "$row" | jq -r '(._sanic_cm_ct_clienteid_value//"")|ascii_downcase')
+              prid=$(echo "$row" | jq -r '(._sanic_cm_ct_productoid_value//"")|ascii_downcase')
+              fiid=$(echo "$row" | jq -r '(._sanic_cm_ct_fiador_value//"")|ascii_downcase')
+              body=$(jq -nc \
+                --argjson cli "$(cat /tmp/cli.json)" --argjson prod "$(cat /tmp/prod.json)" --argjson fia "$(cat /tmp/fia.json)" \
+                --arg cl "$clid" --arg pr "$prid" --arg fi "$fiid" \
+                '{sanic_cm_ct_cifcliente:($cli[$cl].cif//""), sanic_cm_ct_nombrecliente:($cli[$cl].nombre//""), sanic_cm_ct_tipoproducto:($prod[$pr]//""), sanic_cm_ct_nombrefiador:($fia[$fi].nombre//""), sanic_cm_ct_direccionfiador:($fia[$fi].direccion//"")}')
+              curl -s -o /dev/null -X PATCH "${URL}/api/data/v9.2/sanic_cm_tbl_cuentas($id)" -H "$AUTH" -H "Content-Type: application/json" -d "$body"
+              n=$((n+1))
+            done < <(echo "$RESP" | jq -c '.value[]')
+            echo "  ... $n cuentas procesadas"
+            NEXT=$(echo "$RESP" | jq -r '."@odata.nextLink" // empty')
+          done
+          echo "✓ Backfill completo: $n cuentas actualizadas"
+
+          echo "== Muestra: 1 cuenta después del backfill =="
+          curl -s "${URL}/api/data/v9.2/sanic_cm_tbl_cuentas?\$select=sanic_cm_ct_numerodecuenta,sanic_cm_ct_cifcliente,sanic_cm_ct_nombrecliente,sanic_cm_ct_tipoproducto&\$top=2" -H "$AUTH" | jq -c '.value'
