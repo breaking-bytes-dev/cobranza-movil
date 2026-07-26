@@ -1,0 +1,47 @@
+name: diag-roles
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Roles efectivos de User 1
+        env:
+          DATAVERSE_URL: ${{ secrets.DATAVERSE_URL }}
+          CLIENT_ID: ${{ secrets.PP_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT_ID: ${{ secrets.PP_TENANT_ID }}
+        run: |
+          set -uo pipefail
+          URL="${DATAVERSE_URL%/}"
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token" \
+            --data-urlencode "grant_type=client_credentials" --data-urlencode "client_id=${CLIENT_ID}" \
+            --data-urlencode "client_secret=${CLIENT_SECRET}" --data-urlencode "scope=${URL}/.default" | jq -r '.access_token // empty')
+          [ -n "$TOKEN" ] || { echo "::error::No token"; exit 1; }
+          AUTH="Authorization: Bearer $TOKEN"
+          UID="592f1177-6116-f111-8342-000d3a316609"
+
+          echo "== ROLES DIRECTOS de User 1 =="
+          curl -s "${URL}/api/data/v9.2/systemusers(${UID})/systemuserroles_association?\$select=name,roleid" -H "$AUTH" \
+            | jq -r '.value[] | "  [directo] \(.name)"'
+
+          echo ""
+          echo "== EQUIPOS de User 1 y sus roles =="
+          TEAMS=$(curl -s "${URL}/api/data/v9.2/systemusers(${UID})/teammembership_association?\$select=name,teamid&\$top=100" -H "$AUTH" | jq -r '.value[].teamid')
+          for t in $TEAMS; do
+            ROLES=$(curl -s "${URL}/api/data/v9.2/teams(${t})/teamroles_association?\$select=name" -H "$AUTH" | jq -r '[.value[].name] | join(", ")')
+            NAME=$(curl -s "${URL}/api/data/v9.2/teams(${t})?\$select=name,teamtype" -H "$AUTH" | jq -r '.name + " (type " + (.teamtype|tostring) + ")"')
+            [ -n "$ROLES" ] && echo "  [equipo] $NAME  → roles: $ROLES"
+          done
+
+          echo ""
+          echo "== Para cada rol único, ¿qué depth de READ tiene en asignacion? =="
+          # obtener el privilegio de Read en sanic_cm_tbl_asignacion
+          PRIV=$(curl -s "${URL}/api/data/v9.2/privileges?\$select=privilegeid,name&\$filter=name eq 'prvReadsanic_cm_tbl_asignacion'" -H "$AUTH" | jq -r '.value[0].privilegeid // empty')
+          echo "  privilegeid de prvReadsanic_cm_tbl_asignacion: $PRIV"
+          if [ -n "$PRIV" ]; then
+            curl -s "${URL}/api/data/v9.2/roleprivileges?\$filter=privilegeid eq ${PRIV}&\$select=privilegedepthmask,roleid" -H "$AUTH" \
+              | jq -r '.value[] | "  roleid=\(.roleid) depth=\(.privilegedepthmask)  (1=User,2=BU,4=ParentChild,8=Org)"'
+          fi
