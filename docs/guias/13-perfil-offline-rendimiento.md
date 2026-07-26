@@ -17,26 +17,42 @@
 **La lógica vuela; el costo es el volumen de datos.** Con el perfil acotado a ~200 cuentas por localizador:
 `OnStart` ≈ **0,3 s**, sin tope, sync liviano — **sin importar que el banco tenga 500.000 cuentas.**
 
-## 2. El diseño del perfil (qué scopear y cómo)
+## 2. El diseño del perfil — EXACTO según el UI
 
-En el **editor de perfil offline** de la app (Power Apps → tu app → **Configuración → Offline / Sin
-conexión → Editar perfil**), configurá cada tabla:
+Cada tabla del perfil ofrece: **Organization rows** · **All rows** · **Related rows only** · **Custom**
+(con **Edit filter** y una sección **Relationships** para tildar por qué relación bajar filas relacionadas).
 
-| Tabla | Regla offline | Por qué |
-|-------|---------------|---------|
-| `sanic_cm_tbl_asignacion` | **Filas que poseo** (owner = usuario) | La cartera del localizador (RLS ya la posee, DEC-015) |
-| `sanic_cm_tbl_cuenta` | **Relacionadas con mis asignaciones** | Solo las cuentas de su cartera |
-| `sanic_cm_tbl_cliente` | **Relacionadas con mis cuentas** | Solo sus clientes |
-| `sanic_cm_tbl_direccion` | Relacionadas con mis clientes | |
-| `sanic_cm_tbl_telefono` | Relacionadas con mis clientes | |
-| `sanic_cm_tbl_producto` | **Todas** | Tabla de referencia chica (7 filas) |
-| `sanic_cm_tbl_fiador` | Relacionadas con mis cuentas (o todas) | |
-| `sanic_cm_tbl_agente` | **Todas** (chica) — necesaria para `gblAgente` | |
-| `sanic_cm_tbl_interaccion` | **Filas que poseo** | Mis gestiones |
-| `sanic_cm_tbl_pago` | **Filas que poseo** | Mis pagos |
+La idea: **1 tabla RAÍZ** con las filas del localizador (`All rows`, que la seguridad recorta a lo suyo),
+y **el resto se baja "relacionado"** siguiendo los lookups. Así el celular baja **solo su cartera.**
 
-> **La clave son las reglas "relacionadas con…"**: la cuenta se baja porque hay una asignación mía que la
-> apunta; el cliente porque hay una cuenta mía; etc. Así el dispositivo baja **la cartera y nada más.**
+| Tabla | Opción a elegir | Relationships (tildar) | Por qué |
+|-------|-----------------|------------------------|---------|
+| **CM \| TBL \| Asignacion** | **All rows** | — (es la raíz) | Offline recorta por seguridad → solo TUS asignaciones (User-level, DEC-015) |
+| **CM \| TBL \| Interaccion** | **All rows** | — | Tus gestiones (owned) |
+| **CM \| TBL \| Pago** | **Custom** | ✅ `CM \| TBL \| Interaccion` | Pagos ligados a tus interacciones |
+| **CM \| TBL \| Cuenta** | **Custom** | ✅ `CM \| TBL \| Asignacion` | Solo cuentas que tienen asignación tuya |
+| **CM \| TBL \| Cliente** | **Custom** | ✅ `CM \| TBL \| Cuenta` | Solo clientes de tus cuentas |
+| **CM \| TBL \| Direccion** | **Custom** | ✅ `CM \| TBL \| Cliente` | Direcciones de tus clientes |
+| **CM \| TBL \| Telefono** | **Custom** | ✅ `CM \| TBL \| Cliente` | Teléfonos de tus clientes |
+| **CM \| TBL \| Fiador** | **Custom** | ✅ `CM \| TBL \| Cuenta` | Fiadores de tus cuentas |
+| **CM \| TBL \| Producto** | **Organization rows** | — | Tabla chica (7 filas), se baja entera |
+| **CM \| TBL \| Agente** | **Organization rows** | — | Chica; necesaria para `gblAgente` |
+
+### Cómo se lee cada opción
+- **All rows** = todas las filas que **el usuario puede ver** (la seguridad recorta). En tablas User-owned
+  (asignacion, interaccion) = solo las suyas.
+- **Organization rows** = todas las de la org (para tablas de referencia chicas que todos comparten).
+- **Related rows only / Custom + Relationships** = **la palanca**: baja una fila **solo si está relacionada**
+  con otra que ya está en el perfil. `Cuenta` se baja porque una `Asignacion` tuya la apunta; `Cliente`
+  porque una `Cuenta` tuya lo apunta; y así en cadena. **Eso acota a tu cartera.**
+
+### Para la pantalla que estás viendo (Pago)
+Estás en **Custom**. Expandí **Relationships (0/6)** y **tildá `CM | TBL | Interaccion`**. Con eso, bajan
+los pagos ligados a tus interacciones. (No hace falta tildar `User`.)
+
+> **El orden importa conceptualmente:** Asignacion (raíz) → Cuenta (relacionada a Asignacion) → Cliente
+> (relacionada a Cuenta) → Direccion/Telefono (relacionadas a Cliente). Cada eslabón cuelga del anterior.
+> El motor de sync resuelve el orden solo; vos solo tildás la relación correcta en cada tabla.
 
 ### Importante
 - **Todas** las tablas que la app usa como origen de datos **deben estar en el perfil** (si falta una,
