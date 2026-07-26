@@ -1,0 +1,37 @@
+name: import-app
+
+# Importa la solución con la app localizador rediseñada al Dev vía Service Principal.
+# Baja el asset app-offline-fixed.zip del release sol-v1.0.0.0. Manual. Se mantiene mientras iteramos.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Instalar Power Platform CLI
+        run: |
+          dotnet tool install --global Microsoft.PowerApps.CLI.Tool
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+      - name: Bajar el zip de la app
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p _dl
+          gh release download sol-v1.0.0.0 --repo ${{ github.repository }} --dir _dl --pattern "app-offline-fixed.zip"
+      - name: Autenticar + importar solución
+        run: |
+          pac auth create \
+            --applicationId "${{ secrets.PP_CLIENT_ID }}" \
+            --clientSecret "${{ secrets.PP_CLIENT_SECRET }}" \
+            --tenant "${{ secrets.PP_TENANT_ID }}" \
+            --environment "${{ secrets.DATAVERSE_URL }}"
+          pac solution import --path _dl/app-offline-fixed.zip --force-overwrite --publish-changes --activate-plugins
