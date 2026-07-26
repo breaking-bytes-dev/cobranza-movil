@@ -1,0 +1,45 @@
+name: verify-data
+
+# Consulta de diagnóstico: qué datos hay en Direccion (existencia + valores de Tipo)
+# y en Cuenta (saldos). Para decidir si la card vacía es problema de datos o de diseño.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Token + consultas Web API
+        env:
+          CID: ${{ secrets.PP_CLIENT_ID }}
+          SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT: ${{ secrets.PP_TENANT_ID }}
+          URL: ${{ secrets.DATAVERSE_URL }}
+        run: |
+          set -e
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" \
+            -d "client_id=$CID" -d "client_secret=$SECRET" \
+            -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          echo "token len: ${#TOKEN}"
+          H="Authorization: Bearer $TOKEN"
+          A="Accept: application/json"
+          P="Prefer: odata.include-annotations=\"*\""
+
+          echo "===================== DIRECCION: total ====================="
+          curl -s -H "$H" -H "$A" "$URL/api/data/v9.2/sanic_cm_tbl_direccions?\$count=true&\$top=1" | jq '{total:.["@odata.count"]}'
+
+          echo "===================== DIRECCION: 5 filas (todas las columnas) ====================="
+          curl -s -H "$H" -H "$A" -H "$P" "$URL/api/data/v9.2/sanic_cm_tbl_direccions?\$top=5" \
+            | jq '.value | map(with_entries(select(.key|test("sanic_cm_dr_|_dr_|direccion|tipo|cif";"i"))))'
+
+          echo "===================== DIRECCION: valores DISTINTOS de tipo (si es choice, viene *_tipo) ====================="
+          curl -s -H "$H" -H "$A" -H "$P" "$URL/api/data/v9.2/sanic_cm_tbl_direccions?\$top=50" \
+            | jq '[.value[] | to_entries[] | select(.key|test("tipo";"i")) | {(.key):.value}] | unique'
+
+          echo "===================== CUENTA: 3 filas con columnas de saldo/denorm ====================="
+          curl -s -H "$H" -H "$A" -H "$P" "$URL/api/data/v9.2/sanic_cm_tbl_cuentas?\$top=3" \
+            | jq '.value | map(with_entries(select(.key|test("saldo|nombrecliente|cifcliente|_ct_|numero";"i"))))'
