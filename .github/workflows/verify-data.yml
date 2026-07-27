@@ -32,11 +32,6 @@ jobs:
             printf "  %-30s %s\n" "$t" "$(cnt $t)"
           done
 
-          echo "===================== ASIGNACIONES por localizador (owner) ====================="
-          echo "  -- top 5 owners por cantidad de asignaciones activas --"
-          curl -s -H "$H" -H "$A" \
-            "$URL/api/data/v9.2/sanic_cm_tbl_asignacions?\$apply=filter(sanic_cm_as_estado%20eq%20true)/groupby((_ownerid_value),aggregate(\$count%20as%20n))" \
-            | jq -r '.value | sort_by(-.n) | .[0:5][] | "  owner \(._ownerid_value) -> \(.n) asignaciones"'
 
           echo "===================== COMPLETITUD: nulls en campos clave ====================="
           echo -n "  cuentas SIN cifcliente: "; cnt 'sanic_cm_tbl_cuentas?$filter=sanic_cm_ct_cifcliente eq null'
