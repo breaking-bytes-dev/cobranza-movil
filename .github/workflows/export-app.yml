@@ -1,0 +1,37 @@
+name: export-app
+
+# Exporta la solución ACTUAL del ambiente (con los cambios que el usuario hizo a mano en Studio)
+# y sube el zip como asset del release, para bajarlo, desempacar y sincronizar los fuentes.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Instalar Power Platform CLI
+        run: |
+          dotnet tool install --global Microsoft.PowerApps.CLI.Tool
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+      - name: Autenticar + exportar
+        run: |
+          pac auth create \
+            --applicationId "${{ secrets.PP_CLIENT_ID }}" \
+            --clientSecret "${{ secrets.PP_CLIENT_SECRET }}" \
+            --tenant "${{ secrets.PP_TENANT_ID }}" \
+            --environment "${{ secrets.DATAVERSE_URL }}"
+          mkdir -p _dl
+          pac solution export --name cm_core_cobranzamovil --path _dl/cm-export.zip --managed false --overwrite
+      - name: Subir export como asset
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload sol-v1.0.0.0 _dl/cm-export.zip --clobber --repo ${{ github.repository }}
