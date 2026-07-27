@@ -1,7 +1,6 @@
 name: verify-data
 
-# Diagnóstico de datos: tipos de direccion (¿hay Trabajo?), direccion de Martha,
-# y cuentas con nombrecliente/cifcliente en blanco (la card sin nombre).
+# Diagnóstico de VOLUMEN y COMPLETITUD de datos, para decidir la estrategia de carga.
 
 on:
   workflow_dispatch:
@@ -13,7 +12,7 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - name: Token + consultas Web API
+      - name: Token + consultas
         env:
           CID: ${{ secrets.PP_CLIENT_ID }}
           SECRET: ${{ secrets.PP_CLIENT_SECRET }}
@@ -22,38 +21,26 @@ jobs:
         run: |
           set -e
           TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" \
-            -d "client_id=$CID" -d "client_secret=$SECRET" \
-            -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
-          H="Authorization: Bearer $TOKEN"; A="Accept: application/json"
+            -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          H="Authorization: Bearer $TOKEN"; A="Accept: application/json"; P='Prefer: odata.maxpagesize=1'
+          cnt(){ curl -s -H "$H" -H "$A" -H "$P" "$URL/api/data/v9.2/$1?\$count=true&\$top=1" | jq -r '.["@odata.count"]'; }
 
-          echo "===================== 1) DIRECCION: distribución por TIPO (¿hay Trabajo?) ====================="
+          echo "===================== VOLUMEN TOTAL POR TABLA ====================="
+          for t in sanic_cm_tbl_cuentas sanic_cm_tbl_clientes sanic_cm_tbl_direccions sanic_cm_tbl_telefonos \
+                   sanic_cm_tbl_asignacions sanic_cm_tbl_interaccions sanic_cm_tbl_pagos \
+                   sanic_cm_tbl_agentes sanic_cm_tbl_productos sanic_cm_tbl_fiadors; do
+            printf "  %-30s %s\n" "$t" "$(cnt $t)"
+          done
+
+          echo "===================== ASIGNACIONES por localizador (owner) ====================="
+          echo "  -- top 5 owners por cantidad de asignaciones activas --"
           curl -s -H "$H" -H "$A" \
-            "$URL/api/data/v9.2/sanic_cm_tbl_direccions?\$apply=groupby((sanic_cm_dr_tipo),aggregate(\$count%20as%20cnt))" \
-            | jq '.value'
+            "$URL/api/data/v9.2/sanic_cm_tbl_asignacions?\$apply=filter(sanic_cm_as_estado%20eq%20true)/groupby((_ownerid_value),aggregate(\$count%20as%20n))" \
+            | jq -r '.value | sort_by(-.n) | .[0:5][] | "  owner \(._ownerid_value) -> \(.n) asignaciones"'
 
-          echo "===================== 2) MARTHA: su cuenta (CIF) ====================="
-          MARTHA=$(curl -s -H "$H" -H "$A" \
-            "$URL/api/data/v9.2/sanic_cm_tbl_cuentas?\$filter=contains(sanic_cm_ct_nombrecliente,'Martha%20Sandra')&\$select=sanic_cm_ct_cifcliente,sanic_cm_ct_nombrecliente&\$top=2")
-          echo "$MARTHA" | jq '.value'
-          CIF=$(echo "$MARTHA" | jq -r '.value[0].sanic_cm_ct_cifcliente // empty')
-          echo "CIF de Martha: '$CIF'"
-
-          echo "===================== 3) MARTHA: ¿tiene direccion con ese CIF? ====================="
-          if [ -n "$CIF" ]; then
-            curl -s -H "$H" -H "$A" \
-              "$URL/api/data/v9.2/sanic_cm_tbl_direccions?\$filter=sanic_cm_dr_cif%20eq%20'$CIF'&\$select=sanic_cm_dr_tipo,sanic_cm_dr_cif,sanic_cm_dr_direccion" \
-              | jq '.value'
-          else
-            echo "sin CIF, no consulto"
-          fi
-
-          echo "===================== 4) CUENTAS con nombrecliente NULO (la card sin nombre) ====================="
-          curl -s -H "$H" -H "$A" \
-            "$URL/api/data/v9.2/sanic_cm_tbl_cuentas?\$filter=sanic_cm_ct_nombrecliente%20eq%20null&\$count=true&\$top=1" \
-            | jq '{cuentas_sin_nombrecliente:.["@odata.count"]}'
-          curl -s -H "$H" -H "$A" \
-            "$URL/api/data/v9.2/sanic_cm_tbl_cuentas?\$filter=sanic_cm_ct_cifcliente%20eq%20null&\$count=true&\$top=1" \
-            | jq '{cuentas_sin_cifcliente:.["@odata.count"]}'
-
-          echo "===================== 5) DIRECCION: total y cuántos CIF distintos ====================="
-          curl -s -H "$H" -H "$A" "$URL/api/data/v9.2/sanic_cm_tbl_direccions?\$count=true&\$top=1" | jq '{total_direcciones:.["@odata.count"]}'
+          echo "===================== COMPLETITUD: nulls en campos clave ====================="
+          echo -n "  cuentas SIN cifcliente: "; cnt 'sanic_cm_tbl_cuentas?$filter=sanic_cm_ct_cifcliente eq null'
+          echo -n "  cuentas SIN saldovencidonio: "; cnt 'sanic_cm_tbl_cuentas?$filter=sanic_cm_ct_saldovencidonio eq null'
+          echo -n "  direcciones SIN cif: "; cnt 'sanic_cm_tbl_direccions?$filter=sanic_cm_dr_cif eq null'
+          echo -n "  telefonos SIN cif: "; cnt 'sanic_cm_tbl_telefonos?$filter=sanic_cm_tl_cif eq null'
+          echo -n "  asignaciones owner=SYSTEM/sin-owner activas: "; cnt 'sanic_cm_tbl_asignacions?$filter=sanic_cm_as_estado eq true'
