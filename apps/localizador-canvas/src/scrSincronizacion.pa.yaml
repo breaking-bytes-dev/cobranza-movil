@@ -1,0 +1,446 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+Screens:
+  scrSincronizacion:
+    Properties:
+      Fill: =gblC.screen
+      OnVisible: |-
+        =Set(varPend, CountRows(Filter('CM | TBL | Interaccions', IsBlank('[IN] Numero de Interaccion')))
+                      + CountRows(Filter('CM | TBL | Pagos', IsBlank('[PG] Numero'))));
+           Set(varEstado, If(!Connection.Connected, "off", If(varPend>0, "pend", "ok")));
+           Set(varCapHoy, Filter('CM | TBL | Interaccions', 'Created On' = Today()))
+    Children:
+      - conMaster_6:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            DropShadow: =DropShadow.None
+            Fill: =gblC.screen
+            Height: =Parent.Height
+            LayoutAlignItems: =LayoutAlignItems.Center
+            LayoutDirection: =LayoutDirection.Vertical
+            LayoutGap: =20
+            LayoutOverflowY: =LayoutOverflow.Scroll
+            PaddingBottom: =8
+            PaddingLeft: =8
+            PaddingRight: =8
+            PaddingTop: =8
+            Width: =Parent.Width
+          Children:
+            - conHeaderBac_4:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  AlignInContainer: =AlignInContainer.Center
+                  DropShadow: =DropShadow.None
+                  FillPortions: =0
+                  Height: =If(gblScale = 1, 120,gblScale = 1.2,130,gblScale = 1.45,150,170)
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                Children:
+                  - cmpHeaderBack_5:
+                      Control: CanvasComponent
+                      ComponentName: cmpHeaderBack
+                      Properties:
+                        Height: =Parent.Height
+                        Subtitulo: ="Estado de tus capturas"
+                        Titulo: ="Sincronización"
+                        Width: =Parent.Width
+                  - Button1_7:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderStyle: =BorderStyle.None
+                        Color: =gblC.white
+                        Fill: =RGBA(255,255,255,0.18)
+                        FontWeight: =FontWeight.Bold
+                        Height: =30
+                        OnSelect: =Set(varSheetEscala, true)
+                        PaddingBottom: =7
+                        PaddingLeft: =11
+                        PaddingRight: =11
+                        PaddingTop: =7
+                        RadiusBottomLeft: =9
+                        RadiusBottomRight: =9
+                        RadiusTopLeft: =9
+                        RadiusTopRight: =9
+                        Size: =gblT.fmd
+                        Text: ="Aa"
+                        Width: =If(gblScale = 1, 50,gblScale = 1.2,60,gblScale = 1.45,70,80)
+                        X: =Parent.Width - Self.Width - 14
+                        Y: =Self.Height - 20
+            - cardEstado:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  Fill: =Switch(varEstado, "ok",gblC.teal, "pend",gblC.incobInk, gblC.offGray)
+                  FillPortions: =0
+                  Height: =Max(lblEico.Height,lblE1.Height + Label19.Height + 28)
+                  LayoutAlignItems: =LayoutAlignItems.Center
+                  LayoutDirection: =LayoutDirection.Horizontal
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  PaddingBottom: =8
+                  PaddingLeft: =8
+                  PaddingRight: =8
+                  PaddingTop: =8
+                  RadiusBottomLeft: =16
+                  RadiusBottomRight: =16
+                  RadiusTopLeft: =16
+                  RadiusTopRight: =16
+                Children:
+                  - lblEico:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.white
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Size: =28*gblScale
+                        Text: |-
+                          =Switch(varEstado,"ok","✓","pend","🔼","📴")
+                        Width: =55
+                  - conEst:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingBottom: =8
+                        PaddingLeft: =8
+                        PaddingRight: =8
+                        PaddingTop: =8
+                      Children:
+                        - lblE1:
+                            Control: Label@2.5.1
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Stretch
+                              AutoHeight: =true
+                              Color: =gblC.white
+                              FontWeight: =FontWeight.Bold
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =0
+                              Size: =gblT.flg
+                              Text: =Switch(varEstado,"ok","Sincronizado","pend","Pendiente de subir","Sin conexión")
+                              VerticalAlign: =VerticalAlign.Bottom
+                        - Label19:
+                            Control: Label@2.5.1
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Stretch
+                              AutoHeight: =true
+                              Color: =gblC.white
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingTop: =0
+                              Size: =gblT.fsm
+                              Text: =Switch(varEstado,"ok","Todo al día con el servidor","pend", varPend & " captura(s) por subir", varPend & " captura(s) en el dispositivo")
+                              VerticalAlign: =VerticalAlign.Top
+            - cardDet:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  BorderColor: =gblC.cardBorder
+                  BorderThickness: =1
+                  Fill: =gblC.white
+                  FillPortions: =0
+                  Height: =cmpKV.Height + cmpKV_1.Height + cmpKV_2.Height + 20
+                  LayoutAlignItems: =LayoutAlignItems.Center
+                  LayoutDirection: =LayoutDirection.Vertical
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  PaddingBottom: =8
+                  PaddingLeft: =8
+                  PaddingRight: =8
+                  PaddingTop: =8
+                  RadiusBottomLeft: =14
+                  RadiusBottomRight: =14
+                  RadiusTopLeft: =14
+                  RadiusTopRight: =14
+                Children:
+                  - cmpKV:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        FillPortions: =0
+                        Height: =Max(lblK.Height, lblV.Height)
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Horizontal
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingBottom: =8
+                        PaddingLeft: =8
+                        PaddingRight: =8
+                        PaddingTop: =8
+                      Children:
+                        - lblK:
+                            Control: Label@2.5.1
+                            Properties:
+                              AutoHeight: =true
+                              Color: =gblC.muted
+                              FillPortions: =1
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              Size: =gblT.fbase
+                              Text: =" Conexión"
+                        - lblV:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =Align.Right
+                              AutoHeight: =true
+                              Color: =gblC.ink
+                              FillPortions: =1
+                              FontWeight: =FontWeight.Semibold
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              Size: =gblT.fbase
+                              Text: =If(Connection.Connected,"En línea","Sin señal")
+                  - cmpKV_1:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        FillPortions: =0
+                        Height: =Max(lblK_1.Height, lblV_1.Height)
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Horizontal
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingBottom: =8
+                        PaddingLeft: =8
+                        PaddingRight: =8
+                        PaddingTop: =8
+                      Children:
+                        - lblK_1:
+                            Control: Label@2.5.1
+                            Properties:
+                              AutoHeight: =true
+                              Color: =gblC.muted
+                              FillPortions: =1
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              Size: =gblT.fbase
+                              Text: ="Última sincronización"
+                        - lblV_1:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =Align.Right
+                              AutoHeight: =true
+                              Color: =gblC.ink
+                              FillPortions: =1
+                              FontWeight: =FontWeight.Semibold
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              Size: =gblT.fbase
+                              Text: ="—"
+                  - cmpKV_2:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        FillPortions: =0
+                        Height: =Max(lblK_2.Height, lblV_2.Height)
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Horizontal
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingBottom: =8
+                        PaddingLeft: =8
+                        PaddingRight: =8
+                        PaddingTop: =8
+                      Children:
+                        - lblK_2:
+                            Control: Label@2.5.1
+                            Properties:
+                              AutoHeight: =true
+                              Color: =gblC.muted
+                              FillPortions: =1
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              Size: =gblT.fbase
+                              Text: ="Pendientes por subir"
+                        - lblV_2:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =Align.Right
+                              AutoHeight: =true
+                              Color: =gblC.ink
+                              FillPortions: =1
+                              FontWeight: =FontWeight.Semibold
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              Size: =gblT.fbase
+                              Text: =varPend & " captura(s)"
+            - btnBuscar:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  AlignInContainer: =AlignInContainer.Stretch
+                  BorderStyle: =BorderStyle.None
+                  Color: =gblC.white
+                  DisplayMode: =If(Connection.Connected && varPend>0, DisplayMode.Edit, DisplayMode.Disabled)
+                  Fill: =gblC.teal
+                  Height: =54
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  OnSelect: =Refresh('CM | TBL | Interaccions'); Refresh('CM | TBL | Pagos');Refresh('CM | TBL | Actualizacion de datos'); Notify("Actualizando…", NotificationType.Information)
+                  RadiusBottomLeft: =14
+                  RadiusBottomRight: =14
+                  RadiusTopLeft: =14
+                  RadiusTopRight: =14
+                  Text: =If(Connection.Connected,"↻ Buscar actualizaciones","Sin conexión — no se puede sincronizar")
+            - lblCapTit:
+                Control: Label@2.5.1
+                Properties:
+                  AlignInContainer: =AlignInContainer.Stretch
+                  AutoHeight: =true
+                  Color: =gblC.muted2
+                  FontWeight: =FontWeight.Bold
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  Size: =gblT.fxs
+                  Text: ="Capturas de hoy"
+                  Visible: =galCap.AllItemsCount>0
+            - galCap:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  FillPortions: =0
+                  Height: =Self.AllItemsCount * 100
+                  Items: =varCapHoy
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  TemplatePadding: =
+                  TemplateSize: =100
+                Children:
+                  - conCapRow:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        BorderColor: =gblC.white
+                        BorderThickness: =1
+                        Fill: =gblC.white
+                        Height: =Parent.TemplateHeight-20
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Horizontal
+                        LayoutGap: =10
+                        LayoutJustifyContent: =LayoutJustifyContent.SpaceBetween
+                        PaddingBottom: =12
+                        PaddingLeft: =14
+                        PaddingRight: =14
+                        PaddingTop: =12
+                        Width: =Parent.TemplateWidth - 20
+                        X: =10
+                        Y: =10
+                      Children:
+                        - Container25:
+                            Control: GroupContainer@1.5.0
+                            Variant: AutoLayout
+                            Properties:
+                              DropShadow: =DropShadow.None
+                              LayoutAlignItems: =LayoutAlignItems.Center
+                              LayoutDirection: =LayoutDirection.Vertical
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =8
+                              PaddingLeft: =8
+                              PaddingRight: =8
+                              PaddingTop: =8
+                            Children:
+                              - lblCapN:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    AutoHeight: =true
+                                    FontWeight: =FontWeight.Semibold
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    Size: =gblT.fbase
+                                    Text: =LookUp(colCuentas, '[CT] Numero de cuenta' = ThisItem.'[IN] Numerocuenta').'Nombre Cliente' & " · " & LookUp(colCuentas, '[CT] Numero de cuenta' = ThisItem.'[IN] Numerocuenta').'Tipo Producto'
+                                    Width: =Parent.Width
+                              - lblCapH:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    AutoHeight: =true
+                                    Color: =gblC.muted
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    Size: =gblT.fxs
+                                    Text: =Text(ThisItem.'Created On',"hh:mm")
+                                    Width: =Parent.Width
+                        - Container26:
+                            Control: GroupContainer@1.5.0
+                            Variant: AutoLayout
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Start
+                              FillPortions: =0
+                              Height: =lblPendTag.Height
+                              LayoutAlignItems: =LayoutAlignItems.Center
+                              LayoutDirection: =LayoutDirection.Vertical
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              RadiusBottomLeft: =10
+                              RadiusBottomRight: =10
+                              RadiusTopLeft: =10
+                              RadiusTopRight: =10
+                              Width: =140
+                            Children:
+                              - lblPendTag:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    Align: =Align.Center
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    AutoHeight: =true
+                                    Color: =If(IsBlank(ThisItem.'[IN] Numero de Interaccion'), gblC.incobInk, gblC.accentInk)
+                                    Fill: =If(IsBlank(ThisItem.'[IN] Numero de Interaccion'), gblC.incobBg, gblC.accentBg)
+                                    FontWeight: =FontWeight.Bold
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    Size: =gblT.fxs
+                                    Text: =If(IsBlank(ThisItem.'[IN] Numero de Interaccion'),"sin Nº aún","Nº asignado")
+            - cardNota:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  BorderColor: =gblC.cardBorder
+                  BorderThickness: =1
+                  Fill: =gblC.noteBg
+                  FillPortions: =0
+                  Height: =lblNota.Height + 24
+                  LayoutAlignItems: =LayoutAlignItems.Center
+                  LayoutDirection: =LayoutDirection.Vertical
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  PaddingBottom: =12
+                  PaddingLeft: =14
+                  PaddingRight: =14
+                  PaddingTop: =12
+                  RadiusBottomLeft: =12
+                  RadiusBottomRight: =12
+                  RadiusTopLeft: =12
+                  RadiusTopRight: =12
+                Children:
+                  - lblNota:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =Align.Justify
+                        AutoHeight: =true
+                        Color: =gblC.muted
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Size: =gblT.fxs
+                        Text: ="INT-/PAG- los asigna el servidor al sincronizar (por eso 'sin Nº aún') y que el conteo real y el forzado viven en el ícono de globo del player (Device Status); esta pantalla es el complemento"
+      - cmpSheet_7:
+          Control: CanvasComponent
+          ComponentName: cmpSheet
+          Properties:
+            Height: =Parent.Height
+            Visible: =varSheetEscala
+            Width: =Parent.Width

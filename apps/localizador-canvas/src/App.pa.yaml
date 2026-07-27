@@ -1,0 +1,99 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+App:
+  Properties:
+    Formulas: |-
+      =Moneda(nio:Number, usd:Number): Text =
+         With({ pn: If(nio>0, "C$ " & Text(nio, "#,##0.00"), ""),
+                pu: If(usd>0, "US$ " & Text(usd, "#,##0.00"), "") },
+            Coalesce(pn & If(!IsBlank(pn) && !IsBlank(pu), " · ", "") & pu, "C$ 0.00"));
+    OnStart: |-
+      =// ===================== PREFERENCIAS PERSISTIDAS (accesibilidad, offline-safe) =====================
+      Set(gblFont, Font.'Segoe UI');
+      Set(gblDark, false);     // modo noche — arranca en Día (decisión usuario 2026-07-26)
+      Set(gblScale, 1);        // 1 = Normal · 1.2 = Grande · 1.45 = Muy grande · 1.7 = Máximo
+      // Sembrar esquema para que Studio conozca las columnas dark/scale (evita error de columna).
+      ClearCollect(colPrefs, {dark: false, scale: 1});
+      // Sobrescribir con la preferencia del dispositivo si existe. IfError: en Studio/web LoadData no aplica.
+      IfError(LoadData(colPrefs, "cmPrefs", true), Blank());
+      Set(gblDark, Coalesce(First(colPrefs).dark, false));
+      Set(gblScale, Coalesce(First(colPrefs).scale, 1));
+
+      // ===================== TEMA DÍA (paleta original + tokens semánticos) =====================
+      Set(gblDay, {
+          teal:        ColorValue("#0F6B6B"),  accent:     ColorValue("#0F6B6B"),
+          onAccent:    ColorValue("#FFFFFF"),  surface:    ColorValue("#FFFFFF"),
+          tealSub:     ColorValue("#BFE3E3"),
+          screen:      ColorValue("#F2F4F7"),  card:       ColorValue("#FFFFFF"),
+          cardBorder:  ColorValue("#EAECF0"),  borderSoft: ColorValue("#E4E7EC"),
+          hairline:    ColorValue("#F6F7F9"),  white:      ColorValue("#FFFFFF"),
+          ink:         ColorValue("#101828"),  ink2:       ColorValue("#344054"),
+          ink3:        ColorValue("#475467"),  muted:      ColorValue("#667085"),
+          muted2:      ColorValue("#98A2B3"),  green:      ColorValue("#34D399"),
+          accentBg:    ColorValue("#ECFDF5"),  accentBorder:ColorValue("#A7F3D0"),
+          accentInk:   ColorValue("#065F46"),  accentInk2: ColorValue("#059669"),
+          diariaBg:    ColorValue("#DBEAFE"),  diariaInk:  ColorValue("#2563EB"),
+          incobBg:     ColorValue("#FEF3C7"),  incobInk:   ColorValue("#B45309"),
+          espBg:       ColorValue("#EDE9FE"),  espInk:     ColorValue("#7C3AED"),
+          redBg:       ColorValue("#FEE2E2"),  redInk:     ColorValue("#DC2626"),
+          chipBg:      ColorValue("#EEF2F6"),  datosBg:    ColorValue("#EFF6FF"),
+          amber:       ColorValue("#FBBF24"),  amberOff:   ColorValue("#F59E0B"),
+          offGray:     ColorValue("#475467"),  phoneBorder:ColorValue("#CBD2D9"),
+          noteBg:      ColorValue("#F8FAFC"),  hint:       ColorValue("#D97706")
+      });
+
+      // ===================== TEMA NOCHE (mismas claves; teal-identity oscuro, alto contraste) =====================
+      Set(gblNight, {
+          teal:        ColorValue("#0E5E5D"),  accent:     ColorValue("#33B7B4"),
+          onAccent:    ColorValue("#04211F"),  surface:    ColorValue("#132022"),
+          tealSub:     ColorValue("#A6D0CF"),
+          screen:      ColorValue("#0C1516"),  card:       ColorValue("#132022"),
+          cardBorder:  ColorValue("#26383A"),  borderSoft: ColorValue("#26383A"),
+          hairline:    ColorValue("#0F1B1D"),  white:      ColorValue("#FFFFFF"),
+          ink:         ColorValue("#EAF4F3"),  ink2:       ColorValue("#C5D6D5"),
+          ink3:        ColorValue("#A9C0BF"),  muted:      ColorValue("#7F9998"),
+          muted2:      ColorValue("#5E7877"),  green:      ColorValue("#3FD08B"),
+          accentBg:    ColorValue("#123027"),  accentBorder:ColorValue("#1E5A46"),
+          accentInk:   ColorValue("#7DE9B8"),  accentInk2: ColorValue("#4FD6A0"),
+          diariaBg:    ColorValue("#14263F"),  diariaInk:  ColorValue("#7FB2F0"),
+          incobBg:     ColorValue("#3A2E12"),  incobInk:   ColorValue("#E6B45E"),
+          espBg:       ColorValue("#2A2140"),  espInk:     ColorValue("#B79CF0"),
+          redBg:       ColorValue("#3A1E1E"),  redInk:     ColorValue("#F08A8A"),
+          chipBg:      ColorValue("#1B2E30"),  datosBg:    ColorValue("#14263F"),
+          amber:       ColorValue("#FBBF24"),  amberOff:   ColorValue("#F59E0B"),
+          offGray:     ColorValue("#A9C0BF"),  phoneBorder:ColorValue("#26383A"),
+          noteBg:      ColorValue("#182A2C"),  hint:       ColorValue("#E6B45E")
+      });
+
+      Set(gblC, If(gblDark, gblNight, gblDay));
+
+      // ===================== TAMAÑOS DE LETRA (escalan con gblScale) =====================
+      Set(gblT, {
+          f2xs: 10*gblScale,  fxs: 11*gblScale,  fsm: 12.5*gblScale, fbase: 13.5*gblScale,
+          fmd: 15*gblScale,   flg: 17*gblScale,  fxl: 23*gblScale,   fbig: 24*gblScale
+      });
+
+      // ===================== COLECCIONES BASE (carga simple y rápida — el scoping lo hace el PERFIL OFFLINE) =====================
+      ClearCollect(colCuentas, 'CM | TBL | Cuentas');
+      ClearCollect(colAgentes, 'CM | TBL | Agentes');
+      // Direcciones Casa+Trabajo con Filter DELEGABLE (el server trae todas las que matchean, sin tope 500)
+      ClearCollect(colDirecciones, Filter('CM | TBL | Direccions', '[DR] Tipo' = "Casa" || '[DR] Tipo' = "Trabajo"));
+      ClearCollect(colTelefonos, 'CM | TBL | Telefonos');
+      ClearCollect(colClientes, 'CM | TBL | Clientes');
+
+      // ===================== EL AGENTE ACTUAL (offline: match por email denormalizado, sin navegar) =====================
+      Set(gblAgente, LookUp(colAgentes, 'Email Usuario' = User().Email));
+
+      // ===================== ESTADO DE NAVEGACIÓN =====================
+      Set(varModo, "cliente");      // Cartera: "cliente" o "cuenta"
+      Set(varFiltro, "Todos");
+      Set(varBuscar, "");
+      Set(varInicioModo, "cliente");
+    StartScreen: =scrInicio
+    Theme: =PowerAppsTheme

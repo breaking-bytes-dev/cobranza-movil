@@ -1,0 +1,1057 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+Screens:
+  scrInteraccion:
+    Properties:
+      OnHidden: |-
+        =Reset(txtComentario);
+        Reset(tpPago);
+        Clear(colLineasPago);
+        Reset(tgDatos);
+        Reset(inTelCasa);
+        Reset(inTelCel);
+        Reset(inTelTrab);
+        Reset(inDirCasa);
+        Reset(inDirEC);
+        Reset(inDirTrab);
+        Reset(inCorreo);
+    Children:
+      - conMaster_4:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            DropShadow: =DropShadow.None
+            Fill: =gblC.screen
+            Height: =Parent.Height
+            LayoutAlignItems: =LayoutAlignItems.Center
+            LayoutDirection: =LayoutDirection.Vertical
+            LayoutGap: =20
+            LayoutOverflowY: =LayoutOverflow.Scroll
+            PaddingBottom: =8
+            PaddingLeft: =8
+            PaddingRight: =8
+            PaddingTop: =8
+            Width: =Parent.Width
+          Children:
+            - conHeaderBac_2:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  AlignInContainer: =AlignInContainer.Start
+                  DropShadow: =DropShadow.None
+                  FillPortions: =0
+                  Height: =If(gblScale = 1, 120,gblScale = 1.2,130,gblScale = 1.45,150,170)
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                Children:
+                  - cmpHeaderBack_3:
+                      Control: CanvasComponent
+                      ComponentName: cmpHeaderBack
+                      Properties:
+                        Height: =Parent.Height
+                        Subtitulo: =varCuenta.'Tipo Producto' & " · " & varCuenta.'[CT] Numero de cuenta'
+                        Titulo: =varCuenta.'Nombre Cliente'
+                        Width: =Parent.Width
+                  - Button1_5:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderStyle: =BorderStyle.None
+                        Color: =gblC.white
+                        Fill: =RGBA(255,255,255,0.18)
+                        FontWeight: =FontWeight.Bold
+                        Height: =30
+                        OnSelect: =Set(varSheetEscala, true)
+                        PaddingBottom: =7
+                        PaddingLeft: =11
+                        PaddingRight: =11
+                        PaddingTop: =7
+                        RadiusBottomLeft: =9
+                        RadiusBottomRight: =9
+                        RadiusTopLeft: =9
+                        RadiusTopRight: =9
+                        Size: =gblT.fmd
+                        Text: ="Aa"
+                        Width: =If(gblScale = 1, 50,gblScale = 1.2,60,gblScale = 1.45,70,80)
+                        X: =Parent.Width - Self.Width - 14
+                        Y: =Self.Height - 20
+                  - Text1_2:
+                      Control: ModernText@1.0.0
+                      Properties:
+                        Align: =Align.Center
+                        AutoHeight: =true
+                        Color: =Switch(Text(varAsig.'[AS] Tipo'), "Diaria",gblC.diariaInk, "Incobrable",gblC.incobInk, gblC.espInk)
+                        Fill: =Switch(Text(varAsig.'[AS] Tipo'), "Diaria",gblC.diariaBg, "Incobrable",gblC.incobBg, gblC.espBg)
+                        FontWeight: =FontWeight.Bold
+                        RadiusBottomLeft: =10
+                        RadiusBottomRight: =10
+                        RadiusTopLeft: =10
+                        RadiusTopRight: =10
+                        Size: =gblT.fxs
+                        Text: =varAsig.'[AS] Tipo'
+                        Width: =100
+                        X: =Parent.Width - 18  - Self.Width
+                        Y: =Button1_5.Y + Button1_5.Height + 20
+            - cardTotalCli_2:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  BorderColor: =gblC.accentBorder
+                  BorderThickness: =1
+                  Fill: =gblC.accentBg
+                  FillPortions: =0
+                  Height: =lblTL_2.Height + lblTB_2.Height + 30 + lblPagoMinimo_1.Height + lblTotalDolarizaod_1.Height + lblContagiado_1.Height
+                  LayoutAlignItems: =LayoutAlignItems.Center
+                  LayoutDirection: =LayoutDirection.Vertical
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  PaddingBottom: =14
+                  PaddingLeft: =16
+                  PaddingRight: =16
+                  PaddingTop: =14
+                  RadiusBottomLeft: =14
+                  RadiusBottomRight: =14
+                  RadiusTopLeft: =14
+                  RadiusTopRight: =14
+                  X: =40
+                  Y: =40
+                Children:
+                  - lblTL_2:
+                      Control: Label@2.5.1
+                      Properties:
+                        AutoHeight: =true
+                        Color: =gblC.muted2
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Size: =gblT.fxs
+                        Text: ="A cobrar"
+                  - lblTB_2:
+                      Control: Label@2.5.1
+                      Properties:
+                        AutoHeight: =true
+                        Color: =gblC.teal
+                        FontWeight: =FontWeight.Bold
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Size: =gblT.fbig
+                        Text: =Moneda(varCuenta.'[CT] Saldo Vencido NIO', varCuenta.'[CT] Saldo Vencido USD')
+                  - lblPagoMinimo_1:
+                      Control: Label@2.5.1
+                      Properties:
+                        AutoHeight: =true
+                        Color: =gblC.teal
+                        FontWeight: =FontWeight.Bold
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Size: =gblT.fxs
+                        Text: |-
+                          ="Pago Minimo: "&Moneda(varCuenta.'[CT] Pago Minimo NIO', varCuenta.'[CT] Pago Minimo USD')
+                  - lblTotalDolarizaod_1:
+                      Control: Label@2.5.1
+                      Properties:
+                        AutoHeight: =true
+                        Color: =gblC.teal
+                        FontWeight: =FontWeight.Bold
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Size: =gblT.fxs
+                        Text: |-
+                          ="Total dolarizado: U$"&varCuenta.'[CT] Total saldo vencido'
+                  - lblContagiado_1:
+                      Control: Label@2.5.1
+                      Properties:
+                        AutoHeight: =true
+                        Color: =gblC.teal
+                        FontWeight: =FontWeight.Bold
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Size: =gblT.fxs
+                        Text: |-
+                          ="En riesgo (contagiado): U$"&varCuenta.'[CT] Contagiado USD'
+            - lblComL:
+                Control: Label@2.5.1
+                Properties:
+                  AlignInContainer: =AlignInContainer.Stretch
+                  AutoHeight: =true
+                  Color: =gblC.ink2
+                  FontWeight: =FontWeight.Bold
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  Size: =gblT.fsm
+                  Text: ="¿Qué pasó? *"
+            - txtComentario:
+                Control: ModernTextInput@1.1.1
+                Properties:
+                  AlignInContainer: =AlignInContainer.Stretch
+                  BorderColor: =gblC.borderSoft
+                  BorderStyle: =BorderStyle.Solid
+                  BorderThickness: =1
+                  Color: =gblC.ink
+                  Default: =varCom
+                  Fill: =gblC.white
+                  Height: =160
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  Placeholder: ="Escribí el comentario de la interacción…"
+                  RadiusBottomLeft: =12
+                  RadiusBottomRight: =12
+                  RadiusTopLeft: =12
+                  RadiusTopRight: =12
+                  Size: =gblT.fbase
+                  Type: =TextInputType.Multiline
+            - galChips:
+                Control: Gallery@2.15.0
+                Variant: Horizontal
+                Properties:
+                  FillPortions: =0
+                  Height: =180
+                  Items: =["Promesa de pago","No localizado","Cliente pagó","No tiene dinero hoy","Negocio cerrado","Pidió arreglo"]
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  ShowScrollbar: =false
+                  TemplatePadding: =10
+                  TemplateSize: =Parent.Width / 2 - 30
+                  WrapCount: =3
+                Children:
+                  - Button11:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =gblC.teal
+                        DisabledFill: =RGBA(244, 244, 244, 0)
+                        Fill: =Color.Transparent
+                        Height: =Parent.TemplateHeight
+                        OnSelect: =Set(varCom, If(IsBlank(varCom), ThisItem.Value, Trim(varCom) & ". " & ThisItem.Value))
+                        PaddingBottom: =7
+                        PaddingLeft: =13
+                        PaddingRight: =13
+                        PaddingTop: =7
+                        RadiusBottomLeft: =16
+                        RadiusBottomRight: =16
+                        RadiusTopLeft: =16
+                        RadiusTopRight: =16
+                        Size: =gblT.fxs
+                        Text: =ThisItem.Value
+                        Width: =Parent.TemplateWidth
+            - Container16_4:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  Fill: =gblC.white
+                  FillPortions: =0
+                  Height: =lblPagoT.Height + conFila_DiasMora_3.Height + If(secPago.Visible, secPago.Height) +  16
+                  LayoutAlignItems: =LayoutAlignItems.Center
+                  LayoutDirection: =LayoutDirection.Vertical
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  PaddingBottom: =8
+                  PaddingLeft: =8
+                  PaddingRight: =8
+                  PaddingTop: =8
+                  RadiusBottomLeft: =14
+                  RadiusBottomRight: =14
+                  RadiusTopLeft: =14
+                  RadiusTopRight: =14
+                Children:
+                  - conFila_DiasMora_3:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        FillPortions: =0
+                        Height: =If(gblScale = 1, 35,gblScale = 1.2,40,gblScale = 1.45,45,50)
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Horizontal
+                        LayoutJustifyContent: =LayoutJustifyContent.SpaceBetween
+                        PaddingBottom: =8
+                        PaddingTop: =8
+                        Width: =Parent.Width
+                      Children:
+                        - lblPagoT:
+                            Control: Label@2.5.1
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Center
+                              AutoHeight: =true
+                              Color: =gblC.ink
+                              FillPortions: =1
+                              FontWeight: =FontWeight.Semibold
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              Size: =gblT.fbase
+                              Text: |-
+                                ="💵 Aplica pago"
+                        - tpPago:
+                            Control: Classic/Toggle@2.1.0
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Stretch
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              ShowLabel: =false
+                              Width: =70
+                  - lblPagoD:
+                      Control: Label@2.5.1
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Stretch
+                        AutoHeight: =true
+                        Color: =gblC.muted2
+                        FontWeight: =FontWeight.Semibold
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Size: =gblT.fxs
+                        Text: ="El cliente pagó algo en esta visita"
+                  - secPago:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        BorderColor: =gblC.teal
+                        BorderStyle: =BorderStyle.None
+                        BorderThickness: =3
+                        DropShadow: =DropShadow.None
+                        FillPortions: =
+                        Height: =lblPagoTit.Height + btnAddPago.Height + galLineasPago.Height + 40
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutGap: =10
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingBottom: =2
+                        PaddingLeft: =12
+                        PaddingTop: =2
+                        Visible: =tpPago.Value
+                      Children:
+                        - lblPagoTit:
+                            Control: Label@2.5.1
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Stretch
+                              AutoHeight: =true
+                              Color: =gblC.teal
+                              FontWeight: =FontWeight.Bold
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              Size: =gblT.fsm
+                              Text: ="Pago(s)"
+                        - galLineasPago:
+                            Control: Gallery@2.15.0
+                            Variant: Vertical
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Start
+                              BorderThickness: =3
+                              FillPortions: =0
+                              Height: =Self.AllItemsCount * Self.TemplateHeight
+                              Items: =colLineasPago
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              TemplatePadding: =
+                              TemplateSize: =170
+                              Width: =App.Width - 64
+                            Children:
+                              - conLinea:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: AutoLayout
+                                  Properties:
+                                    BorderColor: =gblC.cardBorder
+                                    BorderThickness: =2
+                                    DropShadow: =DropShadow.None
+                                    Fill: =gblC.white
+                                    Height: =Parent.TemplateHeight - 10
+                                    LayoutAlignItems: =LayoutAlignItems.Center
+                                    LayoutDirection: =LayoutDirection.Vertical
+                                    LayoutGap: =8
+                                    PaddingBottom: =10
+                                    PaddingLeft: =10
+                                    PaddingRight: =10
+                                    PaddingTop: =10
+                                    RadiusBottomLeft: =10
+                                    RadiusBottomRight: =10
+                                    RadiusTopLeft: =10
+                                    RadiusTopRight: =10
+                                    Width: =App.Width - 68
+                                  Children:
+                                    - fila 1:
+                                        Control: GroupContainer@1.5.0
+                                        Variant: AutoLayout
+                                        Properties:
+                                          DropShadow: =DropShadow.None
+                                          LayoutAlignItems: =LayoutAlignItems.Center
+                                          LayoutDirection: =LayoutDirection.Horizontal
+                                          LayoutGap: =8
+                                          LayoutMinHeight: =16
+                                          LayoutMinWidth: =16
+                                          PaddingBottom: =8
+                                          PaddingLeft: =8
+                                          PaddingRight: =8
+                                          PaddingTop: =8
+                                        Children:
+                                          - txtMonto:
+                                              Control: ModernNumberInput@1.1.1
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                Default: =ThisItem.monto
+                                                FillPortions: =1
+                                                LayoutMinHeight: =16
+                                                LayoutMinWidth: =16
+                                                OnChange: |-
+                                                  =Patch(colLineasPago, ThisItem, {monto: Value(Self.Value)})
+                                          - Dropdown1:
+                                              Control: ModernDropdown@1.0.2
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                Default: |-
+                                                  ={Value: ThisItem.moneda}
+                                                FillPortions: =1
+                                                ItemDisplayText: =ThisItem.Value
+                                                Items: =["NIO","USD"]
+                                                LayoutMinHeight: =16
+                                                LayoutMinWidth: =16
+                                                OnChange: |-
+                                                  =Patch(colLineasPago, ThisItem, {moneda: Self.Selected.Value})
+                                    - fila 2:
+                                        Control: GroupContainer@1.5.0
+                                        Variant: AutoLayout
+                                        Properties:
+                                          DropShadow: =DropShadow.None
+                                          LayoutAlignItems: =LayoutAlignItems.Center
+                                          LayoutDirection: =LayoutDirection.Horizontal
+                                          LayoutGap: =8
+                                          LayoutMinHeight: =16
+                                          LayoutMinWidth: =16
+                                          PaddingBottom: =8
+                                          PaddingLeft: =8
+                                          PaddingRight: =8
+                                          PaddingTop: =8
+                                        Children:
+                                          - txtRecibo:
+                                              Control: ModernTextInput@1.1.1
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                Default: =ThisItem.recibo
+                                                FillPortions: =1
+                                                LayoutMinHeight: =16
+                                                LayoutMinWidth: =16
+                                                OnChange: |-
+                                                  =Patch(colLineasPago, ThisItem, {recibo: Self.Text})
+                                                Placeholder: ="N° de recibo"
+                                          - btnQuitar:
+                                              Control: Classic/Button@2.2.0
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                BorderStyle: =BorderStyle.None
+                                                Color: =gblC.redInk
+                                                Fill: =gblC.redBg
+                                                LayoutMinHeight: =16
+                                                LayoutMinWidth: =16
+                                                OnSelect: =Remove(colLineasPago, ThisItem)
+                                                Text: ="✕"
+                                                Width: =42
+                        - btnAddPago:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Center
+                              BorderColor: =ColorValue("#A7C4C4")
+                              BorderStyle: =BorderStyle.Dashed
+                              Color: =gblC.teal
+                              Fill: =gblC.chipBg
+                              Height: =60
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              OnSelect: =Collect(colLineasPago, {monto:0, moneda:"NIO", recibo:""})
+                              PaddingBottom: =11
+                              PaddingLeft: =11
+                              PaddingRight: =11
+                              PaddingTop: =11
+                              Text: ="＋ Agregar pago"
+            - rowDatos:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  Fill: =gblC.white
+                  FillPortions: =0
+                  Height: =lblPagoT_1.Height + conFila_DiasMora_4.Height + If(secDatos.Visible, secDatos.Height) +  48
+                  LayoutAlignItems: =LayoutAlignItems.Center
+                  LayoutDirection: =LayoutDirection.Vertical
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  PaddingBottom: =8
+                  PaddingLeft: =8
+                  PaddingRight: =8
+                  PaddingTop: =8
+                  RadiusBottomLeft: =14
+                  RadiusBottomRight: =14
+                  RadiusTopLeft: =14
+                  RadiusTopRight: =14
+                Children:
+                  - conFila_DiasMora_4:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        FillPortions: =0
+                        Height: =If(gblScale = 1, 35,gblScale = 1.2,40,gblScale = 1.45,45,50)
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Horizontal
+                        LayoutJustifyContent: =LayoutJustifyContent.SpaceBetween
+                        PaddingBottom: =8
+                        PaddingTop: =8
+                        Width: =Parent.Width
+                      Children:
+                        - lblPagoT_1:
+                            Control: Label@2.5.1
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Center
+                              AutoHeight: =true
+                              Color: =gblC.ink
+                              FillPortions: =1
+                              FontWeight: =FontWeight.Semibold
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              Size: =gblT.fbase
+                              Text: ="✏️ Actualizar datos del cliente"
+                        - tgDatos:
+                            Control: Classic/Toggle@2.1.0
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Stretch
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              ShowLabel: =false
+                              Width: =70
+                  - lblPagoD_1:
+                      Control: Label@2.5.1
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Stretch
+                        AutoHeight: =true
+                        Color: =gblC.muted2
+                        FontWeight: =FontWeight.Semibold
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Size: =gblT.fxs
+                        Text: ="Cambió un teléfono, dirección o correo"
+                  - secDatos:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        BorderColor: =gblC.teal
+                        BorderStyle: =BorderStyle.None
+                        BorderThickness: =3
+                        DropShadow: =DropShadow.None
+                        FillPortions: =
+                        Height: =lblPagoTit_1.Height + contDato.Height + contDato.Height * 4 + contDato_5.Height * 3 + 32
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutGap: =10
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingBottom: =2
+                        PaddingLeft: =12
+                        PaddingTop: =2
+                        Visible: =tgDatos.Value
+                      Children:
+                        - lblPagoTit_1:
+                            Control: Label@2.5.1
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Stretch
+                              AutoHeight: =true
+                              Color: =gblC.teal
+                              FontWeight: =FontWeight.Bold
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              Size: =gblT.fsm
+                              Text: ="Nuevos datos · dejá en blanco lo que no cambió"
+                        - contDato:
+                            Control: GroupContainer@1.5.0
+                            Variant: AutoLayout
+                            Properties:
+                              DropShadow: =DropShadow.None
+                              FillPortions: =0
+                              Height: =60
+                              LayoutAlignItems: =LayoutAlignItems.Center
+                              LayoutDirection: =LayoutDirection.Horizontal
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =8
+                              PaddingLeft: =8
+                              PaddingRight: =8
+                              PaddingTop: =8
+                            Children:
+                              - lblTelCasa:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    AutoHeight: =true
+                                    Color: =gblC.muted
+                                    FillPortions: =1
+                                    FontWeight: =FontWeight.Semibold
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    Size: =gblT.fxs
+                                    Text: ="Teléfono casa"
+                              - inTelCasa:
+                                  Control: ModernTextInput@1.1.1
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    Appearance: =Appearance.Outline
+                                    FillPortions: =1
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    Placeholder: =
+                        - contDato_1:
+                            Control: GroupContainer@1.5.0
+                            Variant: AutoLayout
+                            Properties:
+                              DropShadow: =DropShadow.None
+                              FillPortions: =0
+                              Height: =60
+                              LayoutAlignItems: =LayoutAlignItems.Center
+                              LayoutDirection: =LayoutDirection.Horizontal
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =8
+                              PaddingLeft: =8
+                              PaddingRight: =8
+                              PaddingTop: =8
+                            Children:
+                              - lblTelCel:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    AutoHeight: =true
+                                    Color: =gblC.muted
+                                    FillPortions: =1
+                                    FontWeight: =FontWeight.Semibold
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    Size: =gblT.fxs
+                                    Text: ="Teléfono celular"
+                              - inTelCel:
+                                  Control: ModernTextInput@1.1.1
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    Appearance: =Appearance.Outline
+                                    FillPortions: =1
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    Placeholder: =
+                        - contDato_2:
+                            Control: GroupContainer@1.5.0
+                            Variant: AutoLayout
+                            Properties:
+                              DropShadow: =DropShadow.None
+                              FillPortions: =0
+                              Height: =60
+                              LayoutAlignItems: =LayoutAlignItems.Center
+                              LayoutDirection: =LayoutDirection.Horizontal
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =8
+                              PaddingLeft: =8
+                              PaddingRight: =8
+                              PaddingTop: =8
+                            Children:
+                              - lblTelTrab:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    AutoHeight: =true
+                                    Color: =gblC.muted
+                                    FillPortions: =1
+                                    FontWeight: =FontWeight.Semibold
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    Size: =gblT.fxs
+                                    Text: ="Teléfono trabajo"
+                              - inTelTrab:
+                                  Control: ModernTextInput@1.1.1
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    Appearance: =Appearance.Outline
+                                    FillPortions: =1
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    Placeholder: =
+                        - contDato_3:
+                            Control: GroupContainer@1.5.0
+                            Variant: AutoLayout
+                            Properties:
+                              DropShadow: =DropShadow.None
+                              FillPortions: =0
+                              Height: =100
+                              LayoutAlignItems: =LayoutAlignItems.Center
+                              LayoutDirection: =LayoutDirection.Horizontal
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =8
+                              PaddingLeft: =8
+                              PaddingRight: =8
+                              PaddingTop: =8
+                            Children:
+                              - lblDirCasa:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    AutoHeight: =true
+                                    Color: =gblC.muted
+                                    FillPortions: =1
+                                    FontWeight: =FontWeight.Semibold
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    Size: =gblT.fxs
+                                    Text: ="Dirección casa"
+                              - inDirCasa:
+                                  Control: ModernTextInput@1.1.1
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    Appearance: =Appearance.Outline
+                                    FillPortions: =1
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    Placeholder: =
+                        - contDato_4:
+                            Control: GroupContainer@1.5.0
+                            Variant: AutoLayout
+                            Properties:
+                              DropShadow: =DropShadow.None
+                              FillPortions: =0
+                              Height: =100
+                              LayoutAlignItems: =LayoutAlignItems.Center
+                              LayoutDirection: =LayoutDirection.Horizontal
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =8
+                              PaddingLeft: =8
+                              PaddingRight: =8
+                              PaddingTop: =8
+                            Children:
+                              - lblDirEC:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    AutoHeight: =true
+                                    Color: =gblC.muted
+                                    FillPortions: =1
+                                    FontWeight: =FontWeight.Semibold
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    Size: =gblT.fxs
+                                    Text: ="Dirección EC"
+                              - inDirEC:
+                                  Control: ModernTextInput@1.1.1
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    Appearance: =Appearance.Outline
+                                    FillPortions: =1
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    Placeholder: =
+                                    Type: =TextInputType.Multiline
+                        - contDato_5:
+                            Control: GroupContainer@1.5.0
+                            Variant: AutoLayout
+                            Properties:
+                              DropShadow: =DropShadow.None
+                              FillPortions: =0
+                              Height: =100
+                              LayoutAlignItems: =LayoutAlignItems.Center
+                              LayoutDirection: =LayoutDirection.Horizontal
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =8
+                              PaddingLeft: =8
+                              PaddingRight: =8
+                              PaddingTop: =8
+                            Children:
+                              - lblDirTrab:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    AutoHeight: =true
+                                    Color: =gblC.muted
+                                    FillPortions: =1
+                                    FontWeight: =FontWeight.Semibold
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    Size: =gblT.fxs
+                                    Text: ="Dirección trabajo"
+                              - inDirTrab:
+                                  Control: ModernTextInput@1.1.1
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    Appearance: =Appearance.Outline
+                                    FillPortions: =1
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    Placeholder: =
+                                    Type: =TextInputType.Multiline
+                        - contDato_6:
+                            Control: GroupContainer@1.5.0
+                            Variant: AutoLayout
+                            Properties:
+                              DropShadow: =DropShadow.None
+                              FillPortions: =0
+                              Height: =60
+                              LayoutAlignItems: =LayoutAlignItems.Center
+                              LayoutDirection: =LayoutDirection.Horizontal
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =8
+                              PaddingLeft: =8
+                              PaddingRight: =8
+                              PaddingTop: =8
+                            Children:
+                              - lblCorreo:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    AutoHeight: =true
+                                    Color: =gblC.muted
+                                    FillPortions: =1
+                                    FontWeight: =FontWeight.Semibold
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    Size: =gblT.fxs
+                                    Text: ="Correo electrónico"
+                              - inCorreo:
+                                  Control: ModernTextInput@1.1.1
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    Appearance: =Appearance.Outline
+                                    FillPortions: =1
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    Placeholder: =
+            - cardGeo:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  BorderColor: =gblC.accentBorder
+                  BorderThickness: =1
+                  Fill: =gblC.accentBg
+                  FillPortions: =0
+                  Height: =lblGeoIco.Height + blGeoT.Height + Label8.Height + 28
+                  LayoutAlignItems: =LayoutAlignItems.Center
+                  LayoutDirection: =LayoutDirection.Horizontal
+                  LayoutGap: =4
+                  LayoutJustifyContent: =LayoutJustifyContent.Center
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  LayoutWrap: =true
+                  PaddingBottom: =12
+                  PaddingLeft: =14
+                  PaddingRight: =14
+                  PaddingTop: =12
+                  RadiusBottomLeft: =12
+                  RadiusBottomRight: =12
+                  RadiusTopLeft: =12
+                  RadiusTopRight: =12
+                Children:
+                  - lblGeoIco:
+                      Control: Label@2.5.1
+                      Properties:
+                        AutoHeight: =true
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Size: =20*gblScale
+                        Text: |-
+                          ="📍"
+                        Width: =App.Width - 64
+                  - conGeoTxt:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Center
+                        DropShadow: =DropShadow.None
+                        FillPortions: =0
+                        Height: =blGeoT.Height + Label8.Height + 16
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingBottom: =8
+                        PaddingLeft: =8
+                        PaddingRight: =8
+                        PaddingTop: =8
+                        Width: =Parent.Width - 16
+                      Children:
+                        - blGeoT:
+                            Control: Label@2.5.1
+                            Properties:
+                              AutoHeight: =true
+                              Color: =gblC.accentInk
+                              FontWeight: =FontWeight.Semibold
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              Size: =gblT.fbase
+                              Text: ="Ubicación capturada"
+                        - Label8:
+                            Control: Label@2.5.1
+                            Properties:
+                              AutoHeight: =true
+                              Color: =gblC.accentInk2
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              Size: =gblT.fxs
+                              Text: =Text(Location.Latitude,"0.0000") & ", " & Text(Location.Longitude,"0.0000") & " · automática"
+            - btnRegistrar_1:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  AlignInContainer: =AlignInContainer.Stretch
+                  BorderStyle: =BorderStyle.None
+                  Color: =gblC.white
+                  DisplayMode: |+
+                    =If(!IsBlank(txtComentario.Text)
+                          && (!tpPago.Value || CountRows(Filter(colLineasPago, monto>0 && !IsBlank(Trim(recibo))))>0)
+                          && (!tgDatos.Value || Or(!IsBlank(inTelCasa.Text), !IsBlank(inTelCel.Text), !IsBlank(inTelTrab.Text),
+                                                   !IsBlank(inDirCasa.Text), !IsBlank(inDirEC.Text), !IsBlank(inDirTrab.Text),
+                                                   !IsBlank(inCorreo.Text))),
+                          DisplayMode.Edit, DisplayMode.Disabled)
+                  Fill: =gblC.teal
+                  FontWeight: =FontWeight.Bold
+                  Height: =54
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  OnSelect: |-
+                    =Set(
+                        varInt,
+                        Patch(
+                            'CM | TBL | Interaccions',
+                            Defaults('CM | TBL | Interaccions'),
+                            {
+                                '[IN] Cuenta': varCuenta,
+                                '[IN] Agente': gblAgente,
+                                '[IN] Comentario': txtComentario.Text,
+                                '[IN] Aplica pago': tpPago.Value,
+                                '[IN] Actualiza info': tgDatos.Value,
+                                '[IN] Latitud': Location.Latitude,
+                                '[IN] Longitud': Location.Longitude,
+                                '[IN] Numerocuenta': varCuenta.'[CT] Numero de cuenta',
+                                'Fecha de captura': Now(),
+                                '[IN] NombreAgente': Coalesce(gblAgente.'[AG] Nombre', "Sin nombre")
+                            }
+                        )
+                    );
+                    If(
+                        tpPago.Value,
+                        ForAll(
+                            Filter(
+                                colLineasPago,
+                                monto > 0
+                            ) As L,
+                            Patch(
+                                'CM | TBL | Pagos',
+                                Defaults('CM | TBL | Pagos'),
+                                {
+                                    '[PG] Interaccion': varInt,
+                                    '[PG] Numero Interaccion': varInt.'[IN] Numero de Interaccion',
+                                    '[PG] Numero Cuenta': varCuenta.'[CT] Numero de cuenta',
+                                    '[PG] Monto': L.monto,
+                                    '[PG] Moneda': Switch(
+                                        L.moneda,
+                                        "USD",
+                                        'Choice | CM | Monedas en Pago'.USD,
+                                        'Choice | CM | Monedas en Pago'.NIO
+                                    ),
+                                    '[PG] Numero recibo': L.recibo
+                                }
+                            )
+                        )
+                    );
+                    If(
+                        tgDatos.Value,
+                        Patch(
+                            'CM | TBL | Actualizacion de datos',
+                            Defaults('CM | TBL | Actualizacion de datos'),
+                            {
+                                '[AD] Interaccion': varInt,
+                                '[AD] Telefono Casa': inTelCasa.Text,
+                                '[AD] Telefono Celular': inTelCel.Text,
+                                '[AD] Telefono trabajo': inTelTrab.Text,
+                                '[AD] Direccion casa': inDirCasa.Text,
+                                '[AD] Direccion EC': inDirEC.Text,
+                                '[AD] Direccion trabajo': inDirTrab.Text,
+                                '[AD] Correo electronico': inCorreo.Text
+                            }
+                        )
+                    );
+                    Set(
+                        varCom,
+                        ""
+                    );
+                    Notify(
+                        "✓ Guardado offline. Se sincroniza al volver la señal.",
+                        NotificationType.Success
+                    );
+                    Back()
+                  PaddingBottom: =14
+                  PaddingLeft: =14
+                  PaddingRight: =14
+                  PaddingTop: =14
+                  Size: =gblT.fmd
+                  Text: = "Guardar interacción" & If(tpPago.Value," + pago","") & If(tgDatos.Value," + datos","")
+            - lblHint:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Center
+                  AutoHeight: =true
+                  Color: =gblC.hint
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  Size: =gblT.fxs
+                  Text: |-
+                    =With(
+                        {
+                            varCondicionPago: ((tpPago.Value && CountRows(
+                                Filter(
+                                    colLineasPago,
+                                    monto <= 0 || IsBlank(Trim(recibo))
+                                )
+                            ) > 0) || (tpPago.Value && CountRows(colLineasPago) = 0)),
+                            varCondicionInteracion: IsBlank(txtComentario.Text),
+                            varCondicionActualizacion: tgDatos.Value && And(
+                                IsBlank(inTelCasa.Text),
+                                IsBlank(inTelCel.Text),
+                                IsBlank(inTelTrab.Text),
+                                IsBlank(inDirCasa.Text),
+                                IsBlank(inDirEC.Text),
+                                IsBlank(inDirTrab.Text),
+                                IsBlank(inCorreo.Text)
+                            )
+                        },
+                        If(
+                            varCondicionPago || varCondicionInteracion || varCondicionActualizacion,
+                            "Falta: "
+                        ) & If(
+                            IsBlank(txtComentario.Text),
+                            "comentario ",
+                            ""
+                        ) & If(
+                            ((tpPago.Value && CountRows(
+                                Filter(
+                                    colLineasPago,
+                                    monto <= 0 || IsBlank(Trim(recibo))
+                                )
+                            ) > 0) || (tpPago.Value && CountRows(colLineasPago) = 0)),
+                            "· Informacion de pago "
+                        ) & If(
+                            tgDatos.Value && And(
+                                IsBlank(inTelCasa.Text),
+                                IsBlank(inTelCel.Text),
+                                IsBlank(inTelTrab.Text),
+                                IsBlank(inDirCasa.Text),
+                                IsBlank(inDirEC.Text),
+                                IsBlank(inDirTrab.Text),
+                                IsBlank(inCorreo.Text)
+                            ),
+                            "· Informacion personal a actualizar"
+                        )
+                    )
+      - cmpSheet_5:
+          Control: CanvasComponent
+          ComponentName: cmpSheet
+          Properties:
+            Height: =Parent.Height
+            Visible: =varSheetEscala
+            Width: =Parent.Width
