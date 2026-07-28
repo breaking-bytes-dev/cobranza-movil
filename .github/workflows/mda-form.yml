@@ -1,0 +1,72 @@
+name: mda-form
+
+# Fix 1 (parte A): reconstruye el formulario Main de interaccion con 3 secciones de campos:
+#  - Gestión (campo)  [read-only]  · Transcripción al core [editable] · Auditoría [read-only]
+# El subgrid de Pagos se agrega en un segundo paso.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  form:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reconstruir formulario
+        env:
+          CID: ${{ secrets.PP_CLIENT_ID }}
+          SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT: ${{ secrets.PP_TENANT_ID }}
+          URL: ${{ secrets.DATAVERSE_URL }}
+        run: |
+          set +e
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" \
+            -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          API="$URL/api/data/v9.2"
+          H_AUTH="Authorization: Bearer $TOKEN"; A="Accept: application/json"; JSON="Content-Type: application/json"
+          SOL="MSCRM.SolutionUniqueName: cm_core_cobranzamovil"
+          ENT='sanic_cm_tbl_interaccion'
+          g(){ curl -s -H "$H_AUTH" -H "$A" "$API/$1"; }
+
+          FORMID=$(g "systemforms?\$filter=objecttypecode%20eq%20'$ENT'%20and%20type%20eq%202&\$select=formid" | jq -r '.value[0].formid')
+          echo "formid=$FORMID"
+
+          # classids por tipo de control
+          TEXT='{4273EDBD-AC1D-40d3-9FB2-095C621B552D}'
+          MEMO='{E0DECE4B-6FC8-4a8f-A065-082708572369}'
+          LOOKUP='{270BD3DB-D9AF-4782-9025-509E298DEC0A}'
+          PICK='{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}'
+          DATE='{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}'
+          DEC='{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}'
+          BOOL='{67FAC785-CD58-4f9f-ABB3-4B7DDC6ED5ED}'
+          uid(){ echo "{$(uuidgen)}"; }
+
+          # row FIELD CLASSID LABEL DISABLED(true/false)
+          row(){
+            printf '<row><cell id="%s"><labels><label description="%s" languagecode="1033" /></labels><control id="%s" classid="%s" datafieldname="%s" disabled="%s" /></cell></row>' \
+              "$(uid)" "$3" "$1" "$2" "$1" "$4"
+          }
+
+          SEC_GESTION="$(row sanic_cm_in_numerointeraccion "$TEXT" 'N° interacción' true)$(row sanic_cm_in_cuentaid "$LOOKUP" 'Cuenta' true)$(row sanic_cm_in_numerocuenta "$TEXT" 'N° de cuenta' true)$(row sanic_cm_in_agente "$LOOKUP" 'Localizador' true)$(row sanic_cm_in_comentario "$MEMO" 'Comentario' true)$(row sanic_cm_in_fechacaptura "$DATE" 'Fecha de interacción' true)$(row sanic_cm_cd_aplicapago "$BOOL" '¿Aplica pago?' true)$(row sanic_cm_in_latitud "$DEC" 'Latitud' true)$(row sanic_cm_in_longitud "$DEC" 'Longitud' true)"
+          SEC_TRANSC="$(row sanic_cm_in_estadograbacion "$PICK" 'Estado de transcripción' false)$(row sanic_cm_in_codigograbacion "$TEXT" 'Código del core' false)"
+          SEC_AUDIT="$(row sanic_cm_in_fechagrabacion "$DATE" 'Fecha grabada en core' true)$(row sanic_cm_in_grabadopor "$LOOKUP" 'Grabada por' true)"
+
+          section(){ # $1 name  $2 label  $3 rows
+            printf '<section name="%s" showlabel="true" showbar="false" IsUserDefined="0" id="%s" columns="1" labelwidth="140" celllabelalignment="Left" celllabelposition="Left"><labels><label description="%s" languagecode="1033" /></labels><rows>%s</rows></section>' \
+              "$1" "$(uid)" "$2" "$3"
+          }
+          SECTIONS="$(section sec_gestion 'Gestión (campo · solo lectura)' "$SEC_GESTION")$(section sec_transc 'Transcripción al core' "$SEC_TRANSC")$(section sec_audit 'Auditoría' "$SEC_AUDIT")"
+
+          FORMXML="$(printf '<form><tabs><tab name="tab_transcripcion" verticallayout="true" id="%s" IsUserDefined="0" locklevel="0" showlabel="true" expanded="true"><labels><label description="Transcripción" languagecode="1033" /></labels><columns><column width="100%%"><sections>%s</sections></column></columns></tab></tabs></form>' "$(uid)" "$SECTIONS")"
+
+          echo "  -- longitud formxml: ${#FORMXML} chars --"
+          jq -n --arg fx "$FORMXML" '{formxml:$fx}' > /tmp/form.json
+          code=$(curl -s -o /tmp/r.txt -w "%{http_code}" -X PATCH "$API/systemforms($FORMID)" -H "$H_AUTH" -H "$JSON" -H "$A" -H "$SOL" --data @/tmp/form.json)
+          echo "  PATCH formxml HTTP $code"; [ "$code" -ge 300 ] && cat /tmp/r.txt
+
+          echo "  -- publish --"
+          curl -s -o /dev/null -w "  PublishAllXml HTTP %{http_code}\n" -X POST "$API/PublishAllXml" -H "$H_AUTH" -H "$JSON" -H "$A" -d '{}'
+
+          echo "  -- verificación: campos en el form --"
+          g "systemforms($FORMID)?\$select=formxml" | jq -r '.formxml' | grep -oE 'datafieldname="[^"]*"' | sort -u
