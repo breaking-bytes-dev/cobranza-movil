@@ -1,0 +1,32 @@
+name: mda-cabos
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  c:
+    runs-on: ubuntu-latest
+    steps:
+      - name: cabos
+        env:
+          CID: ${{ secrets.PP_CLIENT_ID }}
+          SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT: ${{ secrets.PP_TENANT_ID }}
+          URL: ${{ secrets.DATAVERSE_URL }}
+        run: |
+          set +e
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          API="$URL/api/data/v9.2"; H="Authorization: Bearer $TOKEN"; A="Accept: application/json"
+          g(){ curl -s -H "$H" -H "$A" "$API/$1"; }
+          APPID='87d0d420-3977-f111-ab0e-70a8a5b226fd'
+          echo "===== A) componentes de la app (tipo + objeto) ====="
+          g "appmodulecomponents?\$filter=_appmoduleid_value%20eq%20$APPID&\$select=componenttype,objectid" | jq -r '.value[]? | "  componenttype=\(.componenttype)  obj=\(.objectid)"' | sort | uniq -c
+          echo "===== B) sitemaps del entorno (nombre + ¿referencia interaccion?) ====="
+          g "sitemaps?\$select=sitemapname,sitemapnameunique,sitemapid" | jq -r '.value[]? | "  \(.sitemapnameunique)  [\(.sitemapid)]"'
+          echo "  -- busco el que referencia sanic_cm_tbl_interaccion --"
+          SM=$(g "sitemaps?\$select=sitemapnameunique,sitemapxml" | jq -r '[.value[] | select(.sitemapxml != null and (.sitemapxml|test("sanic_cm_tbl_interaccion")))][0]')
+          echo "$SM" | jq -r '"  encontrado: " + (.sitemapnameunique // "NINGUNO")'
+          echo "  -- áreas/grupos/subáreas --"
+          echo "$SM" | jq -r '.sitemapxml // ""' | grep -oE '<(Area|Group|SubArea)[^>]*' | grep -oE '(Id|Entity|Title)="[^"]*"' | head -40
+          echo "===== C) vista 'Transcritas hoy' — filtro ====="
+          g "savedqueries?\$filter=returnedtypecode%20eq%20'sanic_cm_tbl_interaccion'%20and%20name%20eq%20'Transcritas%20hoy'&\$select=fetchxml" | jq -r '.value[0].fetchxml // "  (no existe)"'
