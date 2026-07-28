@@ -1,0 +1,44 @@
+name: smlt-fix-lk
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  f:
+    runs-on: ubuntu-latest
+    steps:
+      - name: agregar lookups faltantes + re-audit
+        env:
+          CID: ${{ secrets.PP_CLIENT_ID }}
+          SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT: ${{ secrets.PP_TENANT_ID }}
+          URL: ${{ secrets.DATAVERSE_URL }}
+        run: |
+          set +e
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          API="$URL/api/data/v9.2"; H_AUTH="Authorization: Bearer $TOKEN"; A="Accept: application/json"; JSON="Content-Type: application/json"; SOL="MSCRM.SolutionUniqueName: cm_core_cobranzamovil"
+          g(){ curl -s -H "$H_AUTH" -H "$A" "$API/$1"; }
+          TID='dcb61b79-e66d-f111-ab0e-0022480a5be8'
+          tmid(){ g "sanic_tbl_smlt_tablemappings?\$filter=_sanic_smlt_tm_importtemplateid_value%20eq%20$TID%20and%20sanic_smlt_tm_name%20eq%20'$1'&\$select=sanic_tbl_smlt_tablemappingid" | jq -r '.value[0].sanic_tbl_smlt_tablemappingid'; }
+          CTA=$(tmid Cuenta); CD=$(tmid 'Carga%20Diaria')
+          addlk(){ # TMID SOURCE TARGET LOOKUPTABLE MATCHCOL
+            jq -n --arg tm "$1" --arg s "$2" --arg t "$3" --arg lt "$4" --arg mc "$5" '{("sanic_smlt_cm_tablemappingid@odata.bind"):("/sanic_tbl_smlt_tablemappings("+$tm+")"), sanic_smlt_cm_name:$t, sanic_smlt_cm_sourcecolumn:$s, sanic_smlt_cm_targetcolumn:$t, sanic_smlt_cm_datatype:5, sanic_smlt_cm_lookuptable:$lt, sanic_smlt_cm_lookupmatchcolumn:$mc}' > /tmp/lk.json
+            local code=$(curl -s -o /tmp/r.txt -w "%{http_code}" -X POST "$API/sanic_tbl_smlt_columnmappings" -H "$H_AUTH" -H "$JSON" -H "$A" -H "$SOL" --data @/tmp/lk.json)
+            printf "  %-45s HTTP %s\n" "$3 <- [$2] (lookup $4)" "$code"; [ "$code" -ge 300 ] && head -c 250 /tmp/r.txt && echo
+          }
+          echo "=== lookups faltantes ==="
+          addlk "$CTA" NombreFianza sanic_cm_ct_fiador sanic_cm_tbl_fiador sanic_cm_fi_nombre
+          addlk "$CD" NumeroCuenta sanic_cm_cd_cuenta sanic_cm_tbl_cuenta sanic_cm_ct_numerodecuenta
+          echo ""
+          echo "=== RE-AUDIT: columnas NO mapeadas (real, excl lookups/virtuals/auto) ==="
+          g "sanic_tbl_smlt_tablemappings?\$filter=_sanic_smlt_tm_importtemplateid_value%20eq%20$TID&\$select=sanic_tbl_smlt_tablemappingid,sanic_smlt_tm_targettable" | jq -r '.value[] | "\(.sanic_tbl_smlt_tablemappingid)|\(.sanic_smlt_tm_targettable)"' > /tmp/tms.txt
+          : > /tmp/mapped.txt
+          while IFS='|' read -r tmid target; do
+            g "sanic_tbl_smlt_columnmappings?\$filter=_sanic_smlt_cm_tablemappingid_value%20eq%20$tmid&\$select=sanic_smlt_cm_targetcolumn" | jq -r --arg t "$target" '.value[]? | "\($t)|\(.sanic_smlt_cm_targetcolumn)"' >> /tmp/mapped.txt
+          done < /tmp/tms.txt
+          cut -d'|' -f2 /tmp/tms.txt | sort -u | while read -r tbl; do
+            g "EntityDefinitions(LogicalName='$tbl')/Attributes?\$select=LogicalName,AttributeType" | jq -r '.value[] | select(.LogicalName|startswith("sanic_")) | select(.AttributeType!="Lookup" and .AttributeType!="Virtual" and .AttributeType!="Uniqueidentifier") | select(.LogicalName|test("idname$|idyominame$|name$")|not) | .LogicalName' | sort -u > /tmp/cols.txt
+            grep "^$tbl|" /tmp/mapped.txt | cut -d'|' -f2 | sort -u > /tmp/m.txt
+            miss=$(comm -23 /tmp/cols.txt /tmp/m.txt)
+            if [ -n "$miss" ]; then echo "  [$tbl] aún faltan (revisar si van del import):"; echo "$miss" | sed 's/^/     /'; else echo "  [$tbl] ✓ completo"; fi
+          done
