@@ -1,0 +1,37 @@
+name: smlt-audit
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  a:
+    runs-on: ubuntu-latest
+    steps:
+      - name: audit template Cobranza
+        env:
+          CID: ${{ secrets.PP_CLIENT_ID }}
+          SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT: ${{ secrets.PP_TENANT_ID }}
+          URL: ${{ secrets.DATAVERSE_URL }}
+        run: |
+          set +e
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          API="$URL/api/data/v9.2"; H="Authorization: Bearer $TOKEN"; A="Accept: application/json"
+          g(){ curl -s -H "$H" -H "$A" -H "Prefer: odata.include-annotations=\"*\"" "$API/$1"; }
+          echo "===== Template 'Cobranza movil' (config + owner) ====="
+          T=$(g "sanic_tbl_smlt_importtemplates?\$filter=sanic_smlt_it_name%20eq%20'Cobranza%20movil'")
+          echo "$T" | jq -r '.value[0] | to_entries[] | select(.key|test("sanic_smlt_it_|ownerid|owningteam|owninguser")) | "  \(.key) = \(.value)"' | grep -viE 'formatted|logicalname|null' | head -30
+          TID=$(echo "$T" | jq -r '.value[0].sanic_tbl_smlt_importtemplateid')
+          echo "  TEMPLATE ID=$TID"
+          echo ""
+          echo "===== Table Mappings (nombre · target · orden · dedup) ====="
+          g "sanic_tbl_smlt_tablemappings?\$filter=_sanic_smlt_tm_importtemplateid_value%20eq%20$TID&\$orderby=sanic_smlt_tm_processingorder" | jq -r '.value[] | to_entries | map("\(.key)=\(.value)") | join(" | ")' | grep -oE 'sanic_smlt_tm_name=[^|]*|sanic_smlt_tm_targettable[a-z]*=[^|]*|sanic_smlt_tm_processingorder=[^|]*|sanic_smlt_tm_dedup[a-z]*=[^|]*' 2>/dev/null | head -60
+          echo "  -- total table mappings --"; echo "$(g "sanic_tbl_smlt_tablemappings?\$filter=_sanic_smlt_tm_importtemplateid_value%20eq%20$TID&\$select=sanic_smlt_tm_name&\$count=true" | jq -r '.["@odata.count"]')"
+          echo ""
+          echo "===== Relationship Mappings ====="
+          g "sanic_tbl_smlt_relationshipmappings?\$filter=_sanic_smlt_rm_importtemplateid_value%20eq%20$TID&\$count=true" | jq -r '"  total RM: \(.[\"@odata.count\"])"'
+          echo ""
+          echo "===== Column Mappings (total) ====="
+          TMIDS=$(g "sanic_tbl_smlt_tablemappings?\$filter=_sanic_smlt_tm_importtemplateid_value%20eq%20$TID&\$select=sanic_tbl_smlt_tablemappingid" | jq -r '.value[].sanic_tbl_smlt_tablemappingid')
+          tot=0; for tm in $TMIDS; do c=$(g "sanic_tbl_smlt_columnmappings?\$filter=_sanic_smlt_cm_tablemappingid_value%20eq%20$tm&\$count=true&\$top=1" | jq -r '.["@odata.count"] // 0'); tot=$((tot+c)); done
+          echo "  total column mappings: $tot"
