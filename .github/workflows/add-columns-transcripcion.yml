@@ -151,3 +151,12 @@ jobs:
             found=$(curl -s "$API/EntityDefinitions(LogicalName='sanic_cm_tbl_interaccion')/Attributes(LogicalName='$col')?\$select=LogicalName,AttributeType" -H "$H_AUTH" -H "$H_ACC" | jq -r '.LogicalName + " [" + .AttributeType + "]"')
             printf "  %-32s -> %s\n" "$col" "$found"
           done
+
+          echo "===================== 8) DIAGNÓSTICO estadograbacion (¿la cola tendrá datos?) ====================="
+          DEF=$(curl -s "$API/EntityDefinitions(LogicalName='sanic_cm_tbl_interaccion')/Attributes(LogicalName='sanic_cm_in_estadograbacion')/Microsoft.Dynamics.CRM.PicklistAttributeMetadata?\$select=DefaultFormValue,LogicalName" -H "$H_AUTH" -H "$H_ACC" | jq -r '.DefaultFormValue')
+          echo "  DefaultFormValue de la columna = $DEF  (-1 = SIN default · $PENDVAL = Pendiente)"
+          H_C1='Prefer: odata.maxpagesize=1'
+          TOTAL=$(curl -s -H "$H_AUTH" -H "$H_ACC" -H "$H_C1" "$API/sanic_cm_tbl_interaccions?\$count=true&\$top=1" | jq -r '.["@odata.count"]')
+          NULLS=$(curl -s -H "$H_AUTH" -H "$H_ACC" -H "$H_C1" "$API/sanic_cm_tbl_interaccions?\$count=true&\$top=1&\$filter=sanic_cm_in_estadograbacion%20eq%20null" | jq -r '.["@odata.count"]')
+          PEND=$(curl -s -H "$H_AUTH" -H "$H_ACC" -H "$H_C1" "$API/sanic_cm_tbl_interaccions?\$count=true&\$top=1&\$filter=sanic_cm_in_estadograbacion%20eq%20$PENDVAL" | jq -r '.["@odata.count"]')
+          echo "  interacciones: total=$TOTAL · estadograbacion NULL=$NULLS · =Pendiente=$PEND"
