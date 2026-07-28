@@ -1,0 +1,35 @@
+name: adm-recon
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  r:
+    runs-on: ubuntu-latest
+    steps:
+      - name: recon admin
+        env:
+          CID: ${{ secrets.PP_CLIENT_ID }}
+          SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT: ${{ secrets.PP_TENANT_ID }}
+          URL: ${{ secrets.DATAVERSE_URL }}
+        run: |
+          set +e
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          API="$URL/api/data/v9.2"; H="Authorization: Bearer $TOKEN"; A="Accept: application/json"
+          g(){ curl -s -H "$H" -H "$A" "$API/$1"; }
+          echo "===== columnas cargadiaria (monitoreo import) ====="
+          g "EntityDefinitions(LogicalName='sanic_cm_tbl_cargadiaria')/Attributes?\$select=LogicalName,AttributeType" | jq -r '.value[] | select(.LogicalName|startswith("sanic_")) | "  \(.LogicalName) [\(.AttributeType)]"' | sort
+          echo "===== columnas agente (ligar usuario) ====="
+          g "EntityDefinitions(LogicalName='sanic_cm_tbl_agente')/Attributes?\$select=LogicalName,AttributeType" | jq -r '.value[] | select(.LogicalName|startswith("sanic_")) | "  \(.LogicalName) [\(.AttributeType)]"' | sort
+          echo "===== rol Admin - privilegios (resumen por tabla) ====="
+          RID='b2884281-f573-f111-ab0e-000d3a3483e7'
+          g "RetrieveRolePrivilegesRole(RoleId=$RID)" | jq -r '.RolePrivileges[]? | .PrivilegeId' | sort > /tmp/rp.txt
+          g "privileges?\$select=name,privilegeid&\$filter=contains(name,'sanic_cm_tbl_')" | jq -r '.value[] | .privilegeid + " " + .name' | sort > /tmp/pn.txt
+          join /tmp/rp.txt /tmp/pn.txt 2>/dev/null | awk '{n=$2; sub(/^prv/,"",n); match(n,/sanic_cm_tbl_[a-z]+/); tbl=substr(n,RSTART,RLENGTH); c=gsub(/x/,"x"); a[tbl]++} END {for(t in a) printf "  %-26s : %s privilegios\n", t, a[t]}' | sort
+          echo "===== volumen por tipo (Diaria/Incob/Especial) y estado ====="
+          for v in "tipo=1 (Diaria)|sanic_cm_as_tipo eq 1" "tipo=2 (Incobrable)|sanic_cm_as_tipo eq 2" "tipo=3 (Especial)|sanic_cm_as_tipo eq 3" "activas|sanic_cm_as_estado eq true"; do
+            lbl="${v%%|*}"; flt="${v##*|}"; enc=$(echo "$flt" | sed 's/ /%20/g')
+            n=$(g "sanic_cm_tbl_asignacions?\$count=true&\$top=1&\$filter=$enc" -H "Prefer: odata.maxpagesize=1" | jq -r '.["@odata.count"] // "?"')
+            printf "  %-22s %s\n" "$lbl" "$n"
+          done
