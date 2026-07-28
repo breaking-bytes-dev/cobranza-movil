@@ -1,0 +1,34 @@
+name: teams-roles
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  t:
+    runs-on: ubuntu-latest
+    steps:
+      - name: asignar roles a teams (diagnostico)
+        env:
+          CID: ${{ secrets.PP_CLIENT_ID }}
+          SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT: ${{ secrets.PP_TENANT_ID }}
+          URL: ${{ secrets.DATAVERSE_URL }}
+        run: |
+          set +e
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          API="$URL/api/data/v9.2"; H="Authorization: Bearer $TOKEN"; A="Accept: application/json"; J="Content-Type: application/json"
+          g(){ curl -s -H "$H" -H "$A" "$API/$1"; }
+          g "teams?\$select=name,teamid,_businessunitid_value&\$filter=endswith(name,'DEV')" | jq -r '.value[] | "\(.name)\t\(.teamid)\t\(._businessunitid_value)"' > /tmp/teams.txt
+          echo "=== teams DEV (name id bu) ==="; cat /tmp/teams.txt
+          echo "=== BU de un rol (SR|CM|Localizador) para comparar ==="
+          g "roles(c1736ff3-fb76-f111-ab0e-70a8a5b226fd)?\$select=name,_businessunitid_value" | jq -r '"  \(.name) bu=\(._businessunitid_value)"'
+          echo ""
+          LOC=$(grep -F 'CM · Localizadores · DEV	' /tmp/teams.txt | cut -f2)
+          echo "=== intento asociar rol Localizador al team Localizadores ($LOC) ==="
+          RESP=$(curl -s -w $'\n%{http_code}' -X POST "$API/teams($LOC)/teamroles_association/\$ref" -H "$H" -H "$J" -H "$A" --data "{\"@odata.id\":\"$API/roles(c1736ff3-fb76-f111-ab0e-70a8a5b226fd)\"}")
+          echo "  via teams(..)/teamroles_association: HTTP $(echo "$RESP" | tail -1)"; echo "$RESP" | sed '$d' | grep -o '"message":"[^"]*"' | head -1
+          echo "=== alternativa: roles(..)/teamroles_association apuntando al team ==="
+          RESP2=$(curl -s -w $'\n%{http_code}' -X POST "$API/roles(c1736ff3-fb76-f111-ab0e-70a8a5b226fd)/teamroles_association/\$ref" -H "$H" -H "$J" -H "$A" --data "{\"@odata.id\":\"$API/teams($LOC)\"}")
+          echo "  via roles(..)/teamroles_association: HTTP $(echo "$RESP2" | tail -1)"; echo "$RESP2" | sed '$d' | grep -o '"message":"[^"]*"' | head -1
+          echo "=== verificación roles del team Localizadores ==="
+          g "teams($LOC)?\$select=name&\$expand=teamroles_association(\$select=name)" | jq -r '.value // . | "  \(.name): " + ([.teamroles_association[]?.name]|join(", "))'
