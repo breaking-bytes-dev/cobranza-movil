@@ -1,0 +1,34 @@
+name: sol-recon
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  r:
+    runs-on: ubuntu-latest
+    steps:
+      - name: recon cliente/dir/tel/cuenta
+        env:
+          CID: ${{ secrets.PP_CLIENT_ID }}
+          SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT: ${{ secrets.PP_TENANT_ID }}
+          URL: ${{ secrets.DATAVERSE_URL }}
+        run: |
+          set +e
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          API="$URL/api/data/v9.2"; H="Authorization: Bearer $TOKEN"; A="Accept: application/json"
+          g(){ curl -s -H "$H" -H "$A" "$API/$1"; }
+          cols(){ echo "  -- columnas $1 --"; g "EntityDefinitions(LogicalName='$1')/Attributes?\$select=LogicalName,AttributeType" | jq -r '.value[] | select(.LogicalName|startswith("sanic_")) | "    \(.LogicalName) [\(.AttributeType)]"' | sort; }
+          echo "############### RELACIONES 1:N de CLIENTE (para subgrids) ###############"
+          g "EntityDefinitions(LogicalName='sanic_cm_tbl_cliente')/OneToManyRelationships?\$select=SchemaName,ReferencingEntity,ReferencingAttribute" | jq -r '.value[] | select(.ReferencingEntity|startswith("sanic_")) | "  \(.ReferencingEntity) via \(.ReferencingAttribute)  [rel: \(.SchemaName)]"'
+          echo "############### RELACIONES 1:N de CUENTA (asignaciones, etc) ###############"
+          g "EntityDefinitions(LogicalName='sanic_cm_tbl_cuenta')/OneToManyRelationships?\$select=SchemaName,ReferencingEntity,ReferencingAttribute" | jq -r '.value[] | select(.ReferencingEntity|startswith("sanic_")) | "  \(.ReferencingEntity) via \(.ReferencingAttribute)  [rel: \(.SchemaName)]"'
+          echo "############### COLUMNAS ###############"
+          cols sanic_cm_tbl_cliente
+          cols sanic_cm_tbl_direccion
+          cols sanic_cm_tbl_telefono
+          cols sanic_cm_tbl_cuenta
+          echo "############### VISTAS públicas (type 0) de los hijos — para subgrids ###############"
+          for e in sanic_cm_tbl_direccion sanic_cm_tbl_telefono sanic_cm_tbl_cuenta; do
+            echo "  -- $e --"; g "savedqueries?\$filter=returnedtypecode%20eq%20'$e'%20and%20querytype%20eq%200&\$select=name,savedqueryid" | jq -r '.value[]? | "    \(.name)  [\(.savedqueryid)]"'
+          done
