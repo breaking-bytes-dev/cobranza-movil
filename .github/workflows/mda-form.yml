@@ -32,6 +32,11 @@ jobs:
           FORMID=$(g "systemforms?\$filter=objecttypecode%20eq%20'$ENT'%20and%20type%20eq%202&\$select=formid" | jq -r '.value[0].formid')
           echo "formid=$FORMID"
 
+          # Relación 1:N interaccion->pago (para el subgrid) + una vista pública de pago
+          REL=$(g "EntityDefinitions(LogicalName='$ENT')/OneToManyRelationships?\$select=SchemaName,ReferencingEntity,ReferencingAttribute" | jq -r '[.value[] | select(.ReferencingEntity=="sanic_cm_tbl_pago")][0].SchemaName // empty')
+          PVIEW=$(g "savedqueries?\$filter=returnedtypecode%20eq%20'sanic_cm_tbl_pago'%20and%20querytype%20eq%200&\$select=savedqueryid,name" | jq -r '.value[0].savedqueryid // empty')
+          echo "  relación pago=$REL  ·  vista pago=$PVIEW"
+
           # classids por tipo de control
           TEXT='{4273EDBD-AC1D-40d3-9FB2-095C621B552D}'
           MEMO='{E0DECE4B-6FC8-4a8f-A065-082708572369}'
@@ -56,7 +61,18 @@ jobs:
             printf '<section name="%s" showlabel="true" showbar="false" IsUserDefined="0" id="%s" columns="1" labelwidth="140" celllabelalignment="Left" celllabelposition="Left"><labels><label description="%s" languagecode="1033" /></labels><rows>%s</rows></section>' \
               "$1" "$(uid)" "$2" "$3"
           }
-          SECTIONS="$(section sec_gestion 'Gestión (campo · solo lectura)' "$SEC_GESTION")$(section sec_transc 'Transcripción al core' "$SEC_TRANSC")$(section sec_audit 'Auditoría' "$SEC_AUDIT")"
+
+          # Sección Pagos con subgrid (solo si resolví relación + vista)
+          SEC_PAGOS=""
+          if [ -n "$REL" ] && [ -n "$PVIEW" ]; then
+            SUBGRID=$(printf '<control id="Subgrid_pagos" classid="{E7A81278-8635-4d9e-8D4D-59480B391C5B}" indicationOfSubgrid="true" uniqueid="%s"><parameters><ViewId>{%s}</ViewId><IsUserView>false</IsUserView><RelationshipName>%s</RelationshipName><TargetEntityType>sanic_cm_tbl_pago</TargetEntityType><EnableQuickFind>false</EnableQuickFind><EnableViewPicker>false</EnableViewPicker><ViewIds /><EnableJumpBar>false</EnableJumpBar><ChartGridMode>Grid</ChartGridMode><VisualizationId /><IsUserChart>false</IsUserChart><EnableChartPicker>false</EnableChartPicker><RecordsPerPage>5</RecordsPerPage><AutoExpand>Fixed</AutoExpand></parameters></control>' "$(uid)" "$PVIEW" "$REL")
+            PAGO_ROW=$(printf '<row><cell id="%s" showlabel="true" rowspan="6" colspan="1"><labels><label description="Pagos de la interacción" languagecode="1033" /></labels>%s</cell></row>' "$(uid)" "$SUBGRID")
+            SEC_PAGOS=$(section sec_pagos 'Pagos' "$PAGO_ROW")
+          else
+            echo "  ⚠️ sin relación/vista de pago — omito el subgrid (lo agrego en otro pase)"
+          fi
+
+          SECTIONS="$(section sec_gestion 'Gestión (campo · solo lectura)' "$SEC_GESTION")${SEC_PAGOS}$(section sec_transc 'Transcripción al core' "$SEC_TRANSC")$(section sec_audit 'Auditoría' "$SEC_AUDIT")"
 
           FORMXML="$(printf '<form><tabs><tab name="tab_transcripcion" verticallayout="true" id="%s" IsUserDefined="0" locklevel="0" showlabel="true" expanded="true"><labels><label description="Transcripción" languagecode="1033" /></labels><columns><column width="100%%"><sections>%s</sections></column></columns></tab></tabs></form>' "$(uid)" "$SECTIONS")"
 
