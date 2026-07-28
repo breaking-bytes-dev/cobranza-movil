@@ -1,0 +1,33 @@
+name: ret2
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  r:
+    runs-on: ubuntu-latest
+    steps:
+      - name: crear columnas retiro (fix)
+        env:
+          CID: ${{ secrets.PP_CLIENT_ID }}
+          SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT: ${{ secrets.PP_TENANT_ID }}
+          URL: ${{ secrets.DATAVERSE_URL }}
+        run: |
+          set +e
+          URL="${URL%/}"
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          API="$URL/api/data/v9.2"; H="Authorization: Bearer $TOKEN"; A="Accept: application/json"; J="Content-Type: application/json"; SOL="MSCRM.SolutionUniqueName: cm_core_cobranzamovil"
+          ENT="EntityDefinitions(LogicalName='sanic_cm_tbl_asignacion')/Attributes"
+          adddec(){
+            jq -n --arg s "$1" --arg l "$2" '{"@odata.type":"Microsoft.Dynamics.CRM.DecimalAttributeMetadata",SchemaName:$s,RequiredLevel:{Value:"None"},Precision:2,MinValue:0,MaxValue:1000000000,DisplayName:{"@odata.type":"Microsoft.Dynamics.CRM.Label",LocalizedLabels:[{"@odata.type":"Microsoft.Dynamics.CRM.LocalizedLabel",Label:$l,LanguageCode:1033}]}}' > /tmp/c.json
+            local code=$(curl -s -o /tmp/r.txt -w "%{http_code}" -X POST "$API/$ENT" -H "$H" -H "$J" -H "$A" -H "$SOL" --data @/tmp/c.json)
+            printf "  %-28s HTTP %s\n" "$1" "$code"; [ "$code" -ge 300 ] && grep -o '"message":"[^"]*"' /tmp/r.txt | head -1
+          }
+          adddec sanic_cm_as_retironio "Retiro NIO"
+          adddec sanic_cm_as_retirousd "Retiro USD"
+          curl -s -o /dev/null -w "  Publish HTTP %{http_code}\n" -X POST "$API/PublishAllXml" -H "$H" -H "$J" -H "$A" -d '{}'
+          echo "  -- verificación --"
+          for c in sanic_cm_as_retironio sanic_cm_as_retirousd; do
+            curl -s -H "$H" -H "$A" "$API/EntityDefinitions(LogicalName='sanic_cm_tbl_asignacion')/Attributes(LogicalName='$c')?\$select=LogicalName,AttributeType" | jq -r '"  \(.LogicalName) [\(.AttributeType)]"'
+          done
