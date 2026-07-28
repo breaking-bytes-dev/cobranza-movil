@@ -1,0 +1,22 @@
+name: tpl-owner
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  o:
+    runs-on: ubuntu-latest
+    steps:
+      - name: verificar owner template
+        env:
+          CID: ${{ secrets.PP_CLIENT_ID }}
+          SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT: ${{ secrets.PP_TENANT_ID }}
+          URL: ${{ secrets.DATAVERSE_URL }}
+        run: |
+          set +e
+          URL="${URL%/}"
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          API="$URL/api/data/v9.2"; H="Authorization: Bearer $TOKEN"; A="Accept: application/json"
+          curl -s -H "$H" -H "$A" -H 'Prefer: odata.include-annotations="*"' "$API/sanic_tbl_smlt_importtemplates(dcb61b79-e66d-f111-ab0e-0022480a5be8)?\$select=sanic_smlt_it_name,_ownerid_value,_owningteam_value,_owninguser_value" | jq -r 'to_entries[] | select(.key|test("owner|owning|name")) | "  \(.key) = \(.value)"'
+          echo "  (team Admin y Carga = 870f4531-a38a-f111-8076-70a8a59c703e)"
