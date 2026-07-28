@@ -18,7 +18,7 @@ jobs:
           TENANT: ${{ secrets.PP_TENANT_ID }}
           URL: ${{ secrets.DATAVERSE_URL }}
         run: |
-          set -uo pipefail
+          set +e   # override del -e que fuerza GitHub: un grep vacío NO debe abortar la auditoría
           TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" \
             -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
           API="$URL/api/data/v9.2"; H="Authorization: Bearer $TOKEN"; A="Accept: application/json"
@@ -28,17 +28,12 @@ jobs:
           echo "############### A) SITEMAP de la app (áreas / grupos / subáreas) ###############"
           APPID=$(g "appmodules?\$filter=uniquename%20eq%20'sanic_AppCMBackoffice'&\$select=appmoduleid" | jq -r '.value[0].appmoduleid')
           echo "  appmoduleid=$APPID"
-          SMID=$(g "appmodulecomponents?\$filter=_appmoduleid_value%20eq%20$APPID%20and%20componenttype%20eq%2062&\$select=objectid" | jq -r '.value[0].objectid // empty')
-          SMXML=""
-          if [ -n "$SMID" ]; then SMXML=$(g "sitemaps($SMID)?\$select=sitemapxml" | jq -r '.sitemapxml // empty'); fi
-          if [ -z "$SMXML" ]; then
-            echo "  (no encontré sitemap por componente; busco por contenido)"
-            SMXML=$(g "sitemaps?\$select=sitemapxml" | jq -r '.value[] | .sitemapxml' | grep -l . 2>/dev/null; g "sitemaps?\$select=sitemapname,sitemapxml" | jq -r '.value[] | select(.sitemapxml|test("sanic_cm_tbl_interaccion")) | .sitemapxml' | head -1)
-          fi
-          echo "  -- Áreas --";    echo "$SMXML" | grep -oE '<Area[^>]*Id="[^"]*"' | grep -oE 'Id="[^"]*"' | head -20
-          echo "  -- Grupos --";   echo "$SMXML" | grep -oE '<Group[^>]*Id="[^"]*"' | grep -oE 'Id="[^"]*"' | head -30
-          echo "  -- SubÁreas (Entity / Id) --"; echo "$SMXML" | grep -oE '<SubArea[^>]*/?>' | grep -oE '(Id|Entity|Url)="[^"]*"' | head -60
-          echo "  -- Titles (es/en) --"; echo "$SMXML" | grep -oE 'Title="[^"]*"' | sort -u | head -40
+          # Sitemap por contenido (el que referencia nuestra tabla) — robusto:
+          SMXML=$(g "sitemaps?\$select=sitemapnameunique,sitemapxml" | jq -r '[.value[] | select(.sitemapxml|test("sanic_cm_tbl_interaccion"))][0].sitemapxml // empty')
+          if [ -z "$SMXML" ]; then echo "  (no hallé sitemap que referencie interaccion — listo todos por nombre)"; g "sitemaps?\$select=sitemapnameunique" | jq -r '.value[]? | "    " + .sitemapnameunique'; fi
+          echo "  -- Áreas (Title) --";   echo "$SMXML" | grep -oE '<Area[^>]*>' | grep -oE 'Title="[^"]*"' | head -20
+          echo "  -- Grupos (Title) --";  echo "$SMXML" | grep -oE '<Group[^>]*>' | grep -oE 'Title="[^"]*"' | head -30
+          echo "  -- SubÁreas --";        echo "$SMXML" | grep -oE '<SubArea[^>]*/?>' | grep -oE '(Entity|Title|Url|Id)="[^"]*"' | head -80
 
           echo "############### B) VISTA 'Por Transcribir' (filtro + columnas) ###############"
           V=$(g "savedqueries?\$filter=returnedtypecode%20eq%20'$ENT'%20and%20name%20eq%20'Por%20Transcribir'&\$select=name,fetchxml,layoutxml")
