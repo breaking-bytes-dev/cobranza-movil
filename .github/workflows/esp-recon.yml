@@ -1,0 +1,36 @@
+name: esp-recon
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  r:
+    runs-on: ubuntu-latest
+    steps:
+      - name: recon asignacion
+        env:
+          CID: ${{ secrets.PP_CLIENT_ID }}
+          SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT: ${{ secrets.PP_TENANT_ID }}
+          URL: ${{ secrets.DATAVERSE_URL }}
+        run: |
+          set +e
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          API="$URL/api/data/v9.2"; H="Authorization: Bearer $TOKEN"; A="Accept: application/json"
+          g(){ curl -s -H "$H" -H "$A" "$API/$1"; }
+          E='sanic_cm_tbl_asignacion'
+          echo "===== A) COLUMNAS de asignacion (sanic_cm_as_*) ====="
+          g "EntityDefinitions(LogicalName='$E')/Attributes?\$select=LogicalName,AttributeType" | jq -r '.value[] | select(.LogicalName|startswith("sanic_cm_as_")) | "  \(.LogicalName)  [\(.AttributeType)]"' | sort
+          echo "===== B) VALORES de los choices ====="
+          for col in sanic_cm_as_tipo sanic_cm_as_estado sanic_cm_as_estadoaprobacion; do
+            echo "  -- $col --"
+            g "EntityDefinitions(LogicalName='$E')/Attributes(LogicalName='$col')/Microsoft.Dynamics.CRM.PicklistAttributeMetadata?\$expand=OptionSet" | jq -r '.OptionSet.Options[]? | "     \(.Value) = \(.Label.LocalizedLabels[0].Label)"' 2>/dev/null || echo "     (no es picklist)"
+          done
+          echo "===== C) VISTAS de asignacion ====="
+          g "savedqueries?\$filter=returnedtypecode%20eq%20'$E'&\$select=name,querytype" | jq -r '.value[]? | "  \(.name)  (type \(.querytype))"'
+          echo "===== D) FORMS de asignacion ====="
+          g "systemforms?\$filter=objecttypecode%20eq%20'$E'&\$select=name,type" | jq -r '.value[]? | "  \(.name)  (type \(.type))"'
+          echo "===== E) PROCESOS/reglas sobre asignacion ====="
+          g "workflows?\$filter=primaryentity%20eq%20'$E'&\$select=name,category,statecode,type" | jq -r '.value[]? | "  \(.name)  (cat \(.category), state \(.statecode))"'
+          echo "===== F) volumen de Especiales existentes ====="
+          g "sanic_cm_tbl_asignacions?\$count=true&\$top=1" -H "Prefer: odata.maxpagesize=1" | jq -r '"  total asignaciones: \(.[\"@odata.count\"])"'
