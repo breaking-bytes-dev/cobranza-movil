@@ -1,0 +1,32 @@
+name: own
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  o:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ownership + audit
+        env:
+          CID: ${{ secrets.PP_CLIENT_ID }}
+          SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT: ${{ secrets.PP_TENANT_ID }}
+          URL: ${{ secrets.DATAVERSE_URL }}
+        run: |
+          set +e
+          URL="${URL%/}"
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          API="$URL/api/data/v9.2"; H="Authorization: Bearer $TOKEN"; A="Accept: application/json"
+          g(){ curl -s -H "$H" -H "$A" "$API/$1"; }
+          echo "=== OwnershipType + IsAuditEnabled ==="
+          for e in sanic_cm_tbl_cliente sanic_cm_tbl_cuenta sanic_cm_tbl_direccion sanic_cm_tbl_telefono sanic_cm_tbl_asignacion; do
+            g "EntityDefinitions(LogicalName='$e')?\$select=LogicalName,OwnershipType,IsAuditEnabled" | jq -r '"  \(.LogicalName): ownership=\(.OwnershipType)  audit=\(.IsAuditEnabled.Value)"'
+          done
+          echo "=== auditoría a nivel ORG activa? ==="
+          g "organizations?\$select=isauditenabled,name" | jq -r '.value[0] | "  \(.name): isauditenabled=\(.isauditenabled)"'
+          echo "=== rol Solicitante: Write en cliente/cuenta (depth actual) ==="
+          RID='d9f0f107-fd76-f111-ab0e-70a8a5b226fd'
+          g "RetrieveRolePrivilegesRole(RoleId=$RID)" | jq -r '.RolePrivileges[]? | .PrivilegeId + " " + (.Depth|tostring)' | sort > /tmp/rp.txt
+          g "privileges?\$select=name,privilegeid&\$filter=contains(name,'Write')%20and%20(contains(name,'cliente')%20or%20contains(name,'cuenta')%20or%20contains(name,'direccion')%20or%20contains(name,'telefono'))" | jq -r '.value[] | .privilegeid + " " + .name' | sort > /tmp/pn.txt
+          join /tmp/rp.txt /tmp/pn.txt 2>/dev/null | awk '{d=$2; n=$3; printf "  %s depth=%s (1=User 8=Org)\n", n, d}'
