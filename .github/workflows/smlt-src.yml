@@ -1,0 +1,28 @@
+name: smlt-src
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  s:
+    runs-on: ubuntu-latest
+    steps:
+      - name: dump source->target
+        env:
+          CID: ${{ secrets.PP_CLIENT_ID }}
+          SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT: ${{ secrets.PP_TENANT_ID }}
+          URL: ${{ secrets.DATAVERSE_URL }}
+        run: |
+          set +e
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          API="$URL/api/data/v9.2"; H="Authorization: Bearer $TOKEN"; A="Accept: application/json"
+          g(){ curl -s -H "$H" -H "$A" "$API/$1"; }
+          TID='dcb61b79-e66d-f111-ab0e-0022480a5be8'
+          g "sanic_tbl_smlt_tablemappings?\$filter=_sanic_smlt_tm_importtemplateid_value%20eq%20$TID&\$select=sanic_tbl_smlt_tablemappingid,sanic_smlt_tm_name" | jq -r '.value[] | "\(.sanic_tbl_smlt_tablemappingid)|\(.sanic_smlt_tm_name)"' > /tmp/tms.txt
+          while IFS='|' read -r tmid name; do
+            echo "===== TM: $name ====="
+            g "sanic_tbl_smlt_columnmappings?\$filter=_sanic_smlt_cm_tablemappingid_value%20eq%20$tmid&\$select=sanic_smlt_cm_sourcecolumn,sanic_smlt_cm_targetcolumn,sanic_smlt_cm_datatype,sanic_smlt_cm_defaultvalue,sanic_smlt_cm_transformexpression" | jq -r '.value[]? | "  [\(.sanic_smlt_cm_sourcecolumn // "—")] -> \(.sanic_smlt_cm_targetcolumn)  (dt \(.sanic_smlt_cm_datatype)\(if .sanic_smlt_cm_defaultvalue then ", def=" + .sanic_smlt_cm_defaultvalue else "" end)\(if .sanic_smlt_cm_transformexpression then ", tx=" + .sanic_smlt_cm_transformexpression else "" end))"'
+          done < /tmp/tms.txt
+          echo "===== ¿numero de asignacion es autonumber? ====="
+          g "EntityDefinitions(LogicalName='sanic_cm_tbl_asignacion')/Attributes(LogicalName='sanic_cm_as_numero')?\$select=LogicalName,AttributeType,AutoNumberFormat" | jq -r '"  \(.LogicalName): type=\(.AttributeType) autonumber=\(.AutoNumberFormat // "NO")"'
