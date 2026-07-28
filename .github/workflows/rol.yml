@@ -1,0 +1,39 @@
+name: rol
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  r:
+    runs-on: ubuntu-latest
+    steps:
+      - name: quitar Create/Write cliente/cuenta al Solicitante
+        env:
+          CID: ${{ secrets.PP_CLIENT_ID }}
+          SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT: ${{ secrets.PP_TENANT_ID }}
+          URL: ${{ secrets.DATAVERSE_URL }}
+        run: |
+          set +e
+          URL="${URL%/}"
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          API="$URL/api/data/v9.2"; H="Authorization: Bearer $TOKEN"; A="Accept: application/json"; J="Content-Type: application/json"
+          g(){ curl -s -H "$H" -H "$A" "$API/$1"; }
+          RID='d9f0f107-fd76-f111-ab0e-70a8a5b226fd'
+          pid(){ g "privileges?\$select=privilegeid&\$filter=name%20eq%20'$1'" | jq -r '.value[0].privilegeid // empty'; }
+          rem(){ # privname
+            local p=$(pid "$1"); [ -z "$p" ] && { echo "  $1 -> priv no existe"; return; }
+            local resp=$(curl -s -w $'\n%{http_code}' -X POST "$API/roles($RID)/Microsoft.Dynamics.CRM.RemovePrivilegeRole" -H "$H" -H "$J" -H "$A" --data "{\"PrivilegeId\":\"$p\"}")
+            local code=$(echo "$resp" | tail -1)
+            printf "  remove %-38s HTTP %s\n" "$1" "$code"
+            [ "$code" -ge 300 ] && echo "$resp" | sed '$d' | grep -o '"message":"[^"]*"' | head -1
+          }
+          echo "=== quitar Create y Write en cliente/cuenta/direccion/telefono ==="
+          for t in cliente cuenta direccion telefono; do
+            rem "prvCreatesanic_cm_tbl_$t"
+            rem "prvWritesanic_cm_tbl_$t"
+          done
+          echo "=== verificación: privilegios del Solicitante en esas tablas ==="
+          g "RetrieveRolePrivilegesRole(RoleId=$RID)" | jq -r '.RolePrivileges[]? | .PrivilegeId' | sort > /tmp/rp.txt
+          g "privileges?\$select=name,privilegeid&\$filter=contains(name,'sanic_cm_tbl_cliente')%20or%20contains(name,'sanic_cm_tbl_cuenta')%20or%20contains(name,'sanic_cm_tbl_direccion')%20or%20contains(name,'sanic_cm_tbl_telefono')" | jq -r '.value[] | .privilegeid + " " + .name' | sort > /tmp/pn.txt
+          join /tmp/rp.txt /tmp/pn.txt 2>/dev/null | awk '{n=$2; sub(/^prv/,"",n); match(n,/sanic_cm_tbl_[a-z]+/); tbl=substr(n,RSTART,RLENGTH); a=substr(n,1,RSTART-1); printf "%s|%s\n",tbl,a}' | sort | awk -F'|' '{x[$1]=x[$1]" "$2} END {for(t in x) printf "  %-26s :%s\n",t,x[t]}' | sort
