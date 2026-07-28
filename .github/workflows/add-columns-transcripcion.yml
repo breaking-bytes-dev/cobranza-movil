@@ -43,6 +43,7 @@ jobs:
           }
 
           echo "===================== 1) GLOBAL OPTION SET (estado de transcripción) ====================="
+          # Sin valores fijos: Dataverse asigna dentro del rango del prefijo del publisher (evita el 400).
           cat > /tmp/os.json <<'JSON'
           {
             "@odata.type": "Microsoft.Dynamics.CRM.OptionSetMetadata",
@@ -52,20 +53,24 @@ jobs:
             "DisplayName": { "@odata.type": "Microsoft.Dynamics.CRM.Label",
               "LocalizedLabels": [ { "@odata.type": "Microsoft.Dynamics.CRM.LocalizedLabel", "Label": "Estado de transcripción", "LanguageCode": 1033 } ] },
             "Options": [
-              { "Value": 1, "Label": { "LocalizedLabels": [ { "Label": "Pendiente", "LanguageCode": 1033 } ] } },
-              { "Value": 2, "Label": { "LocalizedLabels": [ { "Label": "Grabada en core", "LanguageCode": 1033 } ] } }
+              { "Label": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [ { "@odata.type": "Microsoft.Dynamics.CRM.LocalizedLabel", "Label": "Pendiente", "LanguageCode": 1033 } ] } },
+              { "Label": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [ { "@odata.type": "Microsoft.Dynamics.CRM.LocalizedLabel", "Label": "Grabada en core", "LanguageCode": 1033 } ] } }
             ]
           }
           JSON
-          RESP=$(curl -si -X POST "$API/GlobalOptionSetDefinitions" -H "$H_AUTH" -H "$H_JSON" -H "$H_ACC" -H "$H_SOL" --data @/tmp/os.json)
-          echo "$RESP" | head -1
-          OSID=$(echo "$RESP" | tr -d '\r' | grep -i '^OData-EntityId:' | grep -oE '\([0-9a-fA-F-]{36}\)' | tr -d '()' | head -1)
-          if [ -z "$OSID" ]; then
-            echo "  (ya existía o no devolvió id — lo busco por Name)"
-            OSID=$(curl -s "$API/GlobalOptionSetDefinitions(Name='sanic_cm_choice_estadograbacioninteraccion')?\$select=MetadataId" -H "$H_AUTH" -H "$H_ACC" | jq -r .MetadataId)
+          RESP=$(curl -si -X POST "$API/GlobalOptionSetDefinitions" -H "$H_AUTH" -H "$H_JSON" -H "$H_ACC" -H "$H_SOL" --data @/tmp/os.json || true)
+          CODE1=$(echo "$RESP" | tr -d '\r' | grep -iE '^HTTP/' | tail -1)
+          echo "  $CODE1"
+          if echo "$CODE1" | grep -qE ' (4|5)[0-9][0-9]'; then
+            # 400/500: puede ser que ya exista. Mostramos el cuerpo para diagnóstico.
+            echo "  >> body:"; echo "$RESP" | sed -n '/^\r\?$/,$p' | tail -n +2
           fi
-          echo "  OptionSet MetadataId = $OSID"
-          [ -n "$OSID" ] && [ "$OSID" != "null" ] || { echo "::error::sin optionset id"; exit 1; }
+          # Leemos el option set por Name (exista de antes o recién creado) + el valor de "Pendiente".
+          OS=$(curl -s "$API/GlobalOptionSetDefinitions(Name='sanic_cm_choice_estadograbacioninteraccion')" -H "$H_AUTH" -H "$H_ACC" || true)
+          OSID=$(echo "$OS" | jq -r '.MetadataId // empty')
+          PENDVAL=$(echo "$OS" | jq -r '[.Options[] | select(.Label.LocalizedLabels[0].Label=="Pendiente") | .Value][0] // empty')
+          echo "  OptionSet MetadataId = ${OSID:-<vacío>}  ·  Pendiente = ${PENDVAL:-<vacío>}"
+          if [ -z "$OSID" ] || [ -z "$PENDVAL" ]; then echo "::error::no pude resolver el option set / valor Pendiente"; exit 1; fi
 
           echo "===================== 2) estadograbacion (Picklist -> global) ====================="
           cat > /tmp/estado.json <<JSON
@@ -77,7 +82,7 @@ jobs:
               "LocalizedLabels": [ { "@odata.type": "Microsoft.Dynamics.CRM.LocalizedLabel", "Label": "Estado de transcripción", "LanguageCode": 1033 } ] },
             "Description": { "@odata.type": "Microsoft.Dynamics.CRM.Label",
               "LocalizedLabels": [ { "@odata.type": "Microsoft.Dynamics.CRM.LocalizedLabel", "Label": "Estado de la transcripción al core (DEC-002).", "LanguageCode": 1033 } ] },
-            "DefaultFormValue": 1,
+            "DefaultFormValue": $PENDVAL,
             "GlobalOptionSet@odata.bind": "/GlobalOptionSetDefinitions($OSID)"
           }
           JSON
