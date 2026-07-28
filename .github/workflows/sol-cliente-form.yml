@@ -1,0 +1,46 @@
+name: sol-cliente-form
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  f:
+    runs-on: ubuntu-latest
+    steps:
+      - name: form cliente con subgrids
+        env:
+          CID: ${{ secrets.PP_CLIENT_ID }}
+          SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT: ${{ secrets.PP_TENANT_ID }}
+          URL: ${{ secrets.DATAVERSE_URL }}
+        run: |
+          set +e
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          API="$URL/api/data/v9.2"; H_AUTH="Authorization: Bearer $TOKEN"; A="Accept: application/json"; JSON="Content-Type: application/json"
+          SOL="MSCRM.SolutionUniqueName: cm_core_cobranzamovil"; E='sanic_cm_tbl_cliente'
+          g(){ curl -s -H "$H_AUTH" -H "$A" "$API/$1"; }
+          FID=$(g "systemforms?\$filter=objecttypecode%20eq%20'$E'%20and%20type%20eq%202&\$select=formid" | jq -r '.value[0].formid')
+          echo "formid cliente=$FID"
+          TEXT='{4273EDBD-AC1D-40d3-9FB2-095C621B552D}'; SUB='{E7A81278-8635-4d9e-8D4D-59480B391C5B}'
+          uid(){ echo "{$(uuidgen)}"; }
+          row(){ printf '<row><cell id="%s"><labels><label description="%s" languagecode="1033" /></labels><control id="%s" classid="%s" datafieldname="%s" disabled="false" /></cell></row>' "$(uid)" "$2" "$1" "$TEXT" "$1"; }
+          section(){ printf '<section name="%s" showlabel="true" showbar="false" id="%s" columns="11" labelwidth="115" celllabelalignment="Left" celllabelposition="Left"><labels><label description="%s" languagecode="1033" /></labels><rows>%s</rows></section>' "$1" "$(uid)" "$2" "$3"; }
+          # subgrid section: $1 name  $2 label  $3 rel  $4 target  $5 viewid
+          subsec(){
+            local sg
+            sg=$(printf '<control id="sg_%s" classid="%s" indicationOfSubgrid="true" uniqueid="%s"><parameters><ViewId>{%s}</ViewId><IsUserView>false</IsUserView><RelationshipName>%s</RelationshipName><TargetEntityType>%s</TargetEntityType><EnableQuickFind>false</EnableQuickFind><EnableViewPicker>false</EnableViewPicker><ViewIds /><EnableJumpBar>false</EnableJumpBar><ChartGridMode>Grid</ChartGridMode><VisualizationId /><IsUserChart>false</IsUserChart><EnableChartPicker>false</EnableChartPicker><RecordsPerPage>5</RecordsPerPage><AutoExpand>Fixed</AutoExpand></parameters></control>' "$1" "$SUB" "$(uid)" "$5" "$3" "$4")
+            printf '<section name="sec_%s" showlabel="true" showbar="false" id="%s" columns="1" labelwidth="115" celllabelalignment="Left" celllabelposition="Left"><labels><label description="%s" languagecode="1033" /></labels><rows><row><cell id="%s" showlabel="false" rowspan="6" colspan="1"><labels><label description="%s" languagecode="1033" /></labels>%s</cell></row></rows></section>' "$1" "$(uid)" "$2" "$(uid)" "$2" "$sg"
+          }
+          DATOS="$(row sanic_cm_cl_nombre 'Nombre')$(row sanic_cm_cl_cif 'CIF')$(row sanic_cm_cl_departamento 'Departamento')$(row sanic_cm_cl_distrito 'Distrito')$(row sanic_cm_cl_trabajo 'Trabajo')"
+          S_DATOS=$(section sec_datos 'Datos del cliente' "$DATOS")
+          S_DIR=$(subsec dir 'Direcciones' 'sanic_cm_tbl_direccion_cm_dr_clienteid_sanic_cm_tbl_cliente' 'sanic_cm_tbl_direccion' '5a14f1cf-8271-495b-bdd4-fb9c373971d8')
+          S_TEL=$(subsec tel 'Teléfonos' 'sanic_cm_tbl_telefono_cm_tl_clienteid_sanic_cm_tbl_cliente' 'sanic_cm_tbl_telefono' '98dae23e-bd33-4f4f-b1cc-ba007a553102')
+          S_CTA=$(subsec cta 'Productos / Cuentas' 'sanic_cm_tbl_cuenta_cm_ct_clienteid_sanic_cm_tbl_cliente' 'sanic_cm_tbl_cuenta' '2cd4888e-30b0-43ac-a127-f9f8f6d8e9cf')
+          FX="$(printf '<form><tabs><tab name="tab_cliente" verticallayout="true" id="%s" IsUserDefined="0" locklevel="0" showlabel="true" expanded="true"><labels><label description="Cliente" languagecode="1033" /></labels><columns><column width="100%%"><sections>%s%s%s%s</sections></column></columns></tab></tabs></form>' "$(uid)" "$S_DATOS" "$S_DIR" "$S_TEL" "$S_CTA")"
+          echo "  formxml len=${#FX}"
+          jq -n --arg fx "$FX" '{formxml:$fx}' > /tmp/f.json
+          code=$(curl -s -o /tmp/r.txt -w "%{http_code}" -X PATCH "$API/systemforms($FID)" -H "$H_AUTH" -H "$JSON" -H "$A" -H "$SOL" --data @/tmp/f.json)
+          echo "  PATCH HTTP $code"; [ "$code" -ge 300 ] && cat /tmp/r.txt
+          curl -s -o /dev/null -w "  Publish HTTP %{http_code}\n" -X POST "$API/PublishAllXml" -H "$H_AUTH" -H "$JSON" -H "$A" -d '{}'
+          echo "  -- verificación: campos + subgrids --"
+          g "systemforms($FID)?\$select=formxml" | jq -r '.formxml' | grep -oE 'datafieldname="[^"]*"|RelationshipName>[^<]*' | sort -u
