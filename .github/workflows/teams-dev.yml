@@ -1,0 +1,63 @@
+name: teams-dev
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  t:
+    runs-on: ubuntu-latest
+    steps:
+      - name: crear teams DEV + roles + owner template
+        env:
+          CID: ${{ secrets.PP_CLIENT_ID }}
+          SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT: ${{ secrets.PP_TENANT_ID }}
+          URL: ${{ secrets.DATAVERSE_URL }}
+        run: |
+          set +e
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          API="$URL/api/data/v9.2"; H="Authorization: Bearer $TOKEN"; A="Accept: application/json"; J="Content-Type: application/json"
+          g(){ curl -s -H "$H" -H "$A" "$API/$1"; }
+          BU=$(g "businessunits?\$select=businessunitid&\$filter=_parentbusinessunitid_value%20eq%20null" | jq -r '.value[0].businessunitid')
+          OPER=$(g "roles?\$select=roleid&\$filter=name%20eq%20'Smelter%20Operador'" | jq -r '.value[0].roleid')
+          LOC=c1736ff3-fb76-f111-ab0e-70a8a5b226fd; BO=e56809a5-fc76-f111-ab0e-70a8a5b226fd
+          SOL=d9f0f107-fd76-f111-ab0e-70a8a5b226fd; SUP=0ed5c9cb-fd76-f111-ab0e-70a8a5b226fd; ADM=b2884281-f573-f111-ab0e-000d3a3483e7
+          TPL='dcb61b79-e66d-f111-ab0e-0022480a5be8'
+          echo "BU=$BU  SmelterOperador=$OPER"
+
+          echo "=== crear teams ==="
+          create_team(){
+            jq -n --arg n "$1" --arg bu "$BU" '{name:$n, ("businessunitid@odata.bind"):("/businessunits("+$bu+")"), teamtype:0}' > /tmp/t.json
+            local code=$(curl -s -o /tmp/r.txt -w "%{http_code}" -X POST "$API/teams" -H "$H" -H "$J" -H "$A" --data @/tmp/t.json)
+            printf "  %-30s HTTP %s\n" "$1" "$code"; [ "$code" -ge 300 ] && grep -o '"message":"[^"]*"' /tmp/r.txt | head -1
+          }
+          create_team "CM · Localizadores · DEV"
+          create_team "CM · Backoffice · DEV"
+          create_team "CM · Solicitantes · DEV"
+          create_team "CM · Supervisores · DEV"
+          create_team "CM · Admin y Carga · DEV"
+
+          echo "=== mapear nombre->id ==="
+          g "teams?\$select=name,teamid&\$filter=contains(name,'DEV')" | jq -r '.value[] | "\(.name)\t\(.teamid)"' > /tmp/teams.txt
+          tid(){ grep -F "$1	" /tmp/teams.txt | cut -f2; }
+
+          addrole(){ # teamid roleid
+            local code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$API/teams($1)/teamroles_association/\$ref" -H "$H" -H "$J" -H "$A" --data "{\"@odata.id\":\"$API/roles($2)\"}")
+            echo "    role $2 -> HTTP $code"
+          }
+          echo "=== asignar roles ==="
+          echo "  Localizadores:"; addrole "$(tid 'CM · Localizadores · DEV')" "$LOC"
+          echo "  Backoffice:";    addrole "$(tid 'CM · Backoffice · DEV')" "$BO"
+          echo "  Solicitantes:";  addrole "$(tid 'CM · Solicitantes · DEV')" "$SOL"
+          echo "  Supervisores:";  addrole "$(tid 'CM · Supervisores · DEV')" "$SUP"
+          AC=$(tid 'CM · Admin y Carga · DEV')
+          echo "  Admin y Carga (Admin + Smelter Operador):"; addrole "$AC" "$ADM"; addrole "$AC" "$OPER"
+
+          echo "=== owner del template 'Cobranza movil' -> Admin y Carga ==="
+          code=$(curl -s -o /tmp/r2.txt -w "%{http_code}" -X PATCH "$API/sanic_tbl_smlt_importtemplates($TPL)" -H "$H" -H "$J" -H "$A" --data "{\"ownerid@odata.bind\":\"/teams($AC)\"}")
+          echo "  PATCH owner HTTP $code"; [ "$code" -ge 300 ] && grep -o '"message":"[^"]*"' /tmp/r2.txt | head -1
+
+          echo "=== verificación final ==="
+          g "teams?\$select=name&\$filter=contains(name,'DEV')&\$expand=teamroles_association(\$select=name)" | jq -r '.value[] | "  \(.name): " + ([.teamroles_association[]?.name] | join(", "))'
+          g "sanic_tbl_smlt_importtemplates($TPL)?\$select=sanic_smlt_it_name&\$expand=ownerid" | jq -r '"  template owner: \(.["_ownerid_value@OData.Community.Display.V1.FormattedValue"] // "?")"'
+          g "sanic_tbl_smlt_importtemplates($TPL)?\$select=_ownerid_value" -H "Prefer: odata.include-annotations=\"*\"" | jq -r '"  template owner = \(.["_ownerid_value@OData.Community.Display.V1.FormattedValue"] // .["_ownerid_value"])"'
