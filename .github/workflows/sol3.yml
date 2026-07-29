@@ -1,0 +1,41 @@
+name: sol3
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  s:
+    runs-on: ubuntu-latest
+    steps:
+      - name: asignacion Read/Write User + CIF en clientes
+        env:
+          CID: ${{ secrets.PP_CLIENT_ID }}
+          SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT: ${{ secrets.PP_TENANT_ID }}
+          URL: ${{ secrets.DATAVERSE_URL }}
+        run: |
+          set +e
+          URL="${URL%/}"
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          API="$URL/api/data/v9.2"; H="Authorization: Bearer $TOKEN"; A="Accept: application/json"; J="Content-Type: application/json"; SOL="MSCRM.SolutionUniqueName: cm_core_cobranzamovil"
+          g(){ curl -s -H "$H" -H "$A" "$API/$1"; }
+          RID='d9f0f107-fd76-f111-ab0e-70a8a5b226fd'
+          pid(){ g "privileges?\$select=privilegeid&\$filter=name%20eq%20'$1'" | jq -r '.value[0].privilegeid // empty'; }
+          RP=$(pid prvReadsanic_cm_tbl_asignacion); WP=$(pid prvWritesanic_cm_tbl_asignacion)
+          echo "=== bajar Read/Write de asignacion a Basic (User) ==="
+          code=$(curl -s -o /tmp/r.txt -w "%{http_code}" -X POST "$API/roles($RID)/Microsoft.Dynamics.CRM.AddPrivilegesRole" -H "$H" -H "$J" -H "$A" --data "{\"Privileges\":[{\"PrivilegeId\":\"$RP\",\"Depth\":\"Basic\"},{\"PrivilegeId\":\"$WP\",\"Depth\":\"Basic\"}]}")
+          echo "  AddPrivilegesRole HTTP $code"; [ "$code" -ge 300 ] && grep -o '"message":"[^"]*"' /tmp/r.txt | head -1
+          echo "  -- verificación asignacion --"
+          g "RetrieveRolePrivilegesRole(RoleId=$RID)" | jq -r '.RolePrivileges[]? | .PrivilegeId + " " + (.Depth|tostring)' | sort > /tmp/rp.txt
+          g "privileges?\$select=name,privilegeid&\$filter=contains(name,'sanic_cm_tbl_asignacion')" | jq -r '.value[] | .privilegeid + " " + .name' | sort > /tmp/pn.txt
+          join /tmp/rp.txt /tmp/pn.txt 2>/dev/null | awk '{n=$3; sub(/^prv/,"",n); printf "    %-32s %s\n",n,$2}'
+
+          echo "=== CIF en la vista Active de Clientes ==="
+          OTC=$(g "EntityDefinitions(LogicalName='sanic_cm_tbl_cliente')?\$select=ObjectTypeCode" | jq -r '.ObjectTypeCode')
+          CV=$(g "savedqueries?\$filter=returnedtypecode%20eq%20'sanic_cm_tbl_cliente'%20and%20name%20eq%20'Active%20CM%20%7C%20TBL%20%7C%20Clientes'&\$select=savedqueryid" | jq -r '.value[0].savedqueryid')
+          echo "  view=$CV otc=$OTC"
+          FC='<fetch version="1.0" mapping="logical"><entity name="sanic_cm_tbl_cliente"><attribute name="sanic_cm_cl_nombre" /><attribute name="sanic_cm_cl_cif" /><attribute name="sanic_cm_cl_departamento" /><attribute name="sanic_cm_cl_distrito" /><attribute name="sanic_cm_cl_trabajo" /><attribute name="sanic_cm_tbl_clienteid" /><order attribute="sanic_cm_cl_nombre" descending="false" /></entity></fetch>'
+          LC=$(printf '<grid name="resultset" object="%s" jump="sanic_cm_cl_nombre" select="1" icon="1" preview="1"><row name="result" id="sanic_cm_tbl_clienteid"><cell name="sanic_cm_cl_nombre" width="200" /><cell name="sanic_cm_cl_cif" width="140" /><cell name="sanic_cm_cl_departamento" width="140" /><cell name="sanic_cm_cl_distrito" width="140" /><cell name="sanic_cm_cl_trabajo" width="160" /></row></grid>' "$OTC")
+          jq -n --arg f "$FC" --arg l "$LC" '{fetchxml:$f, layoutxml:$l}' > /tmp/cv.json
+          echo "  PATCH Clientes view HTTP $(curl -s -o /dev/null -w "%{http_code}" -X PATCH "$API/savedqueries($CV)" -H "$H" -H "$J" -H "$A" -H "$SOL" --data @/tmp/cv.json)"
+          curl -s -o /dev/null -w "  Publish HTTP %{http_code}\n" -X POST "$API/PublishAllXml" -H "$H" -H "$J" -H "$A" -d '{}'
