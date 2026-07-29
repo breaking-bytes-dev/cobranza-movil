@@ -1,0 +1,32 @@
+name: adr
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  r:
+    runs-on: ubuntu-latest
+    steps:
+      - name: diagnostico rol Admin
+        env:
+          CID: ${{ secrets.PP_CLIENT_ID }}
+          SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT: ${{ secrets.PP_TENANT_ID }}
+          URL: ${{ secrets.DATAVERSE_URL }}
+        run: |
+          set +e
+          URL="${URL%/}"
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          API="$URL/api/data/v9.2"; H="Authorization: Bearer $TOKEN"; A="Accept: application/json"
+          g(){ curl -s -H "$H" -H "$A" -H 'Prefer: odata.include-annotations="*"' "$API/$1"; }
+          echo "=== Business Units ==="
+          g "businessunits?\$select=name,businessunitid,_parentbusinessunitid_value" | jq -r '.value[] | "  \(.name)  [\(.businessunitid)]  parent=\(._parentbusinessunitid_value // "ROOT")"'
+          echo "=== roles SR | CM | * (nombre, BU, id, iscustomizable, ismanaged) ==="
+          g "roles?\$select=name,roleid,_businessunitid_value,ismanaged&\$filter=startswith(name,'SR%20%7C%20CM')&\$orderby=name" | jq -r '.value[] | "  \(.name) | bu=\(.["_businessunitid_value@OData.Community.Display.V1.FormattedValue"]) | managed=\(.ismanaged) | [\(.roleid)]"'
+          echo "=== ¿el rol Admin tiene privilegio de acceso a apps / es sys-admin-like? (conteo priv) ==="
+          for r in 'SR | CM | Admin' 'SR | CM | Supervisor'; do
+            enc=$(echo "$r" | sed 's/ /%20/g; s/|/%7C/g')
+            RID=$(g "roles?\$select=roleid&\$filter=name%20eq%20'$enc'" | jq -r '.value[0].roleid')
+            n=$(g "RetrieveRolePrivilegesRole(RoleId=$RID)" | jq -r '.RolePrivileges|length')
+            echo "  $r ($RID): $n privilegios"
+          done
