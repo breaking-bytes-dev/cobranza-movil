@@ -1,7 +1,7 @@
 name: diag-smelter-template-field
 
-# READ-ONLY. Diagnostica por qué el lookup "Import Template" sale bloqueado
-# al crear un Import Job desde nuestra MDA. NO modifica nada.
+# READ-ONLY. Enfocado en sanic_tbl_smlt_importjob (la de Smelter, NO la nativa importjob).
+# Cierra: depth del Read del rol Admin sobre el template + si el lookup es secured/readonly.
 
 on:
   workflow_dispatch:
@@ -13,7 +13,7 @@ jobs:
   diag:
     runs-on: ubuntu-latest
     steps:
-      - name: Diagnóstico
+      - name: Diagnóstico enfocado
         env:
           CID: ${{ secrets.PP_CLIENT_ID }}
           SECRET: ${{ secrets.PP_CLIENT_SECRET }}
@@ -25,83 +25,51 @@ jobs:
           TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" \
             -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
           H="Authorization: Bearer $TOKEN"; A="Accept: application/json"
+          JOB="sanic_tbl_smlt_importjob"; TMPL="sanic_tbl_smlt_importtemplate"
 
-          echo "===================== 1. ENTIDADES SMELTER (import/smelter/smlt) ====================="
-          ALL=$(curl -s -H "$H" -H "$A" \
-            "$URL/api/data/v9.2/EntityDefinitions?\$select=LogicalName,LogicalCollectionName,DisplayName,IsCustomEntity")
-          echo "$ALL" | jq -r '.value[] | select(.LogicalName|test("import|smelter|smlt")) | "  \(.LogicalName)   coll=\(.LogicalCollectionName)"'
-
-          JOB=$(echo "$ALL" | jq -r '.value[] | select(.LogicalName|test("import")) | select(.LogicalName|test("job|run|execution")) | .LogicalName' | head -1)
-          TMPL=$(echo "$ALL" | jq -r '.value[] | select(.LogicalName|test("import")) | select(.LogicalName|test("template|config|definition")) | .LogicalName' | head -1)
-          echo "  -> JOB entity  = $JOB"
-          echo "  -> TMPL entity = $TMPL"
-
-          if [ -z "$JOB" ] || [ "$JOB" = "null" ]; then echo "!! No detecté la entidad Import Job automáticamente. Ver lista de arriba."; fi
-
-          echo "===================== 2. ATRIBUTOS LOOKUP del Import Job (¿cuál apunta al template?) ====================="
-          if [ -n "$JOB" ] && [ "$JOB" != "null" ]; then
-            curl -s -H "$H" -H "$A" \
-              "$URL/api/data/v9.2/EntityDefinitions(LogicalName='$JOB')/Attributes/Microsoft.Dynamics.CRM.LookupAttributeMetadata?\$select=LogicalName,SchemaName,IsSecured,IsValidForCreate,IsValidForUpdate,IsValidForForm,Targets" \
-              | jq -r '.value[] | "  \(.LogicalName)  | secured=\(.IsSecured) create=\(.IsValidForCreate) update=\(.IsValidForUpdate) form=\(.IsValidForForm) -> targets=\(.Targets)"'
-          fi
-
-          echo "===================== 3. ¿Ese lookup tiene FIELD SECURITY? (IsSecured) + perfiles ====================="
-          if [ -n "$JOB" ] && [ "$JOB" != "null" ]; then
-            SECURED=$(curl -s -H "$H" -H "$A" \
-              "$URL/api/data/v9.2/EntityDefinitions(LogicalName='$JOB')/Attributes/Microsoft.Dynamics.CRM.LookupAttributeMetadata?\$select=LogicalName,IsSecured,Targets" \
-              | jq -r --arg t "$TMPL" '.value[] | select(.IsSecured==true) | .LogicalName')
-            echo "  Campos SECURED en $JOB: ${SECURED:-(ninguno)}"
-          fi
-          echo "  -- Field Security Profiles existentes y sus miembros (teams/usuarios) --"
+          echo "===================== 1. LOOKUPS de $JOB (flags) ====================="
           curl -s -H "$H" -H "$A" \
-            "$URL/api/data/v9.2/fieldsecurityprofiles?\$select=name,fieldsecurityprofileid" \
-            | jq -r '.value[] | "  FSP: \(.name)  (\(.fieldsecurityprofileid))"'
+            "$URL/api/data/v9.2/EntityDefinitions(LogicalName='$JOB')/Attributes/Microsoft.Dynamics.CRM.LookupAttributeMetadata?\$select=LogicalName,SchemaName,IsSecured,IsValidForCreate,IsValidForUpdate,IsValidForForm,RequiredLevel,Targets" \
+            | jq -r '.value[] | "  \(.LogicalName)  secured=\(.IsSecured) create=\(.IsValidForCreate) update=\(.IsValidForUpdate) form=\(.IsValidForForm) req=\(.RequiredLevel.Value) -> \(.Targets)"'
 
-          echo "===================== 4. PRIVILEGIOS del rol Admin sobre Import Job / Template ====================="
+          echo "===================== 2. ¿el lookup al template está en algún FORM como disabled? ====================="
+          # main forms del importjob (type=2)
+          curl -s -H "$H" -H "$A" \
+            "$URL/api/data/v9.2/systemforms?\$select=name,type,formid&\$filter=objecttypecode%20eq%20'$JOB'" \
+            | jq -r '.value[] | "  form: \(.name) type=\(.type) id=\(.formid)"'
+          echo "  -- busco 'importtemplate' + disabled en el formxml de cada form --"
+          for FID in $(curl -s -H "$H" -H "$A" "$URL/api/data/v9.2/systemforms?\$select=formid&\$filter=objecttypecode%20eq%20'$JOB'" | jq -r '.value[].formid'); do
+            XML=$(curl -s -H "$H" -H "$A" "$URL/api/data/v9.2/systemforms($FID)?\$select=name,formxml")
+            NAME=$(echo "$XML" | jq -r '.name')
+            # extraer los <control ... datafieldname="...template..." ... disabled="...">
+            echo "$XML" | jq -r '.formxml' | grep -oiE '<control[^>]*template[^>]*>' | sed "s/^/    [$NAME] /" | head -5 || echo "    [$NAME] (sin control template en xml)"
+          done
+
+          echo "===================== 3. DEPTH de privilegios clave en el rol Admin ====================="
           ROLEID=$(curl -s -H "$H" -H "$A" \
             "$URL/api/data/v9.2/roles?\$select=roleid&\$filter=name%20eq%20'SR%20%7C%20CM%20%7C%20Admin'" | jq -r '.value[0].roleid')
-          echo "  Admin roleid=$ROLEID"
-          for E in "$JOB" "$TMPL"; do
-            [ -z "$E" ] || [ "$E" = "null" ] && continue
-            echo "  -- privilegios sobre '$E' --"
-            # objecttypecode del privilege = logicalname; buscamos privileges de esa entidad y su depth en el rol
-            PRIVS=$(curl -s -H "$H" -H "$A" \
-              "$URL/api/data/v9.2/privileges?\$select=privilegeid,name,accessright&\$filter=contains(name,'$E')")
-            echo "$PRIVS" | jq -r '.value[] | "     priv \(.name) (\(.privilegeid))"' | head -20
+          # ids de interes
+          declare -A P
+          P[ReadTemplate]=887beae3-8b4e-4dc9-a67b-db553595fb62
+          P[ReadJob]=d2365ca0-6b1e-4251-858e-f78eab834cf8
+          P[CreateJob]=cefb8e11-1120-4406-9cbc-48bef7cb6395
+          P[WriteJob]=d185bc3a-320c-4c41-898e-78b70a761fb7
+          RP=$(curl -s -H "$H" -H "$A" \
+            "$URL/api/data/v9.2/roleprivilegescollection?\$filter=roleid%20eq%20$ROLEID&\$select=privilegeid,privilegedepthmask")
+          depthname(){ case "$1" in 1) echo "User/Basic";; 2) echo "BusinessUnit/Local";; 4) echo "Deep";; 8) echo "Global/Org";; *) echo "?($1)";; esac; }
+          for K in ReadTemplate ReadJob CreateJob WriteJob; do
+            D=$(echo "$RP" | jq -r --arg p "${P[$K]}" '.value[] | select(.privilegeid==$p) | .privilegedepthmask')
+            if [ -z "$D" ]; then echo "  $K: (el rol NO tiene este privilegio)"; else echo "  $K: depth=$D ($(depthname $D))"; fi
           done
-          echo "  -- depth de cada privilegio en el rol Admin (roleprivilegescollection) --"
-          curl -s -H "$H" -H "$A" \
-            "$URL/api/data/v9.2/roleprivilegescollection?\$filter=roleid%20eq%20$ROLEID&\$select=privilegeid,privilegedepthmask" \
-            | jq -r '.value | length as $n | "  (el rol tiene \($n) privilegios; se cruzan con los ids de arriba)"'
-          # dump crudo para cruzar
-          curl -s -H "$H" -H "$A" \
-            "$URL/api/data/v9.2/roleprivilegescollection?\$filter=roleid%20eq%20$ROLEID&\$select=privilegeid,privilegedepthmask" \
-            | jq -r '.value[] | "     \(.privilegeid) depth=\(.privilegedepthmask)"' > /tmp/roleprivs.txt
-          echo "  (guardado /tmp/roleprivs.txt con $(wc -l < /tmp/roleprivs.txt) filas)"
 
-          echo "===================== 5. TEMPLATE 'Cobranza movil': owner y team ====================="
-          if [ -n "$TMPL" ] && [ "$TMPL" != "null" ]; then
-            COLL=$(echo "$ALL" | jq -r --arg t "$TMPL" '.value[] | select(.LogicalName==$t) | .LogicalCollectionName')
-            echo "  colección: $COLL"
-            curl -s -H "$H" -H "$A" \
-              "$URL/api/data/v9.2/$COLL?\$select=*&\$top=5" \
-              | jq -r '.value[] | "  template: owner=\(._ownerid_value // "?")  ownertype=\(._owningteam_value // "usuario/otro")"' 2>/dev/null \
-              || echo "  (no pude leer con select=*; se listan campos abajo)"
-          fi
-
-          echo "===================== 6. TEAMS y su membership ====================="
+          echo "===================== 4. Templates: cuál es 'Cobranza movil' y su owner ====================="
           curl -s -H "$H" -H "$A" \
-            "$URL/api/data/v9.2/teams?\$select=name,teamid,teamtype&\$filter=contains(name,'CM')%20or%20contains(name,'Carga')" \
-            | jq -r '.value[] | "  team: \(.name)  type=\(.teamtype)  (\(.teamid))"'
-          echo "  -- miembros del team 'Admin y Carga' (si existe) --"
-          TID=$(curl -s -H "$H" -H "$A" \
-            "$URL/api/data/v9.2/teams?\$select=teamid&\$filter=contains(name,'Admin%20y%20Carga')" | jq -r '.value[0].teamid')
-          echo "  teamid Admin y Carga = $TID"
-          if [ -n "$TID" ] && [ "$TID" != "null" ]; then
-            curl -s -H "$H" -H "$A" \
-              "$URL/api/data/v9.2/teams($TID)/teammembership_association?\$select=fullname,internalemailaddress" \
-              | jq -r '.value[]? | "     miembro: \(.fullname) <\(.internalemailaddress)>"'
-            N=$(curl -s -H "$H" -H "$A" "$URL/api/data/v9.2/teams($TID)/teammembership_association?\$select=systemuserid" | jq -r '.value | length')
-            echo "  -> total miembros: $N"
-          fi
+            "$URL/api/data/v9.2/sanic_tbl_smlt_importtemplates?\$select=sanic_name,_ownerid_value,_owningteam_value,_owninguser_value&\$top=10" \
+            | jq -r '.value[] | "  name=\(.sanic_name // "?")  owner=\(._ownerid_value)  team=\(._owningteam_value // "-")  user=\(._owninguser_value // "-")"'
+
+          echo "===================== 5. Miembros del team Admin y Carga (confirmación) ====================="
+          TID=870f4531-a38a-f111-8076-70a8a59c703e
+          curl -s -H "$H" -H "$A" \
+            "$URL/api/data/v9.2/teams($TID)/teammembership_association?\$select=fullname,internalemailaddress,applicationid" \
+            | jq -r '.value[]? | "  \(.fullname) <\(.internalemailaddress)> app=\(.applicationid // "-")"'
           echo "LISTO."
