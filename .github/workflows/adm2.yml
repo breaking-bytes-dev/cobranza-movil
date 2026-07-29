@@ -1,0 +1,39 @@
+name: adm2
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  a:
+    runs-on: ubuntu-latest
+    steps:
+      - name: form Admin Asignacion
+        env:
+          CID: ${{ secrets.PP_CLIENT_ID }}
+          SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT: ${{ secrets.PP_TENANT_ID }}
+          URL: ${{ secrets.DATAVERSE_URL }}
+        run: |
+          set +e
+          URL="${URL%/}"
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          API="$URL/api/data/v9.2"; H="Authorization: Bearer $TOKEN"; A="Accept: application/json"; J="Content-Type: application/json"; SOL="MSCRM.SolutionUniqueName: cm_core_cobranzamovil"; E='sanic_cm_tbl_asignacion'
+          g(){ curl -s -H "$H" -H "$A" "$API/$1"; }
+          EX=$(g "systemforms?\$filter=objecttypecode%20eq%20'$E'%20and%20name%20eq%20'CM%20%7C%20Admin%20-%20Asignaci%C3%B3n'&\$select=formid" | jq -r '.value[0].formid // empty')
+          [ -n "$EX" ] && curl -s -o /dev/null -X DELETE "$API/systemforms($EX)" -H "$H" -H "$A"
+          TEXT='{4273EDBD-AC1D-40d3-9FB2-095C621B552D}'; MEMO='{E0DECE4B-6FC8-4a8f-A065-082708572369}'; LOOKUP='{270BD3DB-D9AF-4782-9025-509E298DEC0A}'; PICK='{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}'; DATE='{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}'; DEC='{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}'; BOOL='{67FAC785-CD58-4f9f-ABB3-4B7DDC6ED5ED}'
+          uid(){ echo "{$(uuidgen)}"; }
+          row(){ printf '<row><cell id="%s"><labels><label description="%s" languagecode="1033" /></labels><control id="%s" classid="%s" datafieldname="%s" disabled="%s" /></cell></row>' "$(uid)" "$3" "$1" "$2" "$1" "$4"; }
+          section(){ printf '<section name="%s" showlabel="true" showbar="false" id="%s" columns="11" labelwidth="150" celllabelalignment="Left" celllabelposition="Left"><labels><label description="%s" languagecode="1033" /></labels><rows>%s</rows></section>' "$1" "$(uid)" "$2" "$3"; }
+          bf(){ printf '<form><tabs><tab name="t" verticallayout="true" id="%s" IsUserDefined="0" locklevel="0" showlabel="true" expanded="true"><labels><label description="Asignación" languagecode="1033" /></labels><columns><column width="100%%"><sections>%s</sections></column></columns></tab></tabs></form>' "$(uid)" "$1"; }
+          S1="$(row sanic_cm_as_numero "$TEXT" 'Número' true)$(row sanic_cm_as_cuentaid "$LOOKUP" 'Cuenta' true)$(row sanic_cm_as_tipo "$PICK" 'Tipo' true)$(row sanic_cm_as_agenteid "$LOOKUP" 'Localizador' true)$(row sanic_cm_as_fechasignacion "$DATE" 'Fecha de asignación' true)$(row sanic_cm_as_ultimacarga "$DATE" 'Última carga' true)"
+          S2="$(row sanic_cm_as_estado "$BOOL" 'Estado (Activa / Cerrada)' false)$(row sanic_cm_as_fechacierre "$DATE" 'Fecha de cierre' false)"
+          S3="$(row sanic_cm_as_estadoaprobacion "$PICK" 'Estado de aprobación' true)$(row sanic_cm_as_retironio "$DEC" 'Retiro NIO' true)$(row sanic_cm_as_retirousd "$DEC" 'Retiro USD' true)$(row sanic_cm_as_motivo "$MEMO" 'Motivo' true)$(row sanic_cm_as_notas "$MEMO" 'Notas' true)$(row createdby "$LOOKUP" 'Solicitado por' true)"
+          FX="$(bf "$(section a1 'Asignación' "$S1")$(section a2 'Cierre (Admin)' "$S2")$(section a3 'Especial (si aplica)' "$S3")")"
+          jq -n --arg n "CM | Admin - Asignación" --arg fx "$FX" '{name:$n, description:"Form del Admin para gestionar/cerrar cualquier asignacion", type:2, objecttypecode:"sanic_cm_tbl_asignacion", formxml:$fx, formactivationstate:1, isdefault:false}' > /tmp/form.json
+          code=$(curl -s -o /tmp/r.txt -w "%{http_code}" -X POST "$API/systemforms" -H "$H" -H "$J" -H "$A" -H "$SOL" --data @/tmp/form.json)
+          echo "  crear form HTTP $code"; [ "$code" -ge 300 ] && grep -o '"message":"[^"]*"' /tmp/r.txt | head -1
+          curl -s -o /dev/null -w "  Publish HTTP %{http_code}\n" -X POST "$API/PublishAllXml" -H "$H" -H "$J" -H "$A" -d '{}'
+          echo "  -- vistas Admin existentes --"
+          g "savedqueries?\$filter=startswith(name,'Admin%20%C2%B7')&\$select=name" | jq -r '.value[]? | "    " + .name'
+          g "systemforms?\$filter=objecttypecode%20eq%20'$E'%20and%20name%20eq%20'CM%20%7C%20Admin%20-%20Asignaci%C3%B3n'&\$select=name" | jq -r '.value[]? | "  form OK: " + .name'
