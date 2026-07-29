@@ -1,0 +1,66 @@
+name: diag-smelter-log
+
+# READ-ONLY. Inspecciona el esquema de sanic_tbl_smlt_importjoblog (alt keys + errorcategory)
+# para el error "Incorrect type of attribute value EntityReference" en LOG WRITE FAULT.
+# Y cuenta si cargó data real en las tablas destino.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Diagnóstico log + data
+        env:
+          CID: ${{ secrets.PP_CLIENT_ID }}
+          SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT: ${{ secrets.PP_TENANT_ID }}
+          URL: ${{ secrets.DATAVERSE_URL }}
+        run: |
+          URL="${URL%/}"
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" \
+            -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          H="Authorization: Bearer $TOKEN"; A="Accept: application/json"; P='Prefer: odata.maxpagesize=1'
+          LOG="sanic_tbl_smlt_importjoblog"
+
+          echo "===================== 1. ATRIBUTOS del Import Job Log (nombre + tipo) ====================="
+          curl -s -H "$H" -H "$A" \
+            "$URL/api/data/v9.2/EntityDefinitions(LogicalName='$LOG')/Attributes?\$select=LogicalName,AttributeType,SchemaName" \
+            | jq -r '.value[] | select(.AttributeType|test("Virtual|Uniqueidentifier")|not) | "  \(.LogicalName)   [\(.AttributeType)]"' | sort
+
+          echo "===================== 2. FOCO: errorcategory y cualquier lookup ====================="
+          curl -s -H "$H" -H "$A" \
+            "$URL/api/data/v9.2/EntityDefinitions(LogicalName='$LOG')/Attributes?\$select=LogicalName,AttributeType" \
+            | jq -r '.value[] | select(.LogicalName|test("error|category|lookup|job|importtemplate|table")) | "  \(.LogicalName)   [\(.AttributeType)]"'
+          echo "  -- si errorcategory es Picklist/String pero el plugin manda EntityReference -> ahí está el bug --"
+
+          echo "===================== 3. ALTERNATE KEYS del log (¿incluyen un lookup?) ====================="
+          curl -s -H "$H" -H "$A" \
+            "$URL/api/data/v9.2/EntityDefinitions(LogicalName='$LOG')/Keys?\$select=LogicalName,SchemaName,KeyAttributes,EntityKeyIndexStatus" \
+            | jq -r '.value[] | "  key: \(.SchemaName)  status=\(.EntityKeyIndexStatus)  attrs=\(.KeyAttributes)"'
+          echo "  -- si algún KeyAttribute es un lookup (EntityReference), el upsert por alt key rompe con este error --"
+
+          echo "===================== 4. Detalle de tipo de CADA columna que está en una alt key ====================="
+          KATTRS=$(curl -s -H "$H" -H "$A" \
+            "$URL/api/data/v9.2/EntityDefinitions(LogicalName='$LOG')/Keys?\$select=KeyAttributes" \
+            | jq -r '[.value[].KeyAttributes[]] | unique | .[]')
+          for ka in $KATTRS; do
+            T=$(curl -s -H "$H" -H "$A" \
+              "$URL/api/data/v9.2/EntityDefinitions(LogicalName='$LOG')/Attributes(LogicalName='$ka')?\$select=AttributeType" | jq -r '.AttributeType')
+            echo "  key-attr $ka  -> tipo [$T]"
+          done
+
+          echo "===================== 5. ¿Cargó DATA real? (conteo tablas destino) ====================="
+          cnt(){ curl -s -H "$H" -H "$A" -H "$P" "$URL/api/data/v9.2/$1?\$count=true&\$top=1" | jq -r '.["@odata.count"]'; }
+          for t in sanic_cm_tbl_clientes sanic_cm_tbl_productos sanic_cm_tbl_agentes sanic_cm_tbl_fiadors \
+                   sanic_cm_tbl_direccions sanic_cm_tbl_telefonos sanic_cm_tbl_cuentas sanic_cm_tbl_asignacions; do
+            printf "  %-30s %s\n" "$t" "$(cnt $t)"
+          done
+
+          echo "===================== 6. ¿Cuántos Import Job Log existen? (¿escribió alguno?) ====================="
+          echo -n "  total importjoblogs: "; cnt "${LOG}s"
+          echo "LISTO."
