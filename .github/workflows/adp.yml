@@ -1,0 +1,42 @@
+name: adp
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  r:
+    runs-on: ubuntu-latest
+    steps:
+      - name: privilegios admin-tier del rol Admin
+        env:
+          CID: ${{ secrets.PP_CLIENT_ID }}
+          SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT: ${{ secrets.PP_TENANT_ID }}
+          URL: ${{ secrets.DATAVERSE_URL }}
+        run: |
+          set +e
+          URL="${URL%/}"
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          API="$URL/api/data/v9.2"; H="Authorization: Bearer $TOKEN"; A="Accept: application/json"
+          g(){ curl -s -H "$H" -H "$A" "$API/$1"; }
+          RID='b2884281-f573-f111-ab0e-000d3a3483e7'
+          g "RetrieveRolePrivilegesRole(RoleId=$RID)" | jq -r '.RolePrivileges[]? | .PrivilegeId' | sort -u > /tmp/rp.txt
+          echo "  total privilegios del rol Admin: $(wc -l < /tmp/rp.txt)"
+          # bajar todos los nombres de privilegios (paginado)
+          : > /tmp/pn.txt
+          NEXT="privileges?\$select=name,privilegeid&\$top=5000"
+          while [ -n "$NEXT" ]; do
+            R=$(curl -s -H "$H" -H "$A" "$API/$NEXT")
+            echo "$R" | jq -r '.value[]? | .privilegeid + " " + .name' >> /tmp/pn.txt
+            NEXT=$(echo "$R" | jq -r '."@odata.nextLink" // empty' | sed "s#$API/##")
+          done
+          sort -k1 /tmp/pn.txt -o /tmp/pn.txt
+          echo "  nombres de privilegios cargados: $(wc -l < /tmp/pn.txt)"
+          join /tmp/rp.txt /tmp/pn.txt 2>/dev/null | awk '{print $2}' > /tmp/mine.txt
+          echo ""
+          echo "=== del rol Admin: cuántos son de tablas CM (sanic_cm) vs otros ==="
+          echo "  sanic_cm_*: $(grep -c 'sanic_cm' /tmp/mine.txt)"
+          echo "  OTROS (no CM): $(grep -vc 'sanic_cm' /tmp/mine.txt)"
+          echo ""
+          echo "=== privilegios ADMIN-TIER que tiene (de ambiente/sistema, NO de la solución) ==="
+          grep -viE 'sanic_' /tmp/mine.txt | grep -iE 'AppModule|ActOnBehalf|prv.*Customiz|prvCreateEntity|prvWriteEntity|prvCreateAttribute|prvReadUser|prvWriteUser|prvCreateUser|prvReadRole|prvWriteRole|prvReadTeam|prvWriteTeam|BulkDelete|prv.*Solution|SystemForm|SavedQuery|Publish|prvImport|prvReadOrganization|WebResource|prvCreateWorkflow|Plugin|SdkMessage' | sort | sed 's/^/  ✗ /' | head -60
