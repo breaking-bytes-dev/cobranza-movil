@@ -1,8 +1,8 @@
 name: fix-admin-app-access
 
 # One-shot: asocia el rol "SR | CM | Admin" con el app module del Backoffice
-# vía la relación N:N appmoduleroles (bypass del picker roto del portal).
-# Diagnostica primero, luego asocia, luego re-verifica.
+# vía la relación N:N appmodule<->role (bypass del picker roto del portal).
+# Descubre el nombre de la navegación N:N por metadata, luego asocia y publica.
 
 on:
   workflow_dispatch:
@@ -27,67 +27,54 @@ jobs:
             -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
           H="Authorization: Bearer $TOKEN"; A="Accept: application/json"; CT="Content-Type: application/json"
 
-          echo "===================== APP MODULES (buscando Backoffice) ====================="
-          curl -s -H "$H" -H "$A" \
-            "$URL/api/data/v9.2/appmodules?\$select=appmoduleid,name,uniquename,isdefault&\$filter=contains(name,'Backoffice')" \
-            | jq -r '.value[] | "  \(.name)  |  id=\(.appmoduleid)  |  unique=\(.uniquename)"'
-
           APPID=$(curl -s -H "$H" -H "$A" \
             "$URL/api/data/v9.2/appmodules?\$select=appmoduleid&\$filter=contains(name,'Backoffice')" \
             | jq -r '.value[0].appmoduleid')
-          echo "  -> APPID elegido: $APPID"
-          if [ -z "$APPID" ] || [ "$APPID" = "null" ]; then echo "ERROR: no encontré el app module"; exit 1; fi
-
-          echo "===================== ROL Admin ====================="
           ROLEID=$(curl -s -H "$H" -H "$A" \
-            "$URL/api/data/v9.2/roles?\$select=roleid,name,_businessunitid_value&\$filter=name%20eq%20'SR%20%7C%20CM%20%7C%20Admin'" \
+            "$URL/api/data/v9.2/roles?\$select=roleid&\$filter=name%20eq%20'SR%20%7C%20CM%20%7C%20Admin'" \
             | jq -r '.value[0].roleid')
-          echo "  -> ROLEID: $ROLEID"
-          if [ -z "$ROLEID" ] || [ "$ROLEID" = "null" ]; then echo "ERROR: no encontré el rol Admin"; exit 1; fi
+          echo "APPID=$APPID  ROLEID=$ROLEID"
 
-          echo "===================== ¿prvReadAppModule y a qué depth? ====================="
+          echo "===================== RELACIONES N:N de appmodule ====================="
+          META=$(curl -s -H "$H" -H "$A" \
+            "$URL/api/data/v9.2/EntityDefinitions(LogicalName='appmodule')/ManyToManyRelationships?\$select=SchemaName,Entity1LogicalName,Entity2LogicalName,Entity1NavigationPropertyName,Entity2NavigationPropertyName")
+          echo "$META" | jq -r '.value[] | "  \(.SchemaName)  |  E1=\(.Entity1LogicalName)/\(.Entity1NavigationPropertyName)  E2=\(.Entity2LogicalName)/\(.Entity2NavigationPropertyName)"'
+
+          NAV=$(echo "$META" | jq -r '.value[]
+            | select((.Entity1LogicalName=="appmodule" and .Entity2LogicalName=="role") or (.Entity2LogicalName=="appmodule" and .Entity1LogicalName=="role"))
+            | if .Entity1LogicalName=="appmodule" then .Entity1NavigationPropertyName else .Entity2NavigationPropertyName end' | head -1)
+          echo "  -> NAV (appmodule -> role) = $NAV"
+          if [ -z "$NAV" ] || [ "$NAV" = "null" ]; then echo "ERROR: no encontré la nav N:N appmodule<->role"; exit 1; fi
+
+          echo "===================== ROLES ASOCIADOS (ANTES) ====================="
           curl -s -H "$H" -H "$A" \
-            "$URL/api/data/v9.2/RetrieveRolePrivilegesRole(RoleId=$ROLEID)" \
-            | jq -r '.RolePrivileges[]? | select(.PrivilegeId) | .' 2>/dev/null | head -c 0 || true
-          # el nombre no viene en esa función; listamos privilegios de app por join a privilege
-          RAM=$(curl -s -H "$H" -H "$A" \
-            "$URL/api/data/v9.2/privileges?\$select=privilegeid&\$filter=name%20eq%20'prvReadAppModule'" | jq -r '.value[0].privilegeid')
-          echo "  prvReadAppModule id = $RAM"
-          curl -s -H "$H" -H "$A" \
-            "$URL/api/data/v9.2/roleprivilegescollection?\$filter=roleid%20eq%20$ROLEID" \
-            | jq -r --arg ram "$RAM" '.value[]? | select(.privilegeid==$ram) | "  Admin tiene prvReadAppModule con depth=\(.privilegedepthmask)"' 2>/dev/null || echo "  (no pude leer roleprivilegescollection - se verá en el expand)"
+            "$URL/api/data/v9.2/appmodules($APPID)?\$expand=$NAV(\$select=name,roleid)" \
+            | jq -r ".[\"$NAV\"][]? | \"  \(.name)  (\(.roleid))\"" 2>/dev/null \
+            || curl -s -H "$H" -H "$A" "$URL/api/data/v9.2/appmodules($APPID)?\$expand=$NAV(\$select=name,roleid)" | jq -r '.'
 
-          echo "===================== ROLES YA ASOCIADOS al app (ANTES) ====================="
-          curl -s -H "$H" -H "$A" \
-            "$URL/api/data/v9.2/appmodules($APPID)?\$select=name&\$expand=appmoduleroles(\$select=name,roleid)" \
-            | jq -r '.appmoduleroles[]? | "  \(.name)  (\(.roleid))"'
-
-          YA=$(curl -s -H "$H" -H "$A" \
-            "$URL/api/data/v9.2/appmodules($APPID)?\$expand=appmoduleroles(\$select=roleid)" \
-            | jq -r --arg r "$ROLEID" '[.appmoduleroles[]?.roleid] | index($r)')
-
-          if [ "$YA" != "null" ] && [ -n "$YA" ]; then
-            echo "  -> El rol Admin YA estaba asociado (index $YA). No hago nada."
+          echo "===================== ASOCIANDO Admin -> app ====================="
+          HTTP=$(curl -s -o /tmp/assoc.txt -w '%{http_code}' -X POST -H "$H" -H "$A" -H "$CT" \
+            "$URL/api/data/v9.2/appmodules($APPID)/$NAV/\$ref" \
+            -d "{\"@odata.id\":\"$URL/api/data/v9.2/roles($ROLEID)\"}")
+          echo "  HTTP: $HTTP"
+          if [ "$HTTP" -ge 300 ]; then
+            if grep -q "Cannot insert duplicate" /tmp/assoc.txt; then
+              echo "  -> ya estaba asociado (duplicate). OK."
+            else
+              echo "  RESP:"; cat /tmp/assoc.txt; exit 1
+            fi
           else
-            echo "===================== ASOCIANDO rol Admin -> app module ====================="
-            HTTP=$(curl -s -o /tmp/assoc.txt -w '%{http_code}' -X POST \
-              -H "$H" -H "$A" -H "$CT" \
-              "$URL/api/data/v9.2/appmodules($APPID)/appmoduleroles/\$ref" \
-              -d "{\"@odata.id\":\"$URL/api/data/v9.2/roles($ROLEID)\"}")
-            echo "  HTTP: $HTTP"
-            [ "$HTTP" -ge 300 ] && { echo "  RESP:"; cat /tmp/assoc.txt; exit 1; }
             echo "  -> asociado OK"
           fi
 
-          echo "===================== ROLES ASOCIADOS al app (DESPUÉS) ====================="
+          echo "===================== ROLES ASOCIADOS (DESPUÉS) ====================="
           curl -s -H "$H" -H "$A" \
-            "$URL/api/data/v9.2/appmodules($APPID)?\$select=name&\$expand=appmoduleroles(\$select=name,roleid)" \
-            | jq -r '.appmoduleroles[]? | "  \(.name)"'
+            "$URL/api/data/v9.2/appmodules($APPID)?\$expand=$NAV(\$select=name)" \
+            | jq -r ".[\"$NAV\"][]? | \"  \(.name)\""
 
-          echo "===================== PUBLICANDO el app module ====================="
+          echo "===================== PUBLICANDO ====================="
           PXML="<importexportxml><appmodules><appmodule>$APPID</appmodule></appmodules></importexportxml>"
           HTTP=$(curl -s -o /tmp/pub.txt -w '%{http_code}' -X POST -H "$H" -H "$A" -H "$CT" \
             "$URL/api/data/v9.2/PublishXml" -d "{\"ParameterXml\":\"$PXML\"}")
-          echo "  publish HTTP: $HTTP"
-          [ "$HTTP" -ge 300 ] && cat /tmp/pub.txt || echo "  -> publicado"
+          echo "  publish HTTP: $HTTP"; [ "$HTTP" -ge 300 ] && cat /tmp/pub.txt || echo "  -> publicado"
           echo "LISTO."
