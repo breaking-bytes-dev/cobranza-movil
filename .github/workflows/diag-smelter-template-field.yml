@@ -1,7 +1,6 @@
 name: diag-smelter-template-field
 
-# READ-ONLY. Enfocado en sanic_tbl_smlt_importjob (la de Smelter, NO la nativa importjob).
-# Cierra: depth del Read del rol Admin sobre el template + si el lookup es secured/readonly.
+# READ-ONLY. Confirma DÓNDE viven los privilegios Smelter y QUIÉN los recibe.
 
 on:
   workflow_dispatch:
@@ -13,63 +12,61 @@ jobs:
   diag:
     runs-on: ubuntu-latest
     steps:
-      - name: Diagnóstico enfocado
+      - name: Confirmacion final
         env:
           CID: ${{ secrets.PP_CLIENT_ID }}
           SECRET: ${{ secrets.PP_CLIENT_SECRET }}
           TENANT: ${{ secrets.PP_TENANT_ID }}
           URL: ${{ secrets.DATAVERSE_URL }}
         run: |
-          set -e
           URL="${URL%/}"
           TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" \
             -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
           H="Authorization: Bearer $TOKEN"; A="Accept: application/json"
-          JOB="sanic_tbl_smlt_importjob"; TMPL="sanic_tbl_smlt_importtemplate"
+          RTMPL=887beae3-8b4e-4dc9-a67b-db553595fb62   # prvReadsanic_tbl_smlt_importtemplate
+          CJOB=cefb8e11-1120-4406-9cbc-48bef7cb6395    # prvCreatesanic_tbl_smlt_importjob
+          depthname(){ case "$1" in 1) echo "User/Basic";; 2) echo "BU/Local";; 4) echo "Deep";; 8) echo "Global/Org";; *) echo "?($1)";; esac; }
 
-          echo "===================== 1. LOOKUPS de $JOB (flags) ====================="
-          curl -s -H "$H" -H "$A" \
-            "$URL/api/data/v9.2/EntityDefinitions(LogicalName='$JOB')/Attributes/Microsoft.Dynamics.CRM.LookupAttributeMetadata?\$select=LogicalName,SchemaName,IsSecured,IsValidForCreate,IsValidForUpdate,IsValidForForm,RequiredLevel,Targets" \
-            | jq -r '.value[] | "  \(.LogicalName)  secured=\(.IsSecured) create=\(.IsValidForCreate) update=\(.IsValidForUpdate) form=\(.IsValidForForm) req=\(.RequiredLevel.Value) -> \(.Targets)"'
-
-          echo "===================== 2. ¿el lookup al template está en algún FORM como disabled? ====================="
-          # main forms del importjob (type=2)
-          curl -s -H "$H" -H "$A" \
-            "$URL/api/data/v9.2/systemforms?\$select=name,type,formid&\$filter=objecttypecode%20eq%20'$JOB'" \
-            | jq -r '.value[] | "  form: \(.name) type=\(.type) id=\(.formid)"'
-          echo "  -- busco 'importtemplate' + disabled en el formxml de cada form --"
-          for FID in $(curl -s -H "$H" -H "$A" "$URL/api/data/v9.2/systemforms?\$select=formid&\$filter=objecttypecode%20eq%20'$JOB'" | jq -r '.value[].formid'); do
-            XML=$(curl -s -H "$H" -H "$A" "$URL/api/data/v9.2/systemforms($FID)?\$select=name,formxml")
-            NAME=$(echo "$XML" | jq -r '.name')
-            # extraer los <control ... datafieldname="...template..." ... disabled="...">
-            echo "$XML" | jq -r '.formxml' | grep -oiE '<control[^>]*template[^>]*>' | sed "s/^/    [$NAME] /" | head -5 || echo "    [$NAME] (sin control template en xml)"
-          done
-
-          echo "===================== 3. DEPTH de privilegios clave en el rol Admin ====================="
-          ROLEID=$(curl -s -H "$H" -H "$A" \
-            "$URL/api/data/v9.2/roles?\$select=roleid&\$filter=name%20eq%20'SR%20%7C%20CM%20%7C%20Admin'" | jq -r '.value[0].roleid')
-          # ids de interes
-          declare -A P
-          P[ReadTemplate]=887beae3-8b4e-4dc9-a67b-db553595fb62
-          P[ReadJob]=d2365ca0-6b1e-4251-858e-f78eab834cf8
-          P[CreateJob]=cefb8e11-1120-4406-9cbc-48bef7cb6395
-          P[WriteJob]=d185bc3a-320c-4c41-898e-78b70a761fb7
+          echo "===================== 1. ¿QUÉ ROLES tienen Read sobre el TEMPLATE? (y depth) ====================="
           RP=$(curl -s -H "$H" -H "$A" \
-            "$URL/api/data/v9.2/roleprivilegescollection?\$filter=roleid%20eq%20$ROLEID&\$select=privilegeid,privilegedepthmask")
-          depthname(){ case "$1" in 1) echo "User/Basic";; 2) echo "BusinessUnit/Local";; 4) echo "Deep";; 8) echo "Global/Org";; *) echo "?($1)";; esac; }
-          for K in ReadTemplate ReadJob CreateJob WriteJob; do
-            D=$(echo "$RP" | jq -r --arg p "${P[$K]}" '.value[] | select(.privilegeid==$p) | .privilegedepthmask')
-            if [ -z "$D" ]; then echo "  $K: (el rol NO tiene este privilegio)"; else echo "  $K: depth=$D ($(depthname $D))"; fi
+            "$URL/api/data/v9.2/roleprivilegescollection?\$filter=privilegeid%20eq%20$RTMPL&\$select=roleid,privilegedepthmask")
+          echo "$RP" | jq -r '.value[] | "\(.roleid) \(.privilegedepthmask)"' | while read RID DM; do
+            RN=$(curl -s -H "$H" -H "$A" "$URL/api/data/v9.2/roles($RID)?\$select=name" | jq -r '.name')
+            echo "  Read template -> rol '$RN'  depth=$DM ($(depthname $DM))"
           done
 
-          echo "===================== 4. Templates: cuál es 'Cobranza movil' y su owner ====================="
-          curl -s -H "$H" -H "$A" \
-            "$URL/api/data/v9.2/sanic_tbl_smlt_importtemplates?\$select=sanic_name,_ownerid_value,_owningteam_value,_owninguser_value&\$top=10" \
-            | jq -r '.value[] | "  name=\(.sanic_name // "?")  owner=\(._ownerid_value)  team=\(._owningteam_value // "-")  user=\(._owninguser_value // "-")"'
+          echo "===================== 2. ¿QUÉ ROLES pueden CREAR Import Job? (y depth) ====================="
+          RP2=$(curl -s -H "$H" -H "$A" \
+            "$URL/api/data/v9.2/roleprivilegescollection?\$filter=privilegeid%20eq%20$CJOB&\$select=roleid,privilegedepthmask")
+          echo "$RP2" | jq -r '.value[] | "\(.roleid) \(.privilegedepthmask)"' | while read RID DM; do
+            RN=$(curl -s -H "$H" -H "$A" "$URL/api/data/v9.2/roles($RID)?\$select=name" | jq -r '.name')
+            echo "  Create job -> rol '$RN'  depth=$DM ($(depthname $DM))"
+          done
 
-          echo "===================== 5. Miembros del team Admin y Carga (confirmación) ====================="
+          echo "===================== 3. El rol 'SR | CM | Admin', ¿tiene ALGÚN privilegio Smelter? ====================="
+          AID=$(curl -s -H "$H" -H "$A" "$URL/api/data/v9.2/roles?\$select=roleid&\$filter=name%20eq%20'SR%20%7C%20CM%20%7C%20Admin'" | jq -r '.value[0].roleid')
+          # todos los privilegios del rol Admin, cuántos son smelter
+          curl -s -H "$H" -H "$A" "$URL/api/data/v9.2/roleprivilegescollection?\$filter=roleid%20eq%20$AID&\$select=privilegeid" \
+            | jq -r '.value[].privilegeid' > /tmp/admin_privs.txt
+          SMELTER_PRIVS=$(curl -s -H "$H" -H "$A" "$URL/api/data/v9.2/privileges?\$select=privilegeid,name&\$filter=contains(name,'smlt')" )
+          echo "  privilegios smelter que el rol Admin SÍ tiene:"
+          echo "$SMELTER_PRIVS" | jq -r '.value[] | "\(.privilegeid) \(.name)"' | while read PID PN; do
+            grep -q "$PID" /tmp/admin_privs.txt && echo "     ✔ $PN"
+          done
+          echo "  (si no hay ✔ arriba, el rol Admin no tiene NINGÚN privilegio Smelter propio)"
+
+          echo "===================== 4. Roles del team 'CM · Admin y Carga · DEV' ====================="
           TID=870f4531-a38a-f111-8076-70a8a59c703e
+          curl -s -H "$H" -H "$A" "$URL/api/data/v9.2/teams($TID)/teamroles_association?\$select=name" \
+            | jq -r '.value[]? | "  rol del team: \(.name)"'
+          echo "  -- miembros --"
+          curl -s -H "$H" -H "$A" "$URL/api/data/v9.2/teams($TID)/teammembership_association?\$select=fullname,internalemailaddress" \
+            | jq -r '.value[]? | "  miembro: \(.fullname) <\(.internalemailaddress)>"'
+
+          echo "===================== 5. Templates y su owner (con nombre correcto) ====================="
+          PN=$(curl -s -H "$H" -H "$A" "$URL/api/data/v9.2/EntityDefinitions(LogicalName='sanic_tbl_smlt_importtemplate')?\$select=PrimaryNameAttribute" | jq -r '.PrimaryNameAttribute')
+          echo "  primary name attr = $PN"
           curl -s -H "$H" -H "$A" \
-            "$URL/api/data/v9.2/teams($TID)/teammembership_association?\$select=fullname,internalemailaddress,applicationid" \
-            | jq -r '.value[]? | "  \(.fullname) <\(.internalemailaddress)> app=\(.applicationid // "-")"'
+            "$URL/api/data/v9.2/sanic_tbl_smlt_importtemplates?\$select=$PN,_ownerid_value,_owningteam_value,_owninguser_value&\$top=10" \
+            | jq -r --arg pn "$PN" '.value[]? | "  name=\(.[$pn] // "?")  team=\(._owningteam_value // "-")  user=\(._owninguser_value // "-")"'
           echo "LISTO."
