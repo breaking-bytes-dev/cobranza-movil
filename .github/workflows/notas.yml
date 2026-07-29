@@ -1,0 +1,51 @@
+name: notas
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  n:
+    runs-on: ubuntu-latest
+    steps:
+      - name: campo notas + forms
+        env:
+          CID: ${{ secrets.PP_CLIENT_ID }}
+          SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT: ${{ secrets.PP_TENANT_ID }}
+          URL: ${{ secrets.DATAVERSE_URL }}
+        run: |
+          set +e
+          URL="${URL%/}"
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          API="$URL/api/data/v9.2"; H="Authorization: Bearer $TOKEN"; A="Accept: application/json"; J="Content-Type: application/json"; SOL="MSCRM.SolutionUniqueName: cm_core_cobranzamovil"
+          g(){ curl -s -H "$H" -H "$A" "$API/$1"; }
+          E='sanic_cm_tbl_asignacion'
+          echo "=== crear columna Notas (Memo) ==="
+          jq -n '{"@odata.type":"Microsoft.Dynamics.CRM.MemoAttributeMetadata",SchemaName:"sanic_cm_as_notas",RequiredLevel:{Value:"None"},MaxLength:2000,Format:"Text",DisplayName:{"@odata.type":"Microsoft.Dynamics.CRM.Label",LocalizedLabels:[{"@odata.type":"Microsoft.Dynamics.CRM.LocalizedLabel",Label:"Notas",LanguageCode:1033}]}}' > /tmp/c.json
+          code=$(curl -s -o /tmp/r.txt -w "%{http_code}" -X POST "$API/EntityDefinitions(LogicalName='$E')/Attributes" -H "$H" -H "$J" -H "$A" -H "$SOL" --data @/tmp/c.json)
+          echo "  crear notas HTTP $code"; [ "$code" -ge 300 ] && grep -o '"message":"[^"]*"' /tmp/r.txt | head -1
+          curl -s -o /dev/null -w "  Publish HTTP %{http_code}\n" -X POST "$API/PublishAllXml" -H "$H" -H "$J" -H "$A" -d '{}'
+
+          TEXT='{4273EDBD-AC1D-40d3-9FB2-095C621B552D}'; MEMO='{E0DECE4B-6FC8-4a8f-A065-082708572369}'; LOOKUP='{270BD3DB-D9AF-4782-9025-509E298DEC0A}'; PICK='{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}'; DATE='{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}'; DEC='{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}'
+          uid(){ echo "{$(uuidgen)}"; }
+          row(){ printf '<row><cell id="%s"><labels><label description="%s" languagecode="1033" /></labels><control id="%s" classid="%s" datafieldname="%s" disabled="%s" /></cell></row>' "$(uid)" "$3" "$1" "$2" "$1" "$4"; }
+          section(){ printf '<section name="%s" showlabel="true" showbar="false" id="%s" columns="11" labelwidth="150" celllabelalignment="Left" celllabelposition="Left"><labels><label description="%s" languagecode="1033" /></labels><rows>%s</rows></section>' "$1" "$(uid)" "$2" "$3"; }
+          buildform(){ printf '<form><tabs><tab name="t" verticallayout="true" id="%s" IsUserDefined="0" locklevel="0" showlabel="true" expanded="true"><labels><label description="%s" languagecode="1033" /></labels><columns><column width="100%%"><sections>%s</sections></column></columns></tab></tabs></form>' "$(uid)" "$1" "$2"; }
+          pf(){ jq -n --arg fx "$2" '{formxml:$fx}' > /tmp/f.json; echo "  form $1 HTTP $(curl -s -o /dev/null -w "%{http_code}" -X PATCH "$API/systemforms($1)" -H "$H" -H "$J" -H "$A" -H "$SOL" --data @/tmp/f.json)"; }
+
+          echo "=== Solicitud form (notas editable) ==="
+          FS=$(g "systemforms?\$filter=objecttypecode%20eq%20'$E'%20and%20name%20eq%20'CM%20%7C%20Solicitud%20de%20Especial'&\$select=formid" | jq -r '.value[0].formid')
+          S1="$(row sanic_cm_as_cuentaid "$LOOKUP" 'Cuenta (existente)' false)$(row sanic_cm_as_retironio "$DEC" 'Retiro NIO' false)$(row sanic_cm_as_retirousd "$DEC" 'Retiro USD' false)$(row sanic_cm_as_motivo "$MEMO" 'Motivo de la solicitud' false)$(row sanic_cm_as_notas "$MEMO" 'Notas (las lee el localizador)' false)"
+          S2="$(row sanic_cm_as_tipo "$PICK" 'Tipo' false)$(row sanic_cm_as_estadoaprobacion "$PICK" 'Estado de aprobación' true)"
+          S3="$(row createdby "$LOOKUP" 'Creado por' true)$(row createdon "$DATE" 'Creado el' true)"
+          S4="$(row sanic_cm_as_agenteid "$LOOKUP" 'Localizador asignado' true)$(row sanic_cm_as_resolutorid "$LOOKUP" 'Resuelto por' true)$(row sanic_cm_as_motivorechazo "$MEMO" 'Motivo de rechazo' true)"
+          pf "$FS" "$(buildform 'Solicitud de Especial' "$(section s1 'Solicitud (llená vos)' "$S1")$(section s2 'Clasificación' "$S2")$(section s3 'Info' "$S3")$(section s4 'Resolución (supervisor)' "$S4")")"
+
+          echo "=== Aprobación form (notas read-only) ==="
+          FA=$(g "systemforms?\$filter=objecttypecode%20eq%20'$E'%20and%20name%20eq%20'CM%20%7C%20Aprobaci%C3%B3n%20de%20Especial'&\$select=formid" | jq -r '.value[0].formid')
+          A1="$(row sanic_cm_as_cuentaid "$LOOKUP" 'Producto / Cuenta' true)$(row sanic_cm_as_retironio "$DEC" 'Retiro NIO' true)$(row sanic_cm_as_retirousd "$DEC" 'Retiro USD' true)$(row createdby "$LOOKUP" 'Solicitado por' true)$(row createdon "$DATE" 'Fecha de solicitud' true)$(row sanic_cm_as_motivo "$MEMO" 'Motivo de la solicitud' true)$(row sanic_cm_as_notas "$MEMO" 'Notas (para el localizador)' true)"
+          A2="$(row sanic_cm_as_agenteid "$LOOKUP" 'Asignar localizador' false)$(row sanic_cm_as_motivorechazo "$MEMO" 'Motivo de rechazo (si rechaza)' false)"
+          A3="$(row sanic_cm_as_estadoaprobacion "$PICK" 'Estado de aprobación' true)$(row sanic_cm_as_resolutorid "$LOOKUP" 'Resuelto por' true)"
+          pf "$FA" "$(buildform 'Aprobación de Especial' "$(section a1 'Solicitud a revisar' "$A1")$(section a2 'Decisión del supervisor' "$A2")$(section a3 'Estado' "$A3")")"
+          curl -s -o /dev/null -w "  Publish HTTP %{http_code}\n" -X POST "$API/PublishAllXml" -H "$H" -H "$J" -H "$A" -d '{}'
+          g "systemforms($FS)?\$select=formxml" | jq -r '.formxml' | grep -oE 'datafieldname="sanic_cm_as_notas" disabled="[^"]*"'
