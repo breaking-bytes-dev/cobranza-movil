@@ -1,0 +1,29 @@
+name: adx
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  r:
+    runs-on: ubuntu-latest
+    steps:
+      - name: chequeo quirurgico privilegios peligrosos
+        env:
+          CID: ${{ secrets.PP_CLIENT_ID }}
+          SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT: ${{ secrets.PP_TENANT_ID }}
+          URL: ${{ secrets.DATAVERSE_URL }}
+        run: |
+          set +e
+          URL="${URL%/}"
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          API="$URL/api/data/v9.2"; H="Authorization: Bearer $TOKEN"; A="Accept: application/json"
+          g(){ curl -s -H "$H" -H "$A" "$API/$1"; }
+          RID='b2884281-f573-f111-ab0e-000d3a3483e7'
+          g "RetrieveRolePrivilegesRole(RoleId=$RID)" | jq -r '.RolePrivileges[]? | .PrivilegeId' | sort -u > /tmp/rp.txt
+          echo "=== ¿El rol Admin tiene estos privilegios PELIGROSOS (de ambiente)? ==="
+          for p in prvActOnBehalfOfAnotherUser prvCreateEntity prvWriteEntity prvCreateAttribute prvWriteOrganization prvCreateUser prvWriteUser prvCreateRole prvWriteRole prvAssignRole prvCreateAppModule prvWriteAppModule prvDeleteAppModule prvCreateWebResource prvWriteWebResource prvCreateWorkflow prvWriteWorkflow prvCreatePluginAssembly prvBulkDelete prvWriteSystemForm prvCreateSystemForm prvReadAppModule prvManageUserSettings prvCreateBusinessUnit; do
+            pid=$(g "privileges?\$select=privilegeid&\$filter=name%20eq%20'$p'" | jq -r '.value[0].privilegeid // empty')
+            if [ -z "$pid" ]; then echo "  (no existe priv $p)"; continue; fi
+            if grep -q "$pid" /tmp/rp.txt; then echo "  ⚠️  TIENE  $p"; else echo "  ok NO tiene  $p"; fi
+          done
