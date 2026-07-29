@@ -1,0 +1,34 @@
+name: ag
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  a:
+    runs-on: ubuntu-latest
+    steps:
+      - name: form agente
+        env:
+          CID: ${{ secrets.PP_CLIENT_ID }}
+          SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT: ${{ secrets.PP_TENANT_ID }}
+          URL: ${{ secrets.DATAVERSE_URL }}
+        run: |
+          set +e
+          URL="${URL%/}"
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          API="$URL/api/data/v9.2"; H="Authorization: Bearer $TOKEN"; A="Accept: application/json"; J="Content-Type: application/json"; SOL="MSCRM.SolutionUniqueName: cm_core_cobranzamovil"; E='sanic_cm_tbl_agente'
+          g(){ curl -s -H "$H" -H "$A" "$API/$1"; }
+          FID=$(g "systemforms?\$filter=objecttypecode%20eq%20'$E'%20and%20type%20eq%202&\$select=formid" | jq -r '.value[0].formid')
+          echo "formid agente=$FID"
+          TEXT='{4273EDBD-AC1D-40d3-9FB2-095C621B552D}'; LOOKUP='{270BD3DB-D9AF-4782-9025-509E298DEC0A}'; BOOL='{67FAC785-CD58-4f9f-ABB3-4B7DDC6ED5ED}'
+          uid(){ echo "{$(uuidgen)}"; }
+          row(){ printf '<row><cell id="%s"><labels><label description="%s" languagecode="1033" /></labels><control id="%s" classid="%s" datafieldname="%s" disabled="false" /></cell></row>' "$(uid)" "$3" "$1" "$2" "$1"; }
+          section(){ printf '<section name="%s" showlabel="true" showbar="false" id="%s" columns="11" labelwidth="150" celllabelalignment="Left" celllabelposition="Left"><labels><label description="%s" languagecode="1033" /></labels><rows>%s</rows></section>' "$1" "$(uid)" "$2" "$3"; }
+          S="$(row sanic_cm_ag_nombre "$TEXT" 'Nombre del localizador')$(row sanic_cm_ag_emailusuario "$TEXT" 'Email de usuario')$(row sanic_cm_ag_usuarioid "$LOOKUP" 'Usuario (Dataverse)')$(row sanic_cm_ag_activo "$BOOL" 'Activo')"
+          FX="$(printf '<form><tabs><tab name="t" verticallayout="true" id="%s" IsUserDefined="0" locklevel="0" showlabel="true" expanded="true"><labels><label description="Agente" languagecode="1033" /></labels><columns><column width="100%%"><sections>%s</sections></column></columns></tab></tabs></form>' "$(uid)" "$(section a1 'Localizador' "$S")")"
+          jq -n --arg fx "$FX" '{formxml:$fx}' > /tmp/f.json
+          code=$(curl -s -o /tmp/r.txt -w "%{http_code}" -X PATCH "$API/systemforms($FID)" -H "$H" -H "$J" -H "$A" -H "$SOL" --data @/tmp/f.json)
+          echo "  PATCH HTTP $code"; [ "$code" -ge 300 ] && grep -o '"message":"[^"]*"' /tmp/r.txt | head -1
+          curl -s -o /dev/null -w "  Publish HTTP %{http_code}\n" -X POST "$API/PublishAllXml" -H "$H" -H "$J" -H "$A" -d '{}'
+          g "systemforms($FID)?\$select=formxml" | jq -r '.formxml' | grep -oE 'datafieldname="[^"]*"'
