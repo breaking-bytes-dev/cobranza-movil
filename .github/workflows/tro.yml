@@ -1,0 +1,28 @@
+name: tro
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  t:
+    runs-on: ubuntu-latest
+    steps:
+      - name: tipo read-only en Solicitud
+        env:
+          CID: ${{ secrets.PP_CLIENT_ID }}
+          SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT: ${{ secrets.PP_TENANT_ID }}
+          URL: ${{ secrets.DATAVERSE_URL }}
+        run: |
+          set +e
+          URL="${URL%/}"
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          API="$URL/api/data/v9.2"; H="Authorization: Bearer $TOKEN"; A="Accept: application/json"; J="Content-Type: application/json"; SOL="MSCRM.SolutionUniqueName: cm_core_cobranzamovil"
+          g(){ curl -s -H "$H" -H "$A" "$API/$1"; }
+          FID=$(g "systemforms?\$filter=objecttypecode%20eq%20'sanic_cm_tbl_asignacion'%20and%20name%20eq%20'CM%20%7C%20Solicitud%20de%20Especial'&\$select=formid" | jq -r '.value[0].formid')
+          FX=$(g "systemforms($FID)?\$select=formxml" | jq -r '.formxml')
+          NEW=$(echo "$FX" | sed 's#datafieldname="sanic_cm_as_tipo" disabled="false"#datafieldname="sanic_cm_as_tipo" disabled="true"#')
+          jq -n --arg fx "$NEW" '{formxml:$fx}' > /tmp/f.json
+          echo "  PATCH HTTP $(curl -s -o /dev/null -w "%{http_code}" -X PATCH "$API/systemforms($FID)" -H "$H" -H "$J" -H "$A" -H "$SOL" --data @/tmp/f.json)"
+          curl -s -o /dev/null -w "  Publish HTTP %{http_code}\n" -X POST "$API/PublishAllXml" -H "$H" -H "$J" -H "$A" -d '{}'
+          g "systemforms($FID)?\$select=formxml" | jq -r '.formxml' | grep -oE 'datafieldname="sanic_cm_as_tipo" disabled="[^"]*"'
