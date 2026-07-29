@@ -1,0 +1,107 @@
+name: diag-smelter-template-field
+
+# READ-ONLY. Diagnostica por qué el lookup "Import Template" sale bloqueado
+# al crear un Import Job desde nuestra MDA. NO modifica nada.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Diagnóstico
+        env:
+          CID: ${{ secrets.PP_CLIENT_ID }}
+          SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT: ${{ secrets.PP_TENANT_ID }}
+          URL: ${{ secrets.DATAVERSE_URL }}
+        run: |
+          set -e
+          URL="${URL%/}"
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" \
+            -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          H="Authorization: Bearer $TOKEN"; A="Accept: application/json"
+
+          echo "===================== 1. ENTIDADES SMELTER (import/smelter/smlt) ====================="
+          ALL=$(curl -s -H "$H" -H "$A" \
+            "$URL/api/data/v9.2/EntityDefinitions?\$select=LogicalName,LogicalCollectionName,DisplayName,IsCustomEntity")
+          echo "$ALL" | jq -r '.value[] | select(.LogicalName|test("import|smelter|smlt")) | "  \(.LogicalName)   coll=\(.LogicalCollectionName)"'
+
+          JOB=$(echo "$ALL" | jq -r '.value[] | select(.LogicalName|test("import")) | select(.LogicalName|test("job|run|execution")) | .LogicalName' | head -1)
+          TMPL=$(echo "$ALL" | jq -r '.value[] | select(.LogicalName|test("import")) | select(.LogicalName|test("template|config|definition")) | .LogicalName' | head -1)
+          echo "  -> JOB entity  = $JOB"
+          echo "  -> TMPL entity = $TMPL"
+
+          if [ -z "$JOB" ] || [ "$JOB" = "null" ]; then echo "!! No detecté la entidad Import Job automáticamente. Ver lista de arriba."; fi
+
+          echo "===================== 2. ATRIBUTOS LOOKUP del Import Job (¿cuál apunta al template?) ====================="
+          if [ -n "$JOB" ] && [ "$JOB" != "null" ]; then
+            curl -s -H "$H" -H "$A" \
+              "$URL/api/data/v9.2/EntityDefinitions(LogicalName='$JOB')/Attributes/Microsoft.Dynamics.CRM.LookupAttributeMetadata?\$select=LogicalName,SchemaName,IsSecured,IsValidForCreate,IsValidForUpdate,IsValidForForm,Targets" \
+              | jq -r '.value[] | "  \(.LogicalName)  | secured=\(.IsSecured) create=\(.IsValidForCreate) update=\(.IsValidForUpdate) form=\(.IsValidForForm) -> targets=\(.Targets)"'
+          fi
+
+          echo "===================== 3. ¿Ese lookup tiene FIELD SECURITY? (IsSecured) + perfiles ====================="
+          if [ -n "$JOB" ] && [ "$JOB" != "null" ]; then
+            SECURED=$(curl -s -H "$H" -H "$A" \
+              "$URL/api/data/v9.2/EntityDefinitions(LogicalName='$JOB')/Attributes/Microsoft.Dynamics.CRM.LookupAttributeMetadata?\$select=LogicalName,IsSecured,Targets" \
+              | jq -r --arg t "$TMPL" '.value[] | select(.IsSecured==true) | .LogicalName')
+            echo "  Campos SECURED en $JOB: ${SECURED:-(ninguno)}"
+          fi
+          echo "  -- Field Security Profiles existentes y sus miembros (teams/usuarios) --"
+          curl -s -H "$H" -H "$A" \
+            "$URL/api/data/v9.2/fieldsecurityprofiles?\$select=name,fieldsecurityprofileid" \
+            | jq -r '.value[] | "  FSP: \(.name)  (\(.fieldsecurityprofileid))"'
+
+          echo "===================== 4. PRIVILEGIOS del rol Admin sobre Import Job / Template ====================="
+          ROLEID=$(curl -s -H "$H" -H "$A" \
+            "$URL/api/data/v9.2/roles?\$select=roleid&\$filter=name%20eq%20'SR%20%7C%20CM%20%7C%20Admin'" | jq -r '.value[0].roleid')
+          echo "  Admin roleid=$ROLEID"
+          for E in "$JOB" "$TMPL"; do
+            [ -z "$E" ] || [ "$E" = "null" ] && continue
+            echo "  -- privilegios sobre '$E' --"
+            # objecttypecode del privilege = logicalname; buscamos privileges de esa entidad y su depth en el rol
+            PRIVS=$(curl -s -H "$H" -H "$A" \
+              "$URL/api/data/v9.2/privileges?\$select=privilegeid,name,accessright&\$filter=contains(name,'$E')")
+            echo "$PRIVS" | jq -r '.value[] | "     priv \(.name) (\(.privilegeid))"' | head -20
+          done
+          echo "  -- depth de cada privilegio en el rol Admin (roleprivilegescollection) --"
+          curl -s -H "$H" -H "$A" \
+            "$URL/api/data/v9.2/roleprivilegescollection?\$filter=roleid%20eq%20$ROLEID&\$select=privilegeid,privilegedepthmask" \
+            | jq -r '.value | length as $n | "  (el rol tiene \($n) privilegios; se cruzan con los ids de arriba)"'
+          # dump crudo para cruzar
+          curl -s -H "$H" -H "$A" \
+            "$URL/api/data/v9.2/roleprivilegescollection?\$filter=roleid%20eq%20$ROLEID&\$select=privilegeid,privilegedepthmask" \
+            | jq -r '.value[] | "     \(.privilegeid) depth=\(.privilegedepthmask)"' > /tmp/roleprivs.txt
+          echo "  (guardado /tmp/roleprivs.txt con $(wc -l < /tmp/roleprivs.txt) filas)"
+
+          echo "===================== 5. TEMPLATE 'Cobranza movil': owner y team ====================="
+          if [ -n "$TMPL" ] && [ "$TMPL" != "null" ]; then
+            COLL=$(echo "$ALL" | jq -r --arg t "$TMPL" '.value[] | select(.LogicalName==$t) | .LogicalCollectionName')
+            echo "  colección: $COLL"
+            curl -s -H "$H" -H "$A" \
+              "$URL/api/data/v9.2/$COLL?\$select=*&\$top=5" \
+              | jq -r '.value[] | "  template: owner=\(._ownerid_value // "?")  ownertype=\(._owningteam_value // "usuario/otro")"' 2>/dev/null \
+              || echo "  (no pude leer con select=*; se listan campos abajo)"
+          fi
+
+          echo "===================== 6. TEAMS y su membership ====================="
+          curl -s -H "$H" -H "$A" \
+            "$URL/api/data/v9.2/teams?\$select=name,teamid,teamtype&\$filter=contains(name,'CM')%20or%20contains(name,'Carga')" \
+            | jq -r '.value[] | "  team: \(.name)  type=\(.teamtype)  (\(.teamid))"'
+          echo "  -- miembros del team 'Admin y Carga' (si existe) --"
+          TID=$(curl -s -H "$H" -H "$A" \
+            "$URL/api/data/v9.2/teams?\$select=teamid&\$filter=contains(name,'Admin%20y%20Carga')" | jq -r '.value[0].teamid')
+          echo "  teamid Admin y Carga = $TID"
+          if [ -n "$TID" ] && [ "$TID" != "null" ]; then
+            curl -s -H "$H" -H "$A" \
+              "$URL/api/data/v9.2/teams($TID)/teammembership_association?\$select=fullname,internalemailaddress" \
+              | jq -r '.value[]? | "     miembro: \(.fullname) <\(.internalemailaddress)>"'
+            N=$(curl -s -H "$H" -H "$A" "$URL/api/data/v9.2/teams($TID)/teammembership_association?\$select=systemuserid" | jq -r '.value | length')
+            echo "  -> total miembros: $N"
+          fi
+          echo "LISTO."
