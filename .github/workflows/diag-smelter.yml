@@ -34,8 +34,8 @@ jobs:
           echo "===================== TEMPLATE 'Cobranza movil' ====================="
           TPL=$(curl -s -H "$H" -H "$A" \
             "$URL/api/data/v9.2/sanic_tbl_smlt_importtemplates?\$filter=sanic_smlt_it_name%20eq%20'Cobranza%20movil'")
-          echo "$TPL" | jq -r '.value[] | "  id=\(.sanic_smlt_it_importtemplateid)\n  name=\(.sanic_smlt_it_name)\n  status=\(.sanic_smlt_it_status // "null")\n  chunksize=\(.sanic_smlt_it_chunksize // "null")\n  delimiter=\(.sanic_smlt_it_delimiter // "null")\n  header=\(.sanic_smlt_it_hasheaderrow // "null")\n  owner=\(._ownerid_value // "null")"'
-          TPLID=$(echo "$TPL" | jq -r '.value[0].sanic_smlt_it_importtemplateid')
+          echo "$TPL" | jq -r '.value[] | "  id=\(.sanic_tbl_smlt_importtemplateid)\n  name=\(.sanic_smlt_it_name)\n  status=\(.sanic_smlt_it_status // "null")\n  chunksize=\(.sanic_smlt_it_chunksize // "null")\n  delimiter=\(.sanic_smlt_it_delimiter // "null")\n  header=\(.sanic_smlt_it_hasheaderrow // "null")\n  owner=\(._ownerid_value // "null")"'
+          TPLID=$(echo "$TPL" | jq -r '.value[0].sanic_tbl_smlt_importtemplateid')
           if [ -z "$TPLID" ] || [ "$TPLID" = "null" ]; then echo "ERROR: template no encontrado"; exit 1; fi
 
           echo "===================== TABLE MAPPINGS (orden DAG · flags create/update · dedup) ====================="
