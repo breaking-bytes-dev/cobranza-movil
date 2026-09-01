@@ -1,0 +1,53 @@
+name: diag-smelter
+
+# Diagnóstico READ-ONLY: versión de Smelter instalada en Dev + flags del template 'Cobranza movil'.
+# No modifica nada. Contexto: fix del Import Job Log llegó en Smelter 1.2.1.0; 1.3.0.0 hace
+# efectivos CreateIfNotExists/UpdateIfExists en los table mappings (riesgo de Skipped en Diarias).
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Token + consultas
+        env:
+          CID: ${{ secrets.PP_CLIENT_ID }}
+          SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT: ${{ secrets.PP_TENANT_ID }}
+          URL: ${{ secrets.DATAVERSE_URL }}
+        run: |
+          set -e
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" \
+            -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          H="Authorization: Bearer $TOKEN"; A="Accept: application/json"
+
+          echo "===================== SOLUCIONES INSTALADAS (smelter + cobranza) ====================="
+          curl -s -H "$H" -H "$A" \
+            "$URL/api/data/v9.2/solutions?\$filter=uniquename%20eq%20'smlt_core_smelter'%20or%20uniquename%20eq%20'cm_core_cobranzamovil'&\$select=uniquename,friendlyname,version,ismanaged,installedon,modifiedon" \
+            | jq -r '.value[] | "  \(.uniquename)  v\(.version)  managed=\(.ismanaged)  installedon=\(.installedon)  modifiedon=\(.modifiedon)"'
+
+          echo "===================== TEMPLATE 'Cobranza movil' ====================="
+          TPL=$(curl -s -H "$H" -H "$A" \
+            "$URL/api/data/v9.2/sanic_tbl_smlt_importtemplates?\$filter=sanic_smlt_it_name%20eq%20'Cobranza%20movil'")
+          echo "$TPL" | jq -r '.value[] | "  id=\(.sanic_smlt_it_importtemplateid)\n  name=\(.sanic_smlt_it_name)\n  status=\(.sanic_smlt_it_status // "null")\n  chunksize=\(.sanic_smlt_it_chunksize // "null")\n  delimiter=\(.sanic_smlt_it_delimiter // "null")\n  header=\(.sanic_smlt_it_hasheaderrow // "null")\n  owner=\(._ownerid_value // "null")"'
+          TPLID=$(echo "$TPL" | jq -r '.value[0].sanic_smlt_it_importtemplateid')
+          if [ -z "$TPLID" ] || [ "$TPLID" = "null" ]; then echo "ERROR: template no encontrado"; exit 1; fi
+
+          echo "===================== TABLE MAPPINGS (orden DAG · flags create/update · dedup) ====================="
+          curl -s -H "$H" -H "$A" \
+            "$URL/api/data/v9.2/sanic_tbl_smlt_tablemappings?\$filter=_sanic_smlt_tm_importtemplateid_value%20eq%20$TPLID&\$orderby=sanic_smlt_tm_processingorder" \
+            | jq -r '.value[] | "  [\(.sanic_smlt_tm_processingorder)] \(.sanic_smlt_tm_name)\n       target=\(.sanic_smlt_tm_targettable)  createIfNotExists=\(.sanic_smlt_tm_createifnotexists // "null")  updateIfExists=\(.sanic_smlt_tm_updateifexists // "null")\n       dedup=\(.sanic_smlt_tm_dedupcolumns // "(vacio)")"'
+
+          echo "===================== RESUMEN DE RIESGO 1.3 ====================="
+          curl -s -H "$H" -H "$A" \
+            "$URL/api/data/v9.2/sanic_tbl_smlt_tablemappings?\$filter=_sanic_smlt_tm_importtemplateid_value%20eq%20$TPLID" \
+            | jq -r '.value
+              | "  mappings totales: \(length)"
+              , "  con updateIfExists=false (SKIPearian updates tras 1.3): \([.[] | select(.sanic_smlt_tm_updateifexists == false)] | length)"
+              , "  con createIfNotExists=false (SKIPearian creates tras 1.3): \([.[] | select(.sanic_smlt_tm_createifnotexists == false)] | length)"
+              , "  con dedup vacio (siempre crean, flags ignorados): \([.[] | select((.sanic_smlt_tm_dedupcolumns // "") == "")] | length)"'
