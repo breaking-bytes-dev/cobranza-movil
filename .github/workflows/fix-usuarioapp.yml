@@ -1,0 +1,49 @@
+name: fix-usuarioapp
+
+# ONE-SHOT: (1) lee el option set del multi-select [UA] Rol (nombre real + valores),
+# (2) corrige el typo del display name del lookup: "[UA[ Usuario" -> "[UA] Usuario", y publica.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rol optionset + fix display
+        env:
+          CID: ${{ secrets.PP_CLIENT_ID }}
+          SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT: ${{ secrets.PP_TENANT_ID }}
+          URL: ${{ secrets.DATAVERSE_URL }}
+        run: |
+          set -e
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" \
+            -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          H="Authorization: Bearer $TOKEN"; A="Accept: application/json"; C="Content-Type: application/json"
+
+          echo "===================== [UA] Rol — option set ====================="
+          curl -s -H "$H" -H "$A" \
+            "$URL/api/data/v9.2/EntityDefinitions(LogicalName='sanic_cm_tbl_usuarioapp')/Attributes(LogicalName='sanic_cm_ua_rol')/Microsoft.Dynamics.CRM.MultiSelectPicklistAttributeMetadata?\$expand=OptionSet,GlobalOptionSet" \
+            | jq -r '{local: .OptionSet.Name, localGlobal: .OptionSet.IsGlobal, global: .GlobalOptionSet.Name} , (.OptionSet.Options[]? | "  \(.Value) = \"\(.Label.UserLocalizedLabel.Label)\"") , (.GlobalOptionSet.Options[]? | "  \(.Value) = \"\(.Label.UserLocalizedLabel.Label)\"")'
+
+          echo "===================== FIX display del lookup ====================="
+          CODE=$(curl -s -o /tmp/fix.out -w "%{http_code}" -X PUT \
+            -H "$H" -H "$C" -H "MSCRM.MergeLabels: true" \
+            "$URL/api/data/v9.2/EntityDefinitions(LogicalName='sanic_cm_tbl_usuarioapp')/Attributes(LogicalName='sanic_cm_ua_usuarioid')/DisplayName" \
+            -d '{"Value": {"LocalizedLabels": [{"Label": "[UA] Usuario", "LanguageCode": 1033}]}}')
+          echo "PUT DisplayName HTTP $CODE"; [ "$CODE" = "204" ] || cat /tmp/fix.out
+
+          echo "===================== PUBLICAR ====================="
+          CODE2=$(curl -s -o /tmp/pub.out -w "%{http_code}" -X POST -H "$H" -H "$C" \
+            "$URL/api/data/v9.2/PublishXml" \
+            -d '{"ParameterXml": "<importexportxml><entities><entity>sanic_cm_tbl_usuarioapp</entity></entities></importexportxml>"}')
+          echo "PublishXml HTTP $CODE2"; [ "$CODE2" = "204" ] || cat /tmp/pub.out
+
+          echo "===================== VERIFICAR ====================="
+          curl -s -H "$H" -H "$A" \
+            "$URL/api/data/v9.2/EntityDefinitions(LogicalName='sanic_cm_tbl_usuarioapp')/Attributes(LogicalName='sanic_cm_ua_usuarioid')?\$select=DisplayName" \
+            | jq -r '"  display ahora: \"\(.DisplayName.UserLocalizedLabel.Label)\""'
