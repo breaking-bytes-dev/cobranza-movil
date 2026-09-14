@@ -1,0 +1,109 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+ComponentDefinitions:
+  cmpHeaderBack:
+    DefinitionType: CanvasComponent
+    AccessAppScope: true
+    CustomProperties:
+      Subtitulo:
+        PropertyKind: Input
+        DisplayName: Subtitulo
+        Description: A custom property
+        DataType: Text
+        Default: ="Text"
+      Titulo:
+        PropertyKind: Input
+        DisplayName: Titulo
+        Description: A custom property
+        DataType: Text
+        Default: ="Text"
+    Children:
+      - Container6:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            Fill: =gblC.teal
+            Height: =Parent.Height
+            LayoutAlignItems: =LayoutAlignItems.Center
+            LayoutDirection: =LayoutDirection.Horizontal
+            LayoutGap: =12
+            LayoutWrap: =true
+            PaddingBottom: =16
+            PaddingLeft: =16
+            PaddingRight: =18
+            PaddingTop: =14
+            Width: =Parent.Width
+          Children:
+            - Container7:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  AlignInContainer: =AlignInContainer.Center
+                  DropShadow: =DropShadow.None
+                  FillPortions: =0
+                  Height: =40
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Width: =60
+                Children:
+                  - Icon1:
+                      Control: Classic/Icon@2.5.0
+                      Properties:
+                        Color: =gblC.white
+                        Fill: =RGBA(255,255,255,0.16)
+                        Height: =Parent.Height
+                        Icon: =Icon.ArrowLeft
+                        OnSelect: =Back()
+                        Width: =Parent.Width
+            - Container8:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Fill: =RGBA(255,255,255,0)
+                  Height: =40
+                  LayoutAlignItems: =LayoutAlignItems.Center
+                  LayoutDirection: =LayoutDirection.Vertical
+                  LayoutJustifyContent: =LayoutJustifyContent.Center
+                  LayoutMaxWidth: =Parent.Width - 70 - 12 - 150
+                  LayoutMinHeight: =lblDac_1.Height + lblDnm_1.Height
+                  LayoutMinWidth: =16
+                  Width: =60
+                Children:
+                  - lblDnm_1:
+                      Control: Label@2.5.1
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Start
+                        AutoHeight: =true
+                        Color: =gblC.white
+                        FontWeight: =FontWeight.Bold
+                        Height: =0
+                        LayoutMinHeight: =0
+                        Size: =gblT.flg
+                        Text: =cmpHeaderBack.Titulo
+                        Width: =Parent.Width
+                        X: =80
+                        Y: =20
+                  - lblDac_1:
+                      Control: Label@2.5.1
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Start
+                        AutoHeight: =true
+                        Color: =gblC.tealSub
+                        Height: =0
+                        LayoutMinHeight: =0
+                        Size: =gblT.fsm
+                        Text: =cmpHeaderBack.Subtitulo
+                        Width: =Parent.Width
+                        X: =lblDnm_1.X
+                        Y: =lblDnm_1.Height + lblDnm_1.Y

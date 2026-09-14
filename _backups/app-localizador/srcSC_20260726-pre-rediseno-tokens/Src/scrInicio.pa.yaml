@@ -1,0 +1,807 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+Screens:
+  scrInicio:
+    Properties:
+      Fill: =gblC.screen
+      OnVisible: |+
+        =
+         ClearCollect(colIntHoy, Filter('CM | TBL | Interaccions', 'Created On' >= Today() && 'Created On' <= Now()));
+        Set(colPagHoy, Filter('CM | TBL | Pagos', 'Created On' >= Today() && 'Created On' <= Now()));
+           Set(colCobN, Sum(Filter(colPagHoy, '[PG] Moneda' = 'Choice | CM | Monedas en Pago'.NIO ), '[PG] Monto'));
+           Set(colCobU, Sum(Filter(colPagHoy, '[PG] Moneda'= 'Choice | CM | Monedas en Pago'.USD), '[PG] Monto'));
+    Children:
+      - cmpNav_1:
+          Control: CanvasComponent
+          ComponentName: cmpNav
+          Properties:
+            Height: =64
+            Width: =Parent.Width
+            Y: =Parent.Height - Self.Height
+      - conMaster_1:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            DropShadow: =DropShadow.None
+            Height: =Parent.Height - cmpNav_1.Height
+            LayoutAlignItems: =LayoutAlignItems.Center
+            LayoutDirection: =LayoutDirection.Vertical
+            LayoutGap: =20
+            PaddingBottom: =8
+            PaddingLeft: =8
+            PaddingRight: =8
+            PaddingTop: =8
+            Width: =Parent.Width
+          Children:
+            - conHeader_1:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  Fill: =gblC.teal
+                  FillPortions: =0
+                  Height: =If(gblScale = 1, 120,gblScale = 1.2,130,gblScale = 1.45,140,150)
+                  LayoutAlignItems: =LayoutAlignItems.Center
+                  LayoutDirection: =LayoutDirection.Vertical
+                  LayoutGap: =12
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  PaddingBottom: =9
+                  PaddingLeft: =10
+                  PaddingRight: =10
+                  PaddingTop: =6
+                Children:
+                  - conTitulo_1:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        Height: =60
+                        LayoutDirection: =LayoutDirection.Horizontal
+                        LayoutJustifyContent: =LayoutJustifyContent.SpaceBetween
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingBottom: =8
+                        PaddingLeft: =8
+                        PaddingRight: =8
+                        PaddingTop: =8
+                      Children:
+                        - conTitIzq_1:
+                            Control: GroupContainer@1.5.0
+                            Variant: AutoLayout
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Start
+                              DropShadow: =DropShadow.None
+                              FillPortions: =0
+                              Height: =lblTitulo_1.Height + lblSub_1.Height
+                              LayoutDirection: =LayoutDirection.Vertical
+                              LayoutJustifyContent: =LayoutJustifyContent.SpaceBetween
+                              LayoutMinHeight: =0
+                              LayoutMinWidth: =400
+                              PaddingBottom: =8
+                              PaddingLeft: =8
+                              PaddingRight: =8
+                              PaddingTop: =8
+                              Width: =(App.Width - 48 - Container3.Width)
+                            Children:
+                              - lblTitulo_1:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    AutoHeight: =true
+                                    Color: =gblC.white
+                                    Font: =gblFont
+                                    FontWeight: =FontWeight.Bold
+                                    Height: =10
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    PaddingBottom: =0
+                                    PaddingTop: =0
+                                    Size: =gblT.fxl
+                                    Text: ="Hola, "&User().FullName
+                              - lblSub_1:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    AutoHeight: =true
+                                    Color: =gblC.tealSub
+                                    Height: =10
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    Size: =gblT.fsm
+                                    Text: =Text(Today(),"mmmm, dddd dd")
+                        - Container3:
+                            Control: GroupContainer@1.5.0
+                            Variant: AutoLayout
+                            Properties:
+                              DropShadow: =DropShadow.None
+                              FillPortions: =0
+                              LayoutAlignItems: =LayoutAlignItems.Center
+                              LayoutDirection: =LayoutDirection.Horizontal
+                              LayoutGap: =10
+                              LayoutJustifyContent: =LayoutJustifyContent.End
+                              LayoutMinHeight: =60
+                              LayoutMinWidth: =180
+                              LayoutWrap: =true
+                              PaddingBottom: =8
+                              PaddingTop: =8
+                              Width: =Max((App.Width - 48)/4 * 1,180)
+                            Children:
+                              - cmpSyncPill_1:
+                                  Control: CanvasComponent
+                                  ComponentName: cmpSyncPill
+                                  Properties:
+                                    Height: =30
+                                    LayoutMinWidth: =180
+                                    Width: =If(gblScale = 1, 120,gblScale = 1.2,140,gblScale = 1.45,160,180)
+                              - Button1:
+                                  Control: Classic/Button@2.2.0
+                                  Properties:
+                                    BorderStyle: =BorderStyle.None
+                                    Color: =gblC.white
+                                    Fill: =RGBA(255,255,255,0.18)
+                                    FontWeight: =FontWeight.Bold
+                                    Height: =30
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    OnSelect: =Set(varSheetEscala, true)
+                                    PaddingBottom: =7
+                                    PaddingLeft: =11
+                                    PaddingRight: =11
+                                    PaddingTop: =7
+                                    RadiusBottomLeft: =9
+                                    RadiusBottomRight: =9
+                                    RadiusTopLeft: =9
+                                    RadiusTopRight: =9
+                                    Size: =gblT.fmd
+                                    Text: ="Aa"
+                                    Width: =If(gblScale = 1, 50,gblScale = 1.2,60,gblScale = 1.45,70,80)
+            - Container4:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  AlignInContainer: =AlignInContainer.Center
+                  Fill: =gblC.teal
+                  FillPortions: =0
+                  Height: =If(gblScale = 1, 160,gblScale = 1.2,185,gblScale = 1.45,205,235)
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  RadiusBottomLeft: =16
+                  RadiusBottomRight: =16
+                  RadiusTopLeft: =16
+                  RadiusTopRight: =16
+                  Width: =Parent.Width - 40
+                Children:
+                  - Container5:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        Height: =Parent.Height
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Vertical
+                        PaddingBottom: =8
+                        PaddingLeft: =8
+                        PaddingRight: =8
+                        PaddingTop: =8
+                        Width: =Parent.Width
+                      Children:
+                        - lblSub_3:
+                            Control: Label@2.5.1
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Stretch
+                              AutoHeight: =true
+                              Color: =gblC.tealSub
+                              Height: =10
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              Size: =gblT.fsm
+                              Text: ="Cobrado hoy"
+                        - lblCobradoNIO:
+                            Control: Label@2.5.1
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Stretch
+                              AutoHeight: =true
+                              Color: =gblC.white
+                              Font: =gblFont
+                              FontWeight: =FontWeight.Bold
+                              Height: =10
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =0
+                              PaddingTop: =0
+                              Size: =gblT.fbig
+                              Text: ="C$   "&Text(colCobN,"#,###.00")
+                        - lblCobradoUSD:
+                            Control: Label@2.5.1
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Stretch
+                              AutoHeight: =true
+                              Color: =gblC.white
+                              Font: =gblFont
+                              FontWeight: =FontWeight.Bold
+                              Height: =10
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =0
+                              PaddingTop: =0
+                              Size: =gblT.fbig
+                              Text: ="US$ "&Text(colCobU,"#,###.00")
+                        - lblSub_4:
+                            Control: Label@2.5.1
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Stretch
+                              AutoHeight: =true
+                              Color: =gblC.tealSub
+                              Height: =10
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              Size: =gblT.fsm
+                              Text: =CountRows(colPagHoy) & " pago(s) · " & CountRows(colIntHoy) & " interacción(es) · Ver detalle ›"
+                  - Button3:
+                      Control: ModernButton@1.0.0
+                      Properties:
+                        Appearance: =ButtonAppearance.Transparent
+                        Height: =Parent.Height
+                        OnSelect: =Navigate(scrPagos)
+                        RadiusBottomLeft: =16
+                        RadiusBottomRight: =16
+                        RadiusTopLeft: =16
+                        RadiusTopRight: =16
+                        Text: =
+                        Width: =Parent.Width
+            - conStats:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  FillPortions: =0
+                  Height: =75
+                  LayoutAlignItems: =LayoutAlignItems.Center
+                  LayoutDirection: =LayoutDirection.Horizontal
+                  LayoutGap: =10
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  LayoutWrap: =true
+                  PaddingBottom: =8
+                  PaddingLeft: =8
+                  PaddingRight: =8
+                  PaddingTop: =8
+                Children:
+                  - statcInteracciones:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Start
+                        BorderColor: =gblC.cardBorder
+                        BorderThickness: =1
+                        Fill: =gblC.white
+                        Height: =If(gblScale = 1, 60,gblScale = 1.2,65,gblScale = 1.45,70,75)
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutJustifyContent: =LayoutJustifyContent.Center
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingBottom: =12
+                        PaddingLeft: =12
+                        PaddingRight: =12
+                        PaddingTop: =12
+                        RadiusBottomLeft: =12
+                        RadiusBottomRight: =12
+                        RadiusTopLeft: =12
+                        RadiusTopRight: =12
+                      Children:
+                        - lblSv:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =Align.Center
+                              AlignInContainer: =AlignInContainer.Stretch
+                              AutoHeight: =true
+                              Color: =gblC.ink
+                              FontWeight: =FontWeight.Bold
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =0
+                              Size: =gblT.flg
+                              Text: =CountRows(colIntHoy)
+                        - lblSl:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =Align.Center
+                              AlignInContainer: =AlignInContainer.Stretch
+                              AutoHeight: =true
+                              Color: =gblC.muted2
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingTop: =0
+                              Size: =gblT.fxs
+                              Text: ="Interacciones"
+                  - statcInteracciones_1:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Start
+                        BorderColor: =gblC.cardBorder
+                        BorderThickness: =1
+                        Fill: =gblC.white
+                        Height: =If(gblScale = 1, 60,gblScale = 1.2,65,gblScale = 1.45,70,75)
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutJustifyContent: =LayoutJustifyContent.Center
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingBottom: =12
+                        PaddingLeft: =12
+                        PaddingRight: =12
+                        PaddingTop: =12
+                        RadiusBottomLeft: =12
+                        RadiusBottomRight: =12
+                        RadiusTopLeft: =12
+                        RadiusTopRight: =12
+                      Children:
+                        - lblSv_1:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =Align.Center
+                              AlignInContainer: =AlignInContainer.Stretch
+                              AutoHeight: =true
+                              Color: =gblC.ink
+                              FontWeight: =FontWeight.Bold
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =0
+                              Size: =gblT.flg
+                              Text: =CountRows(Distinct(colIntHoy, '[IN] Numerocuenta'))
+                        - lblSl_1:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =Align.Center
+                              AlignInContainer: =AlignInContainer.Stretch
+                              AutoHeight: =true
+                              Color: =gblC.muted2
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingTop: =0
+                              Size: =gblT.fxs
+                              Text: ="Cuentas"
+                  - statcInteracciones_2:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Start
+                        BorderColor: =gblC.cardBorder
+                        BorderThickness: =1
+                        Fill: =gblC.white
+                        Height: =If(gblScale = 1, 60,gblScale = 1.2,65,gblScale = 1.45,70,75)
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutJustifyContent: =LayoutJustifyContent.Center
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingBottom: =12
+                        PaddingLeft: =12
+                        PaddingRight: =12
+                        PaddingTop: =12
+                        RadiusBottomLeft: =12
+                        RadiusBottomRight: =12
+                        RadiusTopLeft: =12
+                        RadiusTopRight: =12
+                      Children:
+                        - lblSv_2:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =Align.Center
+                              AlignInContainer: =AlignInContainer.Stretch
+                              AutoHeight: =true
+                              Color: =gblC.ink
+                              FontWeight: =FontWeight.Bold
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =0
+                              Size: =gblT.flg
+                              Text: =CountRows(Distinct(AddColumns(colIntHoy, cliJoin, LookUp(colCuentas, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'Nombre Cliente'), cliJoin))
+                        - lblSl_2:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =Align.Center
+                              AlignInContainer: =AlignInContainer.Stretch
+                              AutoHeight: =true
+                              Color: =gblC.muted2
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingTop: =0
+                              Size: =gblT.fxs
+                              Text: ="Clientes"
+            - conResult_1:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  FillPortions: =0
+                  Height: =60
+                  LayoutAlignItems: =LayoutAlignItems.Center
+                  LayoutDirection: =LayoutDirection.Horizontal
+                  LayoutJustifyContent: =LayoutJustifyContent.SpaceBetween
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  LayoutWrap: =true
+                  PaddingBottom: =8
+                  PaddingLeft: =8
+                  PaddingRight: =8
+                  PaddingTop: =8
+                Children:
+                  - lblResL:
+                      Control: Label@2.5.1
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Stretch
+                        Color: =gblC.muted
+                        FillPortions: =1
+                        FontWeight: =FontWeight.Semibold
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Size: =gblT.fsm
+                        Text: ="Interacciones de hoy"
+                  - Container9:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Center
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.borderSoft
+                        Height: =If(gblScale = 1, 34,gblScale = 1.2,40,gblScale = 1.45,40,44)
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Horizontal
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingBottom: =2
+                        PaddingLeft: =2
+                        PaddingRight: =2
+                        PaddingTop: =2
+                        RadiusBottomLeft: =10
+                        RadiusBottomRight: =10
+                        RadiusTopLeft: =10
+                        RadiusTopRight: =10
+                      Children:
+                        - btnModoCli:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Stretch
+                              BorderStyle: =BorderStyle.None
+                              Color: =If(varInicioModo="cliente", gblC.teal, gblC.ink3)
+                              Fill: =If(varInicioModo="cliente", gblC.white, Color.Transparent)
+                              FillPortions: =1
+                              FontWeight: =If(varInicioModo="cliente", FontWeight.Bold, FontWeight.Normal)
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              OnSelect: =Set(varInicioModo, "cliente")
+                              RadiusBottomRight: =0
+                              RadiusTopRight: =0
+                              Size: =gblT.fxs
+                              Text: |-
+                                =" 👤 Cliente"
+                        - btnModoCta:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Stretch
+                              BorderStyle: =BorderStyle.None
+                              Color: =If(varInicioModo="cuenta", gblC.teal, gblC.ink3)
+                              Fill: =If(varInicioModo="cuenta", gblC.white, Color.Transparent)
+                              FillPortions: =1
+                              FontWeight: =If(varInicioModo="cuenta", FontWeight.Bold, FontWeight.Normal)
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              OnSelect: =Set(varInicioModo, "cuenta")
+                              RadiusBottomLeft: =0
+                              RadiusTopLeft: =0
+                              Size: =gblT.fxs
+                              Text: =" ▤ Cuenta"
+            - galDesglose_cliente:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  AlignInContainer: =AlignInContainer.Start
+                  Items: |-
+                    =IfError(GroupBy(
+                            AddColumns(
+                                colIntHoy,
+                                cliNom,
+                                LookUp(colCuentas, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'Nombre Cliente',
+                                cid,
+                                LookUp(colCuentas, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'CIF Cliente'
+                            ),
+                            cliNom,
+                            cid,
+                            Items
+                        ),Blank())
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  TemplateSize: =If(gblScale = 1, 80,gblScale = 1.2,95,gblScale = 1.45,110,120)
+                  Visible: =varInicioModo = "cliente"
+                  Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                Children:
+                  - conBrow:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        BorderColor: =gblC.cardBorder
+                        BorderThickness: =1
+                        Fill: =gblC.white
+                        Height: =Parent.TemplateHeight
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Horizontal
+                        LayoutGap: =10
+                        LayoutJustifyContent: =LayoutJustifyContent.SpaceBetween
+                        PaddingBottom: =8
+                        PaddingLeft: =8
+                        PaddingRight: =8
+                        PaddingTop: =8
+                        RadiusBottomLeft: =12
+                        RadiusBottomRight: =12
+                        RadiusTopLeft: =12
+                        RadiusTopRight: =12
+                        Width: =Parent.TemplateWidth
+                      Children:
+                        - conBrowIzq:
+                            Control: GroupContainer@1.5.0
+                            Variant: AutoLayout
+                            Properties:
+                              DropShadow: =DropShadow.None
+                              LayoutAlignItems: =LayoutAlignItems.Center
+                              LayoutDirection: =LayoutDirection.Vertical
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =8
+                              PaddingLeft: =8
+                              PaddingRight: =8
+                              PaddingTop: =8
+                            Children:
+                              - lblBN:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    AutoHeight: =true
+                                    FontWeight: =FontWeight.Semibold
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    Size: =gblT.fbase
+                                    Text: =ThisItem.cliNom
+                              - lblBS:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    AutoHeight: =true
+                                    Color: =gblC.muted
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    Size: =gblT.fxs
+                                    Text: =""
+                        - conBrowDer:
+                            Control: GroupContainer@1.5.0
+                            Variant: AutoLayout
+                            Properties:
+                              DropShadow: =DropShadow.None
+                              FillPortions: =0
+                              LayoutAlignItems: =LayoutAlignItems.Center
+                              LayoutDirection: =LayoutDirection.Horizontal
+                              LayoutGap: =6
+                              LayoutJustifyContent: =LayoutJustifyContent.Center
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =8
+                              PaddingLeft: =8
+                              PaddingRight: =8
+                              PaddingTop: =8
+                              Width: =220
+                            Children:
+                              - Container11_1:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: ManualLayout
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Center
+                                    BorderStyle: =BorderStyle.None
+                                    DropShadow: =DropShadow.None
+                                    FillPortions: =0
+                                    Height: =50
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    RadiusBottomLeft: =12
+                                    RadiusBottomRight: =12
+                                    RadiusTopLeft: =12
+                                    RadiusTopRight: =12
+                                    Width: =Parent.Width - lblChev.Width - Parent.PaddingLeft - Parent.PaddingRight
+                                  Children:
+                                    - lblBC:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          Align: =Align.Center
+                                          Color: =gblC.teal
+                                          Fill: =gblC.accentBg
+                                          FontWeight: =FontWeight.Bold
+                                          Height: =Parent.Height
+                                          PaddingLeft: =11
+                                          PaddingRight: =11
+                                          Size: =gblT.fsm
+                                          Text: =CountRows(ThisItem.Items) & " interac."
+                                          Width: =Parent.Width
+                              - lblChev:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    Align: =Align.Center
+                                    Color: =gblC.phoneBorder
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    Size: =gblT.fmd
+                                    Text: ="›"
+                                    Width: =30
+                  - Button4_1:
+                      Control: ModernButton@1.0.0
+                      Properties:
+                        Appearance: =ButtonAppearance.Transparent
+                        Height: =Parent.TemplateHeight
+                        OnSelect: =Set(varCliente, ThisItem.cid); Set(varCliTab,"inter"); Navigate(scrCliente, ScreenTransition.Cover)
+                        Text: =
+                        Width: =Parent.TemplateWidth
+            - galDesglose_cuenta:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  AlignInContainer: =AlignInContainer.Start
+                  Items: |-
+                    =IfError(AddColumns(GroupBy(
+                            AddColumns(
+                                colIntHoy,
+                                prod,
+                                LookUp(colCuentas, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'Tipo Producto',
+                                cta,
+                                '[IN] Numerocuenta',
+                                cliNom,
+                                LookUp(colCuentas, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'Nombre Cliente'
+                            ),
+                            prod,
+                            cta,
+                            cliNom,
+                            Items
+                        ),
+                            ctaRec,
+                            LookUp(colCuentas, '[CT] Numero de cuenta' = cta)
+                        ),Blank())
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  TemplateSize: =If(gblScale = 1, 80,gblScale = 1.2,95,gblScale = 1.45,110,120)
+                  Visible: =varInicioModo = "cuenta"
+                  Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                Children:
+                  - conBrow_1:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        BorderColor: =gblC.cardBorder
+                        BorderThickness: =1
+                        Fill: =gblC.white
+                        Height: =Parent.TemplateHeight
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Horizontal
+                        LayoutGap: =10
+                        LayoutJustifyContent: =LayoutJustifyContent.SpaceBetween
+                        PaddingLeft: =8
+                        PaddingRight: =8
+                        RadiusBottomLeft: =12
+                        RadiusBottomRight: =12
+                        RadiusTopLeft: =12
+                        RadiusTopRight: =12
+                        Width: =Parent.TemplateWidth
+                      Children:
+                        - conBrowIzq_1:
+                            Control: GroupContainer@1.5.0
+                            Variant: AutoLayout
+                            Properties:
+                              DropShadow: =DropShadow.None
+                              LayoutAlignItems: =LayoutAlignItems.Center
+                              LayoutDirection: =LayoutDirection.Vertical
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =8
+                              PaddingLeft: =8
+                              PaddingRight: =8
+                              PaddingTop: =8
+                            Children:
+                              - lblBN_1:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    AutoHeight: =true
+                                    FontWeight: =FontWeight.Semibold
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    PaddingBottom: =0
+                                    PaddingTop: =0
+                                    Size: =gblT.fbase
+                                    Text: =ThisItem.prod
+                              - lblBS_1:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    AutoHeight: =true
+                                    Color: =gblC.muted
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    Size: =gblT.fxs
+                                    Text: =ThisItem.cliNom & " · " & ThisItem.cta
+                        - conBrowDer_1:
+                            Control: GroupContainer@1.5.0
+                            Variant: AutoLayout
+                            Properties:
+                              BorderStyle: =BorderStyle.None
+                              DropShadow: =DropShadow.None
+                              FillPortions: =0
+                              LayoutAlignItems: =LayoutAlignItems.Center
+                              LayoutDirection: =LayoutDirection.Horizontal
+                              LayoutGap: =6
+                              LayoutJustifyContent: =LayoutJustifyContent.Center
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =8
+                              PaddingLeft: =8
+                              PaddingRight: =8
+                              PaddingTop: =8
+                              Width: =220
+                            Children:
+                              - Container11:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: ManualLayout
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Center
+                                    BorderStyle: =BorderStyle.None
+                                    DropShadow: =DropShadow.None
+                                    FillPortions: =0
+                                    Height: =50
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    RadiusBottomLeft: =12
+                                    RadiusBottomRight: =12
+                                    RadiusTopLeft: =12
+                                    RadiusTopRight: =12
+                                    Width: =Parent.Width - lblChev_1.Width - Parent.PaddingLeft - Parent.PaddingRight
+                                  Children:
+                                    - lblBC_1:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          Align: =Align.Center
+                                          Color: =gblC.teal
+                                          Fill: =gblC.accentBg
+                                          FontWeight: =FontWeight.Bold
+                                          Height: =Parent.Height
+                                          PaddingLeft: =11
+                                          PaddingRight: =11
+                                          Size: =gblT.fsm
+                                          Text: =CountRows(ThisItem.Items) & " interac."
+                                          Width: =Parent.Width
+                              - lblChev_1:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    Align: =Align.Center
+                                    Color: =gblC.phoneBorder
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    Size: =gblT.fmd
+                                    Text: ="›"
+                                    Width: =30
+                  - Button4:
+                      Control: ModernButton@1.0.0
+                      Properties:
+                        Appearance: =ButtonAppearance.Transparent
+                        Height: =Parent.TemplateHeight
+                        OnSelect: =Set(varCuenta, ThisItem.ctaRec); Set(varDetTab,"inter"); Set(varDetSrc,"inicio"); Navigate(scrDetalleCuenta, ScreenTransition.Cover)
+                        Text: =
+                        Width: =Parent.TemplateWidth
+      - cmpSheet_1:
+          Control: CanvasComponent
+          ComponentName: cmpSheet
+          Properties:
+            Height: =Parent.Height
+            Visible: =varSheetEscala
+            Width: =Parent.Width

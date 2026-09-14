@@ -1,0 +1,62 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+App:
+  Properties:
+    Formulas: |-
+      =Moneda(nio:Number, usd:Number): Text =
+         With({ pn: If(nio>0, "C$ " & Text(nio, "#,##0.00"), ""),
+                pu: If(usd>0, "US$ " & Text(usd, "#,##0.00"), "") },
+            Coalesce(pn & If(!IsBlank(pn) && !IsBlank(pu), " · ", "") & pu, "C$ 0.00"));
+    OnStart: |-
+      =// ===================== COLORES (paleta exacta del prototipo) =====================
+      Set(gblFont, Font.'Segoe UI');
+      Set(gblC, {
+          teal:        ColorValue("#0F6B6B"),  tealSub:    ColorValue("#BFE3E3"),
+          screen:      ColorValue("#F2F4F7"),  card:       ColorValue("#FFFFFF"),
+          cardBorder:  ColorValue("#EAECF0"),  borderSoft: ColorValue("#E4E7EC"),
+          hairline:    ColorValue("#F6F7F9"),  white:      ColorValue("#FFFFFF"),
+          ink:         ColorValue("#101828"),  ink2:       ColorValue("#344054"),
+          ink3:        ColorValue("#475467"),  muted:      ColorValue("#667085"),
+          muted2:      ColorValue("#98A2B3"),  green:      ColorValue("#34D399"),
+          accentBg:    ColorValue("#ECFDF5"),  accentBorder:ColorValue("#A7F3D0"),
+          accentInk:   ColorValue("#065F46"),  accentInk2: ColorValue("#059669"),
+          diariaBg:    ColorValue("#DBEAFE"),  diariaInk:  ColorValue("#2563EB"),
+          incobBg:     ColorValue("#FEF3C7"),  incobInk:   ColorValue("#B45309"),
+          espBg:       ColorValue("#EDE9FE"),  espInk:     ColorValue("#7C3AED"),
+          redBg:       ColorValue("#FEE2E2"),  redInk:     ColorValue("#DC2626"),
+          chipBg:      ColorValue("#EEF2F6"),  datosBg:    ColorValue("#EFF6FF"),
+          amber:       ColorValue("#FBBF24"),  amberOff:   ColorValue("#F59E0B"),
+          offGray:     ColorValue("#475467"),  phoneBorder:ColorValue("#CBD2D9"),
+          noteBg:      ColorValue("#F8FAFC"),  hint:       ColorValue("#D97706")
+      });
+
+      // ===================== TAMAÑOS DE LETRA (escalan con accesibilidad) =====================
+      Set(gblScale, 1);   // lo cambia el botón "Aa" (Parte 11)
+      Set(gblT, {
+          f2xs: 10*gblScale,  fxs: 11*gblScale,  fsm: 12.5*gblScale, fbase: 13.5*gblScale,
+          fmd: 15*gblScale,   flg: 17*gblScale,  fxl: 23*gblScale,   fbig: 24*gblScale
+      });
+
+      // ===================== COLECCIONES BASE (una vez — join local offline, SIN navegación) =====================
+      ClearCollect(colCuentas, 'CM | TBL | Cuentas');
+      ClearCollect(colAgentes, 'CM | TBL | Agentes');
+      ClearCollect(colDirecciones, 'CM | TBL | Direccions');
+      ClearCollect(colTelefonos, 'CM | TBL | Telefonos');
+      ClearCollect(colClientes, 'CM | TBL | Clientes');
+
+      // ===================== EL AGENTE ACTUAL (offline: match por email denormalizado, sin navegar) =====================
+      Set(gblAgente, LookUp(colAgentes, 'Email Usuario' = User().Email));
+
+      // ===================== ESTADO DE NAVEGACIÓN =====================
+      Set(varModo, "cliente");      // Cartera: "cliente" o "cuenta"
+      Set(varFiltro, "Todos");
+      Set(varBuscar, "");
+      Set(varInicioModo, "cliente");
+    StartScreen: =scrInicio
+    Theme: =PowerAppsTheme
