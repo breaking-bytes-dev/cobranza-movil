@@ -1,9 +1,9 @@
 # ************************************************************************************************
 # Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
 # Use the maker portal to create and edit your Power Apps.
-#
+# 
 # The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
-#
+# 
 # For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
 # ************************************************************************************************
 Screens:
@@ -81,7 +81,6 @@ Screens:
             Titulo: ="Por transcribir"
             Width: =Parent.Width - Self.X
             X: =If(nfMovil, 0, gblE.AnchoNav)
-            Y: =0
       - btnActualizarTrx:
           Control: Classic/Button@2.2.0
           Properties:
@@ -156,7 +155,6 @@ Screens:
           Control: GroupContainer@1.5.0
           Variant: ManualLayout
           Properties:
-            BorderThickness: =0
             DropShadow: =DropShadow.None
             Fill: =Color.Transparent
             Height: =Parent.Height - Self.Y - gblE.Pad
@@ -176,12 +174,9 @@ Screens:
                   PaddingLeft: =0
                   Size: =8
                   Text: ="LOCALIZADORES"
-                  VerticalAlign: =VerticalAlign.Middle
                   Visible: =!nfMovil
                   Width: =If(Parent.Width < 1080, 150, 185)
                   Wrap: =false
-                  X: =0
-                  Y: =0
             - galLocsTrx:
                 Control: Gallery@2.15.0
                 Variant: Vertical
@@ -217,7 +212,6 @@ Screens:
                   TemplateSize: =54
                   Visible: =!nfMovil
                   Width: =If(Parent.Width < 1080, 150, 185)
-                  X: =0
                   Y: =22
                 Children:
                   - btnLocCardTrx:
@@ -230,14 +224,8 @@ Screens:
                         Height: =46
                         HoverFill: =ColorFade(Self.Fill, 5%)
                         OnSelect: =Select(Parent)
-                        RadiusBottomLeft: =10
-                        RadiusBottomRight: =10
-                        RadiusTopLeft: =10
-                        RadiusTopRight: =10
                         Text: =""
                         Width: =Parent.TemplateWidth
-                        X: =0
-                        Y: =0
                   - lblLocNomTrx:
                       Control: Label@2.5.1
                       Properties:
@@ -248,8 +236,8 @@ Screens:
                         OnSelect: =Select(Parent)
                         PaddingLeft: =0
                         Size: =9
-                        Text: =If(ThisItem.locTrx = "Todos", "Todos", "🏍️ " & ThisItem.locTrx)
-                        VerticalAlign: =VerticalAlign.Middle
+                        Text: |-
+                          =If(ThisItem.locTrx = "Todos", "Todos", "🏍️ " & ThisItem.locTrx)
                         Width: =Parent.TemplateWidth - 66
                         Wrap: =false
                         X: =gblE.PadSm
@@ -307,8 +295,6 @@ Screens:
                   TemplateSize: =150
                   Visible: =nfMovil
                   Width: =Parent.Width
-                  X: =0
-                  Y: =0
                 Children:
                   - btnLocCardMovTrx:
                       Control: Classic/Button@2.2.0
@@ -320,14 +306,8 @@ Screens:
                         Height: =46
                         HoverFill: =ColorFade(Self.Fill, 5%)
                         OnSelect: =Select(Parent)
-                        RadiusBottomLeft: =10
-                        RadiusBottomRight: =10
-                        RadiusTopLeft: =10
-                        RadiusTopRight: =10
                         Text: =""
                         Width: =Parent.TemplateWidth - 8
-                        X: =0
-                        Y: =0
                   - lblLocNomMovTrx:
                       Control: Label@2.5.1
                       Properties:
@@ -338,8 +318,8 @@ Screens:
                         OnSelect: =Select(Parent)
                         PaddingLeft: =0
                         Size: =9
-                        Text: =If(ThisItem.locTrx = "Todos", "Todos", "🏍️ " & ThisItem.locTrx)
-                        VerticalAlign: =VerticalAlign.Middle
+                        Text: |-
+                          =If(ThisItem.locTrx = "Todos", "Todos", "🏍️ " & ThisItem.locTrx)
                         Width: =Parent.TemplateWidth - 60
                         Wrap: =false
                         X: =gblE.PadSm
@@ -376,7 +356,6 @@ Screens:
                     ="PENDIENTES"
                         & If(varLocSelTrx <> "Todos", " · " & Upper(First(Split(varLocSelTrx, " ")).Value), "")
                         & " · " & CountRows(galColaTrx.AllItems) & " · FIFO"
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =If(Parent.Width < 1080, 210, 255)
                   Wrap: =false
                   X: =If(nfMovil, 0, If(Parent.Width < 1080, 150, 185) + 12)
@@ -431,7 +410,6 @@ Screens:
                         PaddingLeft: =0
                         Size: =9
                         Text: =ThisItem.clienteTrx
-                        VerticalAlign: =VerticalAlign.Middle
                         Width: =Parent.TemplateWidth - 2*gblE.PadSm
                         Wrap: =false
                         X: =gblE.PadSm
@@ -453,7 +431,6 @@ Screens:
                               & If(varLocSelTrx = "Todos", " · 🏍️ " & First(Split(ThisItem.'[IN] NombreAgente', " ")).Value, "")
                         VerticalAlign: =VerticalAlign.Top
                         Width: =Parent.TemplateWidth - 2*gblE.PadSm
-                        Wrap: =true
                         X: =gblE.PadSm
                         Y: =28
                   - recSepColaTrx:
@@ -463,14 +440,14 @@ Screens:
                         Height: =1
                         OnSelect: =Select(Parent)
                         Width: =Parent.TemplateWidth
-                        X: =0
                         Y: =Parent.TemplateHeight - 1
             - cmpVacioColaTrx:
                 Control: CanvasComponent
                 ComponentName: cmpVacio
                 Properties:
                   Height: =160
-                  Icono: ="🎉"
+                  Icono: |-
+                    ="🎉"
                   Mensaje: ="Pasá al siguiente localizador."
                   Titulo: ="Cola vacía"
                   Visible: =CountRows(colPendTrx) > 0 && CountRows(galColaTrx.AllItems) = 0
@@ -482,12 +459,12 @@ Screens:
                 ComponentName: cmpVacio
                 Properties:
                   Height: =180
-                  Icono: ="🎉"
+                  Icono: |-
+                    ="🎉"
                   Mensaje: ="No hay nada por transcribir. Volvé más tarde o tocá ↻ Actualizar."
                   Titulo: ="Sin pendientes"
                   Visible: =CountRows(colPendTrx) = 0
                   Width: =Parent.Width
-                  X: =0
                   Y: =Parent.Height/2 - 90
             - conDetalleTrx:
                 Control: GroupContainer@1.5.0
@@ -525,7 +502,6 @@ Screens:
                               & " · " & varActualTrx.'[IN] Numero de Interaccion'
                               & " · 🏍️ " & Upper(varActualTrx.'[IN] NombreAgente')
                               & " · " & Text(varActualTrx.'Fecha de captura', "HH:mm")
-                        VerticalAlign: =VerticalAlign.Middle
                         Visible: =!IsBlank(varActualTrx)
                         Width: =Parent.Width - 2*gblE.Pad - 90
                         Wrap: =false
@@ -544,8 +520,8 @@ Screens:
                               & "," & varActualTrx.'[IN] Longitud')
                         PaddingRight: =0
                         Size: =8
-                        Text: ="📍 mapa"
-                        VerticalAlign: =VerticalAlign.Middle
+                        Text: |-
+                          ="📍 mapa"
                         Visible: =!IsBlank(varActualTrx) && !IsBlank(varActualTrx.'[IN] Latitud')
                         Width: =80
                         Wrap: =false
@@ -577,9 +553,7 @@ Screens:
                               FontWeight: =FontWeight.Bold
                               Height: =24
                               PaddingLeft: =0
-                              Size: =13
                               Text: =varActualTrx.clienteTrx
-                              VerticalAlign: =VerticalAlign.Middle
                               Width: =Parent.Width - 2*gblE.Pad - 110
                               Wrap: =false
                               X: =gblE.Pad
@@ -613,7 +587,6 @@ Screens:
                               PaddingLeft: =0
                               Size: =8
                               Text: ="N° TARJETA / PRÉSTAMO"
-                              VerticalAlign: =VerticalAlign.Middle
                               Width: =Parent.Width - 2*gblE.Pad
                               Wrap: =false
                               X: =gblE.Pad
@@ -629,7 +602,6 @@ Screens:
                               PaddingLeft: =0
                               Size: =24
                               Text: =varActualTrx.'[IN] Numerocuenta'
-                              VerticalAlign: =VerticalAlign.Middle
                               Width: =Parent.Width - 2*gblE.Pad
                               Wrap: =false
                               X: =gblE.Pad
@@ -643,7 +615,6 @@ Screens:
                               PaddingLeft: =0
                               Size: =10
                               Text: =varActualTrx.productoTrx
-                              VerticalAlign: =VerticalAlign.Middle
                               Width: =Parent.Width - 2*gblE.Pad
                               Wrap: =false
                               X: =gblE.Pad
@@ -664,7 +635,6 @@ Screens:
                         VerticalAlign: =VerticalAlign.Top
                         Visible: =!IsBlank(varActualTrx)
                         Width: =Parent.Width - 2*gblE.Pad
-                        Wrap: =true
                         X: =gblE.Pad
                         Y: =conIdentidadTrx.Y + conIdentidadTrx.Height + gblE.PadSm
                   - lblSecPagosTrx:
@@ -677,7 +647,6 @@ Screens:
                         PaddingLeft: =0
                         Size: =8
                         Text: ="PAGOS (" & CountRows(galPagosTrx.AllItems) & ")"
-                        VerticalAlign: =VerticalAlign.Middle
                         Visible: =!IsBlank(varActualTrx) && varActualTrx.'[IN] Aplica pago'
                         Width: =Parent.Width - 2*gblE.Pad
                         Wrap: =false
@@ -711,10 +680,8 @@ Screens:
                               Text: |-
                                 =If(ThisItem.'[PG] Moneda' = 'Choice | CM | Monedas en Pago'.USD, "US$ ", "C$ ")
                                     & Text(ThisItem.'[PG] Monto', "#,##0.00")
-                              VerticalAlign: =VerticalAlign.Middle
                               Width: =Parent.TemplateWidth * 0.55
                               Wrap: =false
-                              X: =0
                               Y: =6
                         - lblPagoReciboTrx:
                             Control: Label@2.5.1
@@ -726,7 +693,6 @@ Screens:
                               PaddingRight: =0
                               Size: =10
                               Text: ="Recibo " & ThisItem.'[PG] Numero recibo'
-                              VerticalAlign: =VerticalAlign.Middle
                               Width: =Parent.TemplateWidth * 0.45
                               Wrap: =false
                               X: =Parent.TemplateWidth * 0.55
@@ -737,7 +703,6 @@ Screens:
                               Fill: =gblC.hairline
                               Height: =1
                               Width: =Parent.TemplateWidth
-                              X: =0
                               Y: =Parent.TemplateHeight - 1
                   - lblSecDatosTrx:
                       Control: Label@2.5.1
@@ -749,10 +714,8 @@ Screens:
                         PaddingLeft: =0
                         Size: =8
                         Text: ="✏️ ACTUALIZACIÓN DE DATOS — GRABALA TAMBIÉN EN EL CORE"
-                        VerticalAlign: =VerticalAlign.Middle
                         Visible: =!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info'
                         Width: =Parent.Width - 2*gblE.Pad
-                        Wrap: =true
                         X: =gblE.Pad
                         Y: |-
                           =If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Aplica pago',
@@ -800,7 +763,6 @@ Screens:
                                     PaddingLeft: =0
                                     Size: =8
                                     Text: =ThisItem.campoTrx
-                                    VerticalAlign: =VerticalAlign.Middle
                                     Width: =Parent.TemplateWidth - 2*gblE.PadSm
                                     Wrap: =false
                                     X: =gblE.PadSm
@@ -815,10 +777,8 @@ Screens:
                                     Size: =9
                                     Strikethrough: =true
                                     Text: =ThisItem.antesTrx
-                                    VerticalAlign: =VerticalAlign.Middle
                                     Visible: =!IsBlank(ThisItem.antesTrx)
                                     Width: =Parent.TemplateWidth * 0.38
-                                    Wrap: =true
                                     X: =gblE.PadSm
                                     Y: =20
                               - lblCamFlechaTrx:
@@ -831,7 +791,6 @@ Screens:
                                     PaddingLeft: =0
                                     Size: =10
                                     Text: ="→"
-                                    VerticalAlign: =VerticalAlign.Middle
                                     Visible: =!IsBlank(ThisItem.antesTrx)
                                     Width: =20
                                     Wrap: =false
@@ -867,9 +826,7 @@ Screens:
                                     PaddingLeft: =0
                                     Size: =10
                                     Text: =ThisItem.nuevoTrx
-                                    VerticalAlign: =VerticalAlign.Middle
                                     Width: =Parent.TemplateWidth * 0.5
-                                    Wrap: =true
                                     X: |-
                                       =If(IsBlank(ThisItem.antesTrx), gblE.PadSm + 64,
                                           gblE.PadSm + Parent.TemplateWidth * 0.38 + 24)
@@ -890,12 +847,10 @@ Screens:
                       Control: GroupContainer@1.5.0
                       Variant: ManualLayout
                       Properties:
-                        BorderThickness: =0
                         DropShadow: =DropShadow.None
                         Fill: =gblC.card
                         Height: =64
                         Width: =Parent.Width
-                        X: =0
                         Y: =Parent.Height - 64
                       Children:
                         - recHairTrx:
@@ -904,8 +859,6 @@ Screens:
                               Fill: =gblC.hairline
                               Height: =1
                               Width: =Parent.Width
-                              X: =0
-                              Y: =0
                         - lblCodigoTrx:
                             Control: Label@2.5.1
                             Properties:
@@ -916,7 +869,6 @@ Screens:
                               PaddingLeft: =0
                               Size: =9
                               Text: ="Código del core"
-                              VerticalAlign: =VerticalAlign.Middle
                               Width: =104
                               Wrap: =false
                               X: =gblE.Pad
@@ -952,8 +904,6 @@ Screens:
                                     DisplayMode.Edit, DisplayMode.Disabled)
                               Fill: =gblC.teal
                               Font: =Font.'Segoe UI'
-                              FontWeight: =FontWeight.Semibold
-                              Height: =40
                               HoverFill: =ColorFade(gblC.teal, 10%)
                               OnSelect: |-
                                 =// 1) foto de la cola filtrada y posición del actual (colVistaTrx materializada)
@@ -1029,10 +979,6 @@ Screens:
                                     NotificationType.Success, 2500);
                                 // 8) devolver el foco al input — la fluidez de la estación (solo desktop; R1-04)
                                 If(!nfMovil, SetFocus(txtCodigoTrx))
-                              RadiusBottomLeft: =10
-                              RadiusBottomRight: =10
-                              RadiusTopLeft: =10
-                              RadiusTopRight: =10
                               Size: =9
                               Text: ="✓ y siguiente"
                               Width: =120
@@ -1046,7 +992,6 @@ Screens:
                               Color: =gblC.ink2
                               Fill: =gblC.card
                               Font: =Font.'Segoe UI'
-                              Height: =40
                               OnSelect: |-
                                 =ClearCollect(colVistaTrx,
                                     SortByColumns(
@@ -1090,9 +1035,7 @@ Screens:
                               PaddingLeft: =0
                               Size: =8
                               Text: ="Enter marca y avanza · la cola se navega con clic"
-                              VerticalAlign: =VerticalAlign.Middle
                               Width: =Parent.Width - Self.X - gblE.Pad
-                              Wrap: =true
                               X: =btnSaltarTrx.X + btnSaltarTrx.Width + 8
                               Y: =20
       - cmpNavTrx:
@@ -1103,5 +1046,3 @@ Screens:
             RutaActiva: ="trx"
             Visible: =!nfMovil || gblNavMovilAbierta
             Width: =gblE.AnchoNav
-            X: =0
-            Y: =0

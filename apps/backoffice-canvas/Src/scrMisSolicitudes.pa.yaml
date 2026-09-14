@@ -1,9 +1,9 @@
 # ************************************************************************************************
 # Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
 # Use the maker portal to create and edit your Power Apps.
-#
+# 
 # The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
-#
+# 
 # For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
 # ************************************************************************************************
 Screens:
@@ -41,7 +41,6 @@ Screens:
         );
         Set(varPanelSol, false)
     Children:
-      # ── Encabezado (receta 01 §7.5) ───────────────────────────────────────────────
       - cmpEncSol:
           Control: CanvasComponent
           ComponentName: cmpEncabezado
@@ -51,8 +50,6 @@ Screens:
             Titulo: ="Mis solicitudes"
             Width: =Parent.Width - Self.X
             X: =If(nfMovil, 0, gblE.AnchoNav)
-            Y: =0
-      # ── Acciones del encabezado ───────────────────────────────────────────────────
       - btnActualizarSol:
           Control: Classic/Button@2.2.0
           Properties:
@@ -102,27 +99,18 @@ Screens:
             DisabledFill: =ColorFade(gblC.teal, 60%)
             Fill: =gblC.teal
             Font: =Font.'Segoe UI'
-            FontWeight: =FontWeight.Semibold
             Height: =gblE.AltoBoton
             HoverFill: =ColorFade(gblC.teal, 10%)
             OnSelect: =Navigate(scrNuevaSolicitud)
-            RadiusBottomLeft: =10
-            RadiusBottomRight: =10
-            RadiusTopLeft: =10
-            RadiusTopRight: =10
             Size: =9
             Text: ="✨ Nueva solicitud"
-            Visible: =true
             Width: =170
             X: =Parent.Width - Self.Width - gblE.Pad
-            Y: |-
-              =cmpEncSol.Y + If(nfMovil, gblE.AltoBarra, 0) + (84 - Self.Height) / 2
-      # ── Contenido centrado (receta 01 §7.13) ──────────────────────────────────────
+            Y: =cmpEncSol.Y + If(nfMovil, gblE.AltoBarra, 0) + (84 - Self.Height) / 2
       - conContenidoSol:
           Control: GroupContainer@1.5.0
           Variant: ManualLayout
           Properties:
-            BorderThickness: =0
             DropShadow: =DropShadow.None
             Fill: =Color.Transparent
             Height: =Parent.Height - Self.Y
@@ -132,7 +120,6 @@ Screens:
                   + Max(gblE.Pad, (Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - gblE.AnchoMax) / 2)
             Y: =cmpEncSol.Y + cmpEncSol.Height
           Children:
-            # ── Card de la lista (receta 01 §7.1) ─────────────────────────────────
             - conListaSol:
                 Control: GroupContainer@1.5.0
                 Variant: ManualLayout
@@ -158,8 +145,7 @@ Screens:
                         Items: =colSolSol
                         OnSelect: =Set(varPanelSol, true)
                         ShowScrollbar: =false
-                        TemplateFill: |-
-                          =If(ThisItem.IsSelected, gblC.tealSuave, gblC.card)
+                        TemplateFill: =If(ThisItem.IsSelected, gblC.tealSuave, gblC.card)
                         TemplatePadding: =0
                         TemplateSize: =If(nfMovil, 132, 84)
                         Visible: =CountRows(colSolSol) > 0
@@ -167,7 +153,6 @@ Screens:
                         X: =gblE.PadSm
                         Y: =gblE.PadSm
                       Children:
-                        # overlay clicable — PRIMERO (al fondo del z-order, receta 7.3)
                         - recFilaSol:
                             Control: Rectangle@2.3.0
                             Properties:
@@ -175,8 +160,6 @@ Screens:
                               Height: =Parent.TemplateHeight
                               OnSelect: =Select(Parent)
                               Width: =Parent.TemplateWidth
-                              X: =0
-                              Y: =0
                         - lblClienteFilaSol:
                             Control: Label@2.5.1
                             Properties:
@@ -188,9 +171,7 @@ Screens:
                               PaddingLeft: =0
                               Size: =10
                               Text: =ThisItem.clienteSol
-                              VerticalAlign: =VerticalAlign.Middle
-                              Width: |-
-                                =If(nfMovil, Parent.TemplateWidth - 2*gblE.PadSm, (Parent.TemplateWidth - 2*gblE.PadSm) * 0.34)
+                              Width: =If(nfMovil, Parent.TemplateWidth - 2*gblE.PadSm, (Parent.TemplateWidth - 2*gblE.PadSm) * 0.34)
                               Wrap: =false
                               X: =gblE.PadSm
                               Y: =6
@@ -204,7 +185,6 @@ Screens:
                               PaddingLeft: =0
                               Size: =9
                               Text: =ThisItem.'[AS] NumeroCuenta'
-                              VerticalAlign: =VerticalAlign.Middle
                               Width: =lblClienteFilaSol.Width
                               Wrap: =false
                               X: =gblE.PadSm
@@ -218,9 +198,7 @@ Screens:
                               OnSelect: =Select(Parent)
                               PaddingLeft: =0
                               Size: =8
-                              Text: |-
-                                =ThisItem.'[AS] Numero' & " · " & Text(ThisItem.'[AS] Fecha de Asignacion', "dd/mm HH:mm")
-                              VerticalAlign: =VerticalAlign.Middle
+                              Text: =ThisItem.'[AS] Numero' & " · " & Text(ThisItem.'[AS] Fecha de Asignacion', "dd/mm HH:mm")
                               Width: =lblClienteFilaSol.Width
                               Wrap: =false
                               X: =gblE.PadSm
@@ -230,19 +208,14 @@ Screens:
                             Properties:
                               Color: =gblC.ink2
                               Font: =Font.'Segoe UI'
-                              Height: |-
-                                =If(nfMovil, 34, Parent.TemplateHeight - 14)
+                              Height: =If(nfMovil, 34, Parent.TemplateHeight - 14)
                               OnSelect: =Select(Parent)
                               PaddingLeft: =0
                               Size: =9
-                              Text: |-
-                                =If(Len(ThisItem.Notas) > 90, Left(ThisItem.Notas, 90) & "…", ThisItem.Notas)
+                              Text: =If(Len(ThisItem.Notas) > 90, Left(ThisItem.Notas, 90) & "…", ThisItem.Notas)
                               VerticalAlign: =VerticalAlign.Top
-                              Width: |-
-                                =(Parent.TemplateWidth - 2*gblE.PadSm) * If(nfMovil, 1, 0.32)
-                              Wrap: =true
-                              X: |-
-                                =If(nfMovil, gblE.PadSm, gblE.PadSm + (Parent.TemplateWidth - 2*gblE.PadSm) * 0.36)
+                              Width: =(Parent.TemplateWidth - 2*gblE.PadSm) * If(nfMovil, 1, 0.32)
+                              X: =If(nfMovil, gblE.PadSm, gblE.PadSm + (Parent.TemplateWidth - 2*gblE.PadSm) * 0.36)
                               Y: =If(nfMovil, 64, 6)
                         - lblMontoFilaSol:
                             Control: Label@2.5.1
@@ -256,15 +229,11 @@ Screens:
                               PaddingLeft: =0
                               PaddingRight: =0
                               Size: =10
-                              Text: |-
-                                =Moneda(ThisItem.'Retiro NIO', ThisItem.'Retiro USD')
-                              VerticalAlign: =VerticalAlign.Middle
+                              Text: =Moneda(ThisItem.'Retiro NIO', ThisItem.'Retiro USD')
                               Width: =220
                               Wrap: =false
-                              X: |-
-                                =If(nfMovil, gblE.PadSm, Parent.TemplateWidth - Self.Width - gblE.PadSm)
+                              X: =If(nfMovil, gblE.PadSm, Parent.TemplateWidth - Self.Width - gblE.PadSm)
                               Y: =If(nfMovil, 100, 8)
-                        # chips dentro de fila clicable: SIN DisplayMode.View (excepción receta 7.2)
                         - chpEstadoFilaSol:
                             Control: Classic/Button@2.2.0
                             Properties:
@@ -318,7 +287,8 @@ Screens:
                               RadiusTopLeft: =8
                               RadiusTopRight: =8
                               Size: =8
-                              Text: ="🏍️ " & ThisItem.agenteSol
+                              Text: |-
+                                ="🏍️ " & ThisItem.agenteSol
                               Visible: =!IsBlank(ThisItem.agenteSol)
                               Width: =14 + 7*Len(Self.Text)
                               X: =chpEstadoFilaSol.X - Self.Width - gblE.PadSm
@@ -330,23 +300,20 @@ Screens:
                               Height: =1
                               OnSelect: =Select(Parent)
                               Width: =Parent.TemplateWidth
-                              X: =0
                               Y: =Parent.TemplateHeight - 1
-            # ── Estado vacío (receta 01 §7.12) ────────────────────────────────────
             - cmpVacioSol:
                 Control: CanvasComponent
                 ComponentName: cmpVacio
                 Properties:
                   Height: =200
-                  Icono: ="🗂️"
-                  Mensaje: |-
-                    ="Creá la primera con el botón «✨ Nueva solicitud», arriba a la derecha."
+                  Icono: |-
+                    ="🗂️"
+                  Mensaje: ="Creá la primera con el botón «✨ Nueva solicitud», arriba a la derecha."
                   Titulo: ="Sin solicitudes todavía"
                   Visible: =CountRows(colSolSol) = 0
                   Width: =Min(420, Parent.Width - 2*gblE.Pad)
                   X: =(Parent.Width - Self.Width) / 2
                   Y: =(Parent.Height - Self.Height) / 2
-      # ── Panel de detalle SOLO LECTURA (receta 01 §7.4) ────────────────────────────
       - recScrimSol:
           Control: Rectangle@2.3.0
           Properties:
@@ -355,8 +322,6 @@ Screens:
             OnSelect: =Set(varPanelSol, false)
             Visible: =varPanelSol
             Width: =Parent.Width
-            X: =0
-            Y: =0
       - conPanelSol:
           Control: GroupContainer@1.5.0
           Variant: ManualLayout
@@ -373,7 +338,6 @@ Screens:
             Visible: =varPanelSol
             Width: =If(nfMovil, Parent.Width, Min(480, Parent.Width * 0.45))
             X: =Parent.Width - Self.Width
-            Y: =0
           Children:
             - lblTituloPanSol:
                 Control: Label@2.5.1
@@ -383,10 +347,7 @@ Screens:
                   FontWeight: =FontWeight.Bold
                   Height: =22
                   PaddingLeft: =0
-                  Size: =13
-                  Text: |-
-                    ="Solicitud " & galSolSol.Selected.'[AS] Numero'
-                  VerticalAlign: =VerticalAlign.Middle
+                  Text: ="Solicitud " & galSolSol.Selected.'[AS] Numero'
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
                   X: =gblE.Pad
@@ -411,7 +372,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =8
                   Text: ="CUENTA"
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
                   X: =gblE.Pad
@@ -425,7 +385,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: ="Cliente"
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =110
                   Wrap: =false
                   X: =gblE.Pad
@@ -441,7 +400,6 @@ Screens:
                   PaddingRight: =0
                   Size: =10
                   Text: =galSolSol.Selected.clienteSol
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =Parent.Width - 2*gblE.Pad - 110
                   Wrap: =false
                   X: =gblE.Pad + 110
@@ -455,7 +413,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: ="Cuenta"
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =110
                   Wrap: =false
                   X: =gblE.Pad
@@ -470,9 +427,7 @@ Screens:
                   PaddingLeft: =0
                   PaddingRight: =0
                   Size: =10
-                  Text: |-
-                    =galSolSol.Selected.'[AS] NumeroCuenta' & " · " & galSolSol.Selected.prodSol
-                  VerticalAlign: =VerticalAlign.Middle
+                  Text: =galSolSol.Selected.'[AS] NumeroCuenta' & " · " & galSolSol.Selected.prodSol
                   Width: =Parent.Width - 2*gblE.Pad - 110
                   Wrap: =false
                   X: =gblE.Pad + 110
@@ -486,7 +441,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: ="Saldo vencido"
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =110
                   Wrap: =false
                   X: =gblE.Pad
@@ -502,9 +456,7 @@ Screens:
                   PaddingLeft: =0
                   PaddingRight: =0
                   Size: =10
-                  Text: |-
-                    =Moneda(galSolSol.Selected.saldoNioSol, galSolSol.Selected.saldoUsdSol)
-                  VerticalAlign: =VerticalAlign.Middle
+                  Text: =Moneda(galSolSol.Selected.saldoNioSol, galSolSol.Selected.saldoUsdSol)
                   Width: =Parent.Width - 2*gblE.Pad - 110
                   Wrap: =false
                   X: =gblE.Pad + 110
@@ -518,7 +470,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: ="Mora"
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =110
                   Wrap: =false
                   X: =gblE.Pad
@@ -534,7 +485,6 @@ Screens:
                   PaddingRight: =0
                   Size: =10
                   Text: =galSolSol.Selected.moraSol & " días"
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =Parent.Width - 2*gblE.Pad - 110
                   Wrap: =false
                   X: =gblE.Pad + 110
@@ -549,7 +499,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =8
                   Text: ="SOLICITUD"
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
                   X: =gblE.Pad
@@ -563,7 +512,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: ="Retiro pedido"
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =110
                   Wrap: =false
                   X: =gblE.Pad
@@ -579,9 +527,7 @@ Screens:
                   PaddingLeft: =0
                   PaddingRight: =0
                   Size: =10
-                  Text: |-
-                    =Moneda(galSolSol.Selected.'Retiro NIO', galSolSol.Selected.'Retiro USD')
-                  VerticalAlign: =VerticalAlign.Middle
+                  Text: =Moneda(galSolSol.Selected.'Retiro NIO', galSolSol.Selected.'Retiro USD')
                   Width: =Parent.Width - 2*gblE.Pad - 110
                   Wrap: =false
                   X: =gblE.Pad + 110
@@ -595,7 +541,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: ="Solicitada"
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =110
                   Wrap: =false
                   X: =gblE.Pad
@@ -610,9 +555,7 @@ Screens:
                   PaddingLeft: =0
                   PaddingRight: =0
                   Size: =10
-                  Text: |-
-                    =Text(galSolSol.Selected.'[AS] Fecha de Asignacion', "dd/mm HH:mm")
-                  VerticalAlign: =VerticalAlign.Middle
+                  Text: =Text(galSolSol.Selected.'[AS] Fecha de Asignacion', "dd/mm HH:mm")
                   Width: =Parent.Width - 2*gblE.Pad - 110
                   Wrap: =false
                   X: =gblE.Pad + 110
@@ -621,7 +564,6 @@ Screens:
                 Control: GroupContainer@1.5.0
                 Variant: ManualLayout
                 Properties:
-                  BorderThickness: =0
                   DropShadow: =DropShadow.None
                   Fill: =gblC.pantalla
                   Height: =96
@@ -644,14 +586,12 @@ Screens:
                         Text: =galSolSol.Selected.Notas
                         VerticalAlign: =VerticalAlign.Top
                         Width: =Parent.Width - 2*gblE.PadSm
-                        Wrap: =true
                         X: =gblE.PadSm
                         Y: =gblE.PadSm
             - conRechSol:
                 Control: GroupContainer@1.5.0
                 Variant: ManualLayout
                 Properties:
-                  BorderThickness: =0
                   DropShadow: =DropShadow.None
                   Fill: =gblC.redBg
                   Height: =72
@@ -659,8 +599,7 @@ Screens:
                   RadiusBottomRight: =gblE.RadioSm
                   RadiusTopLeft: =gblE.RadioSm
                   RadiusTopRight: =gblE.RadioSm
-                  Visible: |-
-                    =galSolSol.Selected.'[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Rechazada
+                  Visible: =galSolSol.Selected.'[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Rechazada
                   Width: =Parent.Width - 2*gblE.Pad
                   X: =gblE.Pad
                   Y: =374
@@ -677,7 +616,6 @@ Screens:
                           ="Motivo de rechazo: " & Coalesce(galSolSol.Selected.'Motivo de rechazo', "—")
                         VerticalAlign: =VerticalAlign.Top
                         Width: =Parent.Width - 2*gblE.PadSm
-                        Wrap: =true
                         X: =gblE.PadSm
                         Y: =gblE.PadSm
             - lblKAgenteSol:
@@ -689,9 +627,7 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: ="Localizador"
-                  VerticalAlign: =VerticalAlign.Middle
-                  Visible: |-
-                    =galSolSol.Selected.'[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado
+                  Visible: =galSolSol.Selected.'[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado
                   Width: =110
                   Wrap: =false
                   X: =gblE.Pad
@@ -708,9 +644,7 @@ Screens:
                   Size: =10
                   Text: |-
                     ="🏍️ " & Coalesce(galSolSol.Selected.agenteSol, "—")
-                  VerticalAlign: =VerticalAlign.Middle
-                  Visible: |-
-                    =galSolSol.Selected.'[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado
+                  Visible: =galSolSol.Selected.'[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado
                   Width: =Parent.Width - 2*gblE.Pad - 110
                   Wrap: =false
                   X: =gblE.Pad + 110
@@ -730,7 +664,6 @@ Screens:
                   Width: =120
                   X: =gblE.Pad
                   Y: =Parent.Height - gblE.AltoBoton - gblE.Pad
-      # ── Navegación lateral (AL FINAL del árbol — 01 §8.1) ─────────────────────────
       - cmpNavSol:
           Control: CanvasComponent
           ComponentName: cmpNavLateral
@@ -739,5 +672,3 @@ Screens:
             RutaActiva: ="sol"
             Visible: =!nfMovil || gblNavMovilAbierta
             Width: =gblE.AnchoNav
-            X: =0
-            Y: =0

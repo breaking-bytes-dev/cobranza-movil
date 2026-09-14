@@ -1,9 +1,9 @@
 # ************************************************************************************************
 # Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
 # Use the maker portal to create and edit your Power Apps.
-#
+# 
 # The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
-#
+# 
 # For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
 # ************************************************************************************************
 Screens:
@@ -18,24 +18,19 @@ Screens:
         Set(varModoMae, "ver");
         Reset(txtBuscarMae)
     Children:
-      # ── Encabezado (receta 01 §7.5) ───────────────────────────────────────────────
       - cmpEncMae:
           Control: CanvasComponent
           ComponentName: cmpEncabezado
           Properties:
             Height: =If(nfMovil, gblE.AltoBarra + 84, 84)
-            Subtitulo: |-
-              ="Clientes y cuentas. Solo el Admin crea y edita; el Solicitante los referencia."
+            Subtitulo: ="Clientes y cuentas. Solo el Admin crea y edita; el Solicitante los referencia."
             Titulo: ="Datos maestros"
             Width: =Parent.Width - Self.X
             X: =If(nfMovil, 0, gblE.AnchoNav)
-            Y: =0
-      # ── Toolbar de búsqueda (receta 01 §7.6 + §7.13) ──────────────────────────────
       - conToolbarMae:
           Control: GroupContainer@1.5.0
           Variant: ManualLayout
           Properties:
-            BorderThickness: =0
             DropShadow: =DropShadow.None
             Fill: =Color.Transparent
             Height: =gblE.AltoInput
@@ -61,8 +56,6 @@ Screens:
                   RadiusTopRight: =10
                   Size: =10
                   Width: =Parent.Width - 170 - gblE.PadSm
-                  X: =0
-                  Y: =0
             - icoBuscarMae:
                 Control: Classic/Icon@2.5.0
                 Properties:
@@ -81,7 +74,6 @@ Screens:
                   DisabledFill: =ColorFade(gblC.teal, 60%)
                   Fill: =gblC.teal
                   Font: =Font.'Segoe UI'
-                  FontWeight: =FontWeight.Semibold
                   Height: =gblE.AltoInput
                   HoverFill: =ColorFade(gblC.teal, 10%)
                   OnSelect: |-
@@ -92,16 +84,10 @@ Screens:
                     Reset(txtTrabajoNvoMae); Reset(txtTelCelNvoMae); Reset(txtTelCasNvoMae);
                     Reset(txtDirCasaNvoMae); Reset(txtDirTrabNvoMae);
                     Set(varPanelMae, true)
-                  RadiusBottomLeft: =10
-                  RadiusBottomRight: =10
-                  RadiusTopLeft: =10
-                  RadiusTopRight: =10
                   Size: =10
                   Text: ="＋ Nuevo cliente"
                   Width: =170
                   X: =Parent.Width - 170
-                  Y: =0
-      # ── Resultados — la ÚNICA consulta directa al datasource (receta 01 §7.9) ─────
       - galClientesMae:
           Control: Gallery@2.15.0
           Variant: Vertical
@@ -129,15 +115,13 @@ Screens:
               );
               Set(varPanelMae, true)
             ShowScrollbar: =false
-            TemplateFill: |-
-              =If(ThisItem.IsSelected && varPanelMae, gblC.tealSuave, gblC.card)
+            TemplateFill: =If(ThisItem.IsSelected && varPanelMae, gblC.tealSuave, gblC.card)
             TemplatePadding: =0
             TemplateSize: =gblE.AltoFila
             Width: =conToolbarMae.Width
             X: =conToolbarMae.X
             Y: =conToolbarMae.Y + conToolbarMae.Height + gblE.PadSm
           Children:
-            # overlay clicable — PRIMERO (al fondo del z-order, receta 01 §7.3)
             - recFilaMae:
                 Control: Rectangle@2.3.0
                 Properties:
@@ -145,8 +129,6 @@ Screens:
                   Height: =Parent.TemplateHeight
                   OnSelect: =Select(Parent)
                   Width: =Parent.TemplateWidth
-                  X: =0
-                  Y: =0
             - lblNomFilaMae:
                 Control: Label@2.5.1
                 Properties:
@@ -158,7 +140,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =10
                   Text: =ThisItem.'[CL] Nombre'
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =Parent.TemplateWidth * 0.45
                   Wrap: =false
                   X: =gblE.Pad
@@ -172,9 +153,7 @@ Screens:
                   OnSelect: =Select(Parent)
                   PaddingLeft: =0
                   Size: =9
-                  Text: |-
-                    =ThisItem.'[CL] CIF' & " · " & Coalesce(ThisItem.'[CL] Departamento', "—")
-                  VerticalAlign: =VerticalAlign.Middle
+                  Text: =ThisItem.'[CL] CIF' & " · " & Coalesce(ThisItem.'[CL] Departamento', "—")
                   Width: =Parent.TemplateWidth * 0.45
                   Wrap: =false
                   X: =gblE.Pad
@@ -191,7 +170,6 @@ Screens:
                   Text: |-
                     =// Una línea; si excede el ancho, se trunca (divergencia aceptada, guía 12 §3).
                     If(IsBlank(ThisItem.'[CL] Trabajo'), "sin trabajo registrado", ThisItem.'[CL] Trabajo')
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =Parent.TemplateWidth * 0.5 - 2*gblE.Pad
                   Wrap: =false
                   X: =gblE.Pad + Parent.TemplateWidth * 0.45
@@ -203,15 +181,14 @@ Screens:
                   Height: =1
                   OnSelect: =Select(Parent)
                   Width: =Parent.TemplateWidth
-                  X: =0
                   Y: =Parent.TemplateHeight - 1
-      # ── Estado vacío (receta 01 §7.12) ────────────────────────────────────────────
       - cmpVacioMae:
           Control: CanvasComponent
           ComponentName: cmpVacio
           Properties:
             Height: =140
-            Icono: ="🔎"
+            Icono: |-
+              ="🔎"
             Mensaje: |-
               =If(IsBlank(Trim(txtBuscarMae.Text)),
                   "Todavía no hay clientes cargados.",
@@ -224,7 +201,6 @@ Screens:
             Width: =320
             X: =galClientesMae.X + (galClientesMae.Width - 320) / 2
             Y: =galClientesMae.Y + 60
-      # ── Panel lateral (receta 01 §7.4) — UN árbol, TRES modos por varModoMae ──────
       - recScrimMae:
           Control: Rectangle@2.3.0
           Properties:
@@ -233,8 +209,6 @@ Screens:
             OnSelect: =Set(varPanelMae, false)
             Visible: =varPanelMae
             Width: =Parent.Width
-            X: =0
-            Y: =0
       - conPanelMae:
           Control: GroupContainer@1.5.0
           Variant: ManualLayout
@@ -251,7 +225,6 @@ Screens:
             Visible: =varPanelMae
             Width: =If(nfMovil, Parent.Width, Min(480, Parent.Width * 0.45))
             X: =Parent.Width - Self.Width
-            Y: =0
           Children:
             - lblTituloPanelMae:
                 Control: Label@2.5.1
@@ -261,13 +234,11 @@ Screens:
                   FontWeight: =FontWeight.Bold
                   Height: =28
                   PaddingLeft: =0
-                  Size: =13
                   Text: |-
                     =Switch(varModoMae,
                         "crear", "Nuevo cliente",
                         "editar", "✏️ " & varCliMae.'[CL] Nombre',
                         varCliMae.'[CL] Nombre')
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =Parent.Width - 2*gblE.Pad - 32
                   Wrap: =false
                   X: =gblE.Pad
@@ -282,7 +253,6 @@ Screens:
                   Width: =24
                   X: =Parent.Width - gblE.Pad - 24
                   Y: =gblE.Pad + 2
-            # ══ MODO VER (guía 12 §5) — Visible = varModoMae = "ver" ═════════════
             - lblKCifMae:
                 Control: Label@2.5.1
                 Properties:
@@ -293,7 +263,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =8
                   Text: ="CIF"
-                  VerticalAlign: =VerticalAlign.Middle
                   Visible: =varModoMae = "ver"
                   Width: =120
                   Wrap: =false
@@ -310,7 +279,6 @@ Screens:
                   PaddingRight: =0
                   Size: =10
                   Text: =varCliMae.'[CL] CIF'
-                  VerticalAlign: =VerticalAlign.Middle
                   Visible: =varModoMae = "ver"
                   Width: =Parent.Width - 2*gblE.Pad - 120
                   Wrap: =false
@@ -326,7 +294,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =8
                   Text: ="DEPARTAMENTO"
-                  VerticalAlign: =VerticalAlign.Middle
                   Visible: =varModoMae = "ver"
                   Width: =120
                   Wrap: =false
@@ -342,9 +309,7 @@ Screens:
                   PaddingLeft: =0
                   PaddingRight: =0
                   Size: =10
-                  Text: |-
-                    =Coalesce(varCliMae.'[CL] Departamento', "—") & " · " & Coalesce(varCliMae.'[CL] Distrito', "—")
-                  VerticalAlign: =VerticalAlign.Middle
+                  Text: =Coalesce(varCliMae.'[CL] Departamento', "—") & " · " & Coalesce(varCliMae.'[CL] Distrito', "—")
                   Visible: =varModoMae = "ver"
                   Width: =Parent.Width - 2*gblE.Pad - 120
                   Wrap: =false
@@ -360,7 +325,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =8
                   Text: ="TRABAJO"
-                  VerticalAlign: =VerticalAlign.Middle
                   Visible: =varModoMae = "ver"
                   Width: =120
                   Wrap: =false
@@ -377,7 +341,6 @@ Screens:
                   PaddingRight: =0
                   Size: =10
                   Text: =Coalesce(varCliMae.'[CL] Trabajo', "—")
-                  VerticalAlign: =VerticalAlign.Middle
                   Visible: =varModoMae = "ver"
                   Width: =Parent.Width - 2*gblE.Pad - 120
                   Wrap: =false
@@ -393,7 +356,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =8
                   Text: ="TELÉFONOS"
-                  VerticalAlign: =VerticalAlign.Middle
                   Visible: =varModoMae = "ver"
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
@@ -425,10 +387,8 @@ Screens:
                         Text: |-
                           ="📞 " & ThisItem.'[TL] Numero' &
                               If(IsBlank(ThisItem.'[TL] Tipo'), "", " (" & ThisItem.'[TL] Tipo' & ")")
-                        VerticalAlign: =VerticalAlign.Middle
                         Width: =Parent.TemplateWidth
                         Wrap: =false
-                        X: =0
                         Y: =4
             - lblTelVacioMae:
                 Control: Label@2.5.1
@@ -439,7 +399,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =10
                   Text: ="—"
-                  VerticalAlign: =VerticalAlign.Middle
                   Visible: =varModoMae = "ver" && CountRows(colTelMae) = 0
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
@@ -455,7 +414,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =8
                   Text: ="DIRECCIONES"
-                  VerticalAlign: =VerticalAlign.Middle
                   Visible: =varModoMae = "ver"
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
@@ -487,10 +445,8 @@ Screens:
                         Text: |-
                           ="📍 " & ThisItem.'[DR] Direccion' &
                               If(IsBlank(ThisItem.'[DR] Tipo'), "", " (" & ThisItem.'[DR] Tipo' & ")")
-                        VerticalAlign: =VerticalAlign.Middle
                         Width: =Parent.TemplateWidth
                         Wrap: =false
-                        X: =0
                         Y: =4
             - lblDirVacioMae:
                 Control: Label@2.5.1
@@ -501,7 +457,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =10
                   Text: ="—"
-                  VerticalAlign: =VerticalAlign.Middle
                   Visible: =varModoMae = "ver" && CountRows(colDirMae) = 0
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
@@ -517,7 +472,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =8
                   Text: ="CUENTAS (" & CountRows(colCtasMae) & ")"
-                  VerticalAlign: =VerticalAlign.Middle
                   Visible: =varModoMae = "ver"
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
@@ -538,7 +492,6 @@ Screens:
                   X: =gblE.Pad
                   Y: =406
                 Children:
-                  # Las cuentas se MUESTRAN y no se tocan (LED-08): las crea y actualiza el import.
                   - lblCtaFilaMae:
                       Control: Label@2.5.1
                       Properties:
@@ -552,10 +505,8 @@ Screens:
                           // Text(ThisItem.'Tipo Producto') dentro del concatenado.
                           ThisItem.'[CT] Numero de cuenta' & " · " & ThisItem.'Tipo Producto' & " · " &
                               Moneda(ThisItem.'[CT] Saldo Vencido NIO', ThisItem.'[CT] Saldo Vencido USD')
-                        VerticalAlign: =VerticalAlign.Middle
                         Width: =Parent.TemplateWidth
                         Wrap: =false
-                        X: =0
                         Y: =4
             - lblCtasVacioMae:
                 Control: Label@2.5.1
@@ -566,7 +517,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =10
                   Text: ="Sin cuentas en mora."
-                  VerticalAlign: =VerticalAlign.Middle
                   Visible: =varModoMae = "ver" && CountRows(colCtasMae) = 0
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
@@ -580,13 +530,8 @@ Screens:
                   Color: =gblC.ink2
                   Fill: =gblC.card
                   Font: =Font.'Segoe UI'
-                  FontWeight: =FontWeight.Semibold
                   Height: =gblE.AltoBoton
                   OnSelect: =Set(varPanelMae, false)
-                  RadiusBottomLeft: =10
-                  RadiusBottomRight: =10
-                  RadiusTopLeft: =10
-                  RadiusTopRight: =10
                   Size: =10
                   Text: ="Cerrar"
                   Visible: =varModoMae = "ver"
@@ -602,7 +547,6 @@ Screens:
                   DisabledFill: =ColorFade(gblC.teal, 60%)
                   Fill: =gblC.tealSuave
                   Font: =Font.'Segoe UI'
-                  FontWeight: =FontWeight.Semibold
                   Height: =gblE.AltoBoton
                   HoverFill: =ColorFade(gblC.tealSuave, 10%)
                   OnSelect: |-
@@ -611,18 +555,12 @@ Screens:
                     Set(varModoMae, "editar");
                     Reset(txtNombreMae); Reset(txtDeptoMae); Reset(txtDistritoMae); Reset(txtTrabajoMae);
                     Reset(txtNuevoTelMae); Reset(cmbTipoTelMae); Reset(txtNuevaDirMae); Reset(cmbTipoDirMae)
-                  RadiusBottomLeft: =10
-                  RadiusBottomRight: =10
-                  RadiusTopLeft: =10
-                  RadiusTopRight: =10
                   Size: =10
                   Text: ="✏️ Editar"
                   Visible: =varModoMae = "ver"
                   Width: =(Parent.Width - 3*gblE.Pad) / 2
                   X: =2*gblE.Pad + Self.Width
                   Y: =Parent.Height - gblE.AltoBoton - gblE.Pad
-            # ══ MODO EDITAR (guía 12 §6) — Visible = varModoMae = "editar" ═══════
-            # El CIF NO se edita: es la clave de negocio del core (upsert del import, DEC-013).
             - lblEdNombreMae:
                 Control: Label@2.5.1
                 Properties:
@@ -632,7 +570,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: ="Nombre completo"
-                  VerticalAlign: =VerticalAlign.Middle
                   Visible: =varModoMae = "editar"
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
@@ -664,7 +601,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: ="Departamento"
-                  VerticalAlign: =VerticalAlign.Middle
                   Visible: =varModoMae = "editar"
                   Width: =(Parent.Width - 3*gblE.Pad) / 2
                   Wrap: =false
@@ -696,7 +632,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: ="Distrito"
-                  VerticalAlign: =VerticalAlign.Middle
                   Visible: =varModoMae = "editar"
                   Width: =(Parent.Width - 3*gblE.Pad) / 2
                   Wrap: =false
@@ -728,7 +663,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: ="Trabajo"
-                  VerticalAlign: =VerticalAlign.Middle
                   Visible: =varModoMae = "editar"
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
@@ -758,11 +692,9 @@ Screens:
                   Color: =Color.White
                   DisabledColor: =Color.White
                   DisabledFill: =ColorFade(gblC.teal, 60%)
-                  DisplayMode: |-
-                    =If(IsBlank(Trim(txtNombreMae.Text)), DisplayMode.Disabled, DisplayMode.Edit)
+                  DisplayMode: =If(IsBlank(Trim(txtNombreMae.Text)), DisplayMode.Disabled, DisplayMode.Edit)
                   Fill: =gblC.teal
                   Font: =Font.'Segoe UI'
-                  FontWeight: =FontWeight.Semibold
                   Height: =gblE.AltoBoton
                   HoverFill: =ColorFade(gblC.teal, 10%)
                   OnSelect: |-
@@ -780,10 +712,6 @@ Screens:
                     Set(varCliMae, LookUp('CM | TBL | Clientes', '[CL] CIF' = varCliMae.'[CL] CIF'));
                     Notify("✓ Cliente actualizado", NotificationType.Success, 2500);
                     Set(varModoMae, "ver")
-                  RadiusBottomLeft: =10
-                  RadiusBottomRight: =10
-                  RadiusTopLeft: =10
-                  RadiusTopRight: =10
                   Size: =10
                   Text: ="Guardar cambios"
                   Visible: =varModoMae = "editar"
@@ -800,7 +728,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =8
                   Text: ="AGREGAR TELÉFONO"
-                  VerticalAlign: =VerticalAlign.Middle
                   Visible: =varModoMae = "editar"
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
@@ -848,11 +775,9 @@ Screens:
                   Color: =gblC.teal
                   DisabledColor: =Color.White
                   DisabledFill: =ColorFade(gblC.teal, 60%)
-                  DisplayMode: |-
-                    =If(IsBlank(Trim(txtNuevoTelMae.Text)), DisplayMode.Disabled, DisplayMode.Edit)
+                  DisplayMode: =If(IsBlank(Trim(txtNuevoTelMae.Text)), DisplayMode.Disabled, DisplayMode.Edit)
                   Fill: =gblC.tealSuave
                   Font: =Font.'Segoe UI'
-                  FontWeight: =FontWeight.Semibold
                   Height: =gblE.AltoInput
                   HoverFill: =ColorFade(gblC.tealSuave, 10%)
                   OnSelect: |-
@@ -870,10 +795,6 @@ Screens:
                     ClearCollect(colTelMae, Filter('CM | TBL | Telefonos', '[TL] CIF' = varCliMae.'[CL] CIF'));
                     Reset(txtNuevoTelMae); Reset(cmbTipoTelMae);
                     Notify("✓ Teléfono agregado", NotificationType.Success, 2500)
-                  RadiusBottomLeft: =10
-                  RadiusBottomRight: =10
-                  RadiusTopLeft: =10
-                  RadiusTopRight: =10
                   Size: =10
                   Text: ="＋"
                   Visible: =varModoMae = "editar"
@@ -890,7 +811,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =8
                   Text: ="AGREGAR DIRECCIÓN"
-                  VerticalAlign: =VerticalAlign.Middle
                   Visible: =varModoMae = "editar"
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
@@ -938,11 +858,9 @@ Screens:
                   Color: =gblC.teal
                   DisabledColor: =Color.White
                   DisabledFill: =ColorFade(gblC.teal, 60%)
-                  DisplayMode: |-
-                    =If(IsBlank(Trim(txtNuevaDirMae.Text)), DisplayMode.Disabled, DisplayMode.Edit)
+                  DisplayMode: =If(IsBlank(Trim(txtNuevaDirMae.Text)), DisplayMode.Disabled, DisplayMode.Edit)
                   Fill: =gblC.tealSuave
                   Font: =Font.'Segoe UI'
-                  FontWeight: =FontWeight.Semibold
                   Height: =gblE.AltoInput
                   HoverFill: =ColorFade(gblC.tealSuave, 10%)
                   OnSelect: |-
@@ -958,10 +876,6 @@ Screens:
                     ClearCollect(colDirMae, Filter('CM | TBL | Direccions', '[DR] CIF' = varCliMae.'[CL] CIF'));
                     Reset(txtNuevaDirMae); Reset(cmbTipoDirMae);
                     Notify("✓ Dirección agregada", NotificationType.Success, 2500)
-                  RadiusBottomLeft: =10
-                  RadiusBottomRight: =10
-                  RadiusTopLeft: =10
-                  RadiusTopRight: =10
                   Size: =10
                   Text: ="＋"
                   Visible: =varModoMae = "editar"
@@ -976,20 +890,14 @@ Screens:
                   Color: =gblC.ink2
                   Fill: =gblC.card
                   Font: =Font.'Segoe UI'
-                  FontWeight: =FontWeight.Semibold
                   Height: =gblE.AltoBoton
                   OnSelect: =Set(varModoMae, "ver")
-                  RadiusBottomLeft: =10
-                  RadiusBottomRight: =10
-                  RadiusTopLeft: =10
-                  RadiusTopRight: =10
                   Size: =10
                   Text: ="Volver a la ficha"
                   Visible: =varModoMae = "editar"
                   Width: =Parent.Width - 2*gblE.Pad
                   X: =gblE.Pad
                   Y: =Parent.Height - gblE.AltoBoton - gblE.Pad
-            # ══ MODO CREAR (guía 12 §7) — Visible = varModoMae = "crear" ═════════
             - lblNvCifMae:
                 Control: Label@2.5.1
                 Properties:
@@ -999,7 +907,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: ="CIF *"
-                  VerticalAlign: =VerticalAlign.Middle
                   Visible: =varModoMae = "crear"
                   Width: =(Parent.Width - 3*gblE.Pad) / 2
                   Wrap: =false
@@ -1032,7 +939,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: ="Nombre completo *"
-                  VerticalAlign: =VerticalAlign.Middle
                   Visible: =varModoMae = "crear"
                   Width: =(Parent.Width - 3*gblE.Pad) / 2
                   Wrap: =false
@@ -1064,7 +970,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: ="Departamento"
-                  VerticalAlign: =VerticalAlign.Middle
                   Visible: =varModoMae = "crear"
                   Width: =(Parent.Width - 3*gblE.Pad) / 2
                   Wrap: =false
@@ -1096,7 +1001,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: ="Distrito"
-                  VerticalAlign: =VerticalAlign.Middle
                   Visible: =varModoMae = "crear"
                   Width: =(Parent.Width - 3*gblE.Pad) / 2
                   Wrap: =false
@@ -1128,7 +1032,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: ="Trabajo"
-                  VerticalAlign: =VerticalAlign.Middle
                   Visible: =varModoMae = "crear"
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
@@ -1160,7 +1063,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: ="Teléfono celular"
-                  VerticalAlign: =VerticalAlign.Middle
                   Visible: =varModoMae = "crear"
                   Width: =(Parent.Width - 3*gblE.Pad) / 2
                   Wrap: =false
@@ -1193,7 +1095,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: ="Teléfono casa"
-                  VerticalAlign: =VerticalAlign.Middle
                   Visible: =varModoMae = "crear"
                   Width: =(Parent.Width - 3*gblE.Pad) / 2
                   Wrap: =false
@@ -1225,7 +1126,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: ="Dirección casa"
-                  VerticalAlign: =VerticalAlign.Middle
                   Visible: =varModoMae = "crear"
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
@@ -1257,7 +1157,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: ="Dirección trabajo"
-                  VerticalAlign: =VerticalAlign.Middle
                   Visible: =varModoMae = "crear"
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
@@ -1285,15 +1184,12 @@ Screens:
                 Properties:
                   Color: =gblC.pendInk
                   Font: =Font.'Segoe UI'
-                  Height: =40
                   PaddingLeft: =0
                   Size: =9
-                  Text: |-
-                    ="⚠ El CIF debe ser el del core. Un CIF equivocado duplica el cliente en el próximo import."
+                  Text: ="⚠ El CIF debe ser el del core. Un CIF equivocado duplica el cliente en el próximo import."
                   VerticalAlign: =VerticalAlign.Top
                   Visible: =varModoMae = "crear"
                   Width: =Parent.Width - 2*gblE.Pad
-                  Wrap: =true
                   X: =gblE.Pad
                   Y: =456
             - btnCancelarNvoMae:
@@ -1304,13 +1200,8 @@ Screens:
                   Color: =gblC.ink2
                   Fill: =gblC.card
                   Font: =Font.'Segoe UI'
-                  FontWeight: =FontWeight.Semibold
                   Height: =gblE.AltoBoton
                   OnSelect: =Set(varPanelMae, false)
-                  RadiusBottomLeft: =10
-                  RadiusBottomRight: =10
-                  RadiusTopLeft: =10
-                  RadiusTopRight: =10
                   Size: =10
                   Text: ="Cancelar"
                   Visible: =varModoMae = "crear"
@@ -1329,7 +1220,6 @@ Screens:
                         DisplayMode.Disabled, DisplayMode.Edit)
                   Fill: =gblC.teal
                   Font: =Font.'Segoe UI'
-                  FontWeight: =FontWeight.Semibold
                   Height: =gblE.AltoBoton
                   HoverFill: =ColorFade(gblC.teal, 10%)
                   OnSelect: |-
@@ -1375,17 +1265,12 @@ Screens:
                         Reset(txtDirCasaNvoMae); Reset(txtDirTrabNvoMae);
                         Set(varPanelMae, false)
                     )
-                  RadiusBottomLeft: =10
-                  RadiusBottomRight: =10
-                  RadiusTopLeft: =10
-                  RadiusTopRight: =10
                   Size: =10
                   Text: ="＋ Crear cliente"
                   Visible: =varModoMae = "crear"
                   Width: =(Parent.Width - 3*gblE.Pad) / 2
                   X: =2*gblE.Pad + Self.Width
                   Y: =Parent.Height - gblE.AltoBoton - gblE.Pad
-      # ── Navegación lateral (AL FINAL del árbol — 01 §8.1) ─────────────────────────
       - cmpNavMae:
           Control: CanvasComponent
           ComponentName: cmpNavLateral
@@ -1394,5 +1279,3 @@ Screens:
             RutaActiva: ="mae"
             Visible: =!nfMovil || gblNavMovilAbierta
             Width: =gblE.AnchoNav
-            X: =0
-            Y: =0

@@ -1,9 +1,9 @@
 # ************************************************************************************************
 # Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
 # Use the maker portal to create and edit your Power Apps.
-#
+# 
 # The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
-#
+# 
 # For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
 # ************************************************************************************************
 ComponentDefinitions:
@@ -32,8 +32,6 @@ ComponentDefinitions:
             Fill: =Color.Transparent
             Height: =Parent.Height
             Width: =Parent.Width
-            X: =0
-            Y: =0
           Children:
             - conBarraMovilEncCmp:
                 Control: GroupContainer@1.5.0
@@ -44,8 +42,6 @@ ComponentDefinitions:
                   Height: =gblE.AltoBarra
                   Visible: =nfMovil
                   Width: =Parent.Width
-                  X: =0
-                  Y: =0
                 Children:
                   - icoMenuEncCmp:
                       Control: Classic/Icon@2.5.0
@@ -67,12 +63,9 @@ ComponentDefinitions:
                         PaddingLeft: =0
                         Size: =11
                         Text: =cmpEncabezado.Titulo
-                        VerticalAlign: =VerticalAlign.Middle
-                        Width: |-
-                          =Parent.Width - (gblE.Pad + 24 + gblE.PadSm) - (gblE.Pad + 32 + gblE.PadSm)
+                        Width: =Parent.Width - (gblE.Pad + 24 + gblE.PadSm) - (gblE.Pad + 32 + gblE.PadSm)
                         Wrap: =false
                         X: =gblE.Pad + 24 + gblE.PadSm
-                        Y: =0
                   - conAvatarEncCmp:
                       Control: GroupContainer@1.5.0
                       Variant: ManualLayout
@@ -99,12 +92,8 @@ ComponentDefinitions:
                               PaddingLeft: =0
                               PaddingRight: =0
                               Size: =9
-                              Text: |-
-                                =Concat(FirstN(Split(User().FullName, " "), 2), Left(Value, 1))
-                              VerticalAlign: =VerticalAlign.Middle
+                              Text: =Concat(FirstN(Split(User().FullName, " "), 2), Left(Value, 1))
                               Width: =Parent.Width
-                              X: =0
-                              Y: =0
             - lblTituloEncCmp:
                 Control: Label@2.5.1
                 Properties:
@@ -115,7 +104,6 @@ ComponentDefinitions:
                   PaddingLeft: =0
                   Size: =18
                   Text: =cmpEncabezado.Titulo
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
                   X: =gblE.Pad
@@ -129,7 +117,6 @@ ComponentDefinitions:
                   PaddingLeft: =0
                   Size: =9
                   Text: =cmpEncabezado.Subtitulo
-                  VerticalAlign: =VerticalAlign.Middle
                   Visible: =!IsBlank(Self.Text)
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false

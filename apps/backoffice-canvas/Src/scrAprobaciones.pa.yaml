@@ -1,9 +1,9 @@
 # ************************************************************************************************
 # Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
 # Use the maker portal to create and edit your Power Apps.
-#
+# 
 # The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
-#
+# 
 # For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
 # ************************************************************************************************
 Screens:
@@ -42,24 +42,19 @@ Screens:
         Set(varSelAprb, Blank());
         Set(varPanelAprb, false)
     Children:
-      # ── Encabezado (receta 01 §7.5) ───────────────────────────────────────────────
       - cmpEncAprb:
           Control: CanvasComponent
           ComponentName: cmpEncabezado
           Properties:
             Height: =If(nfMovil, gblE.AltoBarra + 84, 84)
-            Subtitulo: |-
-              ="FIFO — asigná localizador y aprobá, o rechazá con motivo."
+            Subtitulo: ="FIFO — asigná localizador y aprobá, o rechazá con motivo."
             Titulo: ="Aprobaciones pendientes"
             Width: =Parent.Width - Self.X
             X: =If(nfMovil, 0, gblE.AnchoNav)
-            Y: =0
-      # ── Contenido centrado (receta 01 §7.13) ──────────────────────────────────────
       - conContenidoAprb:
           Control: GroupContainer@1.5.0
           Variant: ManualLayout
           Properties:
-            BorderThickness: =0
             DropShadow: =DropShadow.None
             Fill: =Color.Transparent
             Height: =Parent.Height - Self.Y
@@ -69,7 +64,6 @@ Screens:
                   + Max(gblE.Pad, (Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - gblE.AnchoMax) / 2)
             Y: =cmpEncAprb.Y + cmpEncAprb.Height
           Children:
-            # ── Actualizar (ESTILO-BotonFantasma) ─────────────────────────────────
             - btnActualizarAprb:
                 Control: Classic/Button@2.2.0
                 Properties:
@@ -107,31 +101,25 @@ Screens:
                   Text: ="↻ Actualizar"
                   Width: =140
                   X: =Parent.Width - Self.Width - gblE.Pad
-                  Y: =0
-            # ── Cola FIFO (recetas 7.3 + 7.11) ────────────────────────────────────
             - galAprobAprb:
                 Control: Gallery@2.15.0
                 Variant: Vertical
                 Properties:
                   Height: =Parent.Height - Self.Y - gblE.Pad
-                  Items: |-
-                    =Sort(colAprobAprb, '[AS] Fecha de Asignacion', SortOrder.Ascending)
+                  Items: =Sort(colAprobAprb, '[AS] Fecha de Asignacion', SortOrder.Ascending)
                   OnSelect: |-
                     =Set(varSelAprb, ThisItem);
                     Set(varPanelAprb, true);
                     Reset(cmbAgenteAprb);
                     Reset(txtMotRechAprb)
                   ShowScrollbar: =false
-                  TemplateFill: |-
-                    =If(ThisItem.IsSelected, gblC.tealSuave, gblC.card)
+                  TemplateFill: =If(ThisItem.IsSelected, gblC.tealSuave, gblC.card)
                   TemplatePadding: =0
                   TemplateSize: =84
                   Width: =Parent.Width - 2*gblE.Pad
                   X: =gblE.Pad
-                  Y: |-
-                    =btnActualizarAprb.Y + btnActualizarAprb.Height + gblE.PadSm
+                  Y: =btnActualizarAprb.Y + btnActualizarAprb.Height + gblE.PadSm
                 Children:
-                  # overlay clicable — PRIMERO (al fondo del z-order, receta 7.3)
                   - recFilaAprb:
                       Control: Rectangle@2.3.0
                       Properties:
@@ -139,8 +127,6 @@ Screens:
                         Height: =Parent.TemplateHeight
                         OnSelect: =Select(Parent)
                         Width: =Parent.TemplateWidth
-                        X: =0
-                        Y: =0
                   - lblFilaClienteAprb:
                       Control: Label@2.5.1
                       Properties:
@@ -152,9 +138,7 @@ Screens:
                         PaddingLeft: =0
                         Size: =10
                         Text: =ThisItem.clienteAprb
-                        VerticalAlign: =VerticalAlign.Middle
-                        Width: |-
-                          =If(nfMovil, Parent.TemplateWidth - 2*gblE.Pad - 170, Parent.TemplateWidth*0.32)
+                        Width: =If(nfMovil, Parent.TemplateWidth - 2*gblE.Pad - 170, Parent.TemplateWidth*0.32)
                         Wrap: =false
                         X: =gblE.Pad
                         Y: =8
@@ -168,7 +152,6 @@ Screens:
                         PaddingLeft: =0
                         Size: =9
                         Text: =ThisItem.'[AS] NumeroCuenta'
-                        VerticalAlign: =VerticalAlign.Middle
                         Width: =lblFilaClienteAprb.Width
                         Wrap: =false
                         X: =gblE.Pad
@@ -184,7 +167,6 @@ Screens:
                         Size: =8
                         Text: |-
                           ="Pide: " & ThisItem.pideAprb & " · " & Text(ThisItem.'[AS] Fecha de Asignacion', "dd/mm HH:mm")
-                        VerticalAlign: =VerticalAlign.Middle
                         Width: =lblFilaClienteAprb.Width
                         Wrap: =false
                         X: =gblE.Pad
@@ -202,7 +184,6 @@ Screens:
                         VerticalAlign: =VerticalAlign.Top
                         Visible: =!nfMovil
                         Width: =Parent.TemplateWidth*0.36
-                        Wrap: =true
                         X: =Parent.TemplateWidth*0.34
                         Y: =12
                   - lblFilaMontoAprb:
@@ -217,14 +198,10 @@ Screens:
                         PaddingLeft: =0
                         PaddingRight: =0
                         Size: =10
-                        Text: |-
-                          =Moneda(ThisItem.'Retiro NIO', ThisItem.'Retiro USD')
-                        VerticalAlign: =VerticalAlign.Middle
-                        Width: =150
+                        Text: =Moneda(ThisItem.'Retiro NIO', ThisItem.'Retiro USD')
                         Wrap: =false
                         X: =Parent.TemplateWidth - 150 - gblE.Pad
                         Y: =14
-                  # chip dentro de fila clicable: SIN DisplayMode.View (excepción receta 7.2)
                   - chpFilaPendAprb:
                       Control: Classic/Button@2.2.0
                       Properties:
@@ -251,23 +228,20 @@ Screens:
                         Height: =1
                         OnSelect: =Select(Parent)
                         Width: =Parent.TemplateWidth
-                        X: =0
                         Y: =Parent.TemplateHeight - 1
-            # ── Estado vacío (receta 01 §7.12) ────────────────────────────────────
             - cmpVacioAprb:
                 Control: CanvasComponent
                 ComponentName: cmpVacio
                 Properties:
                   Height: =200
-                  Icono: ="🎉"
-                  Mensaje: |-
-                    ="Las solicitudes Especiales nuevas aparecen acá apenas el Solicitante las envía."
+                  Icono: |-
+                    ="🎉"
+                  Mensaje: ="Las solicitudes Especiales nuevas aparecen acá apenas el Solicitante las envía."
                   Titulo: ="Nada por aprobar"
                   Visible: =CountRows(colAprobAprb) = 0
                   Width: =Min(420, Parent.Width - 2*gblE.Pad)
                   X: =(Parent.Width - Self.Width) / 2
                   Y: =galAprobAprb.Y + 80
-      # ── Panel de detalle y resolución (receta 01 §7.4) ────────────────────────────
       - recScrimAprb:
           Control: Rectangle@2.3.0
           Properties:
@@ -276,8 +250,6 @@ Screens:
             OnSelect: =Set(varPanelAprb, false)
             Visible: =varPanelAprb
             Width: =Parent.Width
-            X: =0
-            Y: =0
       - conPanelAprb:
           Control: GroupContainer@1.5.0
           Variant: ManualLayout
@@ -294,7 +266,6 @@ Screens:
             Visible: =varPanelAprb
             Width: =If(nfMovil, Parent.Width, Min(480, Parent.Width * 0.45))
             X: =Parent.Width - Self.Width
-            Y: =0
           Children:
             - lblPanelTituloAprb:
                 Control: Label@2.5.1
@@ -304,10 +275,7 @@ Screens:
                   FontWeight: =FontWeight.Bold
                   Height: =28
                   PaddingLeft: =0
-                  Size: =13
-                  Text: |-
-                    ="Solicitud " & varSelAprb.'[AS] Numero'
-                  VerticalAlign: =VerticalAlign.Middle
+                  Text: ="Solicitud " & varSelAprb.'[AS] Numero'
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
                   X: =gblE.Pad
@@ -322,7 +290,6 @@ Screens:
                   Width: =28
                   X: =Parent.Width - 40
                   Y: =gblE.Pad
-            # ── CUENTA ────────────────────────────────────────────────────────────
             - lblSecCtaAprb:
                 Control: Label@2.5.1
                 Properties:
@@ -333,7 +300,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =8
                   Text: ="CUENTA"
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
                   X: =gblE.Pad
@@ -347,7 +313,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: ="Cliente"
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =130
                   Wrap: =false
                   X: =gblE.Pad
@@ -363,7 +328,6 @@ Screens:
                   PaddingRight: =0
                   Size: =10
                   Text: =varSelAprb.clienteAprb
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =Parent.Width - 2*gblE.Pad - 130
                   Wrap: =false
                   X: =gblE.Pad + 130
@@ -377,7 +341,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: ="Cuenta"
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =130
                   Wrap: =false
                   X: =gblE.Pad
@@ -398,7 +361,6 @@ Screens:
                             LookUp(colCtasAprb,
                                 '[CT] Numero de cuenta' = varSelAprb.'[AS] NumeroCuenta').'Tipo Producto',
                             "—")
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =Parent.Width - 2*gblE.Pad - 130
                   Wrap: =false
                   X: =gblE.Pad + 130
@@ -412,7 +374,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: ="Saldo vencido"
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =130
                   Wrap: =false
                   X: =gblE.Pad
@@ -433,12 +394,10 @@ Screens:
                         {_c: LookUp(colCtasAprb,
                             '[CT] Numero de cuenta' = varSelAprb.'[AS] NumeroCuenta')},
                         Moneda(_c.'[CT] Saldo Vencido NIO', _c.'[CT] Saldo Vencido USD'))
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =Parent.Width - 2*gblE.Pad - 130
                   Wrap: =false
                   X: =gblE.Pad + 130
                   Y: =134
-            # ── SOLICITUD ─────────────────────────────────────────────────────────
             - lblSecSolAprb:
                 Control: Label@2.5.1
                 Properties:
@@ -449,7 +408,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =8
                   Text: ="SOLICITUD"
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
                   X: =gblE.Pad
@@ -463,7 +421,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: ="Retiro pedido"
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =130
                   Wrap: =false
                   X: =gblE.Pad
@@ -479,9 +436,7 @@ Screens:
                   PaddingLeft: =0
                   PaddingRight: =0
                   Size: =10
-                  Text: |-
-                    =Moneda(varSelAprb.'Retiro NIO', varSelAprb.'Retiro USD')
-                  VerticalAlign: =VerticalAlign.Middle
+                  Text: =Moneda(varSelAprb.'Retiro NIO', varSelAprb.'Retiro USD')
                   Width: =Parent.Width - 2*gblE.Pad - 130
                   Wrap: =false
                   X: =gblE.Pad + 130
@@ -495,7 +450,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: ="Solicitante"
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =130
                   Wrap: =false
                   X: =gblE.Pad
@@ -510,9 +464,7 @@ Screens:
                   PaddingLeft: =0
                   PaddingRight: =0
                   Size: =10
-                  Text: |-
-                    =varSelAprb.pideAprb & " · " & Text(varSelAprb.'[AS] Fecha de Asignacion', "dd/mm HH:mm")
-                  VerticalAlign: =VerticalAlign.Middle
+                  Text: =varSelAprb.pideAprb & " · " & Text(varSelAprb.'[AS] Fecha de Asignacion', "dd/mm HH:mm")
                   Width: =Parent.Width - 2*gblE.Pad - 130
                   Wrap: =false
                   X: =gblE.Pad + 130
@@ -521,7 +473,6 @@ Screens:
                 Control: GroupContainer@1.5.0
                 Variant: ManualLayout
                 Properties:
-                  BorderThickness: =0
                   DropShadow: =DropShadow.None
                   Fill: =gblC.pantalla
                   Height: =lblNotasAprb.Height + 2*gblE.PadSm
@@ -544,10 +495,8 @@ Screens:
                         Text: =varSelAprb.Notas
                         VerticalAlign: =VerticalAlign.Top
                         Width: =Parent.Width - 2*gblE.PadSm
-                        Wrap: =true
                         X: =gblE.PadSm
                         Y: =gblE.PadSm
-            # ── RESOLUCIÓN ────────────────────────────────────────────────────────
             - lblSecResAprb:
                 Control: Label@2.5.1
                 Properties:
@@ -558,7 +507,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =8
                   Text: ="RESOLUCIÓN"
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
                   X: =gblE.Pad
@@ -572,9 +520,7 @@ Screens:
                   Height: =18
                   PaddingLeft: =0
                   Size: =9
-                  Text: |-
-                    ="Localizador * (requerido para aprobar)"
-                  VerticalAlign: =VerticalAlign.Middle
+                  Text: ="Localizador * (requerido para aprobar)"
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
                   X: =gblE.Pad
@@ -584,16 +530,12 @@ Screens:
                 Properties:
                   BorderColor: =gblC.borde
                   DefaultSelectedItems: =Blank()
-                  DisplayFields: |-
-                    =["sanic_cm_ag_nombre"]
+                  DisplayFields: =["sanic_cm_ag_nombre"]
                   Fill: =gblC.card
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
-                  IsSearchable: =true
-                  Items: |-
-                    =Filter(colAgentesAprb, !IsBlank('Email Usuario'))
-                  SearchFields: |-
-                    =["sanic_cm_ag_nombre"]
+                  Items: =Filter(colAgentesAprb, !IsBlank('Email Usuario'))
+                  SearchFields: =["sanic_cm_ag_nombre"]
                   SelectMultiple: =false
                   Size: =10
                   Width: =Parent.Width - 2*gblE.Pad
@@ -608,14 +550,11 @@ Screens:
                   Height: =18
                   PaddingLeft: =0
                   Size: =9
-                  Text: |-
-                    ="Motivo de rechazo (requerido para rechazar)"
-                  VerticalAlign: =VerticalAlign.Middle
+                  Text: ="Motivo de rechazo (requerido para rechazar)"
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
                   X: =gblE.Pad
-                  Y: |-
-                    =cmbAgenteAprb.Y + cmbAgenteAprb.Height + gblE.PadSm
+                  Y: =cmbAgenteAprb.Y + cmbAgenteAprb.Height + gblE.PadSm
             - txtMotRechAprb:
                 Control: Classic/TextInput@2.3.2
                 Properties:
@@ -633,7 +572,6 @@ Screens:
                   Width: =Parent.Width - 2*gblE.Pad
                   X: =gblE.Pad
                   Y: =lblMotKAprb.Y + 20
-            # ── Pie del panel ─────────────────────────────────────────────────────
             - btnRechazarAprb:
                 Control: Classic/Button@2.2.0
                 Properties:
@@ -641,11 +579,9 @@ Screens:
                   Color: =gblC.redInk
                   DisabledColor: =Color.White
                   DisabledFill: =ColorFade(gblC.redBg, 60%)
-                  DisplayMode: |-
-                    =If(!IsBlank(Trim(txtMotRechAprb.Text)), DisplayMode.Edit, DisplayMode.Disabled)
+                  DisplayMode: =If(!IsBlank(Trim(txtMotRechAprb.Text)), DisplayMode.Edit, DisplayMode.Disabled)
                   Fill: =gblC.redBg
                   Font: =Font.'Segoe UI'
-                  FontWeight: =FontWeight.Semibold
                   Height: =gblE.AltoBoton
                   HoverFill: =ColorFade(gblC.redBg, 10%)
                   OnSelect: |-
@@ -662,10 +598,6 @@ Screens:
                     Set(varPanelAprb, false);
                     Set(varSelAprb, Blank());
                     Notify("Solicitud rechazada", NotificationType.Warning)
-                  RadiusBottomLeft: =10
-                  RadiusBottomRight: =10
-                  RadiusTopLeft: =10
-                  RadiusTopRight: =10
                   Size: =10
                   Text: ="Rechazar"
                   Width: =(Parent.Width - 3*gblE.Pad)/2
@@ -678,11 +610,9 @@ Screens:
                   Color: =Color.White
                   DisabledColor: =Color.White
                   DisabledFill: =ColorFade(gblC.teal, 60%)
-                  DisplayMode: |-
-                    =If(!IsBlank(cmbAgenteAprb.Selected), DisplayMode.Edit, DisplayMode.Disabled)
+                  DisplayMode: =If(!IsBlank(cmbAgenteAprb.Selected), DisplayMode.Edit, DisplayMode.Disabled)
                   Fill: =gblC.teal
                   Font: =Font.'Segoe UI'
-                  FontWeight: =FontWeight.Semibold
                   Height: =gblE.AltoBoton
                   HoverFill: =ColorFade(gblC.teal, 10%)
                   OnSelect: |-
@@ -706,17 +636,11 @@ Screens:
                     Notify("✓ Aprobada — asignada a " & cmbAgenteAprb.Selected.'[AG] Nombre' &
                         ". El flujo de owner la baja al celular del localizador.",
                         NotificationType.Success, 2500)
-                  RadiusBottomLeft: =10
-                  RadiusBottomRight: =10
-                  RadiusTopLeft: =10
-                  RadiusTopRight: =10
                   Size: =10
                   Text: ="✓ Aprobar y asignar"
                   Width: =btnRechazarAprb.Width
-                  X: |-
-                    =btnRechazarAprb.X + btnRechazarAprb.Width + gblE.Pad
+                  X: =btnRechazarAprb.X + btnRechazarAprb.Width + gblE.Pad
                   Y: =btnRechazarAprb.Y
-      # ── Navegación lateral (AL FINAL del árbol — 01 §8.1) ─────────────────────────
       - cmpNavAprb:
           Control: CanvasComponent
           ComponentName: cmpNavLateral
@@ -725,5 +649,3 @@ Screens:
             RutaActiva: ="aprb"
             Visible: =!nfMovil || gblNavMovilAbierta
             Width: =gblE.AnchoNav
-            X: =0
-            Y: =0

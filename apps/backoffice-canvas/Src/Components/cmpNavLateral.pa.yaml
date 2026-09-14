@@ -1,9 +1,9 @@
 # ************************************************************************************************
 # Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
 # Use the maker portal to create and edit your Power Apps.
-#
+# 
 # The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
-#
+# 
 # For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
 # ************************************************************************************************
 ComponentDefinitions:
@@ -29,8 +29,6 @@ ComponentDefinitions:
             Fill: =gblC.teal
             Height: =Parent.Height
             Width: =Parent.Width
-            X: =0
-            Y: =0
           Children:
             - conMarcaNavCmp:
                 Control: GroupContainer@1.5.0
@@ -40,8 +38,6 @@ ComponentDefinitions:
                   Fill: =Color.Transparent
                   Height: =gblE.AltoBarra + gblE.Pad
                   Width: =Parent.Width
-                  X: =0
-                  Y: =0
                 Children:
                   - conLogoNavCmp:
                       Control: GroupContainer@1.5.0
@@ -70,10 +66,7 @@ ComponentDefinitions:
                               PaddingRight: =0
                               Size: =15
                               Text: ="₡"
-                              VerticalAlign: =VerticalAlign.Middle
                               Width: =Parent.Width
-                              X: =0
-                              Y: =0
                   - lblMarcaNavCmp:
                       Control: Label@2.5.1
                       Properties:
@@ -84,7 +77,6 @@ ComponentDefinitions:
                         PaddingLeft: =0
                         Size: =11
                         Text: ="Cobranza Móvil"
-                        VerticalAlign: =VerticalAlign.Middle
                         Width: =Parent.Width - (gblE.Pad + 40 + gblE.PadSm) - gblE.PadSm
                         Wrap: =false
                         X: =gblE.Pad + 40 + gblE.PadSm
@@ -99,7 +91,6 @@ ComponentDefinitions:
                         PaddingLeft: =0
                         Size: =8
                         Text: ="BACKOFFICE"
-                        VerticalAlign: =VerticalAlign.Middle
                         Width: =Parent.Width - (gblE.Pad + 40 + gblE.PadSm) - gblE.PadSm
                         Wrap: =false
                         X: =gblE.Pad + 40 + gblE.PadSm
@@ -108,8 +99,7 @@ ComponentDefinitions:
                 Control: Gallery@2.15.0
                 Variant: Vertical
                 Properties:
-                  Height: |-
-                    =Parent.Height - (gblE.AltoBarra + gblE.Pad) - (gblE.AltoFila + gblE.PadSm)
+                  Height: =Parent.Height - (gblE.AltoBarra + gblE.Pad) - (gblE.AltoFila + gblE.PadSm)
                   Items: |-
                     =SortByColumns(
                         Filter(colNav, CountRows(Filter(Split(Roles, "|"), Value in gblRol)) > 0),
@@ -131,12 +121,10 @@ ComponentDefinitions:
                     );
                     Set(gblNavMovilAbierta, false)
                   ShowScrollbar: =false
-                  TemplateFill: |-
-                    =If(ThisItem.Ruta = cmpNavLateral.RutaActiva, gblC.blancoTr, Color.Transparent)
+                  TemplateFill: =If(ThisItem.Ruta = cmpNavLateral.RutaActiva, gblC.blancoTr, Color.Transparent)
                   TemplatePadding: =0
                   TemplateSize: =44
                   Width: =Parent.Width
-                  X: =0
                   Y: =gblE.AltoBarra + gblE.Pad
                 Children:
                   - lblIconoNavCmp:
@@ -150,29 +138,23 @@ ComponentDefinitions:
                         PaddingRight: =0
                         Size: =11
                         Text: =ThisItem.Icono
-                        VerticalAlign: =VerticalAlign.Middle
                         Width: =24
                         Wrap: =false
                         X: =gblE.Pad
-                        Y: =0
                   - lblTituloNavCmp:
                       Control: Label@2.5.1
                       Properties:
                         Color: =Color.White
                         Font: =Font.'Segoe UI'
-                        FontWeight: |-
-                          =If(ThisItem.Ruta = cmpNavLateral.RutaActiva, FontWeight.Bold, FontWeight.Normal)
+                        FontWeight: =If(ThisItem.Ruta = cmpNavLateral.RutaActiva, FontWeight.Bold, FontWeight.Normal)
                         Height: =Parent.TemplateHeight
                         OnSelect: =Select(Parent)
                         PaddingLeft: =0
                         Size: =10
                         Text: =ThisItem.Titulo
-                        VerticalAlign: =VerticalAlign.Middle
-                        Width: |-
-                          =Parent.TemplateWidth - (gblE.Pad + 24 + gblE.PadSm) - gblE.PadSm
+                        Width: =Parent.TemplateWidth - (gblE.Pad + 24 + gblE.PadSm) - gblE.PadSm
                         Wrap: =false
                         X: =gblE.Pad + 24 + gblE.PadSm
-                        Y: =0
             - conPieNavCmp:
                 Control: GroupContainer@1.5.0
                 Variant: ManualLayout
@@ -181,7 +163,6 @@ ComponentDefinitions:
                   Fill: =Color.Transparent
                   Height: =gblE.AltoFila + gblE.PadSm
                   Width: =Parent.Width
-                  X: =0
                   Y: =Parent.Height - (gblE.AltoFila + gblE.PadSm)
                 Children:
                   - conSepPieNavCmp:
@@ -193,7 +174,6 @@ ComponentDefinitions:
                         Height: =1
                         Width: =Parent.Width - 2*gblE.Pad
                         X: =gblE.Pad
-                        Y: =0
                   - conAvatarNavCmp:
                       Control: GroupContainer@1.5.0
                       Variant: ManualLayout
@@ -220,12 +200,8 @@ ComponentDefinitions:
                               PaddingLeft: =0
                               PaddingRight: =0
                               Size: =10
-                              Text: |-
-                                =Concat(FirstN(Split(User().FullName, " "), 2), Left(Value, 1))
-                              VerticalAlign: =VerticalAlign.Middle
+                              Text: =Concat(FirstN(Split(User().FullName, " "), 2), Left(Value, 1))
                               Width: =Parent.Width
-                              X: =0
-                              Y: =0
                   - lblNombreNavCmp:
                       Control: Label@2.5.1
                       Properties:
@@ -236,7 +212,6 @@ ComponentDefinitions:
                         PaddingLeft: =0
                         Size: =9
                         Text: =User().FullName
-                        VerticalAlign: =VerticalAlign.Middle
                         Width: =Parent.Width - (gblE.Pad + 36 + gblE.PadSm) - gblE.PadSm
                         Wrap: =false
                         X: =gblE.Pad + 36 + gblE.PadSm
@@ -249,9 +224,7 @@ ComponentDefinitions:
                         Height: =16
                         PaddingLeft: =0
                         Size: =8
-                        Text: |-
-                          =If(IsBlank(gblRol), "Sin acceso", Substitute(gblRol, "|", " · "))
-                        VerticalAlign: =VerticalAlign.Middle
+                        Text: =If(IsBlank(gblRol), "Sin acceso", Substitute(gblRol, "|", " · "))
                         Width: =Parent.Width - (gblE.Pad + 36 + gblE.PadSm) - gblE.PadSm
                         Wrap: =false
                         X: =gblE.Pad + 36 + gblE.PadSm

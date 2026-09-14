@@ -1,9 +1,9 @@
 # ************************************************************************************************
 # Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
 # Use the maker portal to create and edit your Power Apps.
-#
+# 
 # The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
-#
+# 
 # For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
 # ************************************************************************************************
 Screens:
@@ -16,24 +16,19 @@ Screens:
         // Sort sobre columna escalar delega — una sola llamada a Dataverse por visita.
         ClearCollect(colAgentesAge, Sort('CM | TBL | Agentes', '[AG] Nombre'))
     Children:
-      # ── Encabezado (receta 01 §7.5) ───────────────────────────────────────────────
       - cmpEncabezadoAge:
           Control: CanvasComponent
           ComponentName: cmpEncabezado
           Properties:
             Height: =If(nfMovil, gblE.AltoBarra + 84, 84)
-            Subtitulo: |-
-              ="Ligá cada localizador a su usuario. Sin usuario = no entra a la app del celular."
+            Subtitulo: ="Ligá cada localizador a su usuario. Sin usuario = no entra a la app del celular."
             Titulo: ="Agentes y usuarios"
             Width: =Parent.Width - Self.X
             X: =If(nfMovil, 0, gblE.AnchoNav)
-            Y: =0
-      # ── Contenido centrado (receta 01 §7.13) ──────────────────────────────────────
       - conContenidoAge:
           Control: GroupContainer@1.5.0
           Variant: ManualLayout
           Properties:
-            BorderThickness: =0
             DropShadow: =DropShadow.None
             Fill: =Color.Transparent
             Height: =Parent.Height - Self.Y - gblE.Pad
@@ -43,7 +38,6 @@ Screens:
                   + Max(gblE.Pad, (Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - gblE.AnchoMax) / 2)
             Y: =cmpEncabezadoAge.Y + cmpEncabezadoAge.Height
           Children:
-            # ── Actualizar (ESTILO-BotonFantasma) ─────────────────────────────────
             - btnActualizarAge:
                 Control: Classic/Button@2.2.0
                 Properties:
@@ -52,29 +46,19 @@ Screens:
                   Color: =gblC.ink2
                   Fill: =gblC.card
                   Font: =Font.'Segoe UI'
-                  FontWeight: =FontWeight.Semibold
                   Height: =gblE.AltoBoton
                   HoverFill: =ColorFade(gblC.card, 10%)
                   OnSelect: |-
                     =ClearCollect(colAgentesAge, Sort('CM | TBL | Agentes', '[AG] Nombre'));
                     Notify("Lista actualizada", NotificationType.Success, 2000)
-                  RadiusBottomLeft: =10
-                  RadiusBottomRight: =10
-                  RadiusTopLeft: =10
-                  RadiusTopRight: =10
                   Size: =10
                   Text: ="↻ Actualizar"
                   Width: =150
                   X: =Parent.Width - Self.Width
-                  Y: =0
-            # ── Card de alerta: agentes activos SIN usuario vinculado ─────────────
-            # Esta vista debe quedar VACÍA antes de operar: sin usuario el agente no entra
-            # a la app del celular y Comp-14 no aísla sus asignaciones.
             - conAlertaAge:
                 Control: GroupContainer@1.5.0
                 Variant: ManualLayout
                 Properties:
-                  BorderThickness: =0
                   DropShadow: =DropShadow.None
                   Fill: =gblC.pendBg
                   Height: =96
@@ -82,12 +66,9 @@ Screens:
                   RadiusBottomRight: =gblE.Radio
                   RadiusTopLeft: =gblE.Radio
                   RadiusTopRight: =gblE.Radio
-                  Visible: |-
-                    =CountRows(Filter(colAgentesAge, '[AG] Activo' && IsBlank('[AG] Usuario'))) > 0
+                  Visible: =CountRows(Filter(colAgentesAge, '[AG] Activo' && IsBlank('[AG] Usuario'))) > 0
                   Width: =Parent.Width
-                  X: =0
-                  Y: |-
-                    =btnActualizarAge.Y + btnActualizarAge.Height + gblE.PadSm
+                  Y: =btnActualizarAge.Y + btnActualizarAge.Height + gblE.PadSm
                 Children:
                   - recBordeAlertaAge:
                       Control: Rectangle@2.3.0
@@ -95,8 +76,6 @@ Screens:
                         Fill: =gblC.pendInk
                         Height: =Parent.Height
                         Width: =4
-                        X: =0
-                        Y: =0
                   - lblAlertaTituloAge:
                       Control: Label@2.5.1
                       Properties:
@@ -111,7 +90,6 @@ Screens:
                               CountRows(Filter(colAgentesAge,
                                   '[AG] Activo' && IsBlank('[AG] Usuario'))) &
                               " agente(s) activo(s) sin usuario vinculado"
-                        VerticalAlign: =VerticalAlign.Middle
                         Width: =Parent.Width - 2*gblE.Pad
                         Wrap: =false
                         X: =gblE.Pad
@@ -131,11 +109,8 @@ Screens:
                               ". Esta lista debe estar VACÍA antes de operar: sin usuario no entran a la app del celular y Comp-14 no aísla sus asignaciones."
                         VerticalAlign: =VerticalAlign.Top
                         Width: =Parent.Width - 2*gblE.Pad
-                        Wrap: =true
                         X: =gblE.Pad
-                        Y: |-
-                          =lblAlertaTituloAge.Y + lblAlertaTituloAge.Height + 4
-            # ── Lista de agentes (card, receta 01 §7.1) ───────────────────────────
+                        Y: =lblAlertaTituloAge.Y + lblAlertaTituloAge.Height + 4
             - conListaAge:
                 Control: GroupContainer@1.5.0
                 Variant: ManualLayout
@@ -150,14 +125,11 @@ Screens:
                   RadiusTopLeft: =gblE.Radio
                   RadiusTopRight: =gblE.Radio
                   Width: =Parent.Width
-                  X: =0
                   Y: |-
                     =If(conAlertaAge.Visible,
                         conAlertaAge.Y + conAlertaAge.Height + gblE.Pad,
                         conAlertaAge.Y)
                 Children:
-                  # Filas NO clicables: la galería va SIN OnSelect, ningún hijo lleva
-                  # Select(Parent) y el TemplateFill es plano (receta 7.3 NO aplica).
                   - galAgentesAge:
                       Control: Gallery@2.15.0
                       Variant: Vertical
@@ -182,7 +154,6 @@ Screens:
                               PaddingLeft: =0
                               Size: =11
                               Text: =ThisItem.'[AG] Nombre'
-                              VerticalAlign: =VerticalAlign.Middle
                               Width: |-
                                 =If(nfMovil,
                                     Parent.TemplateWidth - 2*gblE.Pad,
@@ -202,12 +173,10 @@ Screens:
                                 =If(IsBlank(ThisItem.'Email Usuario'),
                                     "sin correo",
                                     ThisItem.'Email Usuario')
-                              VerticalAlign: =VerticalAlign.Middle
                               Width: =lblNombreAge.Width
                               Wrap: =false
                               X: =gblE.Pad
                               Y: =lblNombreAge.Y + lblNombreAge.Height
-                        # ── El vínculo con Entra: el corazón de la pantalla ─────
                         - cmbUsuarioAge:
                             Control: Classic/ComboBox@2.4.0
                             Properties:
@@ -216,13 +185,11 @@ Screens:
                                 =// Si Studio subraya Table(<registro lookup>), la forma equivalente
                                 // documentada es: Filter(Users, 'Primary Email' = ThisItem.'Email Usuario')
                                 If(!IsBlank(ThisItem.'[AG] Usuario'), Table(ThisItem.'[AG] Usuario'))
-                              DisplayFields: |-
-                                =["fullname", "internalemailaddress"]
+                              DisplayFields: =["fullname", "internalemailaddress"]
                               Fill: =gblC.card
                               Font: =Font.'Segoe UI'
                               Height: =gblE.AltoInput
                               InputTextPlaceholder: ="— Sin usuario —"
-                              IsSearchable: =true
                               Items: =Users
                               OnChange: |-
                                 =// Se escriben las DOS columnas SIEMPRE juntas: '[AG] Usuario' (lookup,
@@ -249,28 +216,22 @@ Screens:
                                     Notify("Vínculo quitado", NotificationType.Warning)
                                 );
                                 ClearCollect(colAgentesAge, Sort('CM | TBL | Agentes', '[AG] Nombre'))
-                              SearchFields: |-
-                                =["fullname", "internalemailaddress"]
+                              SearchFields: =["fullname", "internalemailaddress"]
                               SelectMultiple: =false
                               Size: =10
                               Width: |-
                                 =If(nfMovil,
                                     Parent.TemplateWidth - 2*gblE.Pad,
                                     Parent.TemplateWidth*30%)
-                              X: |-
-                                =If(nfMovil, gblE.Pad, Parent.TemplateWidth*32%)
-                              Y: |-
-                                =If(nfMovil, 54, (Parent.TemplateSize - gblE.AltoInput)/2)
-                        # ── Chips (receta 7.2 — fila NO clicable → DisplayMode.View) ──
+                              X: =If(nfMovil, gblE.Pad, Parent.TemplateWidth*32%)
+                              Y: =If(nfMovil, 54, (Parent.TemplateSize - gblE.AltoInput)/2)
                         - chpVinculoAge:
                             Control: Classic/Button@2.2.0
                             Properties:
                               BorderThickness: =0
-                              Color: |-
-                                =If(IsBlank(ThisItem.'[AG] Usuario'), gblC.redInk, gblC.okInk)
+                              Color: =If(IsBlank(ThisItem.'[AG] Usuario'), gblC.redInk, gblC.okInk)
                               DisplayMode: =DisplayMode.View
-                              Fill: |-
-                                =If(IsBlank(ThisItem.'[AG] Usuario'), gblC.redBg, gblC.okBg)
+                              Fill: =If(IsBlank(ThisItem.'[AG] Usuario'), gblC.redBg, gblC.okBg)
                               Font: =Font.'Segoe UI'
                               FontWeight: =FontWeight.Bold
                               Height: =26
@@ -279,22 +240,17 @@ Screens:
                               RadiusTopLeft: =8
                               RadiusTopRight: =8
                               Size: =8
-                              Text: |-
-                                =If(IsBlank(ThisItem.'[AG] Usuario'), "Sin usuario", "✓ Vinculado")
+                              Text: =If(IsBlank(ThisItem.'[AG] Usuario'), "Sin usuario", "✓ Vinculado")
                               Width: =14 + 7*Len(Self.Text)
-                              X: |-
-                                =If(nfMovil, gblE.Pad, Parent.TemplateWidth*64% + gblE.PadSm)
-                              Y: |-
-                                =If(nfMovil, 106, (Parent.TemplateSize - Self.Height)/2)
+                              X: =If(nfMovil, gblE.Pad, Parent.TemplateWidth*64% + gblE.PadSm)
+                              Y: =If(nfMovil, 106, (Parent.TemplateSize - Self.Height)/2)
                         - chpEstadoAge:
                             Control: Classic/Button@2.2.0
                             Properties:
                               BorderThickness: =0
-                              Color: |-
-                                =If(ThisItem.'[AG] Activo', gblC.ink2, gblC.redInk)
+                              Color: =If(ThisItem.'[AG] Activo', gblC.ink2, gblC.redInk)
                               DisplayMode: =DisplayMode.View
-                              Fill: |-
-                                =If(ThisItem.'[AG] Activo', gblC.hairline, gblC.redBg)
+                              Fill: =If(ThisItem.'[AG] Activo', gblC.hairline, gblC.redBg)
                               Font: =Font.'Segoe UI'
                               FontWeight: =FontWeight.Bold
                               Height: =26
@@ -303,24 +259,18 @@ Screens:
                               RadiusTopLeft: =8
                               RadiusTopRight: =8
                               Size: =8
-                              Text: |-
-                                =If(ThisItem.'[AG] Activo', "Activo", "Inactivo")
+                              Text: =If(ThisItem.'[AG] Activo', "Activo", "Inactivo")
                               Width: =14 + 7*Len(Self.Text)
-                              X: |-
-                                =chpVinculoAge.X + chpVinculoAge.Width + gblE.PadSm
+                              X: =chpVinculoAge.X + chpVinculoAge.Width + gblE.PadSm
                               Y: =chpVinculoAge.Y
                         - btnToggleAge:
                             Control: Classic/Button@2.2.0
                             Properties:
                               BorderColor: =gblC.borde
-                              BorderThickness: |-
-                                =If(ThisItem.'[AG] Activo', 1, 0)
-                              Color: |-
-                                =If(ThisItem.'[AG] Activo', gblC.ink2, gblC.teal)
-                              Fill: |-
-                                =If(ThisItem.'[AG] Activo', gblC.card, gblC.tealSuave)
+                              BorderThickness: =If(ThisItem.'[AG] Activo', 1, 0)
+                              Color: =If(ThisItem.'[AG] Activo', gblC.ink2, gblC.teal)
+                              Fill: =If(ThisItem.'[AG] Activo', gblC.card, gblC.tealSuave)
                               Font: =Font.'Segoe UI'
-                              FontWeight: =FontWeight.Semibold
                               Height: =34
                               OnSelect: |-
                                 =// El If del Notify lee el valor VIEJO de ThisItem (el Patch ya lo invirtió
@@ -333,40 +283,31 @@ Screens:
                                 Notify(ThisItem.'[AG] Nombre' & If(ThisItem.'[AG] Activo', " desactivado", " activado"),
                                     NotificationType.Success, 2500);
                                 ClearCollect(colAgentesAge, Sort('CM | TBL | Agentes', '[AG] Nombre'))
-                              RadiusBottomLeft: =10
-                              RadiusBottomRight: =10
-                              RadiusTopLeft: =10
-                              RadiusTopRight: =10
                               Size: =10
-                              Text: |-
-                                =If(ThisItem.'[AG] Activo', "Desactivar", "Activar")
+                              Text: =If(ThisItem.'[AG] Activo', "Desactivar", "Activar")
                               Width: =110
                               X: =Parent.TemplateWidth - Self.Width - gblE.Pad
-                              Y: |-
-                                =If(nfMovil, 102, (Parent.TemplateSize - Self.Height)/2)
+                              Y: =If(nfMovil, 102, (Parent.TemplateSize - Self.Height)/2)
                         - recSepAge:
                             Control: Rectangle@2.3.0
                             Properties:
                               Fill: =gblC.hairline
                               Height: =1
                               Width: =Parent.TemplateWidth
-                              X: =0
                               Y: =Parent.TemplateHeight - 1
-                  # ── Estado vacío (receta 01 §7.12) ──────────────────────────────
                   - cmpVacioAge:
                       Control: CanvasComponent
                       ComponentName: cmpVacio
                       Properties:
                         Height: =200
-                        Icono: ="🏍️"
-                        Mensaje: |-
-                          ="El import diario todavía no creó localizadores."
+                        Icono: |-
+                          ="🏍️"
+                        Mensaje: ="El import diario todavía no creó localizadores."
                         Titulo: ="Sin agentes"
                         Visible: =CountRows(colAgentesAge) = 0
                         Width: =Min(420, Parent.Width - 2*gblE.Pad)
                         X: =(Parent.Width - Self.Width) / 2
                         Y: =(Parent.Height - Self.Height) / 2
-            # ── Advertencia al pie ────────────────────────────────────────────────
             - lblAdvertenciaAge:
                 Control: Label@2.5.1
                 Properties:
@@ -375,15 +316,9 @@ Screens:
                   Height: =28
                   PaddingLeft: =0
                   Size: =9
-                  Text: |-
-                    ="Desactivar un agente NO cierra sus asignaciones — eso se hace en Cierres/Reconciliación."
-                  VerticalAlign: =VerticalAlign.Middle
+                  Text: ="Desactivar un agente NO cierra sus asignaciones — eso se hace en Cierres/Reconciliación."
                   Width: =Parent.Width
-                  Wrap: =true
-                  X: =0
-                  Y: |-
-                    =conListaAge.Y + conListaAge.Height + gblE.PadSm
-      # ── Navegación lateral (AL FINAL del árbol — 01 §8.1) ─────────────────────────
+                  Y: =conListaAge.Y + conListaAge.Height + gblE.PadSm
       - cmpNavAge:
           Control: CanvasComponent
           ComponentName: cmpNavLateral
@@ -392,5 +327,3 @@ Screens:
             RutaActiva: ="age"
             Visible: =!nfMovil || gblNavMovilAbierta
             Width: =gblE.AnchoNav
-            X: =0
-            Y: =0

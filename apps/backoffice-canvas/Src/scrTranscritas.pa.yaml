@@ -1,9 +1,9 @@
 # ************************************************************************************************
 # Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
 # Use the maker portal to create and edit your Power Apps.
-#
+# 
 # The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
-#
+# 
 # For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
 # ************************************************************************************************
 Screens:
@@ -57,19 +57,15 @@ Screens:
         Set(varSelTsc, Blank());
         Set(varPanelTsc, false)
     Children:
-      # ── Encabezado (receta 01 §7.5) ───────────────────────────────────────────────
       - cmpEncTsc:
           Control: CanvasComponent
           ComponentName: cmpEncabezado
           Properties:
             Height: =If(nfMovil, gblE.AltoBarra + 84, 84)
-            Subtitulo: |-
-              ="Tu arqueo del día — código grabado y auditoría sellada."
+            Subtitulo: ="Tu arqueo del día — código grabado y auditoría sellada."
             Titulo: ="Transcritas hoy"
             Width: =Parent.Width - Self.X
             X: =If(nfMovil, 0, gblE.AnchoNav)
-            Y: =0
-      # ── Botón Actualizar (ESTILO-BotonFantasma) ──────────────────────────────────
       - btnActualizarTsc:
           Control: Classic/Button@2.2.0
           Properties:
@@ -117,12 +113,10 @@ Screens:
             Width: =140
             X: =conKpisTsc.X + conKpisTsc.Width - Self.Width
             Y: =cmpEncTsc.Y + (cmpEncTsc.Height - Self.Height)/2
-      # ── KPIs (receta 7.13 — contenido centrado) ──────────────────────────────────
       - conKpisTsc:
           Control: GroupContainer@1.5.0
           Variant: ManualLayout
           Properties:
-            BorderThickness: =0
             DropShadow: =DropShadow.None
             Fill: =Color.Transparent
             Height: =If(nfMovil, 2*96 + gblE.PadSm, 96)
@@ -142,8 +136,6 @@ Screens:
                   Height: =96
                   Valor: =Text(CountRows(colTscTsc))
                   Width: =If(nfMovil, Parent.Width, (Parent.Width - gblE.PadSm)/2)
-                  X: =0
-                  Y: =0
             - cmpKpiPagosTsc:
                 Control: CanvasComponent
                 ComponentName: cmpKpi
@@ -159,7 +151,6 @@ Screens:
                   Width: =If(nfMovil, Parent.Width, (Parent.Width - gblE.PadSm)/2)
                   X: =If(nfMovil, 0, cmpKpiTransTsc.Width + gblE.PadSm)
                   Y: =If(nfMovil, 96 + gblE.PadSm, 0)
-      # ── Lista del arqueo (card, receta 7.1) ──────────────────────────────────────
       - conListaTsc:
           Control: GroupContainer@1.5.0
           Variant: ManualLayout
@@ -192,17 +183,13 @@ Screens:
                   X: =gblE.Pad
                   Y: =gblE.PadSm
                 Children:
-                  # Overlay clicable al FONDO (receta 7.3)
                   - recFilaTsc:
                       Control: Rectangle@2.3.0
                       Properties:
-                        BorderThickness: =0
                         Fill: =Color.Transparent
                         Height: =Parent.TemplateHeight
                         OnSelect: =Select(Parent)
                         Width: =Parent.TemplateWidth
-                        X: =0
-                        Y: =0
                   - lblClienteTsc:
                       Control: Label@2.5.1
                       Properties:
@@ -214,9 +201,7 @@ Screens:
                         PaddingLeft: =0
                         Size: =10
                         Text: =ThisItem.clienteTsc
-                        VerticalAlign: =VerticalAlign.Middle
-                        Width: |-
-                          =If(nfMovil, Parent.TemplateWidth*0.55, Parent.TemplateWidth*0.32)
+                        Width: =If(nfMovil, Parent.TemplateWidth*0.55, Parent.TemplateWidth*0.32)
                         Wrap: =false
                         X: =gblE.PadSm
                         Y: =6
@@ -229,9 +214,7 @@ Screens:
                         OnSelect: =Select(Parent)
                         PaddingLeft: =0
                         Size: =9
-                        Text: |-
-                          =ThisItem.'[IN] Numerocuenta' & " · " & ThisItem.prodTsc
-                        VerticalAlign: =VerticalAlign.Middle
+                        Text: =ThisItem.'[IN] Numerocuenta' & " · " & ThisItem.prodTsc
                         Width: =lblClienteTsc.Width
                         Wrap: =false
                         X: =gblE.PadSm
@@ -247,7 +230,6 @@ Screens:
                         Size: =8
                         Text: |-
                           ="🏍️ " & ThisItem.'[IN] NombreAgente' & " · " & Text(ThisItem.'Fecha de captura', "HH:mm")
-                        VerticalAlign: =VerticalAlign.Middle
                         Width: =lblClienteTsc.Width
                         Wrap: =false
                         X: =gblE.PadSm
@@ -262,13 +244,10 @@ Screens:
                         PaddingLeft: =0
                         Size: =9
                         Text: =ThisItem.'[IN] Comentario'
-                        VerticalAlign: =VerticalAlign.Middle
                         Visible: =!nfMovil
                         Width: =Parent.TemplateWidth*0.32
                         Wrap: =false
                         X: =Parent.TemplateWidth*0.34
-                        Y: =0
-                  # Chips: DENTRO de fila clicable → SIN DisplayMode.View (excepción 7.2 / R2-11)
                   - chpDatosTsc:
                       Control: Classic/Button@2.2.0
                       Properties:
@@ -287,8 +266,7 @@ Screens:
                         Text: ="✏️ Datos nuevos"
                         Visible: =ThisItem.'[IN] Actualiza info'
                         Width: =14 + 7*Len(Self.Text)
-                        X: |-
-                          =chpGrabTsc.X - If(chpPagoTsc.Visible, chpPagoTsc.Width + 6, 0) - Self.Width - 6
+                        X: =chpGrabTsc.X - If(chpPagoTsc.Visible, chpPagoTsc.Width + 6, 0) - Self.Width - 6
                         Y: =chpGrabTsc.Y
                   - chpPagoTsc:
                       Control: Classic/Button@2.2.0
@@ -326,8 +304,7 @@ Screens:
                         RadiusTopLeft: =8
                         RadiusTopRight: =8
                         Size: =8
-                        Text: |-
-                          ="✓ Grabada · " & ThisItem.'[IN] Codigo Grabacion'
+                        Text: ="✓ Grabada · " & ThisItem.'[IN] Codigo Grabacion'
                         Width: =14 + 7*Len(Self.Text)
                         X: =Parent.TemplateWidth - Self.Width - gblE.PadSm
                         Y: =(Parent.TemplateHeight - Self.Height)/2
@@ -338,33 +315,27 @@ Screens:
                         Height: =1
                         OnSelect: =Select(Parent)
                         Width: =Parent.TemplateWidth
-                        X: =0
                         Y: =Parent.TemplateHeight - 1
             - cmpVacioTsc:
                 Control: CanvasComponent
                 ComponentName: cmpVacio
                 Properties:
                   Height: =140
-                  Icono: ="🗒️"
-                  Mensaje: |-
-                    ="Lo que transcribas hoy aparece acá — tu arqueo del día."
+                  Icono: |-
+                    ="🗒️"
+                  Mensaje: ="Lo que transcribas hoy aparece acá — tu arqueo del día."
                   Titulo: ="Nada todavía."
                   Visible: =CountRows(colTscTsc) = 0
                   Width: =Parent.Width
-                  X: =0
                   Y: =(Parent.Height - Self.Height)/2
-      # ── Panel de detalle LECTURA (receta 7.4) ────────────────────────────────────
       - recScrimTsc:
           Control: Rectangle@2.3.0
           Properties:
-            BorderThickness: =0
             Fill: =gblC.scrim
             Height: =Parent.Height
             OnSelect: =Set(varPanelTsc, false)
             Visible: =varPanelTsc
             Width: =Parent.Width
-            X: =0
-            Y: =0
       - conPanelTsc:
           Control: GroupContainer@1.5.0
           Variant: ManualLayout
@@ -381,7 +352,6 @@ Screens:
             Visible: =varPanelTsc
             Width: =If(nfMovil, Parent.Width, Min(480, Parent.Width*0.45))
             X: =Parent.Width - Self.Width
-            Y: =0
           Children:
             - lblTituloPanelTsc:
                 Control: Label@2.5.1
@@ -391,9 +361,7 @@ Screens:
                   FontWeight: =FontWeight.Bold
                   Height: =24
                   PaddingLeft: =0
-                  Size: =13
                   Text: =varSelTsc.'[IN] Numero de Interaccion'
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =Parent.Width - 2*gblE.Pad - 32
                   Wrap: =false
                   X: =gblE.Pad
@@ -427,7 +395,6 @@ Screens:
                   Width: =14 + 7*Len(Self.Text)
                   X: =gblE.Pad
                   Y: =48
-            # ── Sección: gestión de campo ────────────────────────────────────────
             - lblSecCampoTsc:
                 Control: Label@2.5.1
                 Properties:
@@ -438,7 +405,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =8
                   Text: ="GESTIÓN DE CAMPO"
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
                   X: =gblE.Pad
@@ -452,7 +418,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: ="Cliente"
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =110
                   Wrap: =false
                   X: =gblE.Pad
@@ -466,7 +431,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =10
                   Text: =varSelTsc.clienteTsc
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =Parent.Width - gblE.Pad - Self.X
                   Wrap: =false
                   X: =gblE.Pad + 110
@@ -480,7 +444,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: ="CIF"
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =110
                   Wrap: =false
                   X: =gblE.Pad
@@ -494,7 +457,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =10
                   Text: =varSelTsc.cifTsc
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =Parent.Width - gblE.Pad - Self.X
                   Wrap: =false
                   X: =gblE.Pad + 110
@@ -508,7 +470,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: ="Cuenta"
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =110
                   Wrap: =false
                   X: =gblE.Pad
@@ -521,9 +482,7 @@ Screens:
                   Height: =24
                   PaddingLeft: =0
                   Size: =10
-                  Text: |-
-                    =varSelTsc.'[IN] Numerocuenta' & " · " & varSelTsc.prodTsc
-                  VerticalAlign: =VerticalAlign.Middle
+                  Text: =varSelTsc.'[IN] Numerocuenta' & " · " & varSelTsc.prodTsc
                   Width: =Parent.Width - gblE.Pad - Self.X
                   Wrap: =false
                   X: =gblE.Pad + 110
@@ -537,7 +496,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: ="Localizador"
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =110
                   Wrap: =false
                   X: =gblE.Pad
@@ -550,8 +508,8 @@ Screens:
                   Height: =24
                   PaddingLeft: =0
                   Size: =10
-                  Text: ="🏍️ " & varSelTsc.'[IN] NombreAgente'
-                  VerticalAlign: =VerticalAlign.Middle
+                  Text: |-
+                    ="🏍️ " & varSelTsc.'[IN] NombreAgente'
                   Width: =Parent.Width - gblE.Pad - Self.X
                   Wrap: =false
                   X: =gblE.Pad + 110
@@ -565,7 +523,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: ="Capturada"
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =110
                   Wrap: =false
                   X: =gblE.Pad
@@ -578,14 +535,11 @@ Screens:
                   Height: =24
                   PaddingLeft: =0
                   Size: =10
-                  Text: |-
-                    =Text(varSelTsc.'Fecha de captura', "dd/mm HH:mm")
-                  VerticalAlign: =VerticalAlign.Middle
+                  Text: =Text(varSelTsc.'Fecha de captura', "dd/mm HH:mm")
                   Width: =Parent.Width - gblE.Pad - Self.X
                   Wrap: =false
                   X: =gblE.Pad + 110
                   Y: =200
-            # ── Sección: comentario ──────────────────────────────────────────────
             - lblSecComentTsc:
                 Control: Label@2.5.1
                 Properties:
@@ -596,7 +550,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =8
                   Text: ="COMENTARIO"
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
                   X: =gblE.Pad
@@ -614,7 +567,6 @@ Screens:
                   Text: =varSelTsc.'[IN] Comentario'
                   VerticalAlign: =VerticalAlign.Top
                   Width: =Parent.Width - 2*gblE.Pad
-                  Wrap: =true
                   X: =gblE.Pad
                   Y: =256
             - chpDatosPanelTsc:
@@ -632,13 +584,11 @@ Screens:
                   RadiusTopLeft: =8
                   RadiusTopRight: =8
                   Size: =8
-                  Text: |-
-                    ="✏️ Trae datos nuevos del cliente — revisalos en el core"
+                  Text: ="✏️ Trae datos nuevos del cliente — revisalos en el core"
                   Visible: =varSelTsc.'[IN] Actualiza info'
                   Width: =14 + 7*Len(Self.Text)
                   X: =gblE.Pad
                   Y: =344
-            # ── Sección: pagos ───────────────────────────────────────────────────
             - lblSecPagosTsc:
                 Control: Label@2.5.1
                 Properties:
@@ -649,7 +599,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =8
                   Text: ="PAGOS (" & CountRows(galPagosPanelTsc.AllItems) & ")"
-                  VerticalAlign: =VerticalAlign.Middle
                   Visible: =varSelTsc.'[IN] Aplica pago'
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
@@ -684,10 +633,8 @@ Screens:
                           =If(varSelTsc.'[IN] Aplica pago',
                               If(ThisItem.'[PG] Moneda' = 'Choice | CM | Monedas en Pago'.USD, "US$ ", "C$ ")
                                   & Text(ThisItem.'[PG] Monto', "#,##0.00"))
-                        VerticalAlign: =VerticalAlign.Middle
                         Width: =Parent.TemplateWidth*0.55
                         Wrap: =false
-                        X: =0
                         Y: =8
                   - lblReciboPagoTsc:
                       Control: Label@2.5.1
@@ -699,7 +646,6 @@ Screens:
                         PaddingRight: =0
                         Size: =9
                         Text: ="Recibo " & ThisItem.'[PG] Numero recibo'
-                        VerticalAlign: =VerticalAlign.Middle
                         Width: =Parent.TemplateWidth*0.45
                         Wrap: =false
                         X: =Parent.TemplateWidth*0.55
@@ -710,9 +656,7 @@ Screens:
                         Fill: =gblC.hairline
                         Height: =1
                         Width: =Parent.TemplateWidth
-                        X: =0
                         Y: =Parent.TemplateHeight - 1
-            # ── Sección: transcripción al core ───────────────────────────────────
             - lblSecTransTsc:
                 Control: Label@2.5.1
                 Properties:
@@ -723,7 +667,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =8
                   Text: ="TRANSCRIPCIÓN AL CORE"
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
                   X: =gblE.Pad
@@ -737,7 +680,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: ="Código"
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =110
                   Wrap: =false
                   X: =gblE.Pad
@@ -753,7 +695,6 @@ Screens:
                   Size: =10
                   Text: |-
                     =varSelTsc.'[IN] Codigo Grabacion' & " 🔒"
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =Parent.Width - gblE.Pad - Self.X
                   Wrap: =false
                   X: =gblE.Pad + 110
@@ -767,7 +708,6 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: ="Grabada"
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =110
                   Wrap: =false
                   X: =gblE.Pad
@@ -780,9 +720,7 @@ Screens:
                   Height: =24
                   PaddingLeft: =0
                   Size: =10
-                  Text: |-
-                    =Text(varSelTsc.'[IN] Fecha grabacion', "dd/mm HH:mm") & " · por vos"
-                  VerticalAlign: =VerticalAlign.Middle
+                  Text: =Text(varSelTsc.'[IN] Fecha grabacion', "dd/mm HH:mm") & " · por vos"
                   Width: =Parent.Width - gblE.Pad - Self.X
                   Wrap: =false
                   X: =gblE.Pad + 110
@@ -795,11 +733,9 @@ Screens:
                   Height: =36
                   PaddingLeft: =0
                   Size: =9
-                  Text: |-
-                    ="Bloqueada tras la grabación — la evidencia de campo es inmutable."
+                  Text: ="Bloqueada tras la grabación — la evidencia de campo es inmutable."
                   VerticalAlign: =VerticalAlign.Top
                   Width: =Parent.Width - 2*gblE.Pad
-                  Wrap: =true
                   X: =gblE.Pad
                   Y: =600
             - btnCerrarPanelTsc:
@@ -817,7 +753,6 @@ Screens:
                   Width: =Parent.Width - 2*gblE.Pad
                   X: =gblE.Pad
                   Y: =Parent.Height - gblE.AltoBoton - gblE.Pad
-      # ── Navegación lateral (AL FINAL del árbol — 01 §8.1) ────────────────────────
       - cmpNavTsc:
           Control: CanvasComponent
           ComponentName: cmpNavLateral
@@ -826,5 +761,3 @@ Screens:
             RutaActiva: ="tsc"
             Visible: =!nfMovil || gblNavMovilAbierta
             Width: =gblE.AnchoNav
-            X: =0
-            Y: =0

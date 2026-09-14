@@ -1,9 +1,9 @@
 # ************************************************************************************************
 # Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
 # Use the maker portal to create and edit your Power Apps.
-#
+# 
 # The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
-#
+# 
 # For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
 # ************************************************************************************************
 ComponentDefinitions:
@@ -50,8 +50,6 @@ ComponentDefinitions:
             RadiusTopLeft: =gblE.Radio
             RadiusTopRight: =gblE.Radio
             Width: =Parent.Width
-            X: =0
-            Y: =0
           Children:
             - lblEtiquetaKpiCmp:
                 Control: Label@2.5.1
@@ -63,7 +61,6 @@ ComponentDefinitions:
                   PaddingLeft: =0
                   Size: =8
                   Text: =Upper(cmpKpi.Etiqueta)
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
                   X: =gblE.Pad
@@ -78,7 +75,6 @@ ComponentDefinitions:
                   PaddingLeft: =0
                   Size: =18
                   Text: =cmpKpi.Valor
-                  VerticalAlign: =VerticalAlign.Middle
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
                   X: =gblE.Pad
@@ -92,7 +88,6 @@ ComponentDefinitions:
                   PaddingLeft: =0
                   Size: =9
                   Text: =cmpKpi.Detalle
-                  VerticalAlign: =VerticalAlign.Middle
                   Visible: =!IsBlank(Self.Text)
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false

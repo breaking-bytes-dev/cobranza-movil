@@ -1,9 +1,9 @@
 # ************************************************************************************************
 # Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
 # Use the maker portal to create and edit your Power Apps.
-#
+# 
 # The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
-#
+# 
 # For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
 # ************************************************************************************************
 Screens:
@@ -50,24 +50,19 @@ Screens:
         Set(varRojoRec, varPctRec > 30);
         Reset(chkConfirmarRec)
     Children:
-      # ── Encabezado (receta 01 §7.5) ───────────────────────────────────────────────
       - cmpEncabezadoRec:
           Control: CanvasComponent
           ComponentName: cmpEncabezado
           Properties:
             Height: =If(nfMovil, gblE.AltoBarra + 84, 84)
-            Subtitulo: |-
-              ="Cuentas Diarias activas que NO vinieron en la última carga."
+            Subtitulo: ="Cuentas Diarias activas que NO vinieron en la última carga."
             Titulo: ="Reconciliación de Diarias"
             Width: =Parent.Width - Self.X
             X: =If(nfMovil, 0, gblE.AnchoNav)
-            Y: =0
-      # ── Contenido centrado (receta 01 §7.13) ──────────────────────────────────────
       - conContenidoRec:
           Control: GroupContainer@1.5.0
           Variant: ManualLayout
           Properties:
-            BorderThickness: =0
             DropShadow: =DropShadow.None
             Fill: =Color.Transparent
             Height: =Parent.Height - Self.Y
@@ -77,10 +72,6 @@ Screens:
                   + Max(gblE.Pad, (Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - gblE.AnchoMax) / 2)
             Y: =cmpEncabezadoRec.Y + cmpEncabezadoRec.Height
           Children:
-            # ── Card de BLOQUEO — precondición DEC-018 ────────────────────────────
-            # La reconciliación compara contra la carga de HOY: correrla ANTES del import
-            # marcaría TODA la cartera como desaparecida. La condición está SUMADA a los
-            # DisplayMode de chkConfirmarRec y btnCerrarRec — no es solo visual.
             - conBloqueoRec:
                 Control: GroupContainer@1.5.0
                 Variant: ManualLayout
@@ -108,14 +99,9 @@ Screens:
                         Height: =Parent.Height
                         PaddingLeft: =0
                         Size: =10
-                        Text: |-
-                          ="⛔ Todavía no llegó la carga de HOY — la reconciliación se corre DESPUÉS del import."
-                        VerticalAlign: =VerticalAlign.Middle
+                        Text: ="⛔ Todavía no llegó la carga de HOY — la reconciliación se corre DESPUÉS del import."
                         Width: =Parent.Width - 2*gblE.Pad
-                        Wrap: =true
                         X: =gblE.Pad
-                        Y: =0
-            # ── Card RESUMEN — conteo, meter y umbral ─────────────────────────────
             - conResumenRec:
                 Control: GroupContainer@1.5.0
                 Variant: ManualLayout
@@ -131,8 +117,7 @@ Screens:
                   RadiusTopRight: =gblE.Radio
                   Width: =Min(gblE.AnchoMax, Parent.Width - 2*gblE.Pad)
                   X: =gblE.Pad
-                  Y: |-
-                    =conBloqueoRec.Y + If(conBloqueoRec.Visible, conBloqueoRec.Height + gblE.PadSm, 0)
+                  Y: =conBloqueoRec.Y + If(conBloqueoRec.Visible, conBloqueoRec.Height + gblE.PadSm, 0)
                 Children:
                   - lblResumenRec:
                       Control: Label@2.5.1
@@ -143,19 +128,15 @@ Screens:
                         Height: =24
                         PaddingLeft: =0
                         Size: =11
-                        Text: |-
-                          =CountRows(colDesapRec) & " de " & CountRows(colDiariasRec) & " Diarias activas (" & varPctRec & "%) quedaron fuera de la cartera"
-                        VerticalAlign: =VerticalAlign.Middle
+                        Text: =CountRows(colDesapRec) & " de " & CountRows(colDiariasRec) & " Diarias activas (" & varPctRec & "%) quedaron fuera de la cartera"
                         Width: =Parent.Width - 2*gblE.Pad
                         Wrap: =false
                         X: =gblE.Pad
                         Y: =gblE.PadSm
-                  # pista del meter (hairline, 8 px, R99) + relleno proporcional al %
                   - conMeterRec:
                       Control: GroupContainer@1.5.0
                       Variant: ManualLayout
                       Properties:
-                        BorderThickness: =0
                         DropShadow: =DropShadow.None
                         Fill: =gblC.hairline
                         Height: =8
@@ -173,8 +154,6 @@ Screens:
                               Fill: =If(varRojoRec, gblC.redInk, gblC.teal)
                               Height: =8
                               Width: =Parent.Width * Min(varPctRec, 100) / 100
-                              X: =0
-                              Y: =0
                   - lblUmbralRec:
                       Control: Label@2.5.1
                       Properties:
@@ -189,10 +168,8 @@ Screens:
                               "Umbral de cordura: si superara el 30%, se bloquea el cierre en lote.")
                         VerticalAlign: =VerticalAlign.Top
                         Width: =Parent.Width - 2*gblE.Pad
-                        Wrap: =true
                         X: =gblE.Pad
                         Y: =conMeterRec.Y + conMeterRec.Height + gblE.PadSm
-            # ── Card LISTA — Diarias desaparecidas ────────────────────────────────
             - conListaRec:
                 Control: GroupContainer@1.5.0
                 Variant: ManualLayout
@@ -201,8 +178,7 @@ Screens:
                   BorderThickness: =1
                   DropShadow: =DropShadow.None
                   Fill: =gblC.card
-                  Height: |-
-                    =Parent.Height - Self.Y - If(CountRows(colDesapRec) > 0, 156 + gblE.PadSm, 0) - gblE.Pad
+                  Height: =Parent.Height - Self.Y - If(CountRows(colDesapRec) > 0, 156 + gblE.PadSm, 0) - gblE.Pad
                   RadiusBottomLeft: =gblE.Radio
                   RadiusBottomRight: =gblE.Radio
                   RadiusTopLeft: =gblE.Radio
@@ -211,8 +187,6 @@ Screens:
                   X: =gblE.Pad
                   Y: =conResumenRec.Y + conResumenRec.Height + gblE.PadSm
                 Children:
-                  # Lista ESTÁTICA (receta 7.3 sin acción): acá no se navega a nada — la fila
-                  # informa, el cierre es en lote. DisplayMode.View mata el hover/prensa de fila.
                   - galDesapRec:
                       Control: Gallery@2.15.0
                       Variant: Vertical
@@ -224,8 +198,6 @@ Screens:
                         TemplatePadding: =0
                         TemplateSize: =gblE.AltoFila
                         Width: =Parent.Width
-                        X: =0
-                        Y: =0
                       Children:
                         - lblClienteRec:
                             Control: Label@2.5.1
@@ -237,7 +209,6 @@ Screens:
                               PaddingLeft: =0
                               Size: =10
                               Text: =ThisItem.clienteRec
-                              VerticalAlign: =VerticalAlign.Middle
                               Width: =Parent.TemplateWidth * 0.4
                               Wrap: =false
                               X: =gblE.Pad
@@ -251,12 +222,10 @@ Screens:
                               PaddingLeft: =0
                               Size: =9
                               Text: =ThisItem.'[AS] NumeroCuenta'
-                              VerticalAlign: =VerticalAlign.Middle
                               Width: =Parent.TemplateWidth * 0.4
                               Wrap: =false
                               X: =gblE.Pad
                               Y: =32
-                        # Fecha corta dd/mm en vez del "hace 2 días" del mockup: LED-06
                         - lblAgenteRec:
                             Control: Label@2.5.1
                             Properties:
@@ -267,12 +236,9 @@ Screens:
                               Size: =9
                               Text: |-
                                 ="🏍️ " & Coalesce(ThisItem.'[AS] Agente'.'[AG] Nombre', "sin localizador") & " · última carga " & Text(ThisItem.'Última carga', "dd/mm")
-                              VerticalAlign: =VerticalAlign.Middle
                               Width: =Parent.TemplateWidth * 0.4
-                              Wrap: =true
                               X: =gblE.Pad + Parent.TemplateWidth * 0.4
                               Y: =10
-                        # chip fuera de fila clicable → CON DisplayMode.View (receta 7.2)
                         - chpDiariaRec:
                             Control: Classic/Button@2.2.0
                             Properties:
@@ -298,23 +264,19 @@ Screens:
                               Fill: =gblC.hairline
                               Height: =1
                               Width: =Parent.TemplateWidth
-                              X: =0
                               Y: =Parent.TemplateHeight - 1
-                  # ── Estado vacío (receta 01 §7.12) ────────────────────────────
                   - cmpVacioRec:
                       Control: CanvasComponent
                       ComponentName: cmpVacio
                       Properties:
                         Height: =200
                         Icono: ="✨"
-                        Mensaje: |-
-                          ="Todas las Diarias activas vinieron en la carga."
+                        Mensaje: ="Todas las Diarias activas vinieron en la carga."
                         Titulo: ="Cartera cuadrada"
                         Visible: =CountRows(colDesapRec) = 0
                         Width: =Min(420, Parent.Width - 2*gblE.Pad)
                         X: =(Parent.Width - Self.Width) / 2
                         Y: =(Parent.Height - Self.Height) / 2
-            # ── Card de ACCIÓN — confirmar y cerrar en lote (receta 01 §7.10) ─────
             - conAccionRec:
                 Control: GroupContainer@1.5.0
                 Variant: ManualLayout
@@ -337,9 +299,7 @@ Screens:
                       Control: Classic/CheckBox@2.1.0
                       Properties:
                         Color: =gblC.ink
-                        Default: =false
-                        DisplayMode: |-
-                          =If(varRojoRec || nfUltimaCarga < Today(), DisplayMode.Disabled, DisplayMode.Edit)
+                        DisplayMode: =If(varRojoRec || nfUltimaCarga < Today(), DisplayMode.Disabled, DisplayMode.Edit)
                         Font: =Font.'Segoe UI'
                         Height: =48
                         Size: =9
@@ -355,11 +315,9 @@ Screens:
                         Color: =gblC.redInk
                         DisabledColor: =Color.White
                         DisabledFill: =ColorFade(gblC.redBg, 60%)
-                        DisplayMode: |-
-                          =If(chkConfirmarRec.Value && !varRojoRec && nfUltimaCarga >= Today(), DisplayMode.Edit, DisplayMode.Disabled)
+                        DisplayMode: =If(chkConfirmarRec.Value && !varRojoRec && nfUltimaCarga >= Today(), DisplayMode.Edit, DisplayMode.Disabled)
                         Fill: =gblC.redBg
                         Font: =Font.'Segoe UI'
-                        FontWeight: =FontWeight.Semibold
                         Height: =gblE.AltoBoton
                         HoverFill: =ColorFade(gblC.redBg, 10%)
                         OnSelect: |-
@@ -409,17 +367,12 @@ Screens:
                           Set(varPctRec, Round(100 * CountRows(colDesapRec) / Max(1, CountRows(colDiariasRec)), 0));
                           Set(varRojoRec, varPctRec > 30);
                           Reset(chkConfirmarRec)
-                        RadiusBottomLeft: =10
-                        RadiusBottomRight: =10
-                        RadiusTopLeft: =10
-                        RadiusTopRight: =10
                         Size: =10
                         Text: |-
                           ="🧹 Cerrar " & CountRows(colDesapRec) & " asignaciones en lote"
                         Width: =Parent.Width - 2*gblE.Pad
                         X: =gblE.Pad
                         Y: =chkConfirmarRec.Y + chkConfirmarRec.Height + gblE.PadSm
-      # ── Navegación lateral (AL FINAL del árbol — 01 §8.1) ─────────────────────────
       - cmpNavRec:
           Control: CanvasComponent
           ComponentName: cmpNavLateral
@@ -428,5 +381,3 @@ Screens:
             RutaActiva: ="rec"
             Visible: =!nfMovil || gblNavMovilAbierta
             Width: =gblE.AnchoNav
-            X: =0
-            Y: =0
