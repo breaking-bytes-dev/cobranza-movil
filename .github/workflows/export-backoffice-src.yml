@@ -55,7 +55,8 @@ jobs:
             --applicationId "${{ secrets.PP_CLIENT_ID }}" \
             --clientSecret "${{ secrets.PP_CLIENT_SECRET }}" \
             --tenant "${{ secrets.PP_TENANT_ID }}" \
-            --environment "${{ secrets.DATAVERSE_URL }}"
+            --environment "${{ secrets.DATAVERSE_URL }}" \
+            --accept-cleartext-caching
       - name: Descargar y desempaquetar
         run: |
           set -e
