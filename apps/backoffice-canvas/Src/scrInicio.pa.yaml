@@ -382,7 +382,6 @@ Screens:
                         - btnAccColaIni:
                             Control: Classic/Button@2.2.0
                             Properties:
-                              AccessibleLabel: ="Ir a la cola"
                               BorderColor: =Color.Transparent
                               BorderThickness: =1
                               Fill: =Color.Transparent
@@ -464,7 +463,6 @@ Screens:
                         - btnAccArqIni:
                             Control: Classic/Button@2.2.0
                             Properties:
-                              AccessibleLabel: ="Arqueo del día"
                               BorderColor: =Color.Transparent
                               BorderThickness: =1
                               Fill: =Color.Transparent
@@ -559,7 +557,6 @@ Screens:
                         - btnAccNvaIni:
                             Control: Classic/Button@2.2.0
                             Properties:
-                              AccessibleLabel: ="Nueva solicitud"
                               BorderColor: =Color.Transparent
                               BorderThickness: =1
                               Fill: =Color.Transparent
@@ -641,7 +638,6 @@ Screens:
                         - btnAccMisIni:
                             Control: Classic/Button@2.2.0
                             Properties:
-                              AccessibleLabel: ="Mis solicitudes"
                               BorderColor: =Color.Transparent
                               BorderThickness: =1
                               Fill: =Color.Transparent
@@ -736,7 +732,6 @@ Screens:
                         - btnAccAprbIni:
                             Control: Classic/Button@2.2.0
                             Properties:
-                              AccessibleLabel: ="Aprobaciones"
                               BorderColor: =Color.Transparent
                               BorderThickness: =1
                               Fill: =Color.Transparent
@@ -831,7 +826,6 @@ Screens:
                         - btnAccMonIni:
                             Control: Classic/Button@2.2.0
                             Properties:
-                              AccessibleLabel: ="Monitoreo"
                               BorderColor: =Color.Transparent
                               BorderThickness: =1
                               Fill: =Color.Transparent
@@ -913,7 +907,6 @@ Screens:
                         - btnAccRecIni:
                             Control: Classic/Button@2.2.0
                             Properties:
-                              AccessibleLabel: ="Reconciliación"
                               BorderColor: =Color.Transparent
                               BorderThickness: =1
                               Fill: =Color.Transparent
@@ -995,7 +988,6 @@ Screens:
                         - btnAccAgeIni:
                             Control: Classic/Button@2.2.0
                             Properties:
-                              AccessibleLabel: ="Agentes"
                               BorderColor: =Color.Transparent
                               BorderThickness: =1
                               Fill: =Color.Transparent

@@ -172,10 +172,6 @@ Screens:
                             Properties:
                               Fill: =If(varRojoRec, gblC.redInk, gblC.teal)
                               Height: =8
-                              RadiusBottomLeft: =99
-                              RadiusBottomRight: =99
-                              RadiusTopLeft: =99
-                              RadiusTopRight: =99
                               Width: =Parent.Width * Min(varPctRec, 100) / 100
                               X: =0
                               Y: =0
@@ -346,11 +342,10 @@ Screens:
                           =If(varRojoRec || nfUltimaCarga < Today(), DisplayMode.Disabled, DisplayMode.Edit)
                         Font: =Font.'Segoe UI'
                         Height: =48
-                        Size: =10
+                        Size: =9
                         Text: |-
-                          ="Confirmo que revisé la lista y que la carga de hoy fue correcta. Cerrar estas asignaciones con motivo ""fuera de cartera""."
+                          ="Confirmo: revisé la lista y la carga de hoy es correcta (cierre con motivo ""fuera de cartera"")"
                         Width: =Parent.Width - 2*gblE.Pad
-                        Wrap: =true
                         X: =gblE.Pad
                         Y: =gblE.PadSm
                   - btnCerrarRec:
