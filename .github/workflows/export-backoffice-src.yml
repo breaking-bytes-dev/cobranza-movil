@@ -60,10 +60,16 @@ jobs:
       - name: Descargar y desempaquetar
         run: |
           set -e
-          pac canvas download --name "${{ steps.app.outputs.display }}" --file-name /tmp/backoffice.msapp
+          mkdir -p /tmp/dl && cd /tmp/dl
+          pac canvas download --name "${{ steps.app.outputs.display }}" --file-name backoffice.msapp || true
+          echo "--- contenido de /tmp/dl:"; ls -la
+          MSAPP=$(find /tmp/dl -name '*.msapp' | head -1)
+          if [ -z "$MSAPP" ]; then echo "ERROR: download no produjo msapp"; exit 1; fi
+          echo "msapp: $MSAPP"
+          cd "$GITHUB_WORKSPACE"
           rm -rf apps/backoffice-canvas
-          pac canvas unpack --msapp /tmp/backoffice.msapp --sources apps/backoffice-canvas
-          find apps/backoffice-canvas -maxdepth 2 -type d | sort
+          pac canvas unpack --msapp "$MSAPP" --sources apps/backoffice-canvas --layout SourceCode
+          find apps/backoffice-canvas -maxdepth 2 | sort | head -40
       - name: Commit del fuente
         run: |
           git config user.name "bitBreaker"
