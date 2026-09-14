@@ -63,7 +63,29 @@ Toda diferencia entre el mockup aprobado y lo que la canvas puede/debe hacer se 
 
 ## 3. Backend faltante (backend-first: esto se hace ANTES de construir pantallas)
 
-### 3.1 Tabla `CM | TBL | Usuario App` — el mapa usuario→roles ✅ CREADA (verificada en Dev 2026-09-14)
+### 3.1 Identidad por ROLES DE SEGURIDAD reales — SIN tabla adicional (decisión 2026-09-14)
+
+**Reemplaza a la tabla `Usuario App`** (el diseño anterior de esta sección queda documentado abajo
+como historia; la tabla se elimina de la solución). El usuario objetó la doble administración y
+tiene razón: los 4 perfiles de la app mapean 1:1 con los roles `SR | CM | *`, así que la app deriva
+`gblRol` de los roles REALES navegando las N:N (`systemuserroles` directas + `teammembership` →
+`teamroles` heredadas por team — verificado en Dev que los roles se reparten VÍA TEAMS).
+
+- **Privilegios**: verificado en Dev (diag-roles-canvas) que los 6 roles `SR | CM | *` ya tienen
+  `prvReadRole` y `prvReadTeam`. `Users` se lee con "Usuario básico" (estándar del proyecto).
+- **Datasources nuevos en la app**: `Security Roles` y `Teams` (los agrega el usuario en Studio —
+  no viajan por YAML). Se retira `'CM | TBL | Usuario Apps'`.
+- **Delegación**: no aplica — navegación de relaciones de UN registro (conjuntos de puñados de
+  filas) + operaciones en memoria; corre una vez en OnStart.
+- **Fragilidad declarada**: los nombres de rol quedan cableados al prefijo `"SR | CM | "` —
+  renombrar un rol de seguridad rompe la nav en silencio. Convención estable del proyecto.
+- **Multi-rol**: una persona con 2 roles (2 teams o directo+team) obtiene `gblRol = "Backoffice|Admin"`
+  — el resto de la app no cambia.
+- Fórmula canónica: 01 §4. Sin fila... digo, sin ROL `SR | CM | *` → `gblRol` queda vacío → estado
+  "sin acceso" de scrInicio (igual que antes).
+
+#### (Histórico — diseño anterior con tabla, eliminado)
+Tabla `CM | TBL | Usuario App` ✅ creada (2026-09-14) y luego DESCARTADA:
 
 La app necesita saber el rol SIN leer roles de seguridad (canvas no puede). **Como quedó construida**
 (difiere del diseño original a pedido del usuario: lookup en vez de email, y MULTI-rol):

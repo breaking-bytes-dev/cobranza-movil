@@ -43,7 +43,8 @@ Toda guía de pantalla cumple ESTO (el revisor R2 verifica contra esta lista):
 `'CM | TBL | Cuentas'` · `'CM | TBL | Clientes'` · `'CM | TBL | Agentes'` ·
 `'CM | TBL | Carga diarias'` · `'CM | TBL | Telefonos'` · `'CM | TBL | Direccions'` ·
 `'CM | TBL | Actualizacion de datos'` (⚠ plural raro — verificar en el panel de datos) ·
-`'CM | TBL | Usuario Apps'` (tabla nueva, 00 §3.1) · `Users` (systemuser).
+`Users` (systemuser) · `'Security Roles'` (role) · `Teams` — estos dos últimos alimentan la
+derivación de `gblRol` desde los roles reales (00 §3.1); la tabla `Usuario App` quedó eliminada.
 
 ## 3. App.Formulas (fórmulas con nombre — pegar completo)
 
@@ -94,15 +95,22 @@ Set(gblC, {
 // 2) Tokens de medida (los ÚNICOS números "absolutos" permitidos en las guías)
 Set(gblE, {Pad:16, PadSm:10, AnchoNav:240, Radio:12, RadioSm:9, AltoBarra:56, AltoFila:64,
            AltoInput:40, AltoBoton:44, AnchoMax:1160});
-// 3) Identidad: usuario Dataverse + roles de app (00 §3.1 — la tabla REAL es lookup + MULTI-rol)
+// 3) Identidad: gblRol derivado de los ROLES DE SEGURIDAD reales (00 §3.1 — sin tabla adicional).
+// Directos (systemuserroles) + heredados por TEAM (teammembership -> teamroles). Conjuntos
+// diminutos de UN usuario: sin delegación en juego, corre una vez.
 Set(gblUsuarioDV, LookUp(Users, 'Primary Email' = Lower(User().Email)));
-Set(gblFilaRol, LookUp('CM | TBL | Usuario Apps',
-        '[UA] Usuario' = gblUsuarioDV && '[UA] Activo' = true));
-// '[UA] Rol' es MULTI-SELECT: devuelve una tabla de choices. gblRol = etiquetas unidas con "|".
-// Ej.: "Backoffice|Admin". Sin fila => Blank() => estado "sin acceso" de scrInicio.
-Set(gblRol, Concat(gblFilaRol.'[UA] Rol', Text(Value), "|"));
-// ⚠ El display del lookup hoy tiene un typo en Dev: "[UA[ Usuario". Si IntelliSense lo muestra
-// así, usalo así (IntelliSense manda) hasta que se renombre a '[UA] Usuario'.
+ClearCollect(colRolesUsrTmp, gblUsuarioDV.'Security Roles (systemuserroles_association)');
+ForAll(gblUsuarioDV.'Teams (teammembership_association)' As Tm,
+    Collect(colRolesUsrTmp, Tm.'Security Roles (teamroles_association)'));
+// "SR | CM | Backoffice" -> "Backoffice"; multi-rol => "Backoffice|Admin". El `in` de los guards
+// es case-insensitive (el rol real es "SR | CM | BackOffice" y matchea igual).
+Set(gblRol,
+    Concat(
+        Distinct(Filter(colRolesUsrTmp, StartsWith(Name, "SR | CM | ")),
+                 Substitute(Name, "SR | CM | ", "")),
+        Value, "|"));
+// Si IntelliSense ofrece las relaciones sin el paréntesis ('Security Roles' / 'Teams' pelados),
+// usá esa forma — IntelliSense manda. Sin ningún rol SR | CM => gblRol vacío => "sin acceso".
 // 4) Navegación por rol: la tabla que alimenta cmpNavLateral
 ClearCollect(colNav,
     {Orden:1, Icono:"🏠", Titulo:"Inicio",            Ruta:"ini",  Roles:"Backoffice|Solicitante|Supervisor|Admin"},

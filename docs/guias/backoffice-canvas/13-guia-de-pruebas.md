@@ -31,18 +31,22 @@
 - [ ] **≥ 1 agente activo SIN usuario vinculado** (`[AG] Usuario` y `Email Usuario` en blanco).
 - [ ] Un **agente CON usuario** cuyo celular esté disponible para la prueba cruzada F10.4.
 
-### 0.3 Usuarios de prueba en `'CM | TBL | Usuario App'`
+### 0.3 Usuarios de prueba — ROLES REALES (sin tabla `Usuario App`; 00 §3.1)
 
-| Alias | Fila en Usuario App | `[UA] Rol` | `[UA] Activo` |
-|---|---|---|---|
-| **U-BO** | sí | Backoffice | Sí |
-| **U-SOL** | sí | Solicitante | Sí |
-| **U-SUP** | sí | Supervisor | Sí |
-| **U-ADM** | sí | Admin | Sí |
-| **U-MIX** | sí | **Backoffice + Admin** (multi-select) | Sí |
-| **U-SIN** | **NO tiene fila** | — | — |
+`gblRol` se deriva de los roles de seguridad `SR | CM | *` (directos o heredados por TEAM — en Dev
+se reparten vía los teams `CM · <perfil> · DEV`). Preparar por MEMBRESÍA de team:
 
-- [ ] Cada usuario tiene además su **rol de seguridad Dataverse** correspondiente (`SR | CM | *`) — la app es la primera puerta, no la única (00 §1).
+| Alias | Miembro de team(s) | gblRol esperado |
+|---|---|---|
+| **U-BO** | CM · Backoffice · DEV | `BackOffice` |
+| **U-SOL** | CM · Solicitantes · DEV | `Solicitante` |
+| **U-SUP** | CM · Supervisores · DEV | `Supervisor` |
+| **U-ADM** | CM · Admin y Carga · DEV | `Admin` |
+| **U-MIX** | Backoffice **y** Admin y Carga (2 teams) — o un rol directo + un team | `BackOffice\|Admin` |
+| **U-SIN** | **ningún team CM y ningún rol `SR \| CM`** | vacío → "sin acceso" |
+
+- [ ] Todos con el rol **"Usuario básico"** además (lectura de `Users` para el LookUp de identidad).
+- [ ] U-MIX prueba TAMBIÉN la unión directo+team (asignale un rol directo y el otro por team).
 
 ---
 
@@ -60,7 +64,7 @@ azul = parar, anotar la fórmula exacta y arreglar antes de seguir.
 
 | # | Pantalla | Fórmulas a inspeccionar | OK |
 |---|---|---|---|
-| 0 | App (OnStart + Formulas) | LookUp `Users` / `Usuario Apps` · `nfUltimaCarga` (Sort+First) | [ ] |
+| 0 | App (OnStart + Formulas) | LookUp `Users` · navegación N:N roles/teams (conjuntos de 1 usuario, sin riesgo) · `nfUltimaCarga` (Sort+First) | [ ] |
 | 1 | scrInicio | OnVisible (pagos hoy, pendientes, transcritas, especiales, desap, agentes) + Valor de los 10 KPIs | [ ] |
 | 2 | scrTranscripcion | OnVisible · btnActualizar · btnGrabar (Patch+LookUp) · galPagosTrx.Items · BLOQUE S (AD/tel/dir) | [ ] |
 | 3 | scrTranscritas | OnVisible (choice+fecha+usuario) · btnActualizar · galPagosPanelTsc.Items | [ ] |
@@ -174,7 +178,7 @@ En scrInicio, cada uno ve SOLO sus KPIs y sus cards de acceso. [ ] OK [ ] Falla
 
 ### R-03 🔴 — Usuario SIN fila: pantalla sin acceso y nada más alcanzable
 
-1. Entrá con **U-SIN** (sin fila en Usuario App).
+1. Entrá con **U-SIN** (sin ningún rol `SR | CM` ni team CM).
 2. Observá scrInicio y abrí el Monitor.
 
 **Esperado:** solo el estado 🔐 "Sin acceso" centrado — sin nav, sin encabezado, sin hamburguesa, sin KPIs. El OnVisible no dispara colecciones de rol. No existe ningún camino de UI hacia otra pantalla. [ ] OK [ ] Falla
