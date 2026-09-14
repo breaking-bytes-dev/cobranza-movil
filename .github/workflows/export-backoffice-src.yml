@@ -29,7 +29,7 @@ jobs:
         run: |
           dotnet tool install --global Microsoft.PowerApps.CLI.Tool
           echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
-      - name: Localizar la app por API
+      - name: Localizar la app y meterla a la solución (AddSolutionComponent)
         id: app
         env:
           CID: ${{ secrets.PP_CLIENT_ID }}
@@ -40,15 +40,20 @@ jobs:
           set -e
           TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" \
             -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
-          curl -s -H "Authorization: Bearer $TOKEN" -H "Accept: application/json" \
-            "$URL/api/data/v9.2/canvasapps?\$select=name,displayname&\$filter=contains(displayname,'Backoffice')" \
-            | jq -r '.value[] | "\(.name)\t\(.displayname)"' | tee /tmp/apps.txt
-          # Elegir la que NO sea la command library de la MDA
+          H="Authorization: Bearer $TOKEN"
+          curl -s -H "$H" -H "Accept: application/json" \
+            "$URL/api/data/v9.2/canvasapps?\$select=canvasappid,name,displayname&\$filter=contains(displayname,'Backoffice')" \
+            | jq -r '.value[] | "\(.canvasappid)\t\(.name)\t\(.displayname)"' | tee /tmp/apps.txt
           LINE=$(grep -iv 'commandlibrary' /tmp/apps.txt | head -1)
           if [ -z "$LINE" ]; then echo "ERROR: no encontré la canvas del backoffice"; exit 1; fi
-          DISPLAY=$(echo "$LINE" | cut -f2)
-          echo "display=$DISPLAY" >> "$GITHUB_OUTPUT"
-          echo "App elegida: $DISPLAY"
+          APPID=$(echo "$LINE" | cut -f1); LOGICAL=$(echo "$LINE" | cut -f2)
+          echo "logical=$LOGICAL" >> "$GITHUB_OUTPUT"
+          echo "App: $LOGICAL ($APPID)"
+          # Meterla a la solución (idempotente: si ya está, el error se tolera)
+          CODE=$(curl -s -o /tmp/add.out -w "%{http_code}" -X POST -H "$H" -H "Content-Type: application/json" \
+            "$URL/api/data/v9.2/AddSolutionComponent" \
+            -d "{\"ComponentType\": 300, \"ComponentId\": \"$APPID\", \"SolutionUniqueName\": \"cm_core_cobranzamovil\", \"AddRequiredComponents\": false}")
+          echo "AddSolutionComponent HTTP $CODE"; [ "$CODE" = "200" ] || [ "$CODE" = "204" ] || cat /tmp/add.out
       - name: Autenticar pac
         run: |
           pac auth create \
@@ -57,18 +62,17 @@ jobs:
             --tenant "${{ secrets.PP_TENANT_ID }}" \
             --environment "${{ secrets.DATAVERSE_URL }}" \
             --accept-cleartext-caching
-      - name: Descargar y desempaquetar
+      - name: Exportar solución y desempaquetar el msapp
         run: |
           set -e
-          mkdir -p /tmp/dl && cd /tmp/dl
-          pac canvas download --name "${{ steps.app.outputs.display }}" --file-name backoffice.msapp || true
-          echo "--- contenido de /tmp/dl:"; ls -la
-          MSAPP=$(find /tmp/dl -name '*.msapp' | head -1)
-          if [ -z "$MSAPP" ]; then echo "ERROR: download no produjo msapp"; exit 1; fi
+          pac solution export --name cm_core_cobranzamovil --path /tmp/sol.zip --managed false --overwrite
+          unzip -o /tmp/sol.zip 'CanvasApps/*' -d /tmp/sol >/dev/null
+          echo "--- msapps en la solución:"; ls /tmp/sol/CanvasApps/ | grep msapp || true
+          MSAPP=$(ls /tmp/sol/CanvasApps/ | grep -i backoffice | grep -iv commandlibrary | grep '_DocumentUri.msapp' | head -1)
+          if [ -z "$MSAPP" ]; then echo "ERROR: el msapp del backoffice no está en el export"; exit 1; fi
           echo "msapp: $MSAPP"
-          cd "$GITHUB_WORKSPACE"
           rm -rf apps/backoffice-canvas
-          pac canvas unpack --msapp "$MSAPP" --sources apps/backoffice-canvas --layout SourceCode
+          pac canvas unpack --msapp "/tmp/sol/CanvasApps/$MSAPP" --sources apps/backoffice-canvas --layout SourceCode
           find apps/backoffice-canvas -maxdepth 2 | sort | head -40
       - name: Commit del fuente
         run: |
