@@ -1,0 +1,43 @@
+name: diag-metadata
+
+# READ-ONLY: display names reales de columnas y choices para las guías de la canvas backoffice.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  meta:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Metadata
+        env:
+          CID: ${{ secrets.PP_CLIENT_ID }}
+          SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT: ${{ secrets.PP_TENANT_ID }}
+          URL: ${{ secrets.DATAVERSE_URL }}
+        run: |
+          set -e
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" \
+            -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          H="Authorization: Bearer $TOKEN"; A="Accept: application/json"
+
+          for T in sanic_cm_tbl_interaccion sanic_cm_tbl_asignacion sanic_cm_tbl_agente sanic_cm_tbl_actualizaciondatos; do
+            echo "===================== $T ====================="
+            curl -s -H "$H" -H "$A" \
+              "$URL/api/data/v9.2/EntityDefinitions(LogicalName='$T')/Attributes?\$select=LogicalName,AttributeType&\$expand=DisplayName(\$select=UserLocalizedLabel)" \
+              | jq -r '.value[] | select(.LogicalName|startswith("sanic_")) | "  \(.LogicalName)  [\(.AttributeType)]  \"\(.DisplayName.UserLocalizedLabel.Label // "?")\""' | sort
+          done
+
+          echo "===================== CHOICES GLOBALES ====================="
+          for C in sanic_choice_cm_tipoasignacion sanic_choice_cm_estadoaprobacionespecial sanic_cm_choice_estadograbacioninteraccion sanic_choice_cm_monedaenpago; do
+            curl -s -H "$H" -H "$A" \
+              "$URL/api/data/v9.2/GlobalOptionSetDefinitions(Name='$C')" \
+              | jq -r '"  \(.Name)  display=\"\(.DisplayName.UserLocalizedLabel.Label // "?")\"  " , (.Options[] | "     \(.Value) = \"\(.Label.UserLocalizedLabel.Label)\"")'
+          done
+
+          echo "===================== APPS CANVAS EN EL ENTORNO ====================="
+          curl -s -H "$H" -H "$A" "$URL/api/data/v9.2/canvasapps?\$select=name,displayname&\$filter=contains(name,'sanic')" \
+            | jq -r '.value[] | "  \(.name)  \"\(.displayname)\""'
