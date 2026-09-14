@@ -27,7 +27,7 @@ jobs:
           for T in sanic_cm_tbl_interaccion sanic_cm_tbl_asignacion sanic_cm_tbl_agente sanic_cm_tbl_actualizaciondatos; do
             echo "===================== $T ====================="
             curl -s -H "$H" -H "$A" \
-              "$URL/api/data/v9.2/EntityDefinitions(LogicalName='$T')/Attributes?\$select=LogicalName,AttributeType&\$expand=DisplayName(\$select=UserLocalizedLabel)" \
+              "$URL/api/data/v9.2/EntityDefinitions(LogicalName='$T')/Attributes?\$select=LogicalName,AttributeType,DisplayName" \
               | jq -r '.value[] | select(.LogicalName|startswith("sanic_")) | "  \(.LogicalName)  [\(.AttributeType)]  \"\(.DisplayName.UserLocalizedLabel.Label // "?")\""' | sort
           done
 
