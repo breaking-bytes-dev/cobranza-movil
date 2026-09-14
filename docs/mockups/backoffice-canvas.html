@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CM · Backoffice — Mockup canvas app</title>
+<style>
+  :root{
+    --teal:#0F6B6B; --tealDark:#0B5252; --tealSoft:#E0EEEE;
+    --screen:#F2F4F7; --card:#FFFFFF; --border:#E4E7EC; --hairline:#F0F2F5;
+    --ink:#101828; --ink2:#475467; --muted:#667085; --muted2:#98A2B3;
+    --okBg:#ECFDF5; --okInk:#067647;
+    --pendBg:#FEF3C7; --pendInk:#B45309;
+    --redBg:#FEE2E2; --redInk:#DC2626;
+    --diariaBg:#DBEAFE; --diariaInk:#2563EB;
+    --incobBg:#FEF3C7; --incobInk:#B45309;
+    --espBg:#EDE9FE; --espInk:#7C3AED;
+    --demoBg:#F5F0FF; --demoBorder:#B79CF0; --demoInk:#6D3FC4;
+    --f2xs:10px; --fxs:11px; --fsm:12.5px; --fbase:13.5px; --fmd:15px; --flg:17px; --fxl:20px; --fbig:24px;
+    --r:12px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
+  html,body{height:100%}
+  body{background:var(--screen);font-family:'Segoe UI',system-ui,-apple-system,Roboto,sans-serif;color:var(--ink);font-size:var(--fbase)}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;font-size:inherit;color:inherit}
+  input,select,textarea{font-family:inherit;font-size:var(--fbase);color:var(--ink);outline:none}
+  input:focus,select:focus,textarea:focus{border-color:var(--teal)!important;box-shadow:0 0 0 3px rgba(15,107,107,.12)}
+  button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+
+  /* ═══ Barra de demo (rol) — NO forma parte de la app ═══ */
+  .demobar{position:sticky;top:0;z-index:60;background:var(--demoBg);border-bottom:2px dashed var(--demoBorder);
+    padding:8px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .demobar b{font-size:var(--fxs);letter-spacing:1px;color:var(--demoInk);text-transform:uppercase}
+  .demobar .hint{font-size:var(--fxs);color:var(--demoInk);opacity:.75}
+  .rolebtn{font-size:var(--fsm);font-weight:700;color:var(--demoInk);border:1.5px solid var(--demoBorder);
+    border-radius:99px;padding:5px 14px;background:#fff}
+  .rolebtn.on{background:var(--demoInk);color:#fff;border-color:var(--demoInk)}
+
+  /* ═══ Shell ═══ */
+  .shell{display:flex;min-height:calc(100vh - 44px)}
+  .sidebar{width:230px;flex-shrink:0;background:var(--teal);color:#fff;display:flex;flex-direction:column;padding:18px 12px;gap:2px}
+  .brand{display:flex;align-items:center;gap:10px;padding:4px 10px 16px}
+  .brand .logo{width:38px;height:38px;border-radius:10px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800}
+  .brand .t1{font-size:var(--fmd);font-weight:800;line-height:1.1}
+  .brand .t2{font-size:var(--f2xs);letter-spacing:1.4px;text-transform:uppercase;opacity:.75}
+  .navsec{font-size:var(--f2xs);letter-spacing:1.2px;text-transform:uppercase;opacity:.55;padding:14px 10px 6px}
+  .navitem{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 10px;border-radius:9px;
+    font-size:var(--fbase);font-weight:600;color:rgba(255,255,255,.82)}
+  .navitem:hover{background:rgba(255,255,255,.1)}
+  .navitem.on{background:rgba(255,255,255,.18);color:#fff}
+  .navitem .ic{width:20px;text-align:center;flex-shrink:0}
+  .navitem .badge{margin-left:auto;background:#fff;color:var(--teal);font-size:var(--fxs);font-weight:800;border-radius:99px;padding:1px 8px}
+  .sidefoot{margin-top:auto;padding:10px;border-top:1px solid rgba(255,255,255,.15);display:flex;align-items:center;gap:10px}
+  .avatar{width:32px;height:32px;border-radius:99px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:var(--fsm);font-weight:800;flex-shrink:0}
+  .sidefoot .un{font-size:var(--fsm);font-weight:700;line-height:1.15}
+  .sidefoot .ur{font-size:var(--f2xs);opacity:.7}
+
+  .main{flex:1;min-width:0;display:flex;flex-direction:column}
+  .topbar{display:none}
+  .content{flex:1;padding:22px clamp(14px,3vw,30px) 60px;max-width:1160px;width:100%;margin:0 auto}
+  .pagehead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  .pagehead h1{font-size:var(--fbig);font-weight:800;letter-spacing:-.3px}
+  .pagehead .sub{font-size:var(--fsm);color:var(--muted);margin-top:3px}
+
+  /* ═══ Piezas ═══ */
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px}
+  .grid{display:grid;gap:12px}
+  .kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+  .kpi .lb{font-size:var(--fxs);font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted)}
+  .kpi .v{font-size:var(--fbig);font-weight:800;margin-top:4px;font-variant-numeric:tabular-nums}
+  .kpi .d{font-size:var(--fsm);color:var(--muted);margin-top:2px}
+  .kpi.hero{background:var(--teal);border-color:var(--teal);color:#fff}
+  .kpi.hero .lb{color:rgba(255,255,255,.75)}
+  .kpi.hero .d{color:rgba(255,255,255,.8)}
+
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:var(--fxs);font-weight:800;border-radius:8px;padding:4px 10px;white-space:nowrap}
+  .chip.diaria{background:var(--diariaBg);color:var(--diariaInk)}
+  .chip.incob{background:var(--incobBg);color:var(--incobInk)}
+  .chip.esp{background:var(--espBg);color:var(--espInk)}
+  .chip.ok{background:var(--okBg);color:var(--okInk)}
+  .chip.pend{background:var(--pendBg);color:var(--pendInk)}
+  .chip.red{background:var(--redBg);color:var(--redInk)}
+  .chip.gray{background:var(--hairline);color:var(--ink2)}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:var(--fbase);
+    border-radius:10px;padding:10px 18px;transition:filter .12s}
+  .btn.pri{background:var(--teal);color:#fff}
+  .btn.pri:hover{filter:brightness(1.08)}
+  .btn.sec{background:var(--tealSoft);color:var(--teal)}
+  .btn.danger{background:var(--redBg);color:var(--redInk)}
+  .btn.ghost{border:1px solid var(--border);color:var(--ink2);background:#fff}
+  .btn:disabled{opacity:.45;cursor:not-allowed;filter:none}
+  .btn.sm{padding:7px 12px;font-size:var(--fsm);border-radius:9px}
+
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+  .search{flex:1;min-width:180px;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:9px 12px}
+  .search input{border:none;flex:1;min-width:0;background:none}
+  .sel{background:#fff;border:1px solid var(--border);border-radius:10px;padding:9px 12px;font-weight:600;color:var(--ink2)}
+
+  .rows{display:flex;flex-direction:column;gap:10px}
+  .row{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:13px 15px;
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;cursor:pointer;transition:border-color .12s,box-shadow .12s;text-align:left;width:100%}
+  .row:hover{border-color:var(--teal);box-shadow:0 2px 10px rgba(15,107,107,.08)}
+  .row.static{cursor:default}
+  .row.static:hover{border-color:var(--border);box-shadow:none}
+  .row .who{flex:1;min-width:170px}
+  .row .who .nm{font-weight:800;font-size:var(--fmd)}
+  .row .who .mt{font-size:var(--fsm);color:var(--muted);margin-top:2px}
+  .row .mid{flex:1.4;min-width:200px}
+  .row .mid .cm{font-size:var(--fbase);color:var(--ink2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .row .tail{display:flex;flex-direction:column;align-items:flex-end;gap:6px;margin-left:auto}
+  .money{font-weight:800;color:var(--teal);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .empty{padding:36px 20px;text-align:center;color:var(--muted)}
+  .empty .big{font-size:34px;margin-bottom:8px}
+
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:var(--fsm);font-weight:700;color:var(--ink2);margin-bottom:6px}
+  .field label .req{color:var(--redInk)}
+  .inp,.fsel,.ta{width:100%;border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:#fff}
+  .ta{min-height:84px;resize:vertical}
+  .fhint{font-size:var(--fxs);color:var(--muted);margin-top:5px}
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+  .kv{display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-bottom:1px solid var(--hairline);font-size:var(--fbase)}
+  .kv:last-child{border-bottom:none}
+  .kv .k{color:var(--muted);flex-shrink:0}
+  .kv .v{font-weight:600;text-align:right}
+  .sect{font-size:var(--fxs);font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:18px 0 8px}
+  .sect:first-child{margin-top:0}
+
+  /* ═══ Panel lateral (detalle) ═══ */
+  .scrim{position:fixed;inset:0;background:rgba(16,24,40,.45);z-index:80;opacity:0;pointer-events:none;transition:opacity .18s}
+  .scrim.open{opacity:1;pointer-events:auto}
+  .panel{position:fixed;top:0;right:0;bottom:0;width:min(480px,100vw);background:var(--card);z-index:90;
+    transform:translateX(102%);transition:transform .22s ease;display:flex;flex-direction:column;box-shadow:-12px 0 40px rgba(16,24,40,.18)}
+  .panel.open{transform:none}
+  .phead{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0}
+  .phead .tt{font-size:var(--flg);font-weight:800;flex:1;min-width:0}
+  .phead .x{width:34px;height:34px;border-radius:9px;background:var(--hairline);font-size:15px;flex-shrink:0}
+  .pbody{flex:1;overflow-y:auto;padding:18px 20px}
+  .pfoot{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:10px;flex-shrink:0;background:#fff}
+  .pfoot .btn{flex:1}
+
+  .toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,80px);background:var(--ink);color:#fff;
+    font-weight:600;font-size:var(--fbase);border-radius:99px;padding:11px 22px;z-index:120;opacity:0;transition:all .25s;max-width:90vw;text-align:center}
+  .toast.show{transform:translate(-50%,0);opacity:1}
+  .toast.err{background:var(--redInk)}
+
+  .alertcard{border-left:4px solid var(--redInk);background:var(--redBg)}
+  .alertcard.ok{border-left-color:var(--okInk);background:var(--okBg)}
+  .alertcard.warn{border-left-color:var(--pendInk);background:var(--pendBg)}
+  .meter{height:8px;border-radius:99px;background:var(--hairline);overflow:hidden;margin:8px 0 4px}
+  .meter i{display:block;height:100%;border-radius:99px;background:var(--teal)}
+  .meter.red i{background:var(--redInk)}
+
+  .tabs{display:flex;gap:6px;background:var(--hairline);border-radius:11px;padding:4px;width:max-content;max-width:100%;margin-bottom:14px}
+  .tab{border-radius:8px;padding:8px 16px;font-weight:700;font-size:var(--fsm);color:var(--muted)}
+  .tab.on{background:#fff;color:var(--teal);box-shadow:0 1px 4px rgba(16,24,40,.1)}
+
+  /* ═══ Estación de transcripción — 3 columnas ═══ */
+  .ws3{display:grid;grid-template-columns:185px 255px minmax(0,1fr);gap:12px;align-items:start}
+  .colhead{font-size:var(--fxs);font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:2px 4px 8px}
+  .loclist,.queue{display:flex;flex-direction:column;gap:7px}
+  .locitem{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;text-align:left;width:100%;cursor:pointer;
+    display:flex;align-items:center;gap:8px}
+  .locitem .nm{font-weight:700;font-size:var(--fsm);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .locitem .n{background:var(--hairline);color:var(--ink2);font-size:var(--fxs);font-weight:800;border-radius:99px;padding:2px 9px;font-variant-numeric:tabular-nums;flex-shrink:0}
+  .locitem.on{background:var(--teal);border-color:var(--teal);color:#fff}
+  .locitem.on .n{background:rgba(255,255,255,.25);color:#fff}
+  .locitem.zero{opacity:.45}
+  .qitem{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;text-align:left;width:100%;cursor:pointer}
+  .qitem .nm{font-weight:700;font-size:var(--fsm)}
+  .qitem .mt{font-size:var(--fxs);color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
+  .qitem.on{border-color:var(--teal);background:var(--tealSoft);box-shadow:0 0 0 1px var(--teal) inset}
+  .work{position:sticky;top:14px;min-width:0}
+  .work .pos{font-size:var(--fxs);font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+  .idcard{background:var(--teal);border-radius:12px;padding:14px 16px;color:#fff;margin-top:8px}
+  .idcard .short{font-size:var(--flg);font-weight:800;letter-spacing:.5px}
+  .idcard .cifchip{display:inline-block;background:rgba(255,255,255,.18);border-radius:8px;padding:2px 10px;font-size:var(--fsm);font-weight:800;margin-left:8px;vertical-align:2px}
+  .idcard .lbl{font-size:var(--f2xs);font-weight:800;letter-spacing:1.4px;text-transform:uppercase;opacity:.75;margin-top:12px}
+  .idcard .acct{font-size:clamp(26px,3.2vw,34px);font-weight:800;letter-spacing:2.5px;font-variant-numeric:tabular-nums;line-height:1.15;cursor:pointer}
+  .idcard .prod{font-size:var(--fsm);opacity:.85;margin-top:2px}
+  .comentbig{background:var(--screen);border-radius:10px;padding:14px;font-size:var(--fmd);line-height:1.5;margin-top:8px}
+  .codmini{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--hairline)}
+  .codmini .lb{font-size:var(--fsm);font-weight:700;color:var(--muted)}
+  .codmini .inp{width:110px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:8px 10px;font-size:var(--fbase)}
+  .kbd{display:inline-block;background:var(--hairline);border:1px solid var(--border);border-bottom-width:2px;border-radius:6px;
+    padding:1px 7px;font-size:var(--fxs);font-weight:700;color:var(--ink2);font-family:inherit}
+  .cambios{border:1.5px solid var(--espInk);border-radius:10px;overflow:hidden;background:var(--espBg)}
+  .cambio{padding:10px 14px;border-bottom:1px solid rgba(124,58,237,.18)}
+  .cambio:last-child{border-bottom:none}
+  .cambio .ck{font-size:var(--f2xs);font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--espInk)}
+  .cambio .cv{margin-top:3px;font-size:var(--fbase);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .cambio .cv b{color:var(--ink)}
+  .cambio .ant{color:var(--muted);text-decoration:line-through}
+  .cambio .arr{color:var(--espInk);font-weight:800}
+  .cambio .tagnuevo{background:var(--espInk);color:#fff;font-size:var(--f2xs);font-weight:800;border-radius:6px;padding:2px 7px;letter-spacing:.5px}
+  @media (max-width:1080px){ .ws3{grid-template-columns:150px 210px minmax(0,1fr)} }
+  @media (max-width:920px){ .ws3{grid-template-columns:1fr}
+    .loclist{grid-row:auto;flex-direction:row;overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch}
+    .locitem{flex:0 0 auto;width:auto}
+    .work,.queue{grid-column:auto} .work{position:static} }
+
+  .pagos{border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-top:6px}
+  .pago{display:flex;justify-content:space-between;gap:10px;padding:9px 12px;border-bottom:1px solid var(--hairline);font-size:var(--fbase)}
+  .pago:last-child{border-bottom:none}
+  .pago .rc{color:var(--muted);font-size:var(--fsm)}
+  .quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+  .qbtn{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px;text-align:left;cursor:pointer;transition:border-color .12s}
+  .qbtn:hover{border-color:var(--teal)}
+  .qbtn .ic{font-size:22px}
+  .qbtn .t{font-weight:800;font-size:var(--fmd);margin-top:8px}
+  .qbtn .d{font-size:var(--fsm);color:var(--muted);margin-top:3px}
+
+  /* ═══ Responsive ═══ */
+  @media (max-width:920px){
+    .sidebar{position:fixed;inset:0 auto 0 0;z-index:100;transform:translateX(-102%);transition:transform .22s ease;width:min(280px,84vw);box-shadow:14px 0 40px rgba(16,24,40,.25)}
+    .sidebar.open{transform:none}
+    .topbar{display:flex;align-items:center;gap:12px;background:var(--teal);color:#fff;padding:12px 14px;position:sticky;top:44px;z-index:50}
+    .topbar .burger{width:38px;height:38px;border-radius:10px;background:rgba(255,255,255,.15);color:#fff;font-size:17px;flex-shrink:0}
+    .topbar .tt{font-weight:800;font-size:var(--fmd);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .content{padding-top:16px}
+    .duo{grid-template-columns:1fr}
+    .row .tail{align-items:flex-start;margin-left:0;flex-direction:row;flex-wrap:wrap;width:100%}
+  }
+</style>
+</head>
+<body>
+
+<!-- Barra de DEMO: en la app real esto lo decide el rol de seguridad del usuario -->
+<div class="demobar">
+  <b>Demo · Rol</b>
+  <button class="rolebtn" data-role="backoffice">Backoffice</button>
+  <button class="rolebtn" data-role="solicitante">Solicitante</button>
+  <button class="rolebtn" data-role="supervisor">Supervisor</button>
+  <button class="rolebtn" data-role="admin">Admin</button>
+  <span class="hint">En la app real, el rol se detecta al entrar y cada quien ve SOLO sus pantallas.</span>
+</div>
+
+<div class="shell">
+  <nav class="sidebar" id="sidebar" aria-label="Navegación">
+    <div class="brand">
+      <div class="logo">₡</div>
+      <div><div class="t1">Cobranza Móvil</div><div class="t2">Backoffice</div></div>
+    </div>
+    <div id="nav"></div>
+    <div class="sidefoot">
+      <div class="avatar" id="avatarTxt">MB</div>
+      <div><div class="un" id="userName">—</div><div class="ur" id="userRole">—</div></div>
+    </div>
+  </nav>
+
+  <div class="main">
+    <div class="topbar">
+      <button class="burger" id="burger" aria-label="Abrir menú">☰</button>
+      <div class="tt" id="topTitle">Inicio</div>
+      <div class="avatar" id="avatarTxt2">MB</div>
+    </div>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="panel" id="panel" aria-modal="true" role="dialog">
+  <div class="phead"><div class="tt" id="ptitle">—</div><button class="x" id="pclose" aria-label="Cerrar">✕</button></div>
+  <div class="pbody" id="pbody"></div>
+  <div class="pfoot" id="pfoot"></div>
+</aside>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══════════════ DATOS MOCK ══════════════ */
+const agentes = [
+  {id:'A1', nombre:'Martha López',  email:'martha@bac.ni',  usuario:'martha@bac.ni',  activo:true},
+  {id:'A2', nombre:'Carlos Urbina', email:'curbina@bac.ni', usuario:'curbina@bac.ni', activo:true},
+  {id:'A3', nombre:'Ana Mendoza',   email:'',               usuario:null,             activo:true},
+  {id:'A4', nombre:'Beto Castillo', email:'beto@bac.ni',    usuario:'beto@bac.ni',    activo:true},
+  {id:'A5', nombre:'Julia Espinoza',email:'julia@bac.ni',   usuario:'julia@bac.ni',   activo:false},
+];
+const usuariosEntra = ['martha@bac.ni','curbina@bac.ni','beto@bac.ni','julia@bac.ni','amendoza@bac.ni','otro@bac.ni'];
+
+const cuentas = [
+  {num:'4501-2231', cliente:'Rosa Amelia Gutiérrez', cif:'C-10221', prod:'Tarjeta Clásica', nio:12500, usd:180, dias:45, nivel:2},
+  {num:'4501-8812', cliente:'Rosa Amelia Gutiérrez', cif:'C-10221', prod:'Préstamo Personal', nio:8200, usd:0, dias:45, nivel:2},
+  {num:'7810-0034', cliente:'Pedro Pablo Jarquín',   cif:'C-20817', prod:'Tarjeta Oro', nio:0, usd:960, dias:120, nivel:4},
+  {num:'7810-5590', cliente:'María José Baltodano',  cif:'C-33940', prod:'Préstamo Vehicular', nio:45200, usd:310, dias:15, nivel:1},
+  {num:'9922-1005', cliente:'Domingo Sánchez Roa',   cif:'C-41822', prod:'Tarjeta Clásica', nio:5600, usd:75, dias:200, nivel:5},
+  {num:'9922-7761', cliente:'Lucía Fernanda Osorno', cif:'C-55013', prod:'Préstamo Comercial', nio:98000, usd:1200, dias:60, nivel:3},
+];
+
+let seqInt = 129;
+const hoy = new Date();
+const hh = (h,m)=>{const d=new Date(hoy);d.setHours(h,m,0);return d;};
+const interacciones = [
+  {id:'INT-000121', cta:cuentas[0], agente:'Martha López', fecha:hh(8,40),  comentario:'Cliente promete pagar el viernes. Se le recordó el pago mínimo y quedó de pasar por la sucursal.', pago:false, pagos:[], datos:false, geo:true,  estado:'pend'},
+  {id:'INT-000122', cta:cuentas[2], agente:'Carlos Urbina', fecha:hh(9,5),  comentario:'Cliente pagó. Entregó efectivo en dólares, recibo del talonario 0331.', pago:true, pagos:[{m:250,mon:'USD',rec:'0331'}], datos:false, geo:true, estado:'pend'},
+  {id:'INT-000123', cta:cuentas[4], agente:'Martha López', fecha:hh(9,32),  comentario:'No localizado. Vecina indica que ya no vive ahí, dejó nueva dirección de trabajo.', pago:false, pagos:[], datos:true, geo:true, estado:'pend',
+    cambios:{'Dirección trabajo':{ant:'—', nuevo:'Bodega El Progreso, km 4 carretera norte'},
+             'Teléfono celular':{ant:'8633-0912', nuevo:'7755-2318'},
+             'Dirección casa':{ant:'Villa Venezuela, andén 8', nuevo:'Bo. Laureles Sur, casa B-24'}}},
+  {id:'INT-000124', cta:cuentas[3], agente:'Beto Castillo', fecha:hh(10,15), comentario:'Pago parcial mixto. Cliente pidió arreglo de pago para el saldo restante.', pago:true, pagos:[{m:3000,mon:'NIO',rec:'0552'},{m:40,mon:'USD',rec:'0553'}], datos:false, geo:true, estado:'pend'},
+  {id:'INT-000125', cta:cuentas[5], agente:'Carlos Urbina', fecha:hh(10,50), comentario:'Negocio cerrado. Rótulo de "se alquila". Verificar teléfono de contacto.', pago:false, pagos:[], datos:false, geo:false, estado:'pend'},
+  {id:'INT-000126', cta:cuentas[1], agente:'Martha López', fecha:hh(11,20), comentario:'No tiene dinero hoy. Promesa para el lunes con el pago de su quincena. Dejó correo para avisos.', pago:false, pagos:[], datos:true, geo:true, estado:'pend',
+    cambios:{'Correo electrónico':{ant:'—', nuevo:'rosa.gutierrez@gmail.com'}}},
+];
+const transcritas = [
+  {id:'INT-000119', cta:cuentas[3], agente:'Beto Castillo', fecha:hh(7,58), comentario:'Cliente pagó cuota completa.', pago:true, pagos:[{m:5200,mon:'NIO',rec:'0550'}], codigo:'PAG01', hora:hh(8,22), estado:'grab'},
+  {id:'INT-000120', cta:cuentas[0], agente:'Martha López', fecha:hh(8,10), comentario:'Promesa de pago documentada.', pago:false, pagos:[], codigo:'PRM02', hora:hh(8,31), estado:'grab'},
+];
+
+let seqSol = 18;
+const solicitudes = [
+  {id:'AS-0015', cta:cuentas[2], tipo:'Retiro urgente', nio:0, usd:400, motivo:'Gerencia pide retiro del saldo en riesgo esta semana.', estado:'pend', solicitante:'Sofía Rivas', fecha:hh(8,15), agente:null, motrz:null},
+  {id:'AS-0016', cta:cuentas[5], tipo:'Cobro especial', nio:15000, usd:0, motivo:'Cliente con arreglo vencido, retirar primera cuota del arreglo.', estado:'aprob', solicitante:'Sofía Rivas', fecha:hh(7,30), agente:'Carlos Urbina', motrz:null},
+  {id:'AS-0014', cta:cuentas[4], tipo:'Retiro urgente', nio:2000, usd:0, motivo:'Retiro de mora acumulada.', estado:'rech', solicitante:'Sofía Rivas', fecha:hh(6,45), agente:null, motrz:'La cuenta ya tiene gestión Diaria activa con promesa vigente.'},
+];
+
+const diariasActivas = 120;
+let desaparecidas = [
+  {num:'4501-0090', cliente:'Ernesto Palacios',  agente:'Martha López',  ult:'hace 2 días'},
+  {num:'7810-2260', cliente:'Karla Munguía',     agente:'Carlos Urbina', ult:'hace 2 días'},
+  {num:'9922-4417', cliente:'Iván Torrez',       agente:'Beto Castillo', ult:'hace 3 días'},
+  {num:'4501-6633', cliente:'Norma Blandón',     agente:'Martha López',  ult:'hace 4 días'},
+];
+let cierres = [
+  {num:'9922-1005', cliente:'Domingo Sánchez Roa', tipo:'incob', agente:'Martha López', dias:200, nio:5600, usd:75},
+  {num:'7810-0034', cliente:'Pedro Pablo Jarquín', tipo:'incob', agente:'Carlos Urbina', dias:120, nio:0, usd:960},
+  {num:'4417-8890', cliente:'Silvia Corea',        tipo:'incob', agente:'Beto Castillo', dias:340, nio:22000, usd:0},
+  {num:'9922-7761', cliente:'Lucía Fernanda Osorno', tipo:'esp', agente:'Carlos Urbina', dias:60, nio:15000, usd:0},
+  {num:'7810-0034', cliente:'Pedro Pablo Jarquín',  tipo:'esp', agente:'Beto Castillo', dias:120, nio:0, usd:400},
+];
+let clientes = [
+  {cif:'C-10221', nombre:'Rosa Amelia Gutiérrez', depto:'Managua', distrito:'D-IV', trabajo:'Mercado Oriental, tramo 45', tels:['8877-1023 (cel)','2249-8811 (casa)'], dirs:['Bo. San Judas, casa E-12 (casa)','Mercado Oriental (trabajo)']},
+  {cif:'C-20817', nombre:'Pedro Pablo Jarquín', depto:'Managua', distrito:'D-II', trabajo:'Taller mecánico propio', tels:['8410-7788 (cel)'], dirs:['Col. Centroamérica L-330 (casa)']},
+  {cif:'C-33940', nombre:'María José Baltodano', depto:'Masaya', distrito:'—', trabajo:'Zona franca San Rafael', tels:['7788-2200 (cel)'], dirs:['Masaya, del parque 2c al sur (casa)']},
+  {cif:'C-41822', nombre:'Domingo Sánchez Roa', depto:'Managua', distrito:'D-VI', trabajo:'—', tels:['8633-0912 (cel)'], dirs:['Villa Venezuela, andén 8 (casa)']},
+  {cif:'C-55013', nombre:'Lucía Fernanda Osorno', depto:'León', distrito:'—', trabajo:'Farmacia La Merced', tels:['8122-6640 (cel)','2311-4520 (casa)'], dirs:['León, esq. banco 1c arriba (casa)','Farmacia La Merced (trabajo)']},
+];
+
+const cargas = [
+  {fecha:'Hoy · 6:12 am', cuentas:1002, clientes:958, nuevas:3, estado:'ok'},
+  {fecha:'Ayer · 6:09 am', cuentas:998, clientes:955, nuevas:1, estado:'ok'},
+  {fecha:'Hace 2 días · 6:14 am', cuentas:1004, clientes:958, nuevas:0, estado:'ok'},
+  {fecha:'Hace 3 días · 6:41 am', cuentas:961, clientes:930, nuevas:2, estado:'warn'},
+];
+
+/* ══════════════ ROLES Y NAVEGACIÓN ══════════════ */
+const roles = {
+  backoffice:{nombre:'Marlon Báez',  rol:'Backoffice',  home:'home',
+    nav:[{sec:'Transcripción'},{id:'cola',ic:'📥',t:'Por transcribir',badge:()=>interacciones.filter(i=>i.estado==='pend').length},{id:'transcritas',ic:'✅',t:'Transcritas hoy'}]},
+  solicitante:{nombre:'Sofía Rivas', rol:'Solicitante', home:'home',
+    nav:[{sec:'Especiales'},{id:'nueva',ic:'✨',t:'Nueva solicitud'},{id:'missolicitudes',ic:'🗂️',t:'Mis solicitudes',badge:()=>solicitudes.filter(s=>s.estado==='pend').length}]},
+  supervisor:{nombre:'Hugo Lacayo',  rol:'Supervisor',  home:'home',
+    nav:[{sec:'Especiales'},{id:'aprobaciones',ic:'⚖️',t:'Aprobaciones',badge:()=>solicitudes.filter(s=>s.estado==='pend').length}]},
+  admin:{nombre:'Adriana Meza',      rol:'Admin',       home:'home',
+    nav:[{sec:'Operación'},{id:'monitoreo',ic:'📡',t:'Monitoreo de carga'},{id:'reconciliacion',ic:'🧹',t:'Reconciliación'},{id:'cierres',ic:'🔒',t:'Cierres'},
+         {sec:'Catálogos'},{id:'agentes',ic:'🏍️',t:'Agentes y usuarios'},{id:'maestros',ic:'👥',t:'Datos maestros'}]},
+};
+let rol = 'backoffice';
+let screen = 'home';
+let filtroLoc = 'Todos', buscar = '', tabCierre = 'incob', buscarCli = '';
+
+const $ = id => document.getElementById(id);
+const money = (nio,usd)=>{
+  const p=[]; if(nio>0)p.push('C$ '+nio.toLocaleString('es-NI',{minimumFractionDigits:2}));
+  if(usd>0)p.push('US$ '+usd.toLocaleString('es-NI',{minimumFractionDigits:2}));
+  return p.length?p.join(' · '):'C$ 0.00';
+};
+const hora = d => d.toLocaleTimeString('es-NI',{hour:'2-digit',minute:'2-digit'});
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const shortName = n => { const w=n.toUpperCase().split(' ');
+  return w.length>=3 ? w.slice(-2).join(' ')+'/'+w[0] : w[1]+'/'+w[0]; };
+let toastT;
+function toast(msg,err){ const t=$('toast'); t.textContent=msg; t.className='toast show'+(err?' err':'');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.className='toast',2600); }
+
+function setRole(r){ rol=r; screen='home'; filtroLoc='Todos'; buscar='';
+  document.querySelectorAll('.rolebtn').forEach(b=>b.classList.toggle('on',b.dataset.role===r));
+  const R=roles[r]; $('userName').textContent=R.nombre; $('userRole').textContent=R.rol;
+  const ini=R.nombre.split(' ').map(w=>w[0]).slice(0,2).join('');
+  $('avatarTxt').textContent=ini; $('avatarTxt2').textContent=ini;
+  render(); }
+
+function go(s){ screen=s; closePanel(); render(); $('sidebar').classList.remove('open'); window.scrollTo(0,0); }
+
+function renderNav(){
+  const R=roles[rol];
+  let h=`<button class="navitem ${screen==='home'?'on':''}" onclick="go('home')"><span class="ic">🏠</span>Inicio</button>`;
+  R.nav.forEach(n=>{
+    if(n.sec){ h+=`<div class="navsec">${n.sec}</div>`; return; }
+    const b=n.badge?n.badge():0;
+    h+=`<button class="navitem ${screen===n.id?'on':''}" onclick="go('${n.id}')"><span class="ic">${n.ic}</span>${n.t}${b?`<span class="badge">${b}</span>`:''}</button>`;
+  });
+  $('nav').innerHTML=h;
+}
+
+/* ══════════════ PANTALLAS ══════════════ */
+function head(t,sub){ $('topTitle').textContent=t; return `<div class="pagehead"><div><h1>${t}</h1>${sub?`<div class="sub">${sub}</div>`:''}</div></div>`; }
+
+function scrHome(){
+  const R=roles[rol];
+  const pend=interacciones.filter(i=>i.estado==='pend');
+  const pendSol=solicitudes.filter(s=>s.estado==='pend');
+  const pagosHoy=transcritas.flatMap(t=>t.pagos);
+  const nio=pagosHoy.filter(p=>p.mon==='NIO').reduce((a,p)=>a+p.m,0), usd=pagosHoy.filter(p=>p.mon==='USD').reduce((a,p)=>a+p.m,0);
+  let kpis='', quick='';
+  if(rol==='backoffice'){
+    kpis=`<div class="card kpi hero"><div class="lb">En cola</div><div class="v">${pend.length}</div><div class="d">interacciones por transcribir</div></div>
+      <div class="card kpi"><div class="lb">Transcritas hoy</div><div class="v">${transcritas.length}</div><div class="d">por vos</div></div>
+      <div class="card kpi"><div class="lb">Con pago</div><div class="v">${pend.filter(i=>i.pago).length}</div><div class="d">priorizá estas</div></div>`;
+    quick=`<button class="qbtn" onclick="go('cola')"><div class="ic">📥</div><div class="t">Ir a la cola</div><div class="d">FIFO — la más vieja primero</div></button>
+      <button class="qbtn" onclick="go('transcritas')"><div class="ic">✅</div><div class="t">Arqueo del día</div><div class="d">lo que ya grabaste</div></button>`;
+  } else if(rol==='solicitante'){
+    kpis=`<div class="card kpi hero"><div class="lb">Pendientes</div><div class="v">${pendSol.length}</div><div class="d">esperando aprobación</div></div>
+      <div class="card kpi"><div class="lb">Aprobadas</div><div class="v">${solicitudes.filter(s=>s.estado==='aprob').length}</div><div class="d">en gestión de campo</div></div>
+      <div class="card kpi"><div class="lb">Rechazadas</div><div class="v">${solicitudes.filter(s=>s.estado==='rech').length}</div><div class="d">revisá el motivo</div></div>`;
+    quick=`<button class="qbtn" onclick="go('nueva')"><div class="ic">✨</div><div class="t">Nueva solicitud</div><div class="d">pedir una asignación Especial</div></button>
+      <button class="qbtn" onclick="go('missolicitudes')"><div class="ic">🗂️</div><div class="t">Mis solicitudes</div><div class="d">seguimiento y estados</div></button>`;
+  } else if(rol==='supervisor'){
+    kpis=`<div class="card kpi hero"><div class="lb">Por aprobar</div><div class="v">${pendSol.length}</div><div class="d">solicitudes Especiales</div></div>
+      <div class="card kpi"><div class="lb">Aprobadas hoy</div><div class="v">${solicitudes.filter(s=>s.estado==='aprob').length}</div><div class="d">asignadas a localizador</div></div>`;
+    quick=`<button class="qbtn" onclick="go('aprobaciones')"><div class="ic">⚖️</div><div class="t">Aprobaciones</div><div class="d">FIFO — la más vieja primero</div></button>`;
+  } else {
+    kpis=`<div class="card kpi hero"><div class="lb">Carga de hoy</div><div class="v">✓ 6:12</div><div class="d">1,002 cuentas · sin errores</div></div>
+      <div class="card kpi"><div class="lb">Diarias fuera de cartera</div><div class="v">${desaparecidas.length}</div><div class="d">de ${diariasActivas} activas</div></div>
+      <div class="card kpi"><div class="lb">Cierres pendientes</div><div class="v">${cierres.length}</div><div class="d">incobrables + especiales</div></div>
+      <div class="card kpi"><div class="lb">Agentes sin usuario</div><div class="v">${agentes.filter(a=>!a.usuario&&a.activo).length}</div><div class="d">no pueden entrar a la app</div></div>`;
+    quick=`<button class="qbtn" onclick="go('monitoreo')"><div class="ic">📡</div><div class="t">Monitoreo</div><div class="d">¿llegó el archivo?</div></button>
+      <button class="qbtn" onclick="go('reconciliacion')"><div class="ic">🧹</div><div class="t">Reconciliación</div><div class="d">Diarias desaparecidas</div></button>
+      <button class="qbtn" onclick="go('agentes')"><div class="ic">🏍️</div><div class="t">Agentes</div><div class="d">ligar usuarios</div></button>`;
+  }
+  return head(`Hola, ${R.nombre.split(' ')[0]}`,'Cobrado hoy por los localizadores: '+money(nio,usd))
+    +`<div class="grid kpis" style="margin-bottom:16px">${kpis}</div><div class="sect">Accesos</div><div class="quick">${quick}</div>`;
+}
+
+/* ── Backoffice ── */
+function rowInt(i,click){
+  return `<button class="row" onclick="${click}">
+    <div class="who"><div class="nm">${esc(i.cta.cliente)}</div><div class="mt">${i.cta.num} · ${esc(i.cta.prod)}</div>
+      <div class="mt">🏍️ ${esc(i.agente)} · ${hora(i.fecha)}</div></div>
+    <div class="mid"><div class="cm">${esc(i.comentario)}</div></div>
+    <div class="tail">${i.pago?`<span class="chip ok">💵 ${money(i.pagos.filter(p=>p.mon==='NIO').reduce((a,p)=>a+p.m,0),i.pagos.filter(p=>p.mon==='USD').reduce((a,p)=>a+p.m,0))}</span>`:''}
+      ${i.datos?'<span class="chip esp">✏️ Datos nuevos</span>':''}
+      ${i.estado==='grab'?`<span class="chip ok">✓ Grabada · ${esc(i.codigo)}</span>`:'<span class="chip pend">Pendiente</span>'}</div>
+  </button>`;
+}
+/* Estación de transcripción: chips de localizador + cola + detalle fijo, marcar-y-siguiente */
+let locSel='Todos', curId=null;
+function colaFiltrada(){
+  let list=interacciones.filter(i=>i.estado==='pend');
+  if(locSel!=='Todos') list=list.filter(i=>i.agente===locSel);
+  return [...list].sort((a,b)=>a.fecha-b.fecha);
+}
+function pickLoc(l){ locSel=l; curId=null; render(); }
+function selCur(id){ curId=id; render(); }
+function scrCola(){
+  const pend=interacciones.filter(i=>i.estado==='pend');
+  const porLoc={}; pend.forEach(i=>porLoc[i.agente]=(porLoc[i.agente]||0)+1);
+  const locs=[...new Set(interacciones.map(i=>i.agente))].sort((a,b)=>(porLoc[b]||0)-(porLoc[a]||0));
+  const list=colaFiltrada();
+  if(!curId||!list.some(i=>i.id===curId)) curId=list.length?list[0].id:null;
+  const cur=list.find(i=>i.id===curId);
+  const pos=list.findIndex(i=>i.id===curId)+1;
+
+  const colLocs=`<div class="loclist"><div class="colhead" style="flex:0 0 auto">Localizadores</div>
+    <button class="locitem ${locSel==='Todos'?'on':''}" onclick="pickLoc('Todos')"><span class="nm">Todos</span><span class="n">${pend.length}</span></button>
+    ${locs.map(l=>{const n=porLoc[l]||0;return `<button class="locitem ${locSel===l?'on':''} ${n?'':'zero'}" onclick="pickLoc('${esc(l)}')"><span class="nm">🏍️ ${esc(l)}</span><span class="n">${n}</span></button>`;}).join('')}
+  </div>`;
+
+  const colQueue=`<div class="queue"><div class="colhead">Pendientes${locSel!=='Todos'?' · '+esc(locSel.split(' ')[0]):''} (${list.length}) · FIFO</div>
+    ${list.length?list.map(i=>`<button class="qitem ${i.id===curId?'on':''}" onclick="selCur('${i.id}')">
+      <div class="nm">${esc(shortName(i.cta.cliente))}</div>
+      <div class="mt">${i.cta.num} · ${hora(i.fecha)}${i.pago?' · 💵':''}${i.datos?' · ✏️':''}${locSel==='Todos'?'<br>🏍️ '+esc(i.agente.split(' ')[0]):''}</div>
+    </button>`).join(''):`<div class="card empty" style="padding:22px"><div class="big">🎉</div><b>Cola vacía</b><br>${locSel!=='Todos'?'Pasá al siguiente localizador.':'Sin pendientes.'}</div>`}
+  </div>`;
+
+  const colWork=!cur?`<div class="card work"><div class="empty"><div class="big">✨</div><b>Nada seleccionado</b><br>Elegí un localizador con pendientes.</div></div>`
+  :`<div class="card work">
+    <div class="pos">${pos} de ${list.length}${locSel!=='Todos'?' · '+esc(locSel):''} · ${cur.id} · 🏍️ ${esc(cur.agente)} · ${hora(cur.fecha)}
+      ${cur.geo?` · <a href="#" onclick="toast('Demo: abriría el mapa');return false" style="color:var(--teal);font-weight:700">📍 mapa</a>`:''}</div>
+    <div class="idcard">
+      <span class="short">${esc(shortName(cur.cta.cliente))}</span><span class="cifchip">${cur.cta.cif}</span>
+      <div class="fhint" style="color:rgba(255,255,255,.8)">${esc(cur.cta.cliente)}</div>
+      <div class="lbl">N° tarjeta / préstamo</div>
+      <div class="acct" onclick="toast('Demo: copiaría '+this.textContent+' al portapapeles')" title="Copiar">${cur.cta.num}</div>
+      <div class="prod">${esc(cur.cta.prod)}</div>
+    </div>
+    <div class="comentbig">${esc(cur.comentario)}</div>
+    ${cur.pago?`<div class="sect">Pagos (${cur.pagos.length})</div><div class="pagos">${cur.pagos.map(p=>`<div class="pago"><span class="money">${p.mon==='NIO'?'C$':'US$'} ${p.m.toLocaleString('es-NI',{minimumFractionDigits:2})}</span><span class="rc">Recibo ${p.rec}</span></div>`).join('')}</div>`:''}
+    ${cur.datos?`<div class="sect" style="color:var(--espInk)">✏️ Actualización de datos — grabala también en el core</div>
+    <div class="cambios">${Object.entries(cur.cambios||{}).map(([k,v])=>`
+      <div class="cambio"><div class="ck">${esc(k)}</div>
+        <div class="cv">${v.ant&&v.ant!=='—'?`<span class="ant">${esc(v.ant)}</span><span class="arr">→</span>`:`<span class="tagnuevo">NUEVO</span>`}<b>${esc(v.nuevo)}</b></div></div>`).join('')}
+    </div>`:''}
+    <div class="codmini">
+      <span class="lb">Código del core</span>
+      <input class="inp" id="codigoInp" maxlength="10" placeholder="PAG01" autocomplete="off"
+        oninput="$('btnGrab').disabled=!this.value.trim()"
+        onkeydown="if(event.key==='Enter'&&!$('btnGrab').disabled)marcarSiguiente()">
+      <button class="btn pri sm" id="btnGrab" disabled onclick="marcarSiguiente()">✓ y siguiente</button>
+      <button class="btn ghost sm" onclick="saltar()">Saltar →</button>
+      <span class="fhint" style="margin:0"><span class="kbd">Enter</span> marca y avanza · <span class="kbd">↓</span><span class="kbd">↑</span> navegan</span>
+    </div>
+  </div>`;
+
+  return head('Por transcribir','Localizador → pendientes → detalle. Grabá en el core y seguí de corrido.')
+    +`<div class="ws3">${colLocs}${colQueue}${colWork}</div>`;
+}
+function marcarSiguiente(){
+  const list=colaFiltrada(); const cur=list.find(i=>i.id===curId); if(!cur)return;
+  const idxAll=interacciones.findIndex(x=>x.id===cur.id);
+  cur.estado='grab'; cur.codigo=$('codigoInp').value.trim().toUpperCase(); cur.hora=new Date();
+  interacciones.splice(idxAll,1); transcritas.unshift(cur);
+  const rest=colaFiltrada(); const oldPos=list.findIndex(i=>i.id===cur.id);
+  curId=rest.length?(rest[Math.min(oldPos,rest.length-1)].id):null;
+  toast('✓ '+cur.id+' grabada'+(rest.length?' — siguiente: '+rest[Math.min(oldPos,rest.length-1)].cta.cliente.split(' ')[0]:' — ¡cola vacía!'));
+  render();
+}
+function saltar(){
+  const list=colaFiltrada(); if(list.length<2)return;
+  const p=list.findIndex(i=>i.id===curId); curId=list[(p+1)%list.length].id; render();
+}
+document.addEventListener('keydown',e=>{
+  if(screen!=='cola'||rol!=='backoffice')return;
+  if(e.target.tagName==='INPUT'&&e.key!=='ArrowDown'&&e.key!=='ArrowUp')return;
+  const list=colaFiltrada(); if(!list.length)return;
+  const p=list.findIndex(i=>i.id===curId);
+  if(e.key==='ArrowDown'){ e.preventDefault(); curId=list[Math.min(p+1,list.length-1)].id; render(); }
+  if(e.key==='ArrowUp'){ e.preventDefault(); curId=list[Math.max(p-1,0)].id; render(); }
+});
+function scrTranscritas(){
+  const pagos=transcritas.flatMap(t=>t.pagos);
+  const nio=pagos.filter(p=>p.mon==='NIO').reduce((a,p)=>a+p.m,0), usd=pagos.filter(p=>p.mon==='USD').reduce((a,p)=>a+p.m,0);
+  return head('Transcritas hoy','Tu arqueo del día — código grabado y auditoría sellada.')
+    +`<div class="grid kpis" style="margin-bottom:14px">
+        <div class="card kpi"><div class="lb">Transcritas</div><div class="v">${transcritas.length}</div></div>
+        <div class="card kpi"><div class="lb">Pagos transcritos</div><div class="v" style="font-size:var(--flg)">${money(nio,usd)}</div></div></div>
+    <div class="rows">${transcritas.map(i=>rowInt(i,`openTrans('${i.id}',true)`)).join('')||'<div class="card empty">Nada todavía.</div>'}</div>`;
+}
+function openTrans(id,ro){
+  const i=[...interacciones,...transcritas].find(x=>x.id===id); if(!i)return;
+  const grab=i.estado==='grab';
+  openPanel(i.id, `
+    <div class="sect">Gestión de campo <span class="chip gray" style="margin-left:6px">solo lectura</span></div>
+    <div class="kv"><span class="k">Cliente</span><span class="v">${esc(i.cta.cliente)}</span></div>
+    <div class="kv"><span class="k">Cuenta</span><span class="v">${i.cta.num} · ${esc(i.cta.prod)}</span></div>
+    <div class="kv"><span class="k">Localizador</span><span class="v">${esc(i.agente)}</span></div>
+    <div class="kv"><span class="k">Capturada</span><span class="v">${hora(i.fecha)}</span></div>
+    <div class="kv"><span class="k">Ubicación</span><span class="v">${i.geo?`<a href="#" onclick="toast('Demo: abriría el mapa');return false" style="color:var(--teal)">📍 Ver en mapa</a>`:'—'}</span></div>
+    <div class="sect">Comentario</div>
+    <div class="card" style="background:var(--screen);border:none">${esc(i.comentario)}</div>
+    ${i.pago?`<div class="sect">Pagos (${i.pagos.length})</div><div class="pagos">${i.pagos.map(p=>`<div class="pago"><span class="money">${p.mon==='NIO'?'C$':'US$'} ${p.m.toLocaleString('es-NI',{minimumFractionDigits:2})}</span><span class="rc">Recibo ${p.rec}</span></div>`).join('')}</div>`:''}
+    ${i.datos?'<div class="sect">Actualización de datos</div><div class="chip esp">✏️ Trae datos nuevos del cliente — revisalos en el core</div>':''}
+    <div class="sect">Transcripción al core</div>
+    ${grab
+      ? `<div class="kv"><span class="k">Código</span><span class="v">${esc(i.codigo)} 🔒</span></div>
+         <div class="kv"><span class="k">Grabada</span><span class="v">${hora(i.hora)} · por vos</span></div>
+         <div class="fhint">Bloqueada tras la grabación — la evidencia de campo es inmutable.</div>`
+      : `<div class="field"><label>Código del core <span class="req">*</span></label>
+           <input class="inp" id="codigoInp" maxlength="10" placeholder="Ej. PAG01" oninput="$('btnGrab').disabled=!this.value.trim()">
+           <div class="fhint">Primero grabá la gestión en el core del banco; después anotá aquí el código que usaste.</div></div>`
+    }`,
+    grab? `<button class="btn ghost" onclick="closePanel()">Cerrar</button>`
+        : `<button class="btn ghost" onclick="closePanel()">Cancelar</button>
+           <button class="btn pri" id="btnGrab" disabled onclick="marcarGrabada('${i.id}')">✓ Marcar como grabada</button>`);
+}
+function marcarGrabada(id){
+  const idx=interacciones.findIndex(x=>x.id===id); if(idx<0)return;
+  const i=interacciones[idx]; i.estado='grab'; i.codigo=$('codigoInp').value.trim(); i.hora=new Date();
+  interacciones.splice(idx,1); transcritas.unshift(i);
+  closePanel(); toast('✓ '+id+' grabada en el core — salió de la cola'); render();
+}
+
+/* ── Solicitante ── */
+function scrMisSolicitudes(){
+  const st={pend:['pend','Pendiente aprobación'],aprob:['ok','Aprobada'],rech:['red','Rechazada']};
+  return head('Mis solicitudes','Estado de tus asignaciones Especiales.')
+    +`<div class="rows">${solicitudes.map(s=>`
+      <button class="row" onclick="openSol('${s.id}',true)">
+        <div class="who"><div class="nm">${esc(s.cta.cliente)}</div><div class="mt">${s.cta.num} · ${esc(s.tipo)}</div><div class="mt">${s.id} · ${hora(s.fecha)}</div></div>
+        <div class="mid"><div class="cm">${esc(s.motivo)}</div></div>
+        <div class="tail"><span class="money">${money(s.nio,s.usd)}</span>
+          <span class="chip ${st[s.estado][0]}">${st[s.estado][1]}</span>
+          ${s.agente?`<span class="chip gray">🏍️ ${esc(s.agente)}</span>`:''}</div>
+      </button>`).join('')||'<div class="card empty">Sin solicitudes todavía.</div>'}</div>`;
+}
+function scrNueva(){
+  return head('Nueva solicitud de Especial','Elegí una cuenta existente y definí el retiro. Si el cliente no existe, pedile al Admin que lo cree.')
+    +`<div class="card" style="max-width:640px">
+      <div class="field"><label>Cuenta <span class="req">*</span></label>
+        <select class="fsel" id="nsCta" onchange="nsPreview()"><option value="">— Buscar cuenta —</option>
+          ${cuentas.map((c,ix)=>`<option value="${ix}">${c.num} · ${esc(c.cliente)} · ${esc(c.prod)}</option>`).join('')}</select>
+        <div id="nsInfo"></div></div>
+      <div class="field"><label>Tipo de especial <span class="req">*</span></label>
+        <select class="fsel" id="nsTipo"><option>Retiro urgente</option><option>Cobro especial</option><option>Verificación</option></select></div>
+      <div class="duo">
+        <div class="field"><label>Retiro C$ (NIO)</label><input class="inp" id="nsNio" type="number" min="0" placeholder="0.00" oninput="nsValida()"></div>
+        <div class="field"><label>Retiro US$ (USD)</label><input class="inp" id="nsUsd" type="number" min="0" placeholder="0.00" oninput="nsValida()"></div>
+      </div>
+      <div class="fhint" style="margin:-6px 0 12px">Al menos una moneda con monto mayor a cero.</div>
+      <div class="field"><label>Motivo <span class="req">*</span></label><textarea class="ta" id="nsMotivo" placeholder="¿Por qué se necesita esta gestión especial?" oninput="nsValida()"></textarea></div>
+      <div id="nsHint" class="fhint" style="color:var(--pendInk);margin-bottom:10px">Falta: cuenta · monto · motivo</div>
+      <button class="btn pri" id="nsBtn" disabled onclick="nsCrear()" style="width:100%">✨ Enviar solicitud</button>
+    </div>`;
+}
+function nsPreview(){ const ix=$('nsCta').value; const el=$('nsInfo');
+  if(ix===''){el.innerHTML='';nsValida();return;}
+  const c=cuentas[+ix];
+  el.innerHTML=`<div class="card" style="background:var(--screen);border:none;margin-top:8px">
+    <div class="kv"><span class="k">Saldo vencido</span><span class="v money">${money(c.nio,c.usd)}</span></div>
+    <div class="kv"><span class="k">Mora</span><span class="v">${c.dias} días · nivel ${c.nivel}</span></div></div>`;
+  nsValida(); }
+function nsValida(){ const falta=[];
+  if($('nsCta').value==='')falta.push('cuenta');
+  if(!(+$('nsNio').value>0||+$('nsUsd').value>0))falta.push('monto');
+  if(!$('nsMotivo').value.trim())falta.push('motivo');
+  $('nsBtn').disabled=falta.length>0;
+  $('nsHint').textContent=falta.length?'Falta: '+falta.join(' · '):'✓ Todo listo';
+  $('nsHint').style.color=falta.length?'var(--pendInk)':'var(--okInk)'; }
+function nsCrear(){
+  const c=cuentas[+$('nsCta').value];
+  solicitudes.unshift({id:'AS-00'+(seqSol++), cta:c, tipo:$('nsTipo').value, nio:+$('nsNio').value||0, usd:+$('nsUsd').value||0,
+    motivo:$('nsMotivo').value.trim(), estado:'pend', solicitante:roles.solicitante.nombre, fecha:new Date(), agente:null, motrz:null});
+  toast('✨ Solicitud enviada — quedó Pendiente de aprobación'); go('missolicitudes'); }
+
+/* ── Supervisor ── */
+function scrAprobaciones(){
+  const pend=[...solicitudes.filter(s=>s.estado==='pend')].sort((a,b)=>a.fecha-b.fecha);
+  return head('Aprobaciones pendientes','FIFO — asigná localizador y aprobá, o rechazá con motivo.')
+    +`<div class="rows">${pend.map(s=>`
+      <button class="row" onclick="openSol('${s.id}')">
+        <div class="who"><div class="nm">${esc(s.cta.cliente)}</div><div class="mt">${s.cta.num} · ${esc(s.tipo)}</div><div class="mt">Pide: ${esc(s.solicitante)} · ${hora(s.fecha)}</div></div>
+        <div class="mid"><div class="cm">${esc(s.motivo)}</div></div>
+        <div class="tail"><span class="money">${money(s.nio,s.usd)}</span><span class="chip pend">Pendiente</span></div>
+      </button>`).join('')||'<div class="card empty"><div class="big">🎉</div><b>Nada por aprobar</b></div>'}</div>`;
+}
+function openSol(id,ro){
+  const s=solicitudes.find(x=>x.id===id); if(!s)return;
+  const acts=agentes.filter(a=>a.activo&&a.usuario);
+  openPanel('Solicitud '+s.id, `
+    <div class="sect">Cuenta</div>
+    <div class="kv"><span class="k">Cliente</span><span class="v">${esc(s.cta.cliente)}</span></div>
+    <div class="kv"><span class="k">Cuenta</span><span class="v">${s.cta.num} · ${esc(s.cta.prod)}</span></div>
+    <div class="kv"><span class="k">Saldo vencido</span><span class="v money">${money(s.cta.nio,s.cta.usd)}</span></div>
+    <div class="sect">Solicitud</div>
+    <div class="kv"><span class="k">Tipo</span><span class="v">${esc(s.tipo)}</span></div>
+    <div class="kv"><span class="k">Retiro pedido</span><span class="v money">${money(s.nio,s.usd)}</span></div>
+    <div class="kv"><span class="k">Solicitante</span><span class="v">${esc(s.solicitante)} · ${hora(s.fecha)}</span></div>
+    <div class="card" style="background:var(--screen);border:none;margin-top:8px">${esc(s.motivo)}</div>
+    ${s.estado==='rech'?`<div class="sect">Rechazo</div><div class="card alertcard">${esc(s.motrz)}</div>`:''}
+    ${s.estado==='aprob'?`<div class="sect">Aprobación</div><div class="kv"><span class="k">Localizador</span><span class="v">🏍️ ${esc(s.agente)}</span></div>`:''}
+    ${(!ro&&s.estado==='pend')?`
+      <div class="sect">Resolución</div>
+      <div class="field"><label>Localizador <span class="req">*</span> <span style="font-weight:400;color:var(--muted)">(requerido para aprobar)</span></label>
+        <select class="fsel" id="apAg" onchange="$('btnAp').disabled=!this.value">
+          <option value="">— Elegir —</option>${acts.map(a=>`<option>${esc(a.nombre)}</option>`).join('')}</select></div>
+      <div class="field"><label>Motivo de rechazo <span style="font-weight:400;color:var(--muted)">(requerido para rechazar)</span></label>
+        <input class="inp" id="apMot" placeholder="¿Por qué se rechaza?" oninput="$('btnRe').disabled=!this.value.trim()"></div>`:''}`,
+    (!ro&&s.estado==='pend')
+      ? `<button class="btn danger" id="btnRe" disabled onclick="resolver('${s.id}',false)">Rechazar</button>
+         <button class="btn pri" id="btnAp" disabled onclick="resolver('${s.id}',true)">✓ Aprobar y asignar</button>`
+      : `<button class="btn ghost" onclick="closePanel()">Cerrar</button>`);
+}
+function resolver(id,ok){
+  const s=solicitudes.find(x=>x.id===id);
+  if(ok){ s.estado='aprob'; s.agente=$('apAg').value; toast('✓ Aprobada — asignada a '+s.agente+'. Le baja al celular.'); }
+  else  { s.estado='rech'; s.motrz=$('apMot').value.trim(); toast('Solicitud rechazada',true); }
+  closePanel(); render(); }
+
+/* ── Admin ── */
+function scrMonitoreo(){
+  const c0=cargas[0];
+  return head('Monitoreo de carga','¿Llegó el archivo del core? ¿Cuadra el volumen?')
+    +`<div class="card alertcard ok" style="margin-bottom:14px"><b>✓ Carga de hoy completada · 6:12 am</b>
+        <div class="fhint" style="color:var(--okInk)">1,002 cuentas · 958 clientes · 3 asignaciones nuevas · 0 errores de fila</div></div>
+    <div class="grid kpis" style="margin-bottom:16px">
+      <div class="card kpi"><div class="lb">Cuentas</div><div class="v">${c0.cuentas.toLocaleString()}</div><div class="d">ayer: ${cargas[1].cuentas.toLocaleString()}</div></div>
+      <div class="card kpi"><div class="lb">Clientes</div><div class="v">${c0.clientes.toLocaleString()}</div><div class="d">ayer: ${cargas[1].clientes.toLocaleString()}</div></div>
+      <div class="card kpi"><div class="lb">Asignaciones nuevas</div><div class="v">${c0.nuevas}</div><div class="d">hoy</div></div></div>
+    <div class="sect">Últimas cargas</div>
+    <div class="rows">${cargas.map(c=>`<div class="row static">
+      <div class="who"><div class="nm" style="font-size:var(--fbase)">${esc(c.fecha)}</div></div>
+      <div class="mid"><div class="cm">${c.cuentas.toLocaleString()} cuentas · ${c.clientes.toLocaleString()} clientes · ${c.nuevas} nuevas</div></div>
+      <div class="tail">${c.estado==='ok'?'<span class="chip ok">✓ Completa</span>':'<span class="chip pend">⚠ Volumen bajo</span>'}</div></div>`).join('')}</div>`;
+}
+function scrReconciliacion(){
+  const pct=Math.round(desaparecidas.length/diariasActivas*100);
+  const rojo=pct>30;
+  return head('Reconciliación de Diarias','Cuentas Diarias activas que NO vinieron en la última carga.')
+    +`<div class="card ${rojo?'alertcard':''}" style="margin-bottom:14px">
+        <b>${desaparecidas.length} de ${diariasActivas} Diarias activas (${pct}%) quedaron fuera de la cartera</b>
+        <div class="meter ${rojo?'red':''}"><i style="width:${Math.min(pct,100)}%"></i></div>
+        ${rojo
+          ? '<div class="fhint" style="color:var(--redInk)"><b>⛔ Umbral superado (>30%).</b> Esto huele a archivo truncado — NO cierres en lote. Verificá la carga primero.</div>'
+          : '<div class="fhint">Umbral de cordura: si superara el 30%, se bloquea el cierre en lote (archivo truncado).</div>'}
+      </div>
+    <div class="rows" style="margin-bottom:14px">${desaparecidas.map(d=>`<div class="row static">
+      <div class="who"><div class="nm" style="font-size:var(--fbase)">${esc(d.cliente)}</div><div class="mt">${d.num}</div></div>
+      <div class="mid"><div class="cm">🏍️ ${esc(d.agente)} · última carga ${esc(d.ult)}</div></div>
+      <div class="tail"><span class="chip diaria">Diaria</span></div></div>`).join('')||'<div class="card empty"><div class="big">✨</div><b>Cartera cuadrada</b><br>Todas las Diarias activas vinieron en la carga.</div>'}</div>
+    ${desaparecidas.length?`<div class="card">
+      <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:var(--fbase)">
+        <input type="checkbox" id="recOk" style="margin-top:3px" onchange="$('recBtn').disabled=!this.checked" ${rojo?'disabled':''}>
+        <span>Confirmo que revisé la lista y que la carga de hoy fue correcta. Cerrar estas asignaciones con motivo <b>"fuera de cartera"</b>.</span></label>
+      <button class="btn danger" id="recBtn" disabled style="margin-top:12px;width:100%" onclick="recCerrar()">🧹 Cerrar ${desaparecidas.length} asignaciones en lote</button>
+    </div>`:''}`;
+}
+function recCerrar(){ const n=desaparecidas.length; desaparecidas=[]; toast('🧹 '+n+' Diarias cerradas — motivo: fuera de cartera'); render(); }
+function scrCierres(){
+  const list=cierres.filter(c=>c.tipo===tabCierre);
+  return head('Cierres','Incobrables y Especiales se cierran a mano, con motivo. Nunca el localizador.')
+    +`<div class="tabs">
+        <button class="tab ${tabCierre==='incob'?'on':''}" onclick="tabCierre='incob';render()">🟠 Incobrables (${cierres.filter(c=>c.tipo==='incob').length})</button>
+        <button class="tab ${tabCierre==='esp'?'on':''}" onclick="tabCierre='esp';render()">🟣 Especiales (${cierres.filter(c=>c.tipo==='esp').length})</button></div>
+    <div class="rows">${list.map((c)=>`<button class="row" onclick="openCierre('${c.num}','${c.tipo}')">
+      <div class="who"><div class="nm">${esc(c.cliente)}</div><div class="mt">${c.num} · 🏍️ ${esc(c.agente)}</div></div>
+      <div class="mid"><div class="cm">${c.dias} días de mora</div></div>
+      <div class="tail"><span class="money">${money(c.nio,c.usd)}</span><span class="chip ${c.tipo==='incob'?'incob':'esp'}">${c.tipo==='incob'?'Incobrable':'Especial'}</span></div>
+    </button>`).join('')||'<div class="card empty"><div class="big">✨</div><b>Nada activo</b></div>'}</div>`;
+}
+function openCierre(num,tipo){
+  const c=cierres.find(x=>x.num===num&&x.tipo===tipo); if(!c)return;
+  const motivos=tipo==='incob'?['Recuperada','Baja / castigada','Fuera de cartera']:['Gestión completada','Ya no aplica','Solicitud errónea'];
+  openPanel('Cerrar asignación',`
+    <div class="kv"><span class="k">Cliente</span><span class="v">${esc(c.cliente)}</span></div>
+    <div class="kv"><span class="k">Cuenta</span><span class="v">${c.num}</span></div>
+    <div class="kv"><span class="k">Tipo</span><span class="v">${tipo==='incob'?'Incobrable':'Especial'}</span></div>
+    <div class="kv"><span class="k">Saldo vencido</span><span class="v money">${money(c.nio,c.usd)}</span></div>
+    <div class="sect">Motivo de cierre <span class="req" style="color:var(--redInk)">*</span></div>
+    <div class="field"><select class="fsel" id="ciSel"><option value="">— Elegir —</option>${motivos.map(m=>`<option>${m}</option>`).join('')}</select></div>
+    <div class="field"><label>Detalle</label><textarea class="ta" id="ciDet" placeholder="Contexto del cierre (opcional)"></textarea></div>`,
+    `<button class="btn ghost" onclick="closePanel()">Cancelar</button>
+     <button class="btn danger" onclick="cerrarAsig('${num}','${tipo}')">🔒 Cerrar asignación</button>`);
+}
+function cerrarAsig(num,tipo){
+  if(!$('ciSel').value){ toast('Elegí el motivo de cierre',true); return; }
+  cierres=cierres.filter(c=>!(c.num===num&&c.tipo===tipo));
+  closePanel(); toast('🔒 Asignación cerrada — '+$('ciSel').value); render(); }
+function scrAgentes(){
+  const sin=agentes.filter(a=>!a.usuario&&a.activo);
+  return head('Agentes y usuarios','Ligá cada localizador a su usuario. Sin usuario = no entra a la app del celular.')
+    +(sin.length?`<div class="card alertcard warn" style="margin-bottom:14px"><b>⚠ ${sin.length} agente(s) activo(s) sin usuario vinculado</b>
+      <div class="fhint" style="color:var(--pendInk)">Esta lista debe estar VACÍA antes de operar: ${sin.map(a=>esc(a.nombre)).join(', ')}.</div></div>`:'')
+    +`<div class="rows">${agentes.map((a,ix)=>`<div class="row static" style="cursor:default">
+      <div class="who"><div class="nm">${esc(a.nombre)}</div><div class="mt">${a.email?esc(a.email):'sin correo'}</div></div>
+      <div class="mid" style="min-width:220px">
+        <select class="fsel" style="width:100%" onchange="ligar(${ix},this.value)">
+          <option value="">— Sin usuario —</option>
+          ${usuariosEntra.map(u=>`<option ${a.usuario===u?'selected':''}>${u}</option>`).join('')}</select></div>
+      <div class="tail">
+        ${a.usuario?'<span class="chip ok">✓ Vinculado</span>':'<span class="chip red">Sin usuario</span>'}
+        <button class="btn sm ${a.activo?'ghost':'sec'}" onclick="toggleAg(${ix})">${a.activo?'Desactivar':'Activar'}</button>
+        ${a.activo?'<span class="chip gray">Activo</span>':'<span class="chip red">Inactivo</span>'}</div>
+    </div>`).join('')}</div>`;
+}
+function ligar(ix,u){ agentes[ix].usuario=u||null; if(u)agentes[ix].email=u;
+  toast(u?('✓ '+agentes[ix].nombre+' vinculado a '+u):'Vínculo quitado'); render(); }
+function toggleAg(ix){ agentes[ix].activo=!agentes[ix].activo;
+  toast(agentes[ix].nombre+(agentes[ix].activo?' activado':' desactivado')); render(); }
+function scrMaestros(){
+  let list=clientes;
+  if(buscarCli) list=list.filter(c=>(c.cif+c.nombre).toLowerCase().includes(buscarCli.toLowerCase()));
+  return head('Datos maestros','Clientes y cuentas. Solo el Admin crea y edita; el Solicitante los referencia.')
+    +`<div class="toolbar">
+        <div class="search">🔎<input placeholder="CIF o nombre…" value="${esc(buscarCli)}" oninput="buscarCli=this.value;render()"></div>
+        <button class="btn pri" onclick="openNuevoCliente()">＋ Nuevo cliente</button></div>
+    <div class="rows">${list.map(c=>`<button class="row" onclick="openCliente('${c.cif}')">
+      <div class="who"><div class="nm">${esc(c.nombre)}</div><div class="mt">${c.cif} · ${esc(c.depto)}</div></div>
+      <div class="mid"><div class="cm">${esc(c.trabajo!=='—'?c.trabajo:'sin trabajo registrado')}</div></div>
+      <div class="tail"><span class="chip gray">${cuentas.filter(x=>x.cif===c.cif).length} cuenta(s)</span></div>
+    </button>`).join('')||'<div class="card empty">Sin resultados para "'+esc(buscarCli)+'".</div>'}</div>`;
+}
+function openCliente(cif){
+  const c=clientes.find(x=>x.cif===cif); if(!c)return;
+  const cts=cuentas.filter(x=>x.cif===cif);
+  openPanel(c.nombre,`
+    <div class="kv"><span class="k">CIF</span><span class="v">${c.cif}</span></div>
+    <div class="kv"><span class="k">Departamento</span><span class="v">${esc(c.depto)} · ${esc(c.distrito)}</span></div>
+    <div class="kv"><span class="k">Trabajo</span><span class="v">${esc(c.trabajo)}</span></div>
+    <div class="sect">Teléfonos</div>${c.tels.map(t=>`<div class="kv"><span class="v" style="text-align:left">📞 ${esc(t)}</span></div>`).join('')||'<div class="fhint">—</div>'}
+    <div class="sect">Direcciones</div>${c.dirs.map(d=>`<div class="kv"><span class="v" style="text-align:left">📍 ${esc(d)}</span></div>`).join('')||'<div class="fhint">—</div>'}
+    <div class="sect">Cuentas (${cts.length})</div>
+    ${cts.map(x=>`<div class="kv"><span class="k">${x.num}</span><span class="v">${esc(x.prod)} · <span class="money">${money(x.nio,x.usd)}</span></span></div>`).join('')||'<div class="fhint">Sin cuentas en mora.</div>'}`,
+    `<button class="btn ghost" onclick="closePanel()">Cerrar</button>
+     <button class="btn sec" onclick="toast('Demo: abriría la edición')">✏️ Editar</button>`);
+}
+function openNuevoCliente(){
+  openPanel('Nuevo cliente',`
+    <div class="duo">
+      <div class="field"><label>CIF <span class="req">*</span></label><input class="inp" id="ncCif" placeholder="C-00000" oninput="ncValida()"></div>
+      <div class="field"><label>Nombre completo <span class="req">*</span></label><input class="inp" id="ncNom" oninput="ncValida()"></div></div>
+    <div class="duo">
+      <div class="field"><label>Departamento</label><input class="inp" id="ncDep"></div>
+      <div class="field"><label>Distrito</label><input class="inp" id="ncDis"></div></div>
+    <div class="field"><label>Trabajo</label><input class="inp" id="ncTra"></div>
+    <div class="duo">
+      <div class="field"><label>Teléfono celular</label><input class="inp" id="ncCel" placeholder="8888-8888"></div>
+      <div class="field"><label>Teléfono casa</label><input class="inp" id="ncCas"></div></div>
+    <div class="field"><label>Dirección casa</label><input class="inp" id="ncDc"></div>
+    <div class="field"><label>Dirección trabajo</label><input class="inp" id="ncDt"></div>
+    <div class="fhint">⚠ El CIF debe ser el del core. Un CIF equivocado duplica el cliente en el próximo import.</div>`,
+    `<button class="btn ghost" onclick="closePanel()">Cancelar</button>
+     <button class="btn pri" id="ncBtn" disabled onclick="ncCrear()">＋ Crear cliente</button>`);
+}
+function ncValida(){ $('ncBtn').disabled=!($('ncCif').value.trim()&&$('ncNom').value.trim()); }
+function ncCrear(){
+  clientes.unshift({cif:$('ncCif').value.trim(), nombre:$('ncNom').value.trim(), depto:$('ncDep').value||'—', distrito:$('ncDis').value||'—',
+    trabajo:$('ncTra').value||'—',
+    tels:[$('ncCel').value&&$('ncCel').value+' (cel)',$('ncCas').value&&$('ncCas').value+' (casa)'].filter(Boolean),
+    dirs:[$('ncDc').value&&$('ncDc').value+' (casa)',$('ncDt').value&&$('ncDt').value+' (trabajo)'].filter(Boolean)});
+  closePanel(); toast('✓ Cliente creado'); render(); }
+
+/* ══════════════ PANEL / RENDER ══════════════ */
+function openPanel(t,body,foot){ $('ptitle').textContent=t; $('pbody').innerHTML=body; $('pfoot').innerHTML=foot||'';
+  $('panel').classList.add('open'); $('scrim').classList.add('open'); }
+function closePanel(){ $('panel').classList.remove('open'); $('scrim').classList.remove('open'); }
+$('scrim').onclick=closePanel; $('pclose').onclick=closePanel;
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){closePanel();$('sidebar').classList.remove('open');} });
+$('burger').onclick=()=>$('sidebar').classList.add('open');
+
+const screens={home:scrHome, cola:scrCola, transcritas:scrTranscritas, missolicitudes:scrMisSolicitudes,
+  nueva:scrNueva, aprobaciones:scrAprobaciones, monitoreo:scrMonitoreo, reconciliacion:scrReconciliacion,
+  cierres:scrCierres, agentes:scrAgentes, maestros:scrMaestros};
+function render(){ renderNav(); $('content').innerHTML=(screens[screen]||scrHome)();
+  const c=$('codigoInp'); if(c&&window.innerWidth>920)c.focus(); }
+document.querySelectorAll('.rolebtn').forEach(b=>b.onclick=()=>setRole(b.dataset.role));
+setRole('backoffice');
+</script>
+</body>
+</html>
