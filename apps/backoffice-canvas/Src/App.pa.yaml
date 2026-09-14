@@ -50,15 +50,21 @@ App:
       // 2) Tokens de medida (los ÚNICOS números "absolutos" permitidos en las guías)
       Set(gblE, {Pad:16, PadSm:10, AnchoNav:240, Radio:12, RadioSm:9, AltoBarra:56, AltoFila:64,
                  AltoInput:40, AltoBoton:44, AnchoMax:1160});
-      // 3) Identidad: usuario Dataverse + roles de app (00 §3.1 — la tabla REAL es lookup + MULTI-rol)
+      // 3) Identidad: gblRol derivado de los ROLES DE SEGURIDAD reales (00 §3.1 — sin tabla extra).
+      // Directos (systemuserroles) + heredados por TEAM (teammembership -> teamroles). Son los
+      // conjuntos de UN usuario (puñados de filas): sin delegación en juego, corre una sola vez.
       Set(gblUsuarioDV, LookUp(Users, 'Primary Email' = Lower(User().Email)));
-      // ⚠ El display name del lookup HOY tiene un typo en Dev: "[UA[ Usuario" (corchete mal cerrado).
-      //   IntelliSense manda: se escribe TAL CUAL. Cuando se renombre a '[UA] Usuario', cambiar acá.
-      Set(gblFilaRol, LookUp('CM | TBL | Usuario Apps',
-              '[UA[ Usuario' = gblUsuarioDV && '[UA] Activo' = true));
-      // '[UA] Rol' es MULTI-SELECT: devuelve una tabla de choices. gblRol = etiquetas unidas con "|".
-      // Ej.: "Backoffice|Admin". Sin fila => Blank() => estado "sin acceso" de scrInicio.
-      Set(gblRol, Concat(gblFilaRol.'[UA] Rol', Text(Value), "|"));
+      ClearCollect(colRolesUsrTmp, gblUsuarioDV.'Security Roles (systemuserroles_association)');
+      ForAll(gblUsuarioDV.'Teams (teammembership_association)' As Tm,
+          Collect(colRolesUsrTmp, Tm.'Security Roles (teamroles_association)'));
+      // "SR | CM | Backoffice" -> "Backoffice"; multi-rol => "Backoffice|Admin". El `in` de los
+      // guards es case-insensitive (el rol real "SR | CM | BackOffice" matchea igual).
+      // Sin ningún rol SR | CM => gblRol vacío => estado "sin acceso" de scrInicio.
+      Set(gblRol,
+          Concat(
+              Distinct(Filter(colRolesUsrTmp, StartsWith(Name, "SR | CM | ")),
+                       Substitute(Name, "SR | CM | ", "")),
+              Value, "|"));
       // 4) Navegación por rol: la tabla que alimenta cmpNavLateral
       ClearCollect(colNav,
           {Orden:1, Icono:"🏠", Titulo:"Inicio",            Ruta:"ini",  Roles:"Backoffice|Solicitante|Supervisor|Admin"},
