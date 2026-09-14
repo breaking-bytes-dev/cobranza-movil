@@ -1,10 +1,437 @@
 # ************************************************************************************************
 # Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
 # Use the maker portal to create and edit your Power Apps.
-# 
+#
 # The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
-# 
+#
 # For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
 # ************************************************************************************************
 Screens:
-  scrReconciliacion: {}
+  scrReconciliacion:
+    Properties:
+      Fill: =gblC.pantalla
+      OnVisible: |-
+        =If(!("Admin" in gblRol), Navigate(scrInicio));
+        // Cuentas para el join en memoria (2 columnas, cota 2000 declarada — 00 §4.1).
+        // FUERA del Concurrent: el AddColumns de abajo necesita colCtasRec ya cargada (gotcha 7.7)
+        ClearCollect(colCtasRec,
+            ShowColumns('CM | TBL | Cuentas', '[CT] Numero de cuenta', 'Nombre Cliente')
+        );
+        // Desaparecidas + denominador, en paralelo (ambos filtros delegables: choice por
+        // valor + booleano + comparación de fecha — 00 §4.2)
+        Concurrent(
+            ClearCollect(colDesapRec,
+                AddColumns(
+                    Filter('CM | TBL | Asignacions',
+                        '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
+                        && '[AS] Estado' = true
+                        && 'Última carga' < nfUltimaCarga
+                    ),
+                    clienteRec,
+                    Upper(Coalesce(
+                        LookUp(colCtasRec, '[CT] Numero de cuenta' = '[AS] NumeroCuenta').'Nombre Cliente',
+                        "—"
+                    ))
+                )
+            ),
+            ClearCollect(colDiariasRec,
+                ShowColumns(
+                    Filter('CM | TBL | Asignacions',
+                        '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
+                        && '[AS] Estado' = true
+                    ),
+                    '[AS] Numero'
+                )
+            )
+        );
+        // Estado de pantalla. El Reset es obligatorio: el valor de la casilla PERSISTE entre
+        // visitas (gotcha 01) — sin él, un cierre confirmado ayer deja el botón armado hoy.
+        Set(varPctRec, Round(100 * CountRows(colDesapRec) / Max(1, CountRows(colDiariasRec)), 0));
+        Set(varRojoRec, varPctRec > 30);
+        Reset(chkConfirmarRec)
+    Children:
+      # ── Encabezado (receta 01 §7.5) ───────────────────────────────────────────────
+      - cmpEncabezadoRec:
+          Control: CanvasComponent
+          ComponentName: cmpEncabezado
+          Properties:
+            Height: =If(nfMovil, gblE.AltoBarra + 84, 84)
+            Subtitulo: |-
+              ="Cuentas Diarias activas que NO vinieron en la última carga."
+            Titulo: ="Reconciliación de Diarias"
+            Width: =Parent.Width - Self.X
+            X: =If(nfMovil, 0, gblE.AnchoNav)
+            Y: =0
+      # ── Contenido centrado (receta 01 §7.13) ──────────────────────────────────────
+      - conContenidoRec:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            BorderThickness: =0
+            DropShadow: =DropShadow.None
+            Fill: =Color.Transparent
+            Height: =Parent.Height - Self.Y
+            Width: =Min(gblE.AnchoMax, Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - 2*gblE.Pad)
+            X: |-
+              =If(nfMovil, 0, gblE.AnchoNav)
+                  + Max(gblE.Pad, (Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - gblE.AnchoMax) / 2)
+            Y: =cmpEncabezadoRec.Y + cmpEncabezadoRec.Height
+          Children:
+            # ── Card de BLOQUEO — precondición DEC-018 ────────────────────────────
+            # La reconciliación compara contra la carga de HOY: correrla ANTES del import
+            # marcaría TODA la cartera como desaparecida. La condición está SUMADA a los
+            # DisplayMode de chkConfirmarRec y btnCerrarRec — no es solo visual.
+            - conBloqueoRec:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderColor: =gblC.redInk
+                  BorderThickness: =1
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.redBg
+                  Height: =64
+                  RadiusBottomLeft: =gblE.Radio
+                  RadiusBottomRight: =gblE.Radio
+                  RadiusTopLeft: =gblE.Radio
+                  RadiusTopRight: =gblE.Radio
+                  Visible: =nfUltimaCarga < Today()
+                  Width: =Min(gblE.AnchoMax, Parent.Width - 2*gblE.Pad)
+                  X: =gblE.Pad
+                  Y: =gblE.PadSm
+                Children:
+                  - lblBloqueoRec:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.redInk
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =Parent.Height
+                        PaddingLeft: =0
+                        Size: =10
+                        Text: |-
+                          ="⛔ Todavía no llegó la carga de HOY — la reconciliación se corre DESPUÉS del import."
+                        VerticalAlign: =VerticalAlign.Middle
+                        Width: =Parent.Width - 2*gblE.Pad
+                        Wrap: =true
+                        X: =gblE.Pad
+                        Y: =0
+            # ── Card RESUMEN — conteo, meter y umbral ─────────────────────────────
+            - conResumenRec:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderColor: =If(varRojoRec, gblC.redInk, gblC.borde)
+                  BorderThickness: =1
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.card
+                  Height: =116
+                  RadiusBottomLeft: =gblE.Radio
+                  RadiusBottomRight: =gblE.Radio
+                  RadiusTopLeft: =gblE.Radio
+                  RadiusTopRight: =gblE.Radio
+                  Width: =Min(gblE.AnchoMax, Parent.Width - 2*gblE.Pad)
+                  X: =gblE.Pad
+                  Y: |-
+                    =conBloqueoRec.Y + If(conBloqueoRec.Visible, conBloqueoRec.Height + gblE.PadSm, 0)
+                Children:
+                  - lblResumenRec:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =24
+                        PaddingLeft: =0
+                        Size: =11
+                        Text: |-
+                          =CountRows(colDesapRec) & " de " & CountRows(colDiariasRec) & " Diarias activas (" & varPctRec & "%) quedaron fuera de la cartera"
+                        VerticalAlign: =VerticalAlign.Middle
+                        Width: =Parent.Width - 2*gblE.Pad
+                        Wrap: =false
+                        X: =gblE.Pad
+                        Y: =gblE.PadSm
+                  # pista del meter (hairline, 8 px, R99) + relleno proporcional al %
+                  - conMeterRec:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.hairline
+                        Height: =8
+                        RadiusBottomLeft: =99
+                        RadiusBottomRight: =99
+                        RadiusTopLeft: =99
+                        RadiusTopRight: =99
+                        Width: =Parent.Width - 2*gblE.Pad
+                        X: =gblE.Pad
+                        Y: =lblResumenRec.Y + lblResumenRec.Height + gblE.PadSm
+                      Children:
+                        - recMeterRec:
+                            Control: Rectangle@2.3.0
+                            Properties:
+                              Fill: =If(varRojoRec, gblC.redInk, gblC.teal)
+                              Height: =8
+                              RadiusBottomLeft: =99
+                              RadiusBottomRight: =99
+                              RadiusTopLeft: =99
+                              RadiusTopRight: =99
+                              Width: =Parent.Width * Min(varPctRec, 100) / 100
+                              X: =0
+                              Y: =0
+                  - lblUmbralRec:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =If(varRojoRec, gblC.redInk, gblC.muted)
+                        Font: =Font.'Segoe UI'
+                        Height: =34
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: |-
+                          =If(varRojoRec,
+                              "⛔ Umbral superado (>30%). Esto huele a archivo truncado — NO cierres en lote. Verificá la carga primero.",
+                              "Umbral de cordura: si superara el 30%, se bloquea el cierre en lote.")
+                        VerticalAlign: =VerticalAlign.Top
+                        Width: =Parent.Width - 2*gblE.Pad
+                        Wrap: =true
+                        X: =gblE.Pad
+                        Y: =conMeterRec.Y + conMeterRec.Height + gblE.PadSm
+            # ── Card LISTA — Diarias desaparecidas ────────────────────────────────
+            - conListaRec:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.card
+                  Height: |-
+                    =Parent.Height - Self.Y - If(CountRows(colDesapRec) > 0, 156 + gblE.PadSm, 0) - gblE.Pad
+                  RadiusBottomLeft: =gblE.Radio
+                  RadiusBottomRight: =gblE.Radio
+                  RadiusTopLeft: =gblE.Radio
+                  RadiusTopRight: =gblE.Radio
+                  Width: =Min(gblE.AnchoMax, Parent.Width - 2*gblE.Pad)
+                  X: =gblE.Pad
+                  Y: =conResumenRec.Y + conResumenRec.Height + gblE.PadSm
+                Children:
+                  # Lista ESTÁTICA (receta 7.3 sin acción): acá no se navega a nada — la fila
+                  # informa, el cierre es en lote. DisplayMode.View mata el hover/prensa de fila.
+                  - galDesapRec:
+                      Control: Gallery@2.15.0
+                      Variant: Vertical
+                      Properties:
+                        DisplayMode: =DisplayMode.View
+                        Height: =Parent.Height
+                        Items: =colDesapRec
+                        ShowScrollbar: =false
+                        TemplatePadding: =0
+                        TemplateSize: =gblE.AltoFila
+                        Width: =Parent.Width
+                        X: =0
+                        Y: =0
+                      Children:
+                        - lblClienteRec:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.ink
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Semibold
+                              Height: =22
+                              PaddingLeft: =0
+                              Size: =10
+                              Text: =ThisItem.clienteRec
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =Parent.TemplateWidth * 0.4
+                              Wrap: =false
+                              X: =gblE.Pad
+                              Y: =10
+                        - lblCuentaRec:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.muted
+                              Font: =Font.'Segoe UI'
+                              Height: =20
+                              PaddingLeft: =0
+                              Size: =9
+                              Text: =ThisItem.'[AS] NumeroCuenta'
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =Parent.TemplateWidth * 0.4
+                              Wrap: =false
+                              X: =gblE.Pad
+                              Y: =32
+                        # Fecha corta dd/mm en vez del "hace 2 días" del mockup: LED-06
+                        - lblAgenteRec:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.ink2
+                              Font: =Font.'Segoe UI'
+                              Height: =44
+                              PaddingLeft: =0
+                              Size: =9
+                              Text: |-
+                                ="🏍️ " & Coalesce(ThisItem.'[AS] Agente'.'[AG] Nombre', "sin localizador") & " · última carga " & Text(ThisItem.'Última carga', "dd/mm")
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =Parent.TemplateWidth * 0.4
+                              Wrap: =true
+                              X: =gblE.Pad + Parent.TemplateWidth * 0.4
+                              Y: =10
+                        # chip fuera de fila clicable → CON DisplayMode.View (receta 7.2)
+                        - chpDiariaRec:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderThickness: =0
+                              Color: =gblC.diariaInk
+                              DisplayMode: =DisplayMode.View
+                              Fill: =gblC.diariaBg
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =26
+                              RadiusBottomLeft: =8
+                              RadiusBottomRight: =8
+                              RadiusTopLeft: =8
+                              RadiusTopRight: =8
+                              Size: =8
+                              Text: ="Diaria"
+                              Width: =14 + 7*Len(Self.Text)
+                              X: =Parent.TemplateWidth - Self.Width - gblE.Pad
+                              Y: =(Parent.TemplateHeight - Self.Height) / 2
+                        - recSepRec:
+                            Control: Rectangle@2.3.0
+                            Properties:
+                              Fill: =gblC.hairline
+                              Height: =1
+                              Width: =Parent.TemplateWidth
+                              X: =0
+                              Y: =Parent.TemplateHeight - 1
+                  # ── Estado vacío (receta 01 §7.12) ────────────────────────────
+                  - cmpVacioRec:
+                      Control: CanvasComponent
+                      ComponentName: cmpVacio
+                      Properties:
+                        Height: =200
+                        Icono: ="✨"
+                        Mensaje: |-
+                          ="Todas las Diarias activas vinieron en la carga."
+                        Titulo: ="Cartera cuadrada"
+                        Visible: =CountRows(colDesapRec) = 0
+                        Width: =Min(420, Parent.Width - 2*gblE.Pad)
+                        X: =(Parent.Width - Self.Width) / 2
+                        Y: =(Parent.Height - Self.Height) / 2
+            # ── Card de ACCIÓN — confirmar y cerrar en lote (receta 01 §7.10) ─────
+            - conAccionRec:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.card
+                  Height: =156
+                  RadiusBottomLeft: =gblE.Radio
+                  RadiusBottomRight: =gblE.Radio
+                  RadiusTopLeft: =gblE.Radio
+                  RadiusTopRight: =gblE.Radio
+                  Visible: =CountRows(colDesapRec) > 0
+                  Width: =Min(gblE.AnchoMax, Parent.Width - 2*gblE.Pad)
+                  X: =gblE.Pad
+                  Y: =conListaRec.Y + conListaRec.Height + gblE.PadSm
+                Children:
+                  - chkConfirmarRec:
+                      Control: Classic/CheckBox@2.1.0
+                      Properties:
+                        Color: =gblC.ink
+                        Default: =false
+                        DisplayMode: |-
+                          =If(varRojoRec || nfUltimaCarga < Today(), DisplayMode.Disabled, DisplayMode.Edit)
+                        Font: =Font.'Segoe UI'
+                        Height: =48
+                        Size: =10
+                        Text: |-
+                          ="Confirmo que revisé la lista y que la carga de hoy fue correcta. Cerrar estas asignaciones con motivo ""fuera de cartera""."
+                        Width: =Parent.Width - 2*gblE.Pad
+                        Wrap: =true
+                        X: =gblE.Pad
+                        Y: =gblE.PadSm
+                  - btnCerrarRec:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =gblC.redInk
+                        DisabledColor: =Color.White
+                        DisabledFill: =ColorFade(gblC.redBg, 60%)
+                        DisplayMode: |-
+                          =If(chkConfirmarRec.Value && !varRojoRec && nfUltimaCarga >= Today(), DisplayMode.Edit, DisplayMode.Disabled)
+                        Fill: =gblC.redBg
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =gblE.AltoBoton
+                        HoverFill: =ColorFade(gblC.redBg, 10%)
+                        OnSelect: |-
+                          =// Costo declarado: son N Patch SECUENCIALES (uno por Diaria desaparecida) —
+                          // aceptable para las decenas que el umbral del 30 % permite pasar. Si algún día
+                          // el lote legítimo fuera de CIENTOS, esto se muda a un flow/acción server-side
+                          // que reciba la lista y cierre en una transacción — no se "optimiza" en canvas
+                          // con trucos.
+                          ForAll(colDesapRec As D,
+                              Patch('CM | TBL | Asignacions',
+                                  LookUp('CM | TBL | Asignacions', '[AS] Numero' = D.'[AS] Numero'),
+                                  {
+                                      '[AS] Estado': false,
+                                      '[AS] Motivo': "fuera de cartera",
+                                      'Fecha de cierre': Now()
+                                  }
+                              )
+                          );
+                          Notify("🧹 " & CountRows(colDesapRec) & " Diarias cerradas — motivo: fuera de cartera",
+                              NotificationType.Success, 2500);
+                          // Recarga — mismo bloque del OnVisible (colCtasRec sigue viva, no se re-pide)
+                          Concurrent(
+                              ClearCollect(colDesapRec,
+                                  AddColumns(
+                                      Filter('CM | TBL | Asignacions',
+                                          '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
+                                          && '[AS] Estado' = true
+                                          && 'Última carga' < nfUltimaCarga
+                                      ),
+                                      clienteRec,
+                                      Upper(Coalesce(
+                                          LookUp(colCtasRec, '[CT] Numero de cuenta' = '[AS] NumeroCuenta').'Nombre Cliente',
+                                          "—"
+                                      ))
+                                  )
+                              ),
+                              ClearCollect(colDiariasRec,
+                                  ShowColumns(
+                                      Filter('CM | TBL | Asignacions',
+                                          '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
+                                          && '[AS] Estado' = true
+                                      ),
+                                      '[AS] Numero'
+                                  )
+                              )
+                          );
+                          Set(varPctRec, Round(100 * CountRows(colDesapRec) / Max(1, CountRows(colDiariasRec)), 0));
+                          Set(varRojoRec, varPctRec > 30);
+                          Reset(chkConfirmarRec)
+                        RadiusBottomLeft: =10
+                        RadiusBottomRight: =10
+                        RadiusTopLeft: =10
+                        RadiusTopRight: =10
+                        Size: =10
+                        Text: |-
+                          ="🧹 Cerrar " & CountRows(colDesapRec) & " asignaciones en lote"
+                        Width: =Parent.Width - 2*gblE.Pad
+                        X: =gblE.Pad
+                        Y: =chkConfirmarRec.Y + chkConfirmarRec.Height + gblE.PadSm
+      # ── Navegación lateral (AL FINAL del árbol — 01 §8.1) ─────────────────────────
+      - cmpNavRec:
+          Control: CanvasComponent
+          ComponentName: cmpNavLateral
+          Properties:
+            Height: =Parent.Height
+            RutaActiva: ="rec"
+            Visible: =!nfMovil || gblNavMovilAbierta
+            Width: =gblE.AnchoNav
+            X: =0
+            Y: =0

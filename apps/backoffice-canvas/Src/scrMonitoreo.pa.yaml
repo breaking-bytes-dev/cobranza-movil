@@ -1,10 +1,329 @@
 # ************************************************************************************************
 # Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
 # Use the maker portal to create and edit your Power Apps.
-# 
+#
 # The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
-# 
+#
 # For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
 # ************************************************************************************************
 Screens:
-  scrMonitoreo: {}
+  scrMonitoreo:
+    Properties:
+      Fill: =gblC.pantalla
+      OnVisible: |-
+        =// Guard de rol (01 §4) → colecciones → estado de pantalla (receta 7.7).
+        If(!("Admin" in gblRol), Navigate(scrInicio));
+        Concurrent(
+            // Filas de la carga de HOY. Filter por fecha = delegable (00 §4.2);
+            // ShowColumns achica el payload a una sola columna.
+            // ⚠ COTA 2000 DECLARADA (00 §4.1): si la cartera supera 2000 filas/día,
+            //   este conteo SATURA en 2000 — el KPI lo delata (§4).
+            ClearCollect(colCargaHoyMon,
+                ShowColumns(
+                    Filter('CM | TBL | Carga diarias', '[CD] FechaCarga' >= Today()),
+                    '[CD] Numero cuenta'
+                )
+            ),
+            ClearCollect(colCtasMon, ShowColumns('CM | TBL | Cuentas', '[CT] Numero de cuenta')),
+            ClearCollect(colCliMon,  ShowColumns('CM | TBL | Clientes', '[CL] CIF'))
+        );
+        Set(varHayCargaMon, nfUltimaCarga >= Today())
+    Children:
+      # ── Encabezado (receta 01 §7.5) ───────────────────────────────────────────────
+      - cmpEncMon:
+          Control: CanvasComponent
+          ComponentName: cmpEncabezado
+          Properties:
+            Height: =If(nfMovil, gblE.AltoBarra + 84, 84)
+            Subtitulo: |-
+              ="¿Llegó el archivo del core? ¿Cuadra el volumen?"
+            Titulo: ="Monitoreo de carga"
+            Width: =Parent.Width - Self.X
+            X: =If(nfMovil, 0, gblE.AnchoNav)
+            Y: =0
+      # ── Contenido centrado (receta 7.13) ──────────────────────────────────────────
+      - conContenidoMon:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            BorderThickness: =0
+            DropShadow: =DropShadow.None
+            Fill: =Color.Transparent
+            Height: =Parent.Height - Self.Y - gblE.Pad
+            Width: |-
+              =Min(gblE.AnchoMax, Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - 2*gblE.Pad)
+            X: |-
+              =If(nfMovil, 0, gblE.AnchoNav)
+                  + Max(gblE.Pad, (Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - gblE.AnchoMax) / 2)
+            Y: =cmpEncMon.Y + cmpEncMon.Height + gblE.PadSm
+          Children:
+            # ── Card de estado OK — la carga de hoy llegó (§3.1) ───────────────────
+            - conEstadoOkMon:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderThickness: =0
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.okBg
+                  Height: =84
+                  RadiusBottomLeft: =gblE.Radio
+                  RadiusBottomRight: =gblE.Radio
+                  RadiusTopLeft: =gblE.Radio
+                  RadiusTopRight: =gblE.Radio
+                  Visible: =varHayCargaMon
+                  Width: =Parent.Width
+                  X: =0
+                  Y: =0
+                Children:
+                  # Borde izquierdo de acento: los contenedores no tienen borde por lado (§3)
+                  - recBordeOkMon:
+                      Control: Rectangle@2.3.0
+                      Properties:
+                        BorderThickness: =0
+                        Fill: =gblC.okInk
+                        Height: =Parent.Height
+                        Width: =4
+                        X: =0
+                        Y: =0
+                  - lblEstadoOkTituloMon:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.okInk
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =26
+                        PaddingLeft: =0
+                        Size: =11
+                        Text: |-
+                          ="✓ Carga de hoy completada · " & Text(nfUltimaCarga, "HH:mm")
+                        VerticalAlign: =VerticalAlign.Middle
+                        Width: =Parent.Width - 2*gblE.Pad
+                        Wrap: =false
+                        X: =gblE.Pad
+                        Y: =gblE.PadSm
+                  - lblEstadoOkDetalleMon:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.okInk
+                        Font: =Font.'Segoe UI'
+                        Height: =24
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: |-
+                          =Text(CountRows(colCargaHoyMon), "#,##0") & " filas de carga · "
+                              & Text(CountRows(colCtasMon), "#,##0") & " cuentas · "
+                              & Text(CountRows(colCliMon), "#,##0") & " clientes en maestros"
+                        VerticalAlign: =VerticalAlign.Middle
+                        Width: =Parent.Width - 2*gblE.Pad
+                        Wrap: =false
+                        X: =gblE.Pad
+                        Y: |-
+                          =lblEstadoOkTituloMon.Y + lblEstadoOkTituloMon.Height
+            # ── Card de estado ALERTA — no llegó la carga (§3.2) ───────────────────
+            - conEstadoAlertaMon:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderThickness: =0
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.redBg
+                  Height: =84
+                  RadiusBottomLeft: =gblE.Radio
+                  RadiusBottomRight: =gblE.Radio
+                  RadiusTopLeft: =gblE.Radio
+                  RadiusTopRight: =gblE.Radio
+                  Visible: =!varHayCargaMon
+                  Width: =Parent.Width
+                  X: =0
+                  Y: =0
+                Children:
+                  - recBordeAlertaMon:
+                      Control: Rectangle@2.3.0
+                      Properties:
+                        BorderThickness: =0
+                        Fill: =gblC.redInk
+                        Height: =Parent.Height
+                        Width: =4
+                        X: =0
+                        Y: =0
+                  - lblEstadoAlertaTituloMon:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.redInk
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =24
+                        PaddingLeft: =0
+                        Size: =11
+                        Text: ="⛔ No ha llegado la carga de hoy"
+                        VerticalAlign: =VerticalAlign.Middle
+                        Width: =Parent.Width - 2*gblE.Pad
+                        Wrap: =false
+                        X: =gblE.Pad
+                        Y: =6
+                  - lblEstadoAlertaUltimaMon:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.redInk
+                        Font: =Font.'Segoe UI'
+                        Height: =22
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: |-
+                          =If(IsBlank(nfUltimaCarga),
+                              "Sin cargas registradas en el sistema",
+                              "Última carga: " & Text(nfUltimaCarga, "dd/mm HH:mm"))
+                        VerticalAlign: =VerticalAlign.Middle
+                        Width: =Parent.Width - 2*gblE.Pad
+                        Wrap: =false
+                        X: =gblE.Pad
+                        Y: |-
+                          =lblEstadoAlertaTituloMon.Y + lblEstadoAlertaTituloMon.Height
+                  - lblEstadoAlertaAccionMon:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink2
+                        Font: =Font.'Segoe UI'
+                        Height: =22
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: |-
+                          ="Verificá el import en Smelter antes de operar la reconciliación."
+                        VerticalAlign: =VerticalAlign.Middle
+                        Width: =Parent.Width - 2*gblE.Pad
+                        Wrap: =false
+                        X: =gblE.Pad
+                        Y: |-
+                          =lblEstadoAlertaUltimaMon.Y + lblEstadoAlertaUltimaMon.Height
+            # ── KPIs (cmpKpi ×3 — responsive 3→1 columnas, §4) ─────────────────────
+            - cmpKpiFilasMon:
+                Control: CanvasComponent
+                ComponentName: cmpKpi
+                Properties:
+                  Detalle: |-
+                    =If(CountRows(colCargaHoyMon) >= 2000,
+                        "⚠ cota 2000 alcanzada — conteo saturado",
+                        "desde las 00:00")
+                  EsHero: =false
+                  Etiqueta: ="FILAS DE CARGA HOY"
+                  Height: =96
+                  Valor: =Text(CountRows(colCargaHoyMon), "#,##0")
+                  Width: |-
+                    =If(nfMovil, Parent.Width, (Parent.Width - 2*gblE.Pad) / 3)
+                  X: =0
+                  Y: |-
+                    =conEstadoOkMon.Y + conEstadoOkMon.Height + gblE.Pad
+            - cmpKpiCuentasMon:
+                Control: CanvasComponent
+                ComponentName: cmpKpi
+                Properties:
+                  Detalle: ="en maestros"
+                  EsHero: =false
+                  Etiqueta: ="CUENTAS TOTALES"
+                  Height: =96
+                  Valor: =Text(CountRows(colCtasMon), "#,##0")
+                  Width: =cmpKpiFilasMon.Width
+                  X: |-
+                    =If(nfMovil, 0, cmpKpiFilasMon.X + cmpKpiFilasMon.Width + gblE.Pad)
+                  Y: |-
+                    =If(nfMovil,
+                        cmpKpiFilasMon.Y + cmpKpiFilasMon.Height + gblE.PadSm,
+                        cmpKpiFilasMon.Y)
+            - cmpKpiClientesMon:
+                Control: CanvasComponent
+                ComponentName: cmpKpi
+                Properties:
+                  Detalle: ="en maestros"
+                  EsHero: =false
+                  Etiqueta: ="CLIENTES TOTALES"
+                  Height: =96
+                  Valor: =Text(CountRows(colCliMon), "#,##0")
+                  Width: =cmpKpiFilasMon.Width
+                  X: |-
+                    =If(nfMovil, 0, cmpKpiCuentasMon.X + cmpKpiCuentasMon.Width + gblE.Pad)
+                  Y: |-
+                    =If(nfMovil,
+                        cmpKpiCuentasMon.Y + cmpKpiCuentasMon.Height + gblE.PadSm,
+                        cmpKpiFilasMon.Y)
+            # ── Card informativa: las dos podas de v1 (LED-07 / LED-12, §5) ────────
+            - conInfoMon:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.card
+                  Height: =72
+                  RadiusBottomLeft: =gblE.Radio
+                  RadiusBottomRight: =gblE.Radio
+                  RadiusTopLeft: =gblE.Radio
+                  RadiusTopRight: =gblE.Radio
+                  Width: =Parent.Width
+                  X: =0
+                  Y: |-
+                    =cmpKpiClientesMon.Y + cmpKpiClientesMon.Height + gblE.Pad
+                Children:
+                  - lblInfoMon:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.muted
+                        Font: =Font.'Segoe UI'
+                        Height: =Parent.Height - 2*gblE.PadSm
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: |-
+                          ="El detalle de errores por fila vive en Smelter (app de imports). El historial por día llega en una fase posterior."
+                        VerticalAlign: =VerticalAlign.Middle
+                        Width: =Parent.Width - 2*gblE.Pad
+                        Wrap: =true
+                        X: =gblE.Pad
+                        Y: =gblE.PadSm
+            # ── Actualizar (ESTILO-BotonSec) ──────────────────────────────────────
+            - btnActualizarMon:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderThickness: =0
+                  Color: =gblC.teal
+                  DisabledColor: =gblC.teal
+                  DisabledFill: =ColorFade(gblC.tealSuave, 60%)
+                  Fill: =gblC.tealSuave
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =gblE.AltoBoton
+                  HoverFill: =ColorFade(gblC.tealSuave, 10%)
+                  OnSelect: |-
+                    =Concurrent(
+                        ClearCollect(colCargaHoyMon,
+                            ShowColumns(
+                                Filter('CM | TBL | Carga diarias', '[CD] FechaCarga' >= Today()),
+                                '[CD] Numero cuenta'
+                            )
+                        ),
+                        ClearCollect(colCtasMon, ShowColumns('CM | TBL | Cuentas', '[CT] Numero de cuenta')),
+                        ClearCollect(colCliMon,  ShowColumns('CM | TBL | Clientes', '[CL] CIF'))
+                    );
+                    // nfUltimaCarga es fórmula con nombre (01 §3) y se reevalúa sola;
+                    // varHayCargaMon es variable normal, por eso el Set sigue siendo necesario.
+                    Set(varHayCargaMon, nfUltimaCarga >= Today());
+                    Notify("✓ Datos actualizados", NotificationType.Success, 2500)
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Size: =10
+                  Text: ="↻ Actualizar"
+                  Width: =160
+                  X: =Parent.Width - Self.Width
+                  Y: =conInfoMon.Y + conInfoMon.Height + gblE.Pad
+      # ── Navegación lateral (AL FINAL del árbol — 01 §8.1) ─────────────────────────
+      - cmpNavMon:
+          Control: CanvasComponent
+          ComponentName: cmpNavLateral
+          Properties:
+            Height: =Parent.Height
+            RutaActiva: ="mon"
+            Visible: =!nfMovil || gblNavMovilAbierta
+            Width: =gblE.AnchoNav
+            X: =0
+            Y: =0
