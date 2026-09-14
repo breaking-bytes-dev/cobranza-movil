@@ -24,7 +24,7 @@ jobs:
             -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
           H="Authorization: Bearer $TOKEN"; A="Accept: application/json"
 
-          for T in sanic_cm_tbl_interaccion sanic_cm_tbl_asignacion sanic_cm_tbl_agente sanic_cm_tbl_actualizaciondatos; do
+          for T in sanic_cm_tbl_cargadiaria sanic_cm_tbl_cliente sanic_cm_tbl_cuenta sanic_cm_tbl_telefono sanic_cm_tbl_direccion sanic_cm_tbl_pago sanic_cm_tbl_producto sanic_cm_tbl_fiador; do
             echo "===================== $T ====================="
             curl -s -H "$H" -H "$A" \
               "$URL/api/data/v9.2/EntityDefinitions(LogicalName='$T')/Attributes?\$select=LogicalName,AttributeType,DisplayName" \
