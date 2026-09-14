@@ -585,7 +585,7 @@ Screens:
                   BorderColor: =gblC.borde
                   DefaultSelectedItems: =Blank()
                   DisplayFields: |-
-                    =["'[AG] Nombre'"]
+                    =["sanic_cm_ag_nombre"]
                   Fill: =gblC.card
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
@@ -593,7 +593,7 @@ Screens:
                   Items: |-
                     =Filter(colAgentesAprb, !IsBlank('Email Usuario'))
                   SearchFields: |-
-                    =["'[AG] Nombre'"]
+                    =["sanic_cm_ag_nombre"]
                   SelectMultiple: =false
                   Size: =10
                   Width: =Parent.Width - 2*gblE.Pad
