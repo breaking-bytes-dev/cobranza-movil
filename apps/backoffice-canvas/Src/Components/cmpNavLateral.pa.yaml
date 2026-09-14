@@ -1,9 +1,9 @@
 # ************************************************************************************************
 # Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
 # Use the maker portal to create and edit your Power Apps.
-# 
+#
 # The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
-# 
+#
 # For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
 # ************************************************************************************************
 ComponentDefinitions:
@@ -21,29 +21,238 @@ ComponentDefinitions:
       Height: =App.Height
       Width: =gblE.AnchoNav
     Children:
-      - Container1:
+      - conRaizNavCmp:
           Control: GroupContainer@1.5.0
           Variant: ManualLayout
           Properties:
-            X: =40
-            Y: =40
-      - Gallery1:
-          Control: Gallery@2.15.0
-          Variant: Vertical
-          Properties:
-            X: =60
-            Y: =60
+            DropShadow: =DropShadow.None
+            Fill: =gblC.teal
+            Height: =Parent.Height
+            Width: =Parent.Width
+            X: =0
+            Y: =0
           Children:
-            - Label1:
-                Control: Label@2.5.1
+            - conMarcaNavCmp:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
                 Properties:
-                  OnSelect: =Select(Parent)
-                  Text: =ThisItem.SampleHeading
-                  X: =40
-                  Y: =40
-            - Icon1:
-                Control: Classic/Icon@2.5.0
+                  DropShadow: =DropShadow.None
+                  Fill: =Color.Transparent
+                  Height: =gblE.AltoBarra + gblE.Pad
+                  Width: =Parent.Width
+                  X: =0
+                  Y: =0
+                Children:
+                  - conLogoNavCmp:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.tealOscuro
+                        Height: =40
+                        RadiusBottomLeft: =gblE.RadioSm
+                        RadiusBottomRight: =gblE.RadioSm
+                        RadiusTopLeft: =gblE.RadioSm
+                        RadiusTopRight: =gblE.RadioSm
+                        Width: =40
+                        X: =gblE.Pad
+                        Y: =gblE.Pad
+                      Children:
+                        - lblLogoNavCmp:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =Align.Center
+                              Color: =Color.White
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =Parent.Height
+                              PaddingLeft: =0
+                              PaddingRight: =0
+                              Size: =15
+                              Text: ="₡"
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =Parent.Width
+                              X: =0
+                              Y: =0
+                  - lblMarcaNavCmp:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =Color.White
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =20
+                        PaddingLeft: =0
+                        Size: =11
+                        Text: ="Cobranza Móvil"
+                        VerticalAlign: =VerticalAlign.Middle
+                        Width: =Parent.Width - (gblE.Pad + 40 + gblE.PadSm) - gblE.PadSm
+                        Wrap: =false
+                        X: =gblE.Pad + 40 + gblE.PadSm
+                        Y: =gblE.Pad + 2
+                  - lblMarcaSubNavCmp:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =RGBA(255,255,255,0.70)
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =16
+                        PaddingLeft: =0
+                        Size: =8
+                        Text: ="BACKOFFICE"
+                        VerticalAlign: =VerticalAlign.Middle
+                        Width: =Parent.Width - (gblE.Pad + 40 + gblE.PadSm) - gblE.PadSm
+                        Wrap: =false
+                        X: =gblE.Pad + 40 + gblE.PadSm
+                        Y: =gblE.Pad + 22
+            - galNavCmp:
+                Control: Gallery@2.15.0
+                Variant: Vertical
                 Properties:
-                  Icon: =Icon.Printing3D
-                  X: =40
-                  Y: =40
+                  Height: |-
+                    =Parent.Height - (gblE.AltoBarra + gblE.Pad) - (gblE.AltoFila + gblE.PadSm)
+                  Items: |-
+                    =SortByColumns(
+                        Filter(colNav, CountRows(Filter(Split(Roles, "|"), Value in gblRol)) > 0),
+                        "Orden"
+                    )
+                  OnSelect: |-
+                    =Switch(ThisItem.Ruta,
+                        "ini",  Navigate(scrInicio),
+                        "trx",  Navigate(scrTranscripcion),
+                        "tsc",  Navigate(scrTranscritas),
+                        "nva",  Navigate(scrNuevaSolicitud),
+                        "sol",  Navigate(scrMisSolicitudes),
+                        "aprb", Navigate(scrAprobaciones),
+                        "mon",  Navigate(scrMonitoreo),
+                        "rec",  Navigate(scrReconciliacion),
+                        "cie",  Navigate(scrCierres),
+                        "age",  Navigate(scrAgentes),
+                        "mae",  Navigate(scrMaestros)
+                    );
+                    Set(gblNavMovilAbierta, false)
+                  ShowScrollbar: =false
+                  TemplateFill: |-
+                    =If(ThisItem.Ruta = cmpNavLateral.RutaActiva, gblC.blancoTr, Color.Transparent)
+                  TemplatePadding: =0
+                  TemplateSize: =44
+                  Width: =Parent.Width
+                  X: =0
+                  Y: =gblE.AltoBarra + gblE.Pad
+                Children:
+                  - lblIconoNavCmp:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =Align.Center
+                        Font: =Font.'Segoe UI'
+                        Height: =Parent.TemplateHeight
+                        OnSelect: =Select(Parent)
+                        PaddingLeft: =0
+                        PaddingRight: =0
+                        Size: =11
+                        Text: =ThisItem.Icono
+                        VerticalAlign: =VerticalAlign.Middle
+                        Width: =24
+                        Wrap: =false
+                        X: =gblE.Pad
+                        Y: =0
+                  - lblTituloNavCmp:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =Color.White
+                        Font: =Font.'Segoe UI'
+                        FontWeight: |-
+                          =If(ThisItem.Ruta = cmpNavLateral.RutaActiva, FontWeight.Bold, FontWeight.Normal)
+                        Height: =Parent.TemplateHeight
+                        OnSelect: =Select(Parent)
+                        PaddingLeft: =0
+                        Size: =10
+                        Text: =ThisItem.Titulo
+                        VerticalAlign: =VerticalAlign.Middle
+                        Width: |-
+                          =Parent.TemplateWidth - (gblE.Pad + 24 + gblE.PadSm) - gblE.PadSm
+                        Wrap: =false
+                        X: =gblE.Pad + 24 + gblE.PadSm
+                        Y: =0
+            - conPieNavCmp:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Fill: =Color.Transparent
+                  Height: =gblE.AltoFila + gblE.PadSm
+                  Width: =Parent.Width
+                  X: =0
+                  Y: =Parent.Height - (gblE.AltoFila + gblE.PadSm)
+                Children:
+                  - conSepPieNavCmp:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.blancoTr
+                        Height: =1
+                        Width: =Parent.Width - 2*gblE.Pad
+                        X: =gblE.Pad
+                        Y: =0
+                  - conAvatarNavCmp:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.blancoTr
+                        Height: =36
+                        RadiusBottomLeft: =18
+                        RadiusBottomRight: =18
+                        RadiusTopLeft: =18
+                        RadiusTopRight: =18
+                        Width: =36
+                        X: =gblE.Pad
+                        Y: =gblE.PadSm + 4
+                      Children:
+                        - lblAvatarNavCmp:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =Align.Center
+                              Color: =Color.White
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =Parent.Height
+                              PaddingLeft: =0
+                              PaddingRight: =0
+                              Size: =10
+                              Text: |-
+                                =Concat(FirstN(Split(User().FullName, " "), 2), Left(Value, 1))
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =Parent.Width
+                              X: =0
+                              Y: =0
+                  - lblNombreNavCmp:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =Color.White
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =18
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: =User().FullName
+                        VerticalAlign: =VerticalAlign.Middle
+                        Width: =Parent.Width - (gblE.Pad + 36 + gblE.PadSm) - gblE.PadSm
+                        Wrap: =false
+                        X: =gblE.Pad + 36 + gblE.PadSm
+                        Y: =gblE.PadSm + 5
+                  - lblRolNavCmp:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =RGBA(255,255,255,0.70)
+                        Font: =Font.'Segoe UI'
+                        Height: =16
+                        PaddingLeft: =0
+                        Size: =8
+                        Text: |-
+                          =If(IsBlank(gblRol), "Sin acceso", Substitute(gblRol, "|", " · "))
+                        VerticalAlign: =VerticalAlign.Middle
+                        Width: =Parent.Width - (gblE.Pad + 36 + gblE.PadSm) - gblE.PadSm
+                        Wrap: =false
+                        X: =gblE.Pad + 36 + gblE.PadSm
+                        Y: =gblE.PadSm + 23

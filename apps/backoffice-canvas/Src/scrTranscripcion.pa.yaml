@@ -1,10 +1,1107 @@
 # ************************************************************************************************
 # Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
 # Use the maker portal to create and edit your Power Apps.
-# 
+#
 # The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
-# 
+#
 # For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
 # ************************************************************************************************
 Screens:
-  scrTranscripcion: {}
+  scrTranscripcion:
+    Properties:
+      Fill: =gblC.pantalla
+      OnVisible: |-
+        =// 1) guard de rol — SIEMPRE primera línea
+        If(!("Backoffice" in gblRol), Navigate(scrInicio));
+        // 2) cuentas para el join (cota 2000 declarada — 00 §4.1)
+        ClearCollect(colCtasTrx, ShowColumns('CM | TBL | Cuentas',
+            '[CT] Numero de cuenta', 'Nombre Cliente', 'CIF Cliente', 'Tipo Producto'));
+        // 3) pendientes del día + join horneado UNA vez (receta 7.7); nombre en Upper (LED-01)
+        ClearCollect(colPendTrx,
+            AddColumns(
+                Filter('CM | TBL | Interaccions',
+                    '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Pendiente),
+                clienteTrx, Upper(Coalesce(
+                    LookUp(colCtasTrx, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'Nombre Cliente', "—")),
+                cifTrx, Coalesce(
+                    LookUp(colCtasTrx, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'CIF Cliente', "—"),
+                productoTrx, Coalesce(
+                    LookUp(colCtasTrx, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'Tipo Producto', "—")
+            )
+        );
+        // 4) columna de localizadores materializada
+        ClearCollect(colLocsTrx, Table({locTrx: "Todos", nTrx: CountRows(colPendTrx)}));
+        Collect(colLocsTrx,
+            RenameColumns(
+                ShowColumns(
+                    SortByColumns(
+                        AddColumns(
+                            GroupBy(AddColumns(colPendTrx, agenteTrx, '[IN] NombreAgente'),
+                                "agenteTrx", "grpTrx"),
+                            nTrx, CountRows(grpTrx)
+                        ),
+                        "nTrx", SortOrder.Descending
+                    ),
+                    "agenteTrx", "nTrx"
+                ),
+                "agenteTrx", "locTrx"
+            )
+        );
+        // 5) estado inicial
+        Set(varLocSelTrx, "Todos");
+        Set(varActualTrx, Blank());
+        // 6) selección inicial (First de la cola "Todos")
+        Set(varActualTrx,
+            First(SortByColumns(
+                Filter(colPendTrx, varLocSelTrx = "Todos" || '[IN] NombreAgente' = varLocSelTrx),
+                "Fecha de captura", SortOrder.Ascending)));
+        If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info',
+            Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
+                '[AD] Interaccion' = varActualTrx));
+            ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
+            ClearCollect(colDirAntesTrx, Filter('CM | TBL | Direccions', '[DR] CIF' = varActualTrx.cifTrx));
+            ClearCollect(colCambiosTrx, Filter(Table(
+                {campoTrx: "TELÉFONO CASA",     antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Casa").'[TL] Numero',    nuevoTrx: varADTrx.'[AD] Telefono Casa'},
+                {campoTrx: "TELÉFONO CELULAR",  antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Celular").'[TL] Numero', nuevoTrx: varADTrx.'[AD] Telefono Celular'},
+                {campoTrx: "TELÉFONO TRABAJO",  antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Trabajo").'[TL] Numero', nuevoTrx: varADTrx.'[AD] Telefono trabajo'},
+                {campoTrx: "DIRECCIÓN CASA",    antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "Casa").'[DR] Direccion', nuevoTrx: varADTrx.'[AD] Direccion casa'},
+                {campoTrx: "DIRECCIÓN EC",      antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "EC").'[DR] Direccion',   nuevoTrx: varADTrx.'[AD] Direccion EC'},
+                {campoTrx: "DIRECCIÓN TRABAJO", antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "Trabajo").'[DR] Direccion', nuevoTrx: varADTrx.'[AD] Direccion trabajo'},
+                {campoTrx: "CORREO ELECTRÓNICO", antesTrx: Blank(), nuevoTrx: varADTrx.'[AD] Correo electronico'}
+            ), !IsBlank(nuevoTrx))),
+            Set(varADTrx, Blank()); Clear(colCambiosTrx)
+        )
+    Children:
+      - cmpEncTrx:
+          Control: CanvasComponent
+          ComponentName: cmpEncabezado
+          Properties:
+            Height: =If(nfMovil, gblE.AltoBarra + 84, 84)
+            Subtitulo: ="Localizador → pendientes → detalle. Grabá en el core y seguí de corrido."
+            Titulo: ="Por transcribir"
+            Width: =Parent.Width - Self.X
+            X: =If(nfMovil, 0, gblE.AnchoNav)
+            Y: =0
+      - btnActualizarTrx:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =gblC.borde
+            BorderThickness: =1
+            Color: =gblC.ink2
+            Fill: =gblC.card
+            Font: =Font.'Segoe UI'
+            Height: =36
+            OnSelect: |-
+              =// 1) cuentas para el join (idéntico al paso 2 del OnVisible)
+              ClearCollect(colCtasTrx, ShowColumns('CM | TBL | Cuentas',
+                  '[CT] Numero de cuenta', 'Nombre Cliente', 'CIF Cliente', 'Tipo Producto'));
+              // 2) pendientes del día + join horneado (idéntico al paso 3 del OnVisible)
+              ClearCollect(colPendTrx,
+                  AddColumns(
+                      Filter('CM | TBL | Interaccions',
+                          '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Pendiente),
+                      clienteTrx, Upper(Coalesce(
+                          LookUp(colCtasTrx, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'Nombre Cliente', "—")),
+                      cifTrx, Coalesce(
+                          LookUp(colCtasTrx, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'CIF Cliente', "—"),
+                      productoTrx, Coalesce(
+                          LookUp(colCtasTrx, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'Tipo Producto', "—")
+                  )
+              );
+              // 3) columna de localizadores
+              ClearCollect(colLocsTrx, Table({locTrx: "Todos", nTrx: CountRows(colPendTrx)}));
+              Collect(colLocsTrx,
+                  RenameColumns(
+                      ShowColumns(
+                          SortByColumns(
+                              AddColumns(
+                                  GroupBy(AddColumns(colPendTrx, agenteTrx, '[IN] NombreAgente'),
+                                      "agenteTrx", "grpTrx"),
+                                  nTrx, CountRows(grpTrx)
+                              ),
+                              "nTrx", SortOrder.Descending
+                          ),
+                          "agenteTrx", "nTrx"
+                      ),
+                      "agenteTrx", "locTrx"
+                  )
+              );
+              // 4) reselección sobre la cola refrescada (varLocSelTrx queda como estaba)
+              Set(varActualTrx,
+                  First(SortByColumns(
+                      Filter(colPendTrx, varLocSelTrx = "Todos" || '[IN] NombreAgente' = varLocSelTrx),
+                      "Fecha de captura", SortOrder.Ascending)));
+              If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info',
+                  Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
+                      '[AD] Interaccion' = varActualTrx));
+                  ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
+                  ClearCollect(colDirAntesTrx, Filter('CM | TBL | Direccions', '[DR] CIF' = varActualTrx.cifTrx));
+                  ClearCollect(colCambiosTrx, Filter(Table(
+                      {campoTrx: "TELÉFONO CASA",     antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Casa").'[TL] Numero',    nuevoTrx: varADTrx.'[AD] Telefono Casa'},
+                      {campoTrx: "TELÉFONO CELULAR",  antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Celular").'[TL] Numero', nuevoTrx: varADTrx.'[AD] Telefono Celular'},
+                      {campoTrx: "TELÉFONO TRABAJO",  antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Trabajo").'[TL] Numero', nuevoTrx: varADTrx.'[AD] Telefono trabajo'},
+                      {campoTrx: "DIRECCIÓN CASA",    antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "Casa").'[DR] Direccion', nuevoTrx: varADTrx.'[AD] Direccion casa'},
+                      {campoTrx: "DIRECCIÓN EC",      antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "EC").'[DR] Direccion',   nuevoTrx: varADTrx.'[AD] Direccion EC'},
+                      {campoTrx: "DIRECCIÓN TRABAJO", antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "Trabajo").'[DR] Direccion', nuevoTrx: varADTrx.'[AD] Direccion trabajo'},
+                      {campoTrx: "CORREO ELECTRÓNICO", antesTrx: Blank(), nuevoTrx: varADTrx.'[AD] Correo electronico'}
+                  ), !IsBlank(nuevoTrx))),
+                  Set(varADTrx, Blank()); Clear(colCambiosTrx)
+              )
+            Size: =9
+            Text: ="↻ Actualizar"
+            Width: =130
+            X: =Parent.Width - gblE.Pad - Self.Width
+            Y: =If(nfMovil, gblE.AltoBarra + 8, 24)
+      - conContenidoTrx:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            BorderThickness: =0
+            DropShadow: =DropShadow.None
+            Fill: =Color.Transparent
+            Height: =Parent.Height - Self.Y - gblE.Pad
+            Width: =Min(gblE.AnchoMax, Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - 2*gblE.Pad)
+            X: |-
+              =If(nfMovil, 0, gblE.AnchoNav)
+                  + Max(gblE.Pad, (Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - gblE.AnchoMax) / 2)
+            Y: =cmpEncTrx.Y + cmpEncTrx.Height
+          Children:
+            - lblHeadLocsTrx:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =18
+                  PaddingLeft: =0
+                  Size: =8
+                  Text: ="LOCALIZADORES"
+                  VerticalAlign: =VerticalAlign.Middle
+                  Visible: =!nfMovil
+                  Width: =If(Parent.Width < 1080, 150, 185)
+                  Wrap: =false
+                  X: =0
+                  Y: =0
+            - galLocsTrx:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  Height: =Parent.Height - 22
+                  Items: =colLocsTrx
+                  OnSelect: |-
+                    =Set(varLocSelTrx, ThisItem.locTrx);
+                    Set(varActualTrx, Blank());
+                    Set(varActualTrx,
+                        First(SortByColumns(
+                            Filter(colPendTrx, varLocSelTrx = "Todos" || '[IN] NombreAgente' = varLocSelTrx),
+                            "Fecha de captura", SortOrder.Ascending)));
+                    If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info',
+                        Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
+                            '[AD] Interaccion' = varActualTrx));
+                        ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
+                        ClearCollect(colDirAntesTrx, Filter('CM | TBL | Direccions', '[DR] CIF' = varActualTrx.cifTrx));
+                        ClearCollect(colCambiosTrx, Filter(Table(
+                            {campoTrx: "TELÉFONO CASA",     antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Casa").'[TL] Numero',    nuevoTrx: varADTrx.'[AD] Telefono Casa'},
+                            {campoTrx: "TELÉFONO CELULAR",  antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Celular").'[TL] Numero', nuevoTrx: varADTrx.'[AD] Telefono Celular'},
+                            {campoTrx: "TELÉFONO TRABAJO",  antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Trabajo").'[TL] Numero', nuevoTrx: varADTrx.'[AD] Telefono trabajo'},
+                            {campoTrx: "DIRECCIÓN CASA",    antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "Casa").'[DR] Direccion', nuevoTrx: varADTrx.'[AD] Direccion casa'},
+                            {campoTrx: "DIRECCIÓN EC",      antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "EC").'[DR] Direccion',   nuevoTrx: varADTrx.'[AD] Direccion EC'},
+                            {campoTrx: "DIRECCIÓN TRABAJO", antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "Trabajo").'[DR] Direccion', nuevoTrx: varADTrx.'[AD] Direccion trabajo'},
+                            {campoTrx: "CORREO ELECTRÓNICO", antesTrx: Blank(), nuevoTrx: varADTrx.'[AD] Correo electronico'}
+                        ), !IsBlank(nuevoTrx))),
+                        Set(varADTrx, Blank()); Clear(colCambiosTrx)
+                    );
+                    If(!nfMovil, SetFocus(txtCodigoTrx))
+                  ShowScrollbar: =false
+                  TemplatePadding: =0
+                  TemplateSize: =54
+                  Visible: =!nfMovil
+                  Width: =If(Parent.Width < 1080, 150, 185)
+                  X: =0
+                  Y: =22
+                Children:
+                  - btnLocCardTrx:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderColor: =gblC.borde
+                        BorderThickness: =1
+                        Fill: =If(ThisItem.locTrx = varLocSelTrx, gblC.teal, gblC.card)
+                        Font: =Font.'Segoe UI'
+                        Height: =46
+                        HoverFill: =ColorFade(Self.Fill, 5%)
+                        OnSelect: =Select(Parent)
+                        RadiusBottomLeft: =10
+                        RadiusBottomRight: =10
+                        RadiusTopLeft: =10
+                        RadiusTopRight: =10
+                        Text: =""
+                        Width: =Parent.TemplateWidth
+                        X: =0
+                        Y: =0
+                  - lblLocNomTrx:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =If(ThisItem.locTrx = varLocSelTrx, Color.White, gblC.ink)
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =26
+                        OnSelect: =Select(Parent)
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: =If(ThisItem.locTrx = "Todos", "Todos", "🏍️ " & ThisItem.locTrx)
+                        VerticalAlign: =VerticalAlign.Middle
+                        Width: =Parent.TemplateWidth - 66
+                        Wrap: =false
+                        X: =gblE.PadSm
+                        Y: =10
+                  - chpLocNTrx:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =If(ThisItem.locTrx = varLocSelTrx, Color.White, gblC.ink2)
+                        Fill: =If(ThisItem.locTrx = varLocSelTrx, gblC.blancoTr, gblC.hairline)
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =26
+                        OnSelect: =Select(Parent)
+                        RadiusBottomLeft: =8
+                        RadiusBottomRight: =8
+                        RadiusTopLeft: =8
+                        RadiusTopRight: =8
+                        Size: =8
+                        Text: =Text(ThisItem.nTrx)
+                        Width: =14 + 7*Len(Self.Text)
+                        X: =Parent.TemplateWidth - Self.Width - gblE.PadSm
+                        Y: =10
+            - galLocsMovTrx:
+                Control: Gallery@2.15.0
+                Variant: Horizontal
+                Properties:
+                  Height: =56
+                  Items: =colLocsTrx
+                  OnSelect: |-
+                    =Set(varLocSelTrx, ThisItem.locTrx);
+                    Set(varActualTrx, Blank());
+                    Set(varActualTrx,
+                        First(SortByColumns(
+                            Filter(colPendTrx, varLocSelTrx = "Todos" || '[IN] NombreAgente' = varLocSelTrx),
+                            "Fecha de captura", SortOrder.Ascending)));
+                    If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info',
+                        Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
+                            '[AD] Interaccion' = varActualTrx));
+                        ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
+                        ClearCollect(colDirAntesTrx, Filter('CM | TBL | Direccions', '[DR] CIF' = varActualTrx.cifTrx));
+                        ClearCollect(colCambiosTrx, Filter(Table(
+                            {campoTrx: "TELÉFONO CASA",     antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Casa").'[TL] Numero',    nuevoTrx: varADTrx.'[AD] Telefono Casa'},
+                            {campoTrx: "TELÉFONO CELULAR",  antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Celular").'[TL] Numero', nuevoTrx: varADTrx.'[AD] Telefono Celular'},
+                            {campoTrx: "TELÉFONO TRABAJO",  antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Trabajo").'[TL] Numero', nuevoTrx: varADTrx.'[AD] Telefono trabajo'},
+                            {campoTrx: "DIRECCIÓN CASA",    antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "Casa").'[DR] Direccion', nuevoTrx: varADTrx.'[AD] Direccion casa'},
+                            {campoTrx: "DIRECCIÓN EC",      antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "EC").'[DR] Direccion',   nuevoTrx: varADTrx.'[AD] Direccion EC'},
+                            {campoTrx: "DIRECCIÓN TRABAJO", antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "Trabajo").'[DR] Direccion', nuevoTrx: varADTrx.'[AD] Direccion trabajo'},
+                            {campoTrx: "CORREO ELECTRÓNICO", antesTrx: Blank(), nuevoTrx: varADTrx.'[AD] Correo electronico'}
+                        ), !IsBlank(nuevoTrx))),
+                        Set(varADTrx, Blank()); Clear(colCambiosTrx)
+                    )
+                  ShowScrollbar: =false
+                  TemplatePadding: =0
+                  TemplateSize: =150
+                  Visible: =nfMovil
+                  Width: =Parent.Width
+                  X: =0
+                  Y: =0
+                Children:
+                  - btnLocCardMovTrx:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderColor: =gblC.borde
+                        BorderThickness: =1
+                        Fill: =If(ThisItem.locTrx = varLocSelTrx, gblC.teal, gblC.card)
+                        Font: =Font.'Segoe UI'
+                        Height: =46
+                        HoverFill: =ColorFade(Self.Fill, 5%)
+                        OnSelect: =Select(Parent)
+                        RadiusBottomLeft: =10
+                        RadiusBottomRight: =10
+                        RadiusTopLeft: =10
+                        RadiusTopRight: =10
+                        Text: =""
+                        Width: =Parent.TemplateWidth - 8
+                        X: =0
+                        Y: =0
+                  - lblLocNomMovTrx:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =If(ThisItem.locTrx = varLocSelTrx, Color.White, gblC.ink)
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =26
+                        OnSelect: =Select(Parent)
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: =If(ThisItem.locTrx = "Todos", "Todos", "🏍️ " & ThisItem.locTrx)
+                        VerticalAlign: =VerticalAlign.Middle
+                        Width: =Parent.TemplateWidth - 60
+                        Wrap: =false
+                        X: =gblE.PadSm
+                        Y: =10
+                  - chpLocNMovTrx:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =If(ThisItem.locTrx = varLocSelTrx, Color.White, gblC.ink2)
+                        Fill: =If(ThisItem.locTrx = varLocSelTrx, gblC.blancoTr, gblC.hairline)
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =26
+                        OnSelect: =Select(Parent)
+                        RadiusBottomLeft: =8
+                        RadiusBottomRight: =8
+                        RadiusTopLeft: =8
+                        RadiusTopRight: =8
+                        Size: =8
+                        Text: =Text(ThisItem.nTrx)
+                        Width: =14 + 7*Len(Self.Text)
+                        X: =Parent.TemplateWidth - Self.Width - 14
+                        Y: =10
+            - lblHeadColaTrx:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =18
+                  PaddingLeft: =0
+                  Size: =8
+                  Text: |-
+                    ="PENDIENTES"
+                        & If(varLocSelTrx <> "Todos", " · " & Upper(First(Split(varLocSelTrx, " ")).Value), "")
+                        & " · " & CountRows(galColaTrx.AllItems) & " · FIFO"
+                  VerticalAlign: =VerticalAlign.Middle
+                  Width: =If(Parent.Width < 1080, 210, 255)
+                  Wrap: =false
+                  X: =If(nfMovil, 0, If(Parent.Width < 1080, 150, 185) + 12)
+                  Y: =If(nfMovil, conDetalleTrx.Y + conDetalleTrx.Height + 8, 0)
+            - galColaTrx:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  Height: =Parent.Height - Self.Y
+                  Items: |-
+                    =SortByColumns(
+                        Filter(colPendTrx, varLocSelTrx = "Todos" || '[IN] NombreAgente' = varLocSelTrx),
+                        "Fecha de captura", SortOrder.Ascending)
+                  OnSelect: |-
+                    =Set(varActualTrx, ThisItem);
+                    If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info',
+                        Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
+                            '[AD] Interaccion' = varActualTrx));
+                        ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
+                        ClearCollect(colDirAntesTrx, Filter('CM | TBL | Direccions', '[DR] CIF' = varActualTrx.cifTrx));
+                        ClearCollect(colCambiosTrx, Filter(Table(
+                            {campoTrx: "TELÉFONO CASA",     antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Casa").'[TL] Numero',    nuevoTrx: varADTrx.'[AD] Telefono Casa'},
+                            {campoTrx: "TELÉFONO CELULAR",  antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Celular").'[TL] Numero', nuevoTrx: varADTrx.'[AD] Telefono Celular'},
+                            {campoTrx: "TELÉFONO TRABAJO",  antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Trabajo").'[TL] Numero', nuevoTrx: varADTrx.'[AD] Telefono trabajo'},
+                            {campoTrx: "DIRECCIÓN CASA",    antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "Casa").'[DR] Direccion', nuevoTrx: varADTrx.'[AD] Direccion casa'},
+                            {campoTrx: "DIRECCIÓN EC",      antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "EC").'[DR] Direccion',   nuevoTrx: varADTrx.'[AD] Direccion EC'},
+                            {campoTrx: "DIRECCIÓN TRABAJO", antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "Trabajo").'[DR] Direccion', nuevoTrx: varADTrx.'[AD] Direccion trabajo'},
+                            {campoTrx: "CORREO ELECTRÓNICO", antesTrx: Blank(), nuevoTrx: varADTrx.'[AD] Correo electronico'}
+                        ), !IsBlank(nuevoTrx))),
+                        Set(varADTrx, Blank()); Clear(colCambiosTrx)
+                    );
+                    If(!nfMovil, SetFocus(txtCodigoTrx))
+                  ShowScrollbar: =false
+                  TemplateFill: |-
+                    =If(!IsBlank(varActualTrx)
+                        && ThisItem.'[IN] Numero de Interaccion' = varActualTrx.'[IN] Numero de Interaccion',
+                        gblC.tealSuave, gblC.card)
+                  TemplatePadding: =0
+                  TemplateSize: =gblE.AltoFila
+                  Width: =If(nfMovil, Parent.Width, If(Parent.Width < 1080, 210, 255))
+                  X: =If(nfMovil, 0, If(Parent.Width < 1080, 150, 185) + 12)
+                  Y: =lblHeadColaTrx.Y + 22
+                Children:
+                  - lblColaNomTrx:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =20
+                        OnSelect: =Select(Parent)
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: =ThisItem.clienteTrx
+                        VerticalAlign: =VerticalAlign.Middle
+                        Width: =Parent.TemplateWidth - 2*gblE.PadSm
+                        Wrap: =false
+                        X: =gblE.PadSm
+                        Y: =8
+                  - lblColaMetaTrx:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.muted
+                        Font: =Font.'Segoe UI'
+                        Height: =30
+                        OnSelect: =Select(Parent)
+                        PaddingLeft: =0
+                        Size: =8
+                        Text: |-
+                          =ThisItem.'[IN] Numerocuenta'
+                              & " · " & Text(ThisItem.'Fecha de captura', "HH:mm")
+                              & If(ThisItem.'[IN] Aplica pago', " · 💵", "")
+                              & If(ThisItem.'[IN] Actualiza info', " · ✏️", "")
+                              & If(varLocSelTrx = "Todos", " · 🏍️ " & First(Split(ThisItem.'[IN] NombreAgente', " ")).Value, "")
+                        VerticalAlign: =VerticalAlign.Top
+                        Width: =Parent.TemplateWidth - 2*gblE.PadSm
+                        Wrap: =true
+                        X: =gblE.PadSm
+                        Y: =28
+                  - recSepColaTrx:
+                      Control: Rectangle@2.3.0
+                      Properties:
+                        Fill: =gblC.hairline
+                        Height: =1
+                        OnSelect: =Select(Parent)
+                        Width: =Parent.TemplateWidth
+                        X: =0
+                        Y: =Parent.TemplateHeight - 1
+            - cmpVacioColaTrx:
+                Control: CanvasComponent
+                ComponentName: cmpVacio
+                Properties:
+                  Height: =160
+                  Icono: ="🎉"
+                  Mensaje: ="Pasá al siguiente localizador."
+                  Titulo: ="Cola vacía"
+                  Visible: =CountRows(colPendTrx) > 0 && CountRows(galColaTrx.AllItems) = 0
+                  Width: =If(nfMovil, Parent.Width, If(Parent.Width < 1080, 210, 255))
+                  X: =If(nfMovil, 0, If(Parent.Width < 1080, 150, 185) + 12)
+                  Y: =lblHeadColaTrx.Y + 22
+            - cmpVacioTodoTrx:
+                Control: CanvasComponent
+                ComponentName: cmpVacio
+                Properties:
+                  Height: =180
+                  Icono: ="🎉"
+                  Mensaje: ="No hay nada por transcribir. Volvé más tarde o tocá ↻ Actualizar."
+                  Titulo: ="Sin pendientes"
+                  Visible: =CountRows(colPendTrx) = 0
+                  Width: =Parent.Width
+                  X: =0
+                  Y: =Parent.Height/2 - 90
+            - conDetalleTrx:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.card
+                  Height: =If(nfMovil, (Parent.Height - 64) * 0.55, Parent.Height)
+                  RadiusBottomLeft: =gblE.Radio
+                  RadiusBottomRight: =gblE.Radio
+                  RadiusTopLeft: =gblE.Radio
+                  RadiusTopRight: =gblE.Radio
+                  Width: =If(nfMovil, Parent.Width, Parent.Width - If(Parent.Width < 1080, 384, 464))
+                  X: =If(nfMovil, 0, If(Parent.Width < 1080, 384, 464))
+                  Y: =If(nfMovil, 64, 0)
+                Children:
+                  - lblPosTrx:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.muted
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =16
+                        PaddingLeft: =0
+                        Size: =8
+                        Text: |-
+                          =With({_cola: SortByColumns(
+                                  Filter(colPendTrx, varLocSelTrx = "Todos" || '[IN] NombreAgente' = varLocSelTrx),
+                                  "Fecha de captura", SortOrder.Ascending)},
+                              (CountRows(Filter(_cola, 'Fecha de captura' < varActualTrx.'Fecha de captura')) + 1)
+                                  & " DE " & CountRows(_cola))
+                              & If(varLocSelTrx <> "Todos", " · " & Upper(varLocSelTrx), "")
+                              & " · " & varActualTrx.'[IN] Numero de Interaccion'
+                              & " · 🏍️ " & Upper(varActualTrx.'[IN] NombreAgente')
+                              & " · " & Text(varActualTrx.'Fecha de captura', "HH:mm")
+                        VerticalAlign: =VerticalAlign.Middle
+                        Visible: =!IsBlank(varActualTrx)
+                        Width: =Parent.Width - 2*gblE.Pad - 90
+                        Wrap: =false
+                        X: =gblE.Pad
+                        Y: =gblE.PadSm
+                  - lblMapaTrx:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =Align.Right
+                        Color: =gblC.teal
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =16
+                        OnSelect: |-
+                          =Launch("https://www.google.com/maps?q=" & varActualTrx.'[IN] Latitud'
+                              & "," & varActualTrx.'[IN] Longitud')
+                        PaddingRight: =0
+                        Size: =8
+                        Text: ="📍 mapa"
+                        VerticalAlign: =VerticalAlign.Middle
+                        Visible: =!IsBlank(varActualTrx) && !IsBlank(varActualTrx.'[IN] Latitud')
+                        Width: =80
+                        Wrap: =false
+                        X: =Parent.Width - gblE.Pad - 80
+                        Y: =gblE.PadSm
+                  - conIdentidadTrx:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        BorderColor: =gblC.borde
+                        BorderThickness: =1
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.teal
+                        Height: =132
+                        RadiusBottomLeft: =gblE.Radio
+                        RadiusBottomRight: =gblE.Radio
+                        RadiusTopLeft: =gblE.Radio
+                        RadiusTopRight: =gblE.Radio
+                        Visible: =!IsBlank(varActualTrx)
+                        Width: =Parent.Width - 2*gblE.Pad
+                        X: =gblE.Pad
+                        Y: =34
+                      Children:
+                        - lblNombreTrx:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =Color.White
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =24
+                              PaddingLeft: =0
+                              Size: =13
+                              Text: =varActualTrx.clienteTrx
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =Parent.Width - 2*gblE.Pad - 110
+                              Wrap: =false
+                              X: =gblE.Pad
+                              Y: =gblE.PadSm
+                        - chpCifTrx:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderThickness: =0
+                              Color: =Color.White
+                              DisplayMode: =DisplayMode.View
+                              Fill: =gblC.blancoTr
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =26
+                              RadiusBottomLeft: =8
+                              RadiusBottomRight: =8
+                              RadiusTopLeft: =8
+                              RadiusTopRight: =8
+                              Size: =8
+                              Text: =varActualTrx.cifTrx
+                              Width: =14 + 7*Len(Self.Text)
+                              X: =Parent.Width - gblE.Pad - Self.Width
+                              Y: =gblE.PadSm
+                        - lblCuentaTagTrx:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =RGBA(255,255,255,0.75)
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =14
+                              PaddingLeft: =0
+                              Size: =8
+                              Text: ="N° TARJETA / PRÉSTAMO"
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =Parent.Width - 2*gblE.Pad
+                              Wrap: =false
+                              X: =gblE.Pad
+                              Y: =40
+                        - lblCuentaGrandeTrx:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =Color.White
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =38
+                              OnSelect: =Copy(Self.Text)
+                              PaddingLeft: =0
+                              Size: =24
+                              Text: =varActualTrx.'[IN] Numerocuenta'
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =Parent.Width - 2*gblE.Pad
+                              Wrap: =false
+                              X: =gblE.Pad
+                              Y: =56
+                        - lblProductoTrx:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =RGBA(255,255,255,0.85)
+                              Font: =Font.'Segoe UI'
+                              Height: =20
+                              PaddingLeft: =0
+                              Size: =10
+                              Text: =varActualTrx.productoTrx
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =Parent.Width - 2*gblE.Pad
+                              Wrap: =false
+                              X: =gblE.Pad
+                              Y: =98
+                  - lblComentTrx:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink
+                        Fill: =gblC.pantalla
+                        Font: =Font.'Segoe UI'
+                        Height: =96
+                        PaddingBottom: =12
+                        PaddingLeft: =12
+                        PaddingRight: =12
+                        PaddingTop: =12
+                        Size: =11
+                        Text: =varActualTrx.'[IN] Comentario'
+                        VerticalAlign: =VerticalAlign.Top
+                        Visible: =!IsBlank(varActualTrx)
+                        Width: =Parent.Width - 2*gblE.Pad
+                        Wrap: =true
+                        X: =gblE.Pad
+                        Y: =conIdentidadTrx.Y + conIdentidadTrx.Height + gblE.PadSm
+                  - lblSecPagosTrx:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.muted
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =18
+                        PaddingLeft: =0
+                        Size: =8
+                        Text: ="PAGOS (" & CountRows(galPagosTrx.AllItems) & ")"
+                        VerticalAlign: =VerticalAlign.Middle
+                        Visible: =!IsBlank(varActualTrx) && varActualTrx.'[IN] Aplica pago'
+                        Width: =Parent.Width - 2*gblE.Pad
+                        Wrap: =false
+                        X: =gblE.Pad
+                        Y: =lblComentTrx.Y + lblComentTrx.Height + gblE.PadSm
+                  - galPagosTrx:
+                      Control: Gallery@2.15.0
+                      Variant: Vertical
+                      Properties:
+                        Height: =74
+                        Items: |-
+                          =Filter('CM | TBL | Pagos',
+                              '[PG] Numero Interaccion' = varActualTrx.'[IN] Numero de Interaccion')
+                        ShowScrollbar: =false
+                        TemplatePadding: =0
+                        TemplateSize: =34
+                        Visible: =!IsBlank(varActualTrx) && varActualTrx.'[IN] Aplica pago'
+                        Width: =Parent.Width - 2*gblE.Pad
+                        X: =gblE.Pad
+                        Y: =lblSecPagosTrx.Y + 22
+                      Children:
+                        - lblPagoMontoTrx:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.ink
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =22
+                              PaddingLeft: =0
+                              Size: =10
+                              Text: |-
+                                =If(ThisItem.'[PG] Moneda' = 'Choice | CM | Monedas en Pago'.USD, "US$ ", "C$ ")
+                                    & Text(ThisItem.'[PG] Monto', "#,##0.00")
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =Parent.TemplateWidth * 0.55
+                              Wrap: =false
+                              X: =0
+                              Y: =6
+                        - lblPagoReciboTrx:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =Align.Right
+                              Color: =gblC.muted
+                              Font: =Font.'Segoe UI'
+                              Height: =22
+                              PaddingRight: =0
+                              Size: =10
+                              Text: ="Recibo " & ThisItem.'[PG] Numero recibo'
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =Parent.TemplateWidth * 0.45
+                              Wrap: =false
+                              X: =Parent.TemplateWidth * 0.55
+                              Y: =6
+                        - recSepPagoTrx:
+                            Control: Rectangle@2.3.0
+                            Properties:
+                              Fill: =gblC.hairline
+                              Height: =1
+                              Width: =Parent.TemplateWidth
+                              X: =0
+                              Y: =Parent.TemplateHeight - 1
+                  - lblSecDatosTrx:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.espInk
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =18
+                        PaddingLeft: =0
+                        Size: =8
+                        Text: ="✏️ ACTUALIZACIÓN DE DATOS — GRABALA TAMBIÉN EN EL CORE"
+                        VerticalAlign: =VerticalAlign.Middle
+                        Visible: =!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info'
+                        Width: =Parent.Width - 2*gblE.Pad
+                        Wrap: =true
+                        X: =gblE.Pad
+                        Y: |-
+                          =If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Aplica pago',
+                              galPagosTrx.Y + galPagosTrx.Height + gblE.PadSm, lblSecPagosTrx.Y)
+                  - conCambiosTrx:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        BorderColor: =gblC.espInk
+                        BorderThickness: =2
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.espBg
+                        Height: |-
+                          =Max(0, Min(Min(CountRows(colCambiosTrx), 4) * 52 + 10,
+                              conCodigoTrx.Y - lblSecDatosTrx.Y - 32))
+                        RadiusBottomLeft: =gblE.RadioSm
+                        RadiusBottomRight: =gblE.RadioSm
+                        RadiusTopLeft: =gblE.RadioSm
+                        RadiusTopRight: =gblE.RadioSm
+                        Visible: =!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info'
+                        Width: =Parent.Width - 2*gblE.Pad
+                        X: =gblE.Pad
+                        Y: =lblSecDatosTrx.Y + 22
+                      Children:
+                        - galCambiosTrx:
+                            Control: Gallery@2.15.0
+                            Variant: Vertical
+                            Properties:
+                              Height: =Parent.Height - 10
+                              Items: =colCambiosTrx
+                              ShowScrollbar: =false
+                              TemplatePadding: =0
+                              TemplateSize: =52
+                              Width: =Parent.Width - 8
+                              X: =4
+                              Y: =5
+                            Children:
+                              - lblCamKTrx:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    Color: =gblC.espInk
+                                    Font: =Font.'Segoe UI'
+                                    FontWeight: =FontWeight.Bold
+                                    Height: =14
+                                    PaddingLeft: =0
+                                    Size: =8
+                                    Text: =ThisItem.campoTrx
+                                    VerticalAlign: =VerticalAlign.Middle
+                                    Width: =Parent.TemplateWidth - 2*gblE.PadSm
+                                    Wrap: =false
+                                    X: =gblE.PadSm
+                                    Y: =4
+                              - lblCamAntesTrx:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    Color: =gblC.muted
+                                    Font: =Font.'Segoe UI'
+                                    Height: =28
+                                    PaddingLeft: =0
+                                    Size: =9
+                                    Strikethrough: =true
+                                    Text: =ThisItem.antesTrx
+                                    VerticalAlign: =VerticalAlign.Middle
+                                    Visible: =!IsBlank(ThisItem.antesTrx)
+                                    Width: =Parent.TemplateWidth * 0.38
+                                    Wrap: =true
+                                    X: =gblE.PadSm
+                                    Y: =20
+                              - lblCamFlechaTrx:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    Color: =gblC.espInk
+                                    Font: =Font.'Segoe UI'
+                                    FontWeight: =FontWeight.Bold
+                                    Height: =28
+                                    PaddingLeft: =0
+                                    Size: =10
+                                    Text: ="→"
+                                    VerticalAlign: =VerticalAlign.Middle
+                                    Visible: =!IsBlank(ThisItem.antesTrx)
+                                    Width: =20
+                                    Wrap: =false
+                                    X: =gblE.PadSm + Parent.TemplateWidth * 0.38
+                                    Y: =20
+                              - chpCamNuevoTrx:
+                                  Control: Classic/Button@2.2.0
+                                  Properties:
+                                    BorderThickness: =0
+                                    Color: =Color.White
+                                    DisplayMode: =DisplayMode.View
+                                    Fill: =gblC.espInk
+                                    Font: =Font.'Segoe UI'
+                                    FontWeight: =FontWeight.Bold
+                                    Height: =22
+                                    RadiusBottomLeft: =8
+                                    RadiusBottomRight: =8
+                                    RadiusTopLeft: =8
+                                    RadiusTopRight: =8
+                                    Size: =8
+                                    Text: ="NUEVO"
+                                    Visible: =IsBlank(ThisItem.antesTrx)
+                                    Width: =14 + 7*Len(Self.Text)
+                                    X: =gblE.PadSm
+                                    Y: =22
+                              - lblCamNuevoTrx:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    Color: =gblC.ink
+                                    Font: =Font.'Segoe UI'
+                                    FontWeight: =FontWeight.Bold
+                                    Height: =28
+                                    PaddingLeft: =0
+                                    Size: =10
+                                    Text: =ThisItem.nuevoTrx
+                                    VerticalAlign: =VerticalAlign.Middle
+                                    Width: =Parent.TemplateWidth * 0.5
+                                    Wrap: =true
+                                    X: |-
+                                      =If(IsBlank(ThisItem.antesTrx), gblE.PadSm + 64,
+                                          gblE.PadSm + Parent.TemplateWidth * 0.38 + 24)
+                                    Y: =20
+                  - cmpVacioDetTrx:
+                      Control: CanvasComponent
+                      ComponentName: cmpVacio
+                      Properties:
+                        Height: =160
+                        Icono: ="✨"
+                        Mensaje: ="Elegí un localizador con pendientes."
+                        Titulo: ="Nada seleccionado"
+                        Visible: =IsBlank(varActualTrx) && CountRows(colPendTrx) > 0
+                        Width: =Parent.Width - 2*gblE.Pad
+                        X: =gblE.Pad
+                        Y: =Parent.Height/2 - 80
+                  - conCodigoTrx:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.card
+                        Height: =64
+                        Width: =Parent.Width
+                        X: =0
+                        Y: =Parent.Height - 64
+                      Children:
+                        - recHairTrx:
+                            Control: Rectangle@2.3.0
+                            Properties:
+                              Fill: =gblC.hairline
+                              Height: =1
+                              Width: =Parent.Width
+                              X: =0
+                              Y: =0
+                        - lblCodigoTrx:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.muted
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Semibold
+                              Height: =24
+                              PaddingLeft: =0
+                              Size: =9
+                              Text: ="Código del core"
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =104
+                              Wrap: =false
+                              X: =gblE.Pad
+                              Y: =20
+                        - txtCodigoTrx:
+                            Control: Classic/TextInput@2.3.2
+                            Properties:
+                              BorderColor: =gblC.borde
+                              Default: =""
+                              Fill: =gblC.card
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =gblE.AltoInput
+                              HintText: ="PAG01"
+                              MaxLength: =10
+                              OnChange: =If(!IsBlank(Trim(Self.Text)) && !IsBlank(varActualTrx), Select(btnGrabarTrx))
+                              RadiusBottomLeft: =10
+                              RadiusBottomRight: =10
+                              RadiusTopLeft: =10
+                              RadiusTopRight: =10
+                              Size: =10
+                              Width: =Max(110, Parent.Width * 0.15)
+                              X: =gblE.Pad + 110
+                              Y: =12
+                        - btnGrabarTrx:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              Color: =Color.White
+                              DisabledColor: =Color.White
+                              DisabledFill: =ColorFade(gblC.teal, 60%)
+                              DisplayMode: |-
+                                =If(!IsBlank(Trim(txtCodigoTrx.Text)) && !IsBlank(varActualTrx),
+                                    DisplayMode.Edit, DisplayMode.Disabled)
+                              Fill: =gblC.teal
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Semibold
+                              Height: =40
+                              HoverFill: =ColorFade(gblC.teal, 10%)
+                              OnSelect: |-
+                                =// 1) foto de la cola filtrada y posición del actual (colVistaTrx materializada)
+                                ClearCollect(colVistaTrx,
+                                    SortByColumns(
+                                        Filter(colPendTrx, varLocSelTrx = "Todos" || '[IN] NombreAgente' = varLocSelTrx),
+                                        "Fecha de captura", SortOrder.Ascending));
+                                Set(varPosTrx,
+                                    CountRows(Filter(colVistaTrx, 'Fecha de captura' < varActualTrx.'Fecha de captura')) + 1);
+                                Set(varNumTrx, varActualTrx.'[IN] Numero de Interaccion');
+                                // 2) patch (receta 7.8) — LA única llamada de escritura
+                                Patch('CM | TBL | Interaccions',
+                                    LookUp('CM | TBL | Interaccions',
+                                        '[IN] Numero de Interaccion' = varActualTrx.'[IN] Numero de Interaccion'),
+                                    {
+                                        '[IN] Estado grabacion': 'Choice | CM | Estado grabacion Interaccio'.Grabado,
+                                        '[IN] Codigo Grabacion': Upper(Trim(txtCodigoTrx.Text)),
+                                        '[IN] Fecha grabacion': Now(),          // ← quitar estas 2 líneas cuando el flujo
+                                        '[IN] Grabado por': gblUsuarioDV        //    de auditoría esté activo (00 §3.2)
+                                    });
+                                // 3) sacar de la cola local (00 §5: cero re-consulta)
+                                Remove(colPendTrx, LookUp(colPendTrx,
+                                    '[IN] Numero de Interaccion' = varNumTrx));
+                                // 4) refrescar la columna de localizadores
+                                ClearCollect(colLocsTrx, Table({locTrx: "Todos", nTrx: CountRows(colPendTrx)}));
+                                Collect(colLocsTrx,
+                                    RenameColumns(
+                                        ShowColumns(
+                                            SortByColumns(
+                                                AddColumns(
+                                                    GroupBy(AddColumns(colPendTrx, agenteTrx, '[IN] NombreAgente'),
+                                                        "agenteTrx", "grpTrx"),
+                                                    nTrx, CountRows(grpTrx)
+                                                ),
+                                                "nTrx", SortOrder.Descending
+                                            ),
+                                            "agenteTrx", "nTrx"
+                                        ),
+                                        "agenteTrx", "locTrx"
+                                    )
+                                );
+                                // 5) reselección: siguiente de la MISMA cola filtrada en la MISMA posición
+                                //    (la anterior si era la última; Blank si quedó vacía)
+                                ClearCollect(colVistaTrx,
+                                    SortByColumns(
+                                        Filter(colPendTrx, varLocSelTrx = "Todos" || '[IN] NombreAgente' = varLocSelTrx),
+                                        "Fecha de captura", SortOrder.Ascending));
+                                Set(varActualTrx,
+                                    If(CountRows(colVistaTrx) = 0, Blank(),
+                                        Last(FirstN(colVistaTrx, Min(varPosTrx, CountRows(colVistaTrx))))));
+                                If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info',
+                                    Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
+                                        '[AD] Interaccion' = varActualTrx));
+                                    ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
+                                    ClearCollect(colDirAntesTrx, Filter('CM | TBL | Direccions', '[DR] CIF' = varActualTrx.cifTrx));
+                                    ClearCollect(colCambiosTrx, Filter(Table(
+                                        {campoTrx: "TELÉFONO CASA",     antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Casa").'[TL] Numero',    nuevoTrx: varADTrx.'[AD] Telefono Casa'},
+                                        {campoTrx: "TELÉFONO CELULAR",  antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Celular").'[TL] Numero', nuevoTrx: varADTrx.'[AD] Telefono Celular'},
+                                        {campoTrx: "TELÉFONO TRABAJO",  antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Trabajo").'[TL] Numero', nuevoTrx: varADTrx.'[AD] Telefono trabajo'},
+                                        {campoTrx: "DIRECCIÓN CASA",    antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "Casa").'[DR] Direccion', nuevoTrx: varADTrx.'[AD] Direccion casa'},
+                                        {campoTrx: "DIRECCIÓN EC",      antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "EC").'[DR] Direccion',   nuevoTrx: varADTrx.'[AD] Direccion EC'},
+                                        {campoTrx: "DIRECCIÓN TRABAJO", antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "Trabajo").'[DR] Direccion', nuevoTrx: varADTrx.'[AD] Direccion trabajo'},
+                                        {campoTrx: "CORREO ELECTRÓNICO", antesTrx: Blank(), nuevoTrx: varADTrx.'[AD] Correo electronico'}
+                                    ), !IsBlank(nuevoTrx))),
+                                    Set(varADTrx, Blank()); Clear(colCambiosTrx)
+                                );
+                                // 6) limpiar el input
+                                Reset(txtCodigoTrx);
+                                // 7) confirmar ANUNCIANDO el siguiente (la reselección del paso 5 ya corrió — R1-06)
+                                Notify("✓ " & varNumTrx & " grabada" &
+                                        If(IsBlank(varActualTrx), " — ¡cola vacía!",
+                                            " — siguiente: " & varActualTrx.clienteTrx),
+                                    NotificationType.Success, 2500);
+                                // 8) devolver el foco al input — la fluidez de la estación (solo desktop; R1-04)
+                                If(!nfMovil, SetFocus(txtCodigoTrx))
+                              RadiusBottomLeft: =10
+                              RadiusBottomRight: =10
+                              RadiusTopLeft: =10
+                              RadiusTopRight: =10
+                              Size: =9
+                              Text: ="✓ y siguiente"
+                              Width: =120
+                              X: =txtCodigoTrx.X + txtCodigoTrx.Width + 8
+                              Y: =12
+                        - btnSaltarTrx:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderColor: =gblC.borde
+                              BorderThickness: =1
+                              Color: =gblC.ink2
+                              Fill: =gblC.card
+                              Font: =Font.'Segoe UI'
+                              Height: =40
+                              OnSelect: |-
+                                =ClearCollect(colVistaTrx,
+                                    SortByColumns(
+                                        Filter(colPendTrx, varLocSelTrx = "Todos" || '[IN] NombreAgente' = varLocSelTrx),
+                                        "Fecha de captura", SortOrder.Ascending));
+                                If(CountRows(colVistaTrx) >= 2,
+                                    Set(varPosTrx,
+                                        CountRows(Filter(colVistaTrx, 'Fecha de captura' < varActualTrx.'Fecha de captura')) + 1);
+                                    Set(varActualTrx,
+                                        Last(FirstN(colVistaTrx, Mod(varPosTrx, CountRows(colVistaTrx)) + 1)));
+                                    If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info',
+                                        Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
+                                            '[AD] Interaccion' = varActualTrx));
+                                        ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
+                                        ClearCollect(colDirAntesTrx, Filter('CM | TBL | Direccions', '[DR] CIF' = varActualTrx.cifTrx));
+                                        ClearCollect(colCambiosTrx, Filter(Table(
+                                            {campoTrx: "TELÉFONO CASA",     antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Casa").'[TL] Numero',    nuevoTrx: varADTrx.'[AD] Telefono Casa'},
+                                            {campoTrx: "TELÉFONO CELULAR",  antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Celular").'[TL] Numero', nuevoTrx: varADTrx.'[AD] Telefono Celular'},
+                                            {campoTrx: "TELÉFONO TRABAJO",  antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Trabajo").'[TL] Numero', nuevoTrx: varADTrx.'[AD] Telefono trabajo'},
+                                            {campoTrx: "DIRECCIÓN CASA",    antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "Casa").'[DR] Direccion', nuevoTrx: varADTrx.'[AD] Direccion casa'},
+                                            {campoTrx: "DIRECCIÓN EC",      antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "EC").'[DR] Direccion',   nuevoTrx: varADTrx.'[AD] Direccion EC'},
+                                            {campoTrx: "DIRECCIÓN TRABAJO", antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "Trabajo").'[DR] Direccion', nuevoTrx: varADTrx.'[AD] Direccion trabajo'},
+                                            {campoTrx: "CORREO ELECTRÓNICO", antesTrx: Blank(), nuevoTrx: varADTrx.'[AD] Correo electronico'}
+                                        ), !IsBlank(nuevoTrx))),
+                                        Set(varADTrx, Blank()); Clear(colCambiosTrx)
+                                    )
+                                );
+                                // devolver el foco al input — la fluidez de la estación (solo desktop; R1-04)
+                                If(!nfMovil, SetFocus(txtCodigoTrx))
+                              Size: =9
+                              Text: ="Saltar →"
+                              Width: =96
+                              X: =btnGrabarTrx.X + btnGrabarTrx.Width + 8
+                              Y: =12
+                        - lblHintTrx:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.muted2
+                              Font: =Font.'Segoe UI'
+                              Height: =28
+                              PaddingLeft: =0
+                              Size: =8
+                              Text: ="Enter marca y avanza · la cola se navega con clic"
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =Parent.Width - Self.X - gblE.Pad
+                              Wrap: =true
+                              X: =btnSaltarTrx.X + btnSaltarTrx.Width + 8
+                              Y: =20
+      - cmpNavTrx:
+          Control: CanvasComponent
+          ComponentName: cmpNavLateral
+          Properties:
+            Height: =Parent.Height
+            RutaActiva: ="trx"
+            Visible: =!nfMovil || gblNavMovilAbierta
+            Width: =gblE.AnchoNav
+            X: =0
+            Y: =0

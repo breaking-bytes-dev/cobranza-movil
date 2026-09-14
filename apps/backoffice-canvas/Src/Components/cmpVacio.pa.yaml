@@ -1,14 +1,15 @@
 # ************************************************************************************************
 # Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
 # Use the maker portal to create and edit your Power Apps.
-# 
+#
 # The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
-# 
+#
 # For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
 # ************************************************************************************************
 ComponentDefinitions:
   cmpVacio:
     DefinitionType: CanvasComponent
+    AccessAppScope: true
     CustomProperties:
       Icono:
         PropertyKind: Input
@@ -28,3 +29,64 @@ ComponentDefinitions:
         Description: A custom property
         DataType: Text
         Default: ="Text"
+    Children:
+      - conRaizVacioCmp:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            DropShadow: =DropShadow.None
+            Fill: =Color.Transparent
+            Height: =Parent.Height
+            Width: =Parent.Width
+            X: =0
+            Y: =0
+          Children:
+            - lblIconoVacioCmp:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Center
+                  Font: =Font.'Segoe UI'
+                  Height: =40
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =24
+                  Text: =cmpVacio.Icono
+                  VerticalAlign: =VerticalAlign.Middle
+                  Width: =Parent.Width
+                  Wrap: =false
+                  X: =0
+                  Y: =gblE.Pad
+            - lblTituloVacioCmp:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Center
+                  Color: =gblC.ink
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =22
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =11
+                  Text: =cmpVacio.Titulo
+                  VerticalAlign: =VerticalAlign.Middle
+                  Width: =Parent.Width
+                  Wrap: =false
+                  X: =0
+                  Y: =gblE.Pad + 44
+            - lblMensajeVacioCmp:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Center
+                  Color: =gblC.muted
+                  Font: =Font.'Segoe UI'
+                  Height: |-
+                    =Max(36, Parent.Height - (gblE.Pad + 70) - gblE.Pad)
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =9
+                  Text: =cmpVacio.Mensaje
+                  VerticalAlign: =VerticalAlign.Top
+                  Width: =Min(Parent.Width - 2*gblE.Pad, 360)
+                  Wrap: =true
+                  X: =(Parent.Width - Self.Width) / 2
+                  Y: =gblE.Pad + 70

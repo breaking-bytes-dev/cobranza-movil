@@ -1,13 +1,36 @@
 # ************************************************************************************************
 # Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
 # Use the maker portal to create and edit your Power Apps.
-# 
+#
 # The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
-# 
+#
 # For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
 # ************************************************************************************************
 App:
   Properties:
+    Formulas: |-
+      =// ===== App.Formulas (fórmulas con nombre — guía 01 §3) =====
+      // Bimoneda: "C$ X · US$ Y", omite la moneda en cero. Igual que la app del localizador.
+      Moneda(nio:Number, usd:Number): Text =
+          Coalesce(
+              Concat(
+                  Table(
+                      {t: If(Coalesce(nio,0) > 0, "C$ " & Text(nio, "#,##0.00"))},
+                      {t: If(Coalesce(usd,0) > 0, "US$ " & Text(usd, "#,##0.00"))}
+                  ),
+                  t, " · "
+              ),
+              "C$ 0.00"
+          );
+
+      // Breakpoint responsive único del proyecto (00 §7).
+      // Si Studio rechaza App.ActiveScreen acá, mover nfMovil a cada pantalla como Parent.Width < 920.
+      nfMovil = App.ActiveScreen.Width < 920;
+
+      // Última carga registrada (delegable: Sort + First). La usan Monitoreo y Reconciliación.
+      nfUltimaCarga = First(
+          Sort('CM | TBL | Carga diarias', '[CD] FechaCarga', SortOrder.Descending)
+      ).'[CD] FechaCarga';
     OnStart: |-
       =// ===== App.OnStart =====
       // 1) Tokens de color (identidad de la familia, modo día)
@@ -27,13 +50,15 @@ App:
       // 2) Tokens de medida (los ÚNICOS números "absolutos" permitidos en las guías)
       Set(gblE, {Pad:16, PadSm:10, AnchoNav:240, Radio:12, RadioSm:9, AltoBarra:56, AltoFila:64,
                  AltoInput:40, AltoBoton:44, AnchoMax:1160});
-      // 3) Identidad: usuario Dataverse + rol de app (00 §3.1)
+      // 3) Identidad: usuario Dataverse + roles de app (00 §3.1 — la tabla REAL es lookup + MULTI-rol)
       Set(gblUsuarioDV, LookUp(Users, 'Primary Email' = Lower(User().Email)));
+      // ⚠ El display name del lookup HOY tiene un typo en Dev: "[UA[ Usuario" (corchete mal cerrado).
+      //   IntelliSense manda: se escribe TAL CUAL. Cuando se renombre a '[UA] Usuario', cambiar acá.
       Set(gblFilaRol, LookUp('CM | TBL | Usuario Apps',
-              '[UA] Email' = Lower(User().Email) && '[UA] Activo' = true));
-      Set(gblRol, Text(gblFilaRol.'[UA] Rol'));   // "Backoffice" | "Solicitante" | "Supervisor" | "Admin"
-      // FALLBACK SIN BACKEND (retirar al existir la tabla — 00 §3.1 / LED-04):
-      // Set(gblRol, "Admin");
+              '[UA[ Usuario' = gblUsuarioDV && '[UA] Activo' = true));
+      // '[UA] Rol' es MULTI-SELECT: devuelve una tabla de choices. gblRol = etiquetas unidas con "|".
+      // Ej.: "Backoffice|Admin". Sin fila => Blank() => estado "sin acceso" de scrInicio.
+      Set(gblRol, Concat(gblFilaRol.'[UA] Rol', Text(Value), "|"));
       // 4) Navegación por rol: la tabla que alimenta cmpNavLateral
       ClearCollect(colNav,
           {Orden:1, Icono:"🏠", Titulo:"Inicio",            Ruta:"ini",  Roles:"Backoffice|Solicitante|Supervisor|Admin"},

@@ -1,9 +1,9 @@
 # ************************************************************************************************
 # Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
 # Use the maker portal to create and edit your Power Apps.
-# 
+#
 # The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
-# 
+#
 # For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
 # ************************************************************************************************
 ComponentDefinitions:
@@ -24,14 +24,114 @@ ComponentDefinitions:
         DataType: Text
         Default: ="Text"
     Children:
-      - Container2:
+      - conRaizEncCmp:
           Control: GroupContainer@1.5.0
           Variant: ManualLayout
           Properties:
-            X: =40
-            Y: =40
-      - Label2:
-          Control: Label@2.5.1
-          Properties:
-            X: =60
-            Y: =60
+            DropShadow: =DropShadow.None
+            Fill: =Color.Transparent
+            Height: =Parent.Height
+            Width: =Parent.Width
+            X: =0
+            Y: =0
+          Children:
+            - conBarraMovilEncCmp:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.teal
+                  Height: =gblE.AltoBarra
+                  Visible: =nfMovil
+                  Width: =Parent.Width
+                  X: =0
+                  Y: =0
+                Children:
+                  - icoMenuEncCmp:
+                      Control: Classic/Icon@2.5.0
+                      Properties:
+                        Color: =Color.White
+                        Height: =24
+                        Icon: =Icon.Hamburger
+                        OnSelect: =Set(gblNavMovilAbierta, true)
+                        Width: =24
+                        X: =gblE.Pad
+                        Y: =(gblE.AltoBarra - 24) / 2
+                  - lblTituloMovilEncCmp:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =Color.White
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =Parent.Height
+                        PaddingLeft: =0
+                        Size: =11
+                        Text: =cmpEncabezado.Titulo
+                        VerticalAlign: =VerticalAlign.Middle
+                        Width: |-
+                          =Parent.Width - (gblE.Pad + 24 + gblE.PadSm) - (gblE.Pad + 32 + gblE.PadSm)
+                        Wrap: =false
+                        X: =gblE.Pad + 24 + gblE.PadSm
+                        Y: =0
+                  - conAvatarEncCmp:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.blancoTr
+                        Height: =32
+                        RadiusBottomLeft: =16
+                        RadiusBottomRight: =16
+                        RadiusTopLeft: =16
+                        RadiusTopRight: =16
+                        Width: =32
+                        X: =Parent.Width - gblE.Pad - 32
+                        Y: =(gblE.AltoBarra - 32) / 2
+                      Children:
+                        - lblAvatarEncCmp:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =Align.Center
+                              Color: =Color.White
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =Parent.Height
+                              PaddingLeft: =0
+                              PaddingRight: =0
+                              Size: =9
+                              Text: |-
+                                =Concat(FirstN(Split(User().FullName, " "), 2), Left(Value, 1))
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =Parent.Width
+                              X: =0
+                              Y: =0
+            - lblTituloEncCmp:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.ink
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =30
+                  PaddingLeft: =0
+                  Size: =18
+                  Text: =cmpEncabezado.Titulo
+                  VerticalAlign: =VerticalAlign.Middle
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =If(nfMovil, gblE.AltoBarra + gblE.PadSm, gblE.Pad)
+            - lblSubEncCmp:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  Font: =Font.'Segoe UI'
+                  Height: =18
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: =cmpEncabezado.Subtitulo
+                  VerticalAlign: =VerticalAlign.Middle
+                  Visible: =!IsBlank(Self.Text)
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =If(nfMovil, gblE.AltoBarra + gblE.PadSm, gblE.Pad) + 30

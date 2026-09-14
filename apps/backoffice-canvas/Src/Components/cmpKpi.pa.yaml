@@ -1,14 +1,15 @@
 # ************************************************************************************************
 # Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
 # Use the maker portal to create and edit your Power Apps.
-# 
+#
 # The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
-# 
+#
 # For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
 # ************************************************************************************************
 ComponentDefinitions:
   cmpKpi:
     DefinitionType: CanvasComponent
+    AccessAppScope: true
     CustomProperties:
       Detalle:
         PropertyKind: Input
@@ -34,3 +35,66 @@ ComponentDefinitions:
         Description: A custom property
         DataType: Text
         Default: ="Text"
+    Children:
+      - conRaizKpiCmp:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            BorderColor: =If(cmpKpi.EsHero, gblC.teal, gblC.borde)
+            BorderThickness: =1
+            DropShadow: =DropShadow.None
+            Fill: =If(cmpKpi.EsHero, gblC.teal, gblC.card)
+            Height: =Parent.Height
+            RadiusBottomLeft: =gblE.Radio
+            RadiusBottomRight: =gblE.Radio
+            RadiusTopLeft: =gblE.Radio
+            RadiusTopRight: =gblE.Radio
+            Width: =Parent.Width
+            X: =0
+            Y: =0
+          Children:
+            - lblEtiquetaKpiCmp:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =If(cmpKpi.EsHero, RGBA(255,255,255,0.75), gblC.muted)
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =16
+                  PaddingLeft: =0
+                  Size: =8
+                  Text: =Upper(cmpKpi.Etiqueta)
+                  VerticalAlign: =VerticalAlign.Middle
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =gblE.PadSm + 2
+            - lblValorKpiCmp:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =If(cmpKpi.EsHero, Color.White, gblC.ink)
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =28
+                  PaddingLeft: =0
+                  Size: =18
+                  Text: =cmpKpi.Valor
+                  VerticalAlign: =VerticalAlign.Middle
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =gblE.PadSm + 20
+            - lblDetalleKpiCmp:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =If(cmpKpi.EsHero, RGBA(255,255,255,0.75), gblC.muted)
+                  Font: =Font.'Segoe UI'
+                  Height: =18
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: =cmpKpi.Detalle
+                  VerticalAlign: =VerticalAlign.Middle
+                  Visible: =!IsBlank(Self.Text)
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =gblE.PadSm + 52

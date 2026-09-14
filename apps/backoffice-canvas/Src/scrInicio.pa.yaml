@@ -1,10 +1,1041 @@
 # ************************************************************************************************
 # Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
 # Use the maker portal to create and edit your Power Apps.
-# 
+#
 # The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
-# 
+#
 # For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
 # ************************************************************************************************
 Screens:
-  scrInicio: {}
+  scrInicio:
+    Properties:
+      Fill: =gblC.pantalla
+      OnVisible: |-
+        =// 1) Cobrado hoy por los localizadores (subtítulo del encabezado) — común a todos los roles.
+        //    Filtro delegable por fecha (00 §4.2); cota 2000 declarada (00 §4.1).
+        If(!IsBlank(gblRol),
+            ClearCollect(colPagosHoyIni,
+                Filter('CM | TBL | Pagos', 'Fecha del pago' >= Today()));
+            // Los Sum van sobre la colección, EN MEMORIA — jamás Sum directo al datasource (00 §4.3).
+            // Por eso NO van en Concurrent con el ClearCollect: dependen de él (secuencial con ;).
+            Set(varCobNioIni,
+                Sum(Filter(colPagosHoyIni, '[PG] Moneda' = 'Choice | CM | Monedas en Pago'.NIO), '[PG] Monto'));
+            Set(varCobUsdIni,
+                Sum(Filter(colPagosHoyIni, '[PG] Moneda' = 'Choice | CM | Monedas en Pago'.USD), '[PG] Monto'))
+        );
+        // 2) Backoffice: cola pendiente + transcritas hoy por mí (independientes → Concurrent).
+        If("Backoffice" in gblRol,
+            Concurrent(
+                // Delegable: igualdad de choice (00 §4.2). Cota 2000 declarada (00 §4.1).
+                ClearCollect(colPendIni,
+                    Filter('CM | TBL | Interaccions',
+                        '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Pendiente)),
+                // Delegable: choice + fecha + lookup por registro (00 §4.2).
+                ClearCollect(colTscIni,
+                    Filter('CM | TBL | Interaccions',
+                        '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Grabado
+                        && '[IN] Fecha grabacion' >= Today()
+                        && '[IN] Grabado por' = gblUsuarioDV))
+            )
+        );
+        // 3) Solicitante: TODAS mis Especiales (los 3 KPIs se cuentan en memoria sobre esta colección).
+        If("Solicitante" in gblRol,
+            ClearCollect(colSolIni,
+                Filter('CM | TBL | Asignacions',
+                    '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                    && '[AS] Solicitado por' = gblUsuarioDV))
+        );
+        // 4) Supervisor: Especiales pendientes de aprobación (cota real: unidades — 00 §4.1).
+        If("Supervisor" in gblRol,
+            ClearCollect(colAprobIni,
+                Filter('CM | TBL | Asignacions',
+                    '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                    && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion'))
+        );
+        // 5) Admin: diarias fuera de cartera + agentes (independientes → Concurrent).
+        If("Admin" in gblRol,
+            Concurrent(
+                // Delegable: choice + booleano + comparación de fecha (00 §4.2, patrón colDesap de 00 §4.1).
+                ClearCollect(colDesapIni,
+                    Filter('CM | TBL | Asignacions',
+                        '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
+                        && '[AS] Estado' = true
+                        && 'Última carga' < nfUltimaCarga)),
+                // Tabla chica (decenas de filas, org completa): se trae entera.
+                ClearCollect(colAgIni, 'CM | TBL | Agentes')
+            )
+        )
+    Children:
+      # ── Encabezado (receta 01 §7.5) ───────────────────────────────────────────────
+      - cmpEncIni:
+          Control: CanvasComponent
+          ComponentName: cmpEncabezado
+          Properties:
+            Height: =If(nfMovil, gblE.AltoBarra + 84, 84)
+            Subtitulo: |-
+              ="Cobrado hoy por los localizadores: " & Moneda(varCobNioIni, varCobUsdIni)
+            Titulo: |-
+              ="Hola, " & First(Split(User().FullName, " ")).Value
+            Visible: =!IsBlank(gblRol)
+            Width: =Parent.Width - Self.X
+            X: =If(nfMovil, 0, gblE.AnchoNav)
+            Y: =0
+      # ── Contenido con rol ─────────────────────────────────────────────────────────
+      - conContenidoIni:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            DropShadow: =DropShadow.None
+            Fill: =Color.Transparent
+            Height: =Parent.Height - Self.Y
+            Visible: =!IsBlank(gblRol)
+            Width: =Parent.Width - Self.X
+            X: =If(nfMovil, 0, gblE.AnchoNav)
+            Y: =cmpEncIni.Y + cmpEncIni.Height
+          Children:
+            # ── KPIs Backoffice ───────────────────────────────────────────────────
+            - conKpisBoIni:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Fill: =Color.Transparent
+                  Height: =If(nfMovil, 2*96 + gblE.PadSm, 96)
+                  Visible: ="Backoffice" in gblRol
+                  Width: =Min(Parent.Width - 2*gblE.Pad, gblE.AnchoMax)
+                  X: =Max(gblE.Pad, (Parent.Width - gblE.AnchoMax) / 2)
+                  Y: =gblE.PadSm
+                Children:
+                  - cmpKpiColaIni:
+                      Control: CanvasComponent
+                      ComponentName: cmpKpi
+                      Properties:
+                        Detalle: ="interacciones por transcribir"
+                        EsHero: =true
+                        Etiqueta: ="EN COLA"
+                        Height: =96
+                        Valor: =Text(CountRows(colPendIni))
+                        Width: |-
+                          =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 3*gblE.PadSm) / 4)
+                        X: =0
+                        Y: =0
+                  - cmpKpiTscIni:
+                      Control: CanvasComponent
+                      ComponentName: cmpKpi
+                      Properties:
+                        Detalle: ="por vos"
+                        EsHero: =false
+                        Etiqueta: ="TRANSCRITAS HOY"
+                        Height: =96
+                        Valor: =Text(CountRows(colTscIni))
+                        Width: |-
+                          =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 3*gblE.PadSm) / 4)
+                        X: |-
+                          =If(nfMovil, (Parent.Width - gblE.PadSm)/2 + gblE.PadSm, (Parent.Width - 3*gblE.PadSm)/4 + gblE.PadSm)
+                        Y: =0
+                  - cmpKpiPagoIni:
+                      Control: CanvasComponent
+                      ComponentName: cmpKpi
+                      Properties:
+                        Detalle: ="priorizá estas"
+                        EsHero: =false
+                        Etiqueta: ="CON PAGO"
+                        Height: =96
+                        Valor: =Text(CountRows(Filter(colPendIni, '[IN] Aplica pago')))
+                        Width: |-
+                          =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 3*gblE.PadSm) / 4)
+                        X: |-
+                          =If(nfMovil, 0, 2*((Parent.Width - 3*gblE.PadSm)/4 + gblE.PadSm))
+                        Y: =If(nfMovil, 96 + gblE.PadSm, 0)
+            # ── KPIs Solicitante ──────────────────────────────────────────────────
+            - conKpisSolIni:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Fill: =Color.Transparent
+                  Height: =If(nfMovil, 2*96 + gblE.PadSm, 96)
+                  Visible: ="Solicitante" in gblRol
+                  Width: =Min(Parent.Width - 2*gblE.Pad, gblE.AnchoMax)
+                  X: =Max(gblE.Pad, (Parent.Width - gblE.AnchoMax) / 2)
+                  Y: |-
+                    =conKpisBoIni.Y + If(conKpisBoIni.Visible, conKpisBoIni.Height + gblE.PadSm, 0)
+                Children:
+                  - cmpKpiSpenIni:
+                      Control: CanvasComponent
+                      ComponentName: cmpKpi
+                      Properties:
+                        Detalle: ="esperando aprobación"
+                        EsHero: =true
+                        Etiqueta: ="PENDIENTES"
+                        Height: =96
+                        Valor: |-
+                          =Text(CountRows(Filter(colSolIni, '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion')))
+                        Width: |-
+                          =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 3*gblE.PadSm) / 4)
+                        X: =0
+                        Y: =0
+                  - cmpKpiSaprIni:
+                      Control: CanvasComponent
+                      ComponentName: cmpKpi
+                      Properties:
+                        Detalle: ="en gestión de campo"
+                        EsHero: =false
+                        Etiqueta: ="APROBADAS"
+                        Height: =96
+                        Valor: |-
+                          =Text(CountRows(Filter(colSolIni, '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado)))
+                        Width: |-
+                          =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 3*gblE.PadSm) / 4)
+                        X: |-
+                          =If(nfMovil, (Parent.Width - gblE.PadSm)/2 + gblE.PadSm, (Parent.Width - 3*gblE.PadSm)/4 + gblE.PadSm)
+                        Y: =0
+                  - cmpKpiSrecIni:
+                      Control: CanvasComponent
+                      ComponentName: cmpKpi
+                      Properties:
+                        Detalle: ="revisá el motivo"
+                        EsHero: =false
+                        Etiqueta: ="RECHAZADAS"
+                        Height: =96
+                        Valor: |-
+                          =Text(CountRows(Filter(colSolIni, '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Rechazada)))
+                        Width: |-
+                          =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 3*gblE.PadSm) / 4)
+                        X: |-
+                          =If(nfMovil, 0, 2*((Parent.Width - 3*gblE.PadSm)/4 + gblE.PadSm))
+                        Y: =If(nfMovil, 96 + gblE.PadSm, 0)
+            # ── KPIs Supervisor ───────────────────────────────────────────────────
+            - conKpisSupIni:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Fill: =Color.Transparent
+                  Height: =If(nfMovil, 2*96 + gblE.PadSm, 96)
+                  Visible: ="Supervisor" in gblRol
+                  Width: =Min(Parent.Width - 2*gblE.Pad, gblE.AnchoMax)
+                  X: =Max(gblE.Pad, (Parent.Width - gblE.AnchoMax) / 2)
+                  Y: |-
+                    =conKpisSolIni.Y + If(conKpisSolIni.Visible, conKpisSolIni.Height + gblE.PadSm, 0)
+                Children:
+                  - cmpKpiAprbIni:
+                      Control: CanvasComponent
+                      ComponentName: cmpKpi
+                      Properties:
+                        Detalle: ="solicitudes Especiales"
+                        EsHero: =true
+                        Etiqueta: ="POR APROBAR"
+                        Height: =96
+                        Valor: =Text(CountRows(colAprobIni))
+                        Width: |-
+                          =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 3*gblE.PadSm) / 4)
+                        X: =0
+                        Y: =0
+            # ── KPIs Admin ────────────────────────────────────────────────────────
+            - conKpisAdmIni:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Fill: =Color.Transparent
+                  Height: =If(nfMovil, 2*96 + gblE.PadSm, 96)
+                  Visible: ="Admin" in gblRol
+                  Width: =Min(Parent.Width - 2*gblE.Pad, gblE.AnchoMax)
+                  X: =Max(gblE.Pad, (Parent.Width - gblE.AnchoMax) / 2)
+                  Y: |-
+                    =conKpisSupIni.Y + If(conKpisSupIni.Visible, conKpisSupIni.Height + gblE.PadSm, 0)
+                Children:
+                  - cmpKpiCargaIni:
+                      Control: CanvasComponent
+                      ComponentName: cmpKpi
+                      Properties:
+                        Detalle: ="última corrida del import — detalle en Monitoreo"
+                        EsHero: =true
+                        Etiqueta: ="CARGA DE HOY"
+                        Height: =96
+                        Valor: |-
+                          =If(IsBlank(nfUltimaCarga) || nfUltimaCarga < Today(), "sin carga", Text(nfUltimaCarga, "dd/mm HH:mm"))
+                        Width: |-
+                          =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 3*gblE.PadSm) / 4)
+                        X: =0
+                        Y: =0
+                  - cmpKpiDesapIni:
+                      Control: CanvasComponent
+                      ComponentName: cmpKpi
+                      Properties:
+                        Detalle: ="salieron del archivo — ver Reconciliación"
+                        EsHero: =false
+                        Etiqueta: ="DIARIAS FUERA DE CARTERA"
+                        Height: =96
+                        Valor: =Text(CountRows(colDesapIni))
+                        Width: |-
+                          =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 3*gblE.PadSm) / 4)
+                        X: |-
+                          =If(nfMovil, (Parent.Width - gblE.PadSm)/2 + gblE.PadSm, (Parent.Width - 3*gblE.PadSm)/4 + gblE.PadSm)
+                        Y: =0
+                  - cmpKpiAgeIni:
+                      Control: CanvasComponent
+                      ComponentName: cmpKpi
+                      Properties:
+                        Detalle: ="no pueden entrar a la app"
+                        EsHero: =false
+                        Etiqueta: ="AGENTES SIN USUARIO"
+                        Height: =96
+                        Valor: |-
+                          =Text(CountRows(Filter(colAgIni, '[AG] Activo' && IsBlank('[AG] Usuario'))))
+                        Width: |-
+                          =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 3*gblE.PadSm) / 4)
+                        X: |-
+                          =If(nfMovil, 0, 2*((Parent.Width - 3*gblE.PadSm)/4 + gblE.PadSm))
+                        Y: =If(nfMovil, 96 + gblE.PadSm, 0)
+            # ── Sección ACCESOS ───────────────────────────────────────────────────
+            - lblSecAccIni:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =18
+                  PaddingLeft: =0
+                  Size: =8
+                  Text: ="ACCESOS"
+                  VerticalAlign: =VerticalAlign.Middle
+                  Width: =200
+                  Wrap: =false
+                  X: =conKpisBoIni.X
+                  Y: |-
+                    =conKpisAdmIni.Y + If(conKpisAdmIni.Visible, conKpisAdmIni.Height + gblE.PadSm, 0) + gblE.Pad
+            # ── Accesos Backoffice ────────────────────────────────────────────────
+            - conAccBoIni:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Fill: =Color.Transparent
+                  Height: =If(nfMovil, 3*104 + 2*gblE.PadSm, 104)
+                  Visible: ="Backoffice" in gblRol
+                  Width: =conKpisBoIni.Width
+                  X: =conKpisBoIni.X
+                  Y: =lblSecAccIni.Y + lblSecAccIni.Height + gblE.PadSm
+                Children:
+                  - conAccColaIni:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        BorderColor: =gblC.borde
+                        BorderThickness: =1
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.card
+                        Height: =104
+                        RadiusBottomLeft: =gblE.Radio
+                        RadiusBottomRight: =gblE.Radio
+                        RadiusTopLeft: =gblE.Radio
+                        RadiusTopRight: =gblE.Radio
+                        Width: |-
+                          =If(nfMovil, Parent.Width, (Parent.Width - 2*gblE.PadSm) / 3)
+                        X: =0
+                        Y: =0
+                      Children:
+                        - lblAccColaIcoIni:
+                            Control: Label@2.5.1
+                            Properties:
+                              Font: =Font.'Segoe UI'
+                              Height: =28
+                              PaddingLeft: =0
+                              Size: =13
+                              Text: ="📥"
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =40
+                              Wrap: =false
+                              X: =gblE.Pad
+                              Y: =8
+                        - lblAccColaTitIni:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.ink
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =22
+                              PaddingLeft: =0
+                              Size: =11
+                              Text: ="Ir a la cola"
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =Parent.Width - 2*gblE.Pad
+                              Wrap: =false
+                              X: =gblE.Pad
+                              Y: =36
+                        - lblAccColaDesIni:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.muted
+                              Font: =Font.'Segoe UI'
+                              Height: =36
+                              PaddingLeft: =0
+                              Size: =9
+                              Text: ="FIFO — la más vieja primero"
+                              VerticalAlign: =VerticalAlign.Top
+                              Width: =Parent.Width - 2*gblE.Pad
+                              Wrap: =true
+                              X: =gblE.Pad
+                              Y: =58
+                        - btnAccColaIni:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              AccessibleLabel: ="Ir a la cola"
+                              BorderColor: =Color.Transparent
+                              BorderThickness: =1
+                              Fill: =Color.Transparent
+                              Height: =Parent.Height
+                              HoverBorderColor: =gblC.teal
+                              HoverFill: =Color.Transparent
+                              OnSelect: =Navigate(scrTranscripcion)
+                              PressedBorderColor: =gblC.teal
+                              PressedFill: =Color.Transparent
+                              RadiusBottomLeft: =gblE.Radio
+                              RadiusBottomRight: =gblE.Radio
+                              RadiusTopLeft: =gblE.Radio
+                              RadiusTopRight: =gblE.Radio
+                              Text: =""
+                              Width: =Parent.Width
+                              X: =0
+                              Y: =0
+                  - conAccArqIni:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        BorderColor: =gblC.borde
+                        BorderThickness: =1
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.card
+                        Height: =104
+                        RadiusBottomLeft: =gblE.Radio
+                        RadiusBottomRight: =gblE.Radio
+                        RadiusTopLeft: =gblE.Radio
+                        RadiusTopRight: =gblE.Radio
+                        Width: |-
+                          =If(nfMovil, Parent.Width, (Parent.Width - 2*gblE.PadSm) / 3)
+                        X: |-
+                          =If(nfMovil, 0, (Parent.Width - 2*gblE.PadSm)/3 + gblE.PadSm)
+                        Y: =If(nfMovil, 104 + gblE.PadSm, 0)
+                      Children:
+                        - lblAccArqIcoIni:
+                            Control: Label@2.5.1
+                            Properties:
+                              Font: =Font.'Segoe UI'
+                              Height: =28
+                              PaddingLeft: =0
+                              Size: =13
+                              Text: ="✅"
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =40
+                              Wrap: =false
+                              X: =gblE.Pad
+                              Y: =8
+                        - lblAccArqTitIni:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.ink
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =22
+                              PaddingLeft: =0
+                              Size: =11
+                              Text: ="Arqueo del día"
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =Parent.Width - 2*gblE.Pad
+                              Wrap: =false
+                              X: =gblE.Pad
+                              Y: =36
+                        - lblAccArqDesIni:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.muted
+                              Font: =Font.'Segoe UI'
+                              Height: =36
+                              PaddingLeft: =0
+                              Size: =9
+                              Text: ="lo que ya grabaste"
+                              VerticalAlign: =VerticalAlign.Top
+                              Width: =Parent.Width - 2*gblE.Pad
+                              Wrap: =true
+                              X: =gblE.Pad
+                              Y: =58
+                        - btnAccArqIni:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              AccessibleLabel: ="Arqueo del día"
+                              BorderColor: =Color.Transparent
+                              BorderThickness: =1
+                              Fill: =Color.Transparent
+                              Height: =Parent.Height
+                              HoverBorderColor: =gblC.teal
+                              HoverFill: =Color.Transparent
+                              OnSelect: =Navigate(scrTranscritas)
+                              PressedBorderColor: =gblC.teal
+                              PressedFill: =Color.Transparent
+                              RadiusBottomLeft: =gblE.Radio
+                              RadiusBottomRight: =gblE.Radio
+                              RadiusTopLeft: =gblE.Radio
+                              RadiusTopRight: =gblE.Radio
+                              Text: =""
+                              Width: =Parent.Width
+                              X: =0
+                              Y: =0
+            # ── Accesos Solicitante ───────────────────────────────────────────────
+            - conAccSolIni:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Fill: =Color.Transparent
+                  Height: =If(nfMovil, 3*104 + 2*gblE.PadSm, 104)
+                  Visible: ="Solicitante" in gblRol
+                  Width: =conKpisBoIni.Width
+                  X: =conKpisBoIni.X
+                  Y: |-
+                    =conAccBoIni.Y + If(conAccBoIni.Visible, conAccBoIni.Height + gblE.PadSm, 0)
+                Children:
+                  - conAccNvaIni:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        BorderColor: =gblC.borde
+                        BorderThickness: =1
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.card
+                        Height: =104
+                        RadiusBottomLeft: =gblE.Radio
+                        RadiusBottomRight: =gblE.Radio
+                        RadiusTopLeft: =gblE.Radio
+                        RadiusTopRight: =gblE.Radio
+                        Width: |-
+                          =If(nfMovil, Parent.Width, (Parent.Width - 2*gblE.PadSm) / 3)
+                        X: =0
+                        Y: =0
+                      Children:
+                        - lblAccNvaIcoIni:
+                            Control: Label@2.5.1
+                            Properties:
+                              Font: =Font.'Segoe UI'
+                              Height: =28
+                              PaddingLeft: =0
+                              Size: =13
+                              Text: ="✨"
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =40
+                              Wrap: =false
+                              X: =gblE.Pad
+                              Y: =8
+                        - lblAccNvaTitIni:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.ink
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =22
+                              PaddingLeft: =0
+                              Size: =11
+                              Text: ="Nueva solicitud"
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =Parent.Width - 2*gblE.Pad
+                              Wrap: =false
+                              X: =gblE.Pad
+                              Y: =36
+                        - lblAccNvaDesIni:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.muted
+                              Font: =Font.'Segoe UI'
+                              Height: =36
+                              PaddingLeft: =0
+                              Size: =9
+                              Text: ="pedir una asignación Especial"
+                              VerticalAlign: =VerticalAlign.Top
+                              Width: =Parent.Width - 2*gblE.Pad
+                              Wrap: =true
+                              X: =gblE.Pad
+                              Y: =58
+                        - btnAccNvaIni:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              AccessibleLabel: ="Nueva solicitud"
+                              BorderColor: =Color.Transparent
+                              BorderThickness: =1
+                              Fill: =Color.Transparent
+                              Height: =Parent.Height
+                              HoverBorderColor: =gblC.teal
+                              HoverFill: =Color.Transparent
+                              OnSelect: =Navigate(scrNuevaSolicitud)
+                              PressedBorderColor: =gblC.teal
+                              PressedFill: =Color.Transparent
+                              RadiusBottomLeft: =gblE.Radio
+                              RadiusBottomRight: =gblE.Radio
+                              RadiusTopLeft: =gblE.Radio
+                              RadiusTopRight: =gblE.Radio
+                              Text: =""
+                              Width: =Parent.Width
+                              X: =0
+                              Y: =0
+                  - conAccMisIni:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        BorderColor: =gblC.borde
+                        BorderThickness: =1
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.card
+                        Height: =104
+                        RadiusBottomLeft: =gblE.Radio
+                        RadiusBottomRight: =gblE.Radio
+                        RadiusTopLeft: =gblE.Radio
+                        RadiusTopRight: =gblE.Radio
+                        Width: |-
+                          =If(nfMovil, Parent.Width, (Parent.Width - 2*gblE.PadSm) / 3)
+                        X: |-
+                          =If(nfMovil, 0, (Parent.Width - 2*gblE.PadSm)/3 + gblE.PadSm)
+                        Y: =If(nfMovil, 104 + gblE.PadSm, 0)
+                      Children:
+                        - lblAccMisIcoIni:
+                            Control: Label@2.5.1
+                            Properties:
+                              Font: =Font.'Segoe UI'
+                              Height: =28
+                              PaddingLeft: =0
+                              Size: =13
+                              Text: ="🗂️"
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =40
+                              Wrap: =false
+                              X: =gblE.Pad
+                              Y: =8
+                        - lblAccMisTitIni:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.ink
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =22
+                              PaddingLeft: =0
+                              Size: =11
+                              Text: ="Mis solicitudes"
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =Parent.Width - 2*gblE.Pad
+                              Wrap: =false
+                              X: =gblE.Pad
+                              Y: =36
+                        - lblAccMisDesIni:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.muted
+                              Font: =Font.'Segoe UI'
+                              Height: =36
+                              PaddingLeft: =0
+                              Size: =9
+                              Text: ="seguimiento y estados"
+                              VerticalAlign: =VerticalAlign.Top
+                              Width: =Parent.Width - 2*gblE.Pad
+                              Wrap: =true
+                              X: =gblE.Pad
+                              Y: =58
+                        - btnAccMisIni:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              AccessibleLabel: ="Mis solicitudes"
+                              BorderColor: =Color.Transparent
+                              BorderThickness: =1
+                              Fill: =Color.Transparent
+                              Height: =Parent.Height
+                              HoverBorderColor: =gblC.teal
+                              HoverFill: =Color.Transparent
+                              OnSelect: =Navigate(scrMisSolicitudes)
+                              PressedBorderColor: =gblC.teal
+                              PressedFill: =Color.Transparent
+                              RadiusBottomLeft: =gblE.Radio
+                              RadiusBottomRight: =gblE.Radio
+                              RadiusTopLeft: =gblE.Radio
+                              RadiusTopRight: =gblE.Radio
+                              Text: =""
+                              Width: =Parent.Width
+                              X: =0
+                              Y: =0
+            # ── Accesos Supervisor ────────────────────────────────────────────────
+            - conAccSupIni:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Fill: =Color.Transparent
+                  Height: =If(nfMovil, 3*104 + 2*gblE.PadSm, 104)
+                  Visible: ="Supervisor" in gblRol
+                  Width: =conKpisBoIni.Width
+                  X: =conKpisBoIni.X
+                  Y: |-
+                    =conAccSolIni.Y + If(conAccSolIni.Visible, conAccSolIni.Height + gblE.PadSm, 0)
+                Children:
+                  - conAccAprbIni:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        BorderColor: =gblC.borde
+                        BorderThickness: =1
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.card
+                        Height: =104
+                        RadiusBottomLeft: =gblE.Radio
+                        RadiusBottomRight: =gblE.Radio
+                        RadiusTopLeft: =gblE.Radio
+                        RadiusTopRight: =gblE.Radio
+                        Width: |-
+                          =If(nfMovil, Parent.Width, (Parent.Width - 2*gblE.PadSm) / 3)
+                        X: =0
+                        Y: =0
+                      Children:
+                        - lblAccAprbIcoIni:
+                            Control: Label@2.5.1
+                            Properties:
+                              Font: =Font.'Segoe UI'
+                              Height: =28
+                              PaddingLeft: =0
+                              Size: =13
+                              Text: ="⚖️"
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =40
+                              Wrap: =false
+                              X: =gblE.Pad
+                              Y: =8
+                        - lblAccAprbTitIni:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.ink
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =22
+                              PaddingLeft: =0
+                              Size: =11
+                              Text: ="Aprobaciones"
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =Parent.Width - 2*gblE.Pad
+                              Wrap: =false
+                              X: =gblE.Pad
+                              Y: =36
+                        - lblAccAprbDesIni:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.muted
+                              Font: =Font.'Segoe UI'
+                              Height: =36
+                              PaddingLeft: =0
+                              Size: =9
+                              Text: ="FIFO — la más vieja primero"
+                              VerticalAlign: =VerticalAlign.Top
+                              Width: =Parent.Width - 2*gblE.Pad
+                              Wrap: =true
+                              X: =gblE.Pad
+                              Y: =58
+                        - btnAccAprbIni:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              AccessibleLabel: ="Aprobaciones"
+                              BorderColor: =Color.Transparent
+                              BorderThickness: =1
+                              Fill: =Color.Transparent
+                              Height: =Parent.Height
+                              HoverBorderColor: =gblC.teal
+                              HoverFill: =Color.Transparent
+                              OnSelect: =Navigate(scrAprobaciones)
+                              PressedBorderColor: =gblC.teal
+                              PressedFill: =Color.Transparent
+                              RadiusBottomLeft: =gblE.Radio
+                              RadiusBottomRight: =gblE.Radio
+                              RadiusTopLeft: =gblE.Radio
+                              RadiusTopRight: =gblE.Radio
+                              Text: =""
+                              Width: =Parent.Width
+                              X: =0
+                              Y: =0
+            # ── Accesos Admin ─────────────────────────────────────────────────────
+            - conAccAdmIni:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Fill: =Color.Transparent
+                  Height: =If(nfMovil, 3*104 + 2*gblE.PadSm, 104)
+                  Visible: ="Admin" in gblRol
+                  Width: =conKpisBoIni.Width
+                  X: =conKpisBoIni.X
+                  Y: |-
+                    =conAccSupIni.Y + If(conAccSupIni.Visible, conAccSupIni.Height + gblE.PadSm, 0)
+                Children:
+                  - conAccMonIni:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        BorderColor: =gblC.borde
+                        BorderThickness: =1
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.card
+                        Height: =104
+                        RadiusBottomLeft: =gblE.Radio
+                        RadiusBottomRight: =gblE.Radio
+                        RadiusTopLeft: =gblE.Radio
+                        RadiusTopRight: =gblE.Radio
+                        Width: |-
+                          =If(nfMovil, Parent.Width, (Parent.Width - 2*gblE.PadSm) / 3)
+                        X: =0
+                        Y: =0
+                      Children:
+                        - lblAccMonIcoIni:
+                            Control: Label@2.5.1
+                            Properties:
+                              Font: =Font.'Segoe UI'
+                              Height: =28
+                              PaddingLeft: =0
+                              Size: =13
+                              Text: ="📡"
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =40
+                              Wrap: =false
+                              X: =gblE.Pad
+                              Y: =8
+                        - lblAccMonTitIni:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.ink
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =22
+                              PaddingLeft: =0
+                              Size: =11
+                              Text: ="Monitoreo"
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =Parent.Width - 2*gblE.Pad
+                              Wrap: =false
+                              X: =gblE.Pad
+                              Y: =36
+                        - lblAccMonDesIni:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.muted
+                              Font: =Font.'Segoe UI'
+                              Height: =36
+                              PaddingLeft: =0
+                              Size: =9
+                              Text: ="¿llegó el archivo?"
+                              VerticalAlign: =VerticalAlign.Top
+                              Width: =Parent.Width - 2*gblE.Pad
+                              Wrap: =true
+                              X: =gblE.Pad
+                              Y: =58
+                        - btnAccMonIni:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              AccessibleLabel: ="Monitoreo"
+                              BorderColor: =Color.Transparent
+                              BorderThickness: =1
+                              Fill: =Color.Transparent
+                              Height: =Parent.Height
+                              HoverBorderColor: =gblC.teal
+                              HoverFill: =Color.Transparent
+                              OnSelect: =Navigate(scrMonitoreo)
+                              PressedBorderColor: =gblC.teal
+                              PressedFill: =Color.Transparent
+                              RadiusBottomLeft: =gblE.Radio
+                              RadiusBottomRight: =gblE.Radio
+                              RadiusTopLeft: =gblE.Radio
+                              RadiusTopRight: =gblE.Radio
+                              Text: =""
+                              Width: =Parent.Width
+                              X: =0
+                              Y: =0
+                  - conAccRecIni:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        BorderColor: =gblC.borde
+                        BorderThickness: =1
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.card
+                        Height: =104
+                        RadiusBottomLeft: =gblE.Radio
+                        RadiusBottomRight: =gblE.Radio
+                        RadiusTopLeft: =gblE.Radio
+                        RadiusTopRight: =gblE.Radio
+                        Width: |-
+                          =If(nfMovil, Parent.Width, (Parent.Width - 2*gblE.PadSm) / 3)
+                        X: |-
+                          =If(nfMovil, 0, (Parent.Width - 2*gblE.PadSm)/3 + gblE.PadSm)
+                        Y: =If(nfMovil, 104 + gblE.PadSm, 0)
+                      Children:
+                        - lblAccRecIcoIni:
+                            Control: Label@2.5.1
+                            Properties:
+                              Font: =Font.'Segoe UI'
+                              Height: =28
+                              PaddingLeft: =0
+                              Size: =13
+                              Text: ="🧹"
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =40
+                              Wrap: =false
+                              X: =gblE.Pad
+                              Y: =8
+                        - lblAccRecTitIni:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.ink
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =22
+                              PaddingLeft: =0
+                              Size: =11
+                              Text: ="Reconciliación"
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =Parent.Width - 2*gblE.Pad
+                              Wrap: =false
+                              X: =gblE.Pad
+                              Y: =36
+                        - lblAccRecDesIni:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.muted
+                              Font: =Font.'Segoe UI'
+                              Height: =36
+                              PaddingLeft: =0
+                              Size: =9
+                              Text: ="Diarias desaparecidas"
+                              VerticalAlign: =VerticalAlign.Top
+                              Width: =Parent.Width - 2*gblE.Pad
+                              Wrap: =true
+                              X: =gblE.Pad
+                              Y: =58
+                        - btnAccRecIni:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              AccessibleLabel: ="Reconciliación"
+                              BorderColor: =Color.Transparent
+                              BorderThickness: =1
+                              Fill: =Color.Transparent
+                              Height: =Parent.Height
+                              HoverBorderColor: =gblC.teal
+                              HoverFill: =Color.Transparent
+                              OnSelect: =Navigate(scrReconciliacion)
+                              PressedBorderColor: =gblC.teal
+                              PressedFill: =Color.Transparent
+                              RadiusBottomLeft: =gblE.Radio
+                              RadiusBottomRight: =gblE.Radio
+                              RadiusTopLeft: =gblE.Radio
+                              RadiusTopRight: =gblE.Radio
+                              Text: =""
+                              Width: =Parent.Width
+                              X: =0
+                              Y: =0
+                  - conAccAgeIni:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        BorderColor: =gblC.borde
+                        BorderThickness: =1
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.card
+                        Height: =104
+                        RadiusBottomLeft: =gblE.Radio
+                        RadiusBottomRight: =gblE.Radio
+                        RadiusTopLeft: =gblE.Radio
+                        RadiusTopRight: =gblE.Radio
+                        Width: |-
+                          =If(nfMovil, Parent.Width, (Parent.Width - 2*gblE.PadSm) / 3)
+                        X: |-
+                          =If(nfMovil, 0, 2*((Parent.Width - 2*gblE.PadSm)/3 + gblE.PadSm))
+                        Y: =If(nfMovil, 2*(104 + gblE.PadSm), 0)
+                      Children:
+                        - lblAccAgeIcoIni:
+                            Control: Label@2.5.1
+                            Properties:
+                              Font: =Font.'Segoe UI'
+                              Height: =28
+                              PaddingLeft: =0
+                              Size: =13
+                              Text: ="🏍️"
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =40
+                              Wrap: =false
+                              X: =gblE.Pad
+                              Y: =8
+                        - lblAccAgeTitIni:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.ink
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =22
+                              PaddingLeft: =0
+                              Size: =11
+                              Text: ="Agentes"
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =Parent.Width - 2*gblE.Pad
+                              Wrap: =false
+                              X: =gblE.Pad
+                              Y: =36
+                        - lblAccAgeDesIni:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.muted
+                              Font: =Font.'Segoe UI'
+                              Height: =36
+                              PaddingLeft: =0
+                              Size: =9
+                              Text: ="ligar usuarios"
+                              VerticalAlign: =VerticalAlign.Top
+                              Width: =Parent.Width - 2*gblE.Pad
+                              Wrap: =true
+                              X: =gblE.Pad
+                              Y: =58
+                        - btnAccAgeIni:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              AccessibleLabel: ="Agentes"
+                              BorderColor: =Color.Transparent
+                              BorderThickness: =1
+                              Fill: =Color.Transparent
+                              Height: =Parent.Height
+                              HoverBorderColor: =gblC.teal
+                              HoverFill: =Color.Transparent
+                              OnSelect: =Navigate(scrAgentes)
+                              PressedBorderColor: =gblC.teal
+                              PressedFill: =Color.Transparent
+                              RadiusBottomLeft: =gblE.Radio
+                              RadiusBottomRight: =gblE.Radio
+                              RadiusTopLeft: =gblE.Radio
+                              RadiusTopRight: =gblE.Radio
+                              Text: =""
+                              Width: =Parent.Width
+                              X: =0
+                              Y: =0
+      # ── Estado "sin acceso" ───────────────────────────────────────────────────────
+      - cmpVacioIni:
+          Control: CanvasComponent
+          ComponentName: cmpVacio
+          Properties:
+            Height: =200
+            Icono: ="🔐"
+            Mensaje: |-
+              ="Tu usuario no tiene rol asignado en Cobranza Móvil. Pedile al Admin que te agregue en Usuario App."
+            Titulo: ="Sin acceso"
+            Visible: =IsBlank(gblRol)
+            Width: =Min(420, Parent.Width - 2*gblE.Pad)
+            X: =(Parent.Width - Self.Width) / 2
+            Y: =(Parent.Height - Self.Height) / 2
+      # ── Navegación lateral (AL FINAL del árbol — 01 §8.1) ─────────────────────────
+      - cmpNavIni:
+          Control: CanvasComponent
+          ComponentName: cmpNavLateral
+          Properties:
+            Height: =Parent.Height
+            RutaActiva: ="ini"
+            Visible: |-
+              =(!nfMovil || gblNavMovilAbierta) && !IsBlank(gblRol)
+            Width: =gblE.AnchoNav
+            X: =0
+            Y: =0
