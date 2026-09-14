@@ -1,0 +1,58 @@
+name: diag-roles-canvas
+
+# READ-ONLY: como estan asignados los roles SR | CM (directo vs team) y si los roles de oficina
+# tienen Read sobre Security Role y Team (lo que la canvas necesita para derivar gblRol).
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Roles y privilegios
+        env:
+          CID: ${{ secrets.PP_CLIENT_ID }}
+          SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT: ${{ secrets.PP_TENANT_ID }}
+          URL: ${{ secrets.DATAVERSE_URL }}
+        run: |
+          set -e
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" \
+            -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          H="Authorization: Bearer $TOKEN"; A="Accept: application/json"
+
+          ROLES=$(curl -s -H "$H" -H "$A" \
+            "$URL/api/data/v9.2/roles?\$select=roleid,name&\$filter=startswith(name,'SR%20%7C%20CM')" )
+          echo "$ROLES" | jq -r '.value[] | "\(.roleid)\t\(.name)"' > /tmp/roles.tsv
+          echo "===================== ROLES SR | CM ====================="
+          cat /tmp/roles.tsv | cut -f2
+
+          while IFS=$'\t' read -r RID RNAME; do
+            echo "===================== $RNAME ====================="
+            echo "  -- usuarios con el rol DIRECTO:"
+            curl -s -H "$H" -H "$A" \
+              "$URL/api/data/v9.2/roles($RID)/systemuserroles_association?\$select=fullname,domainname" \
+              | jq -r '.value[] | "    \(.fullname)  <\(.domainname)>"' | head -12
+            echo "  -- teams que TIENEN el rol:"
+            curl -s -H "$H" -H "$A" \
+              "$URL/api/data/v9.2/roles($RID)/teamroles_association?\$select=name,teamid" \
+              | jq -r '.value[] | "    team: \(.name)  (\(.teamid))"'
+            echo "  -- privilegios clave del rol (Read Role / Read Team / Read User):"
+            curl -s -H "$H" -H "$A" \
+              "$URL/api/data/v9.2/roles($RID)/roleprivileges_association?\$select=name&\$filter=name%20eq%20'prvReadRole'%20or%20name%20eq%20'prvReadTeam'%20or%20name%20eq%20'prvReadSystemUser'" \
+              | jq -r 'if (.value|length)==0 then "    (ninguno de los 3)" else .value[] | "    \(.name)" end'
+          done < /tmp/roles.tsv
+
+          echo "===================== MIEMBROS DE LOS TEAMS CM ====================="
+          curl -s -H "$H" -H "$A" \
+            "$URL/api/data/v9.2/teams?\$select=teamid,name&\$filter=startswith(name,'CM%20%C2%B7')" \
+            | jq -r '.value[] | "\(.teamid)\t\(.name)"' > /tmp/teams.tsv
+          while IFS=$'\t' read -r TID TNAME; do
+            N=$(curl -s -H "$H" -H "$A" "$URL/api/data/v9.2/teams($TID)/teammembership_association?\$select=fullname" | jq '.value | length')
+            MEM=$(curl -s -H "$H" -H "$A" "$URL/api/data/v9.2/teams($TID)/teammembership_association?\$select=fullname" | jq -r '[.value[].fullname] | join(", ")')
+            echo "  $TNAME: $N miembro(s) — $MEM"
+          done < /tmp/teams.tsv
