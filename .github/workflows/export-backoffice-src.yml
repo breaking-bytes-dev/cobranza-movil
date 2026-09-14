@@ -1,0 +1,74 @@
+name: export-backoffice-src
+
+# Baja la canvas app del backoffice (cascarón del usuario), la desempaqueta (pac canvas unpack)
+# y commitea el fuente a apps/backoffice-canvas/ en deploy/rediseno-tokens.
+# Es el "pull" del ciclo de pegue del paso 5.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: export-backoffice-src
+  cancel-in-progress: false
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: deploy/rediseno-tokens
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Instalar Power Platform CLI
+        run: |
+          dotnet tool install --global Microsoft.PowerApps.CLI.Tool
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+      - name: Localizar la app por API
+        id: app
+        env:
+          CID: ${{ secrets.PP_CLIENT_ID }}
+          SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT: ${{ secrets.PP_TENANT_ID }}
+          URL: ${{ secrets.DATAVERSE_URL }}
+        run: |
+          set -e
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" \
+            -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          curl -s -H "Authorization: Bearer $TOKEN" -H "Accept: application/json" \
+            "$URL/api/data/v9.2/canvasapps?\$select=name,displayname&\$filter=contains(displayname,'Backoffice')" \
+            | jq -r '.value[] | "\(.name)\t\(.displayname)"' | tee /tmp/apps.txt
+          # Elegir la que NO sea la command library de la MDA
+          LINE=$(grep -iv 'commandlibrary' /tmp/apps.txt | head -1)
+          if [ -z "$LINE" ]; then echo "ERROR: no encontré la canvas del backoffice"; exit 1; fi
+          DISPLAY=$(echo "$LINE" | cut -f2)
+          echo "display=$DISPLAY" >> "$GITHUB_OUTPUT"
+          echo "App elegida: $DISPLAY"
+      - name: Autenticar pac
+        run: |
+          pac auth create \
+            --applicationId "${{ secrets.PP_CLIENT_ID }}" \
+            --clientSecret "${{ secrets.PP_CLIENT_SECRET }}" \
+            --tenant "${{ secrets.PP_TENANT_ID }}" \
+            --environment "${{ secrets.DATAVERSE_URL }}"
+      - name: Descargar y desempaquetar
+        run: |
+          set -e
+          pac canvas download --name "${{ steps.app.outputs.display }}" --file-name /tmp/backoffice.msapp
+          rm -rf apps/backoffice-canvas
+          pac canvas unpack --msapp /tmp/backoffice.msapp --sources apps/backoffice-canvas
+          find apps/backoffice-canvas -maxdepth 2 -type d | sort
+      - name: Commit del fuente
+        run: |
+          git config user.name "bitBreaker"
+          git config user.email "randyekg@gmail.com"
+          git add apps/backoffice-canvas
+          git diff --cached --quiet && echo "sin cambios" || {
+            git commit -m "feat(canvas): fuente del cascaron backoffice (export desde Dev)"
+            git push origin deploy/rediseno-tokens
+          }
