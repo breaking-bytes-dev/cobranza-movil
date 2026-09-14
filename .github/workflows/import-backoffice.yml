@@ -1,0 +1,73 @@
+name: import-backoffice
+
+# Paso 6 del proyecto backoffice-canvas: empaqueta el fuente de apps/backoffice-canvas (pac canvas pack),
+# lo swapea dentro de un export FRESCO de la solución (GUIDs vigentes) y lo importa a Dev con publish.
+# Espejo del patrón de import-app (localizador).
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: import-backoffice
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: deploy/rediseno-tokens
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Instalar Power Platform CLI
+        run: |
+          dotnet tool install --global Microsoft.PowerApps.CLI.Tool
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+      - name: Autenticar
+        run: |
+          pac auth create \
+            --applicationId "${{ secrets.PP_CLIENT_ID }}" \
+            --clientSecret "${{ secrets.PP_CLIENT_SECRET }}" \
+            --tenant "${{ secrets.PP_TENANT_ID }}" \
+            --environment "${{ secrets.DATAVERSE_URL }}" \
+            --accept-cleartext-caching
+      - name: Empaquetar el fuente
+        run: |
+          set -e
+          pac canvas pack --sources apps/backoffice-canvas --msapp /tmp/backoffice-nuevo.msapp
+          ls -la /tmp/backoffice-nuevo.msapp
+      - name: Exportar solución fresca y swapear el msapp
+        run: |
+          set -e
+          pac solution export --name cm_core_cobranzamovil --path /tmp/fresh.zip --managed false --overwrite
+          python3 - <<'PY'
+          import zipfile, sys
+          target = "CanvasApps/sanic_appcmbackofficecanvas_d0162_DocumentUri.msapp"
+          my = open("/tmp/backoffice-nuevo.msapp", "rb").read()
+          fresh = zipfile.ZipFile("/tmp/fresh.zip")
+          if target not in fresh.namelist():
+              print("ERROR: el export fresco no contiene", target)
+              print("msapps presentes:", [n for n in fresh.namelist() if n.endswith(".msapp")])
+              sys.exit(1)
+          with zipfile.ZipFile("/tmp/deploy.zip", "w") as zout:
+              for it in fresh.infolist():
+                  data = fresh.read(it.filename)
+                  if it.filename == target:
+                      data = my
+                      print("swapped:", it.filename, "->", len(my), "bytes")
+                  zi = zipfile.ZipInfo(it.filename, date_time=it.date_time)
+                  zi.compress_type = it.compress_type
+                  zi.external_attr = it.external_attr
+                  zi.create_system = it.create_system
+                  zout.writestr(zi, data)
+          print("deploy.zip listo")
+          PY
+      - name: Importar con publish
+        run: |
+          pac solution import --path /tmp/deploy.zip --force-overwrite --publish-changes --activate-plugins
