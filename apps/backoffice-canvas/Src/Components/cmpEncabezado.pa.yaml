@@ -1,0 +1,37 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+ComponentDefinitions:
+  cmpEncabezado:
+    DefinitionType: CanvasComponent
+    AccessAppScope: true
+    CustomProperties:
+      Subtitulo:
+        PropertyKind: Input
+        DisplayName: Subtitulo
+        Description: A custom property
+        DataType: Text
+        Default: ="Text"
+      Titulo:
+        PropertyKind: Input
+        DisplayName: Titulo
+        Description: A custom property
+        DataType: Text
+        Default: ="Text"
+    Children:
+      - Container2:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            X: =40
+            Y: =40
+      - Label2:
+          Control: Label@2.5.1
+          Properties:
+            X: =60
+            Y: =60
