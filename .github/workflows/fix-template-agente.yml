@@ -1,0 +1,46 @@
+name: fix-template-agente
+
+# ONE-SHOT: pone createIfNotExists=Si y updateIfExists=Si en el table mapping 'Agente'
+# del template 'Cobranza movil' (paridad con el comportamiento upsert de Smelter v1.1,
+# que 1.3.0.0 ahora hace efectivo). Retirar tras aplicar.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Patch + verificacion
+        env:
+          CID: ${{ secrets.PP_CLIENT_ID }}
+          SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          TENANT: ${{ secrets.PP_TENANT_ID }}
+          URL: ${{ secrets.DATAVERSE_URL }}
+        run: |
+          set -e
+          TOKEN=$(curl -s -X POST "https://login.microsoftonline.com/$TENANT/oauth2/v2.0/token" \
+            -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
+          H="Authorization: Bearer $TOKEN"; A="Accept: application/json"; C="Content-Type: application/json"
+          TPLID="dcb61b79-e66d-f111-ab0e-0022480a5be8"
+
+          MAP=$(curl -s -H "$H" -H "$A" \
+            "$URL/api/data/v9.2/sanic_tbl_smlt_tablemappings?\$filter=_sanic_smlt_tm_importtemplateid_value%20eq%20$TPLID%20and%20sanic_smlt_tm_name%20eq%20'Agente'")
+          MAPID=$(echo "$MAP" | jq -r '.value[0].sanic_tbl_smlt_tablemappingid')
+          if [ -z "$MAPID" ] || [ "$MAPID" = "null" ]; then echo "ERROR: mapping Agente no encontrado"; exit 1; fi
+          echo "ANTES:"
+          echo "$MAP" | jq '.value[0] | {name: .sanic_smlt_tm_name, create: .sanic_smlt_tm_createifnotexists, update: .sanic_smlt_tm_updateifexists}'
+
+          CODE=$(curl -s -o /tmp/patch.out -w "%{http_code}" -X PATCH -H "$H" -H "$C" -H "If-Match: *" \
+            "$URL/api/data/v9.2/sanic_tbl_smlt_tablemappings($MAPID)" \
+            -d '{"sanic_smlt_tm_createifnotexists": true, "sanic_smlt_tm_updateifexists": true}')
+          echo "PATCH HTTP $CODE"
+          [ "$CODE" = "204" ] || { cat /tmp/patch.out; exit 1; }
+
+          echo "DESPUES:"
+          curl -s -H "$H" -H "$A" \
+            "$URL/api/data/v9.2/sanic_tbl_smlt_tablemappings($MAPID)?\$select=sanic_smlt_tm_name,sanic_smlt_tm_createifnotexists,sanic_smlt_tm_updateifexists" \
+            | jq '{name: .sanic_smlt_tm_name, create: .sanic_smlt_tm_createifnotexists, update: .sanic_smlt_tm_updateifexists}'
