@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Feature — Interacción multi-producto</title>
+<style>
+  :root{
+    --screen:#0C1516; --surface:#132022; --surface2:#182A2C; --cardBorder:#26383A;
+    --ink:#EAF4F3; --ink2:#C5D6D5; --muted:#7F9998; --muted2:#5E7877;
+    --teal:#0E5E5D; --accent:#33B7B4; --accentBg:#123027; --accentInk:#7DE9B8;
+    --diariaBg:#14263F; --diariaInk:#7FB2F0;
+    --incobBg:#3A2E12; --incobInk:#E6B45E;
+    --redBg:#3A1E1E; --redInk:#F08A8A; --amber:#E6B45E;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
+  body{background:#05201f;font-family:'Segoe UI',system-ui,sans-serif;display:flex;justify-content:center;padding:26px;color:var(--ink)}
+  .phone{width:400px;background:var(--screen);border-radius:30px;overflow:hidden;box-shadow:0 26px 60px rgba(0,0,0,.55);min-height:820px}
+  .hero{background:linear-gradient(160deg,#12474A,#0A2E30);padding:20px 18px 16px}
+  .hero .t{font-size:20px;font-weight:800}
+  .hero .s{font-size:12.5px;color:#A6D0CF;margin-top:2px}
+  .wrap{padding:16px 16px 24px}
+  .lbl{font-size:12.5px;font-weight:800;color:var(--ink);margin:16px 2px 8px;letter-spacing:.2px}
+  .lbl .req{color:var(--redInk)}
+  textarea{width:100%;height:88px;background:var(--surface);border:1px solid var(--cardBorder);border-radius:12px;color:var(--ink);
+           padding:11px 12px;font-size:13.5px;font-family:inherit;resize:none}
+  textarea::placeholder{color:var(--muted)}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:4px}
+  .chip{font-size:11.5px;font-weight:700;color:var(--accent);background:var(--surface);border:1px solid var(--cardBorder);
+        border-radius:18px;padding:6px 11px;cursor:pointer}
+  .chip:active{background:var(--accentBg)}
+
+  /* selector de productos */
+  .selcard{background:var(--surface);border:1px solid var(--cardBorder);border-radius:14px;overflow:hidden;transition:opacity .2s}
+  .selcard.locked{opacity:.45;pointer-events:none}
+  .prow{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--cardBorder);cursor:pointer}
+  .prow:last-child{border-bottom:0}
+  .box{width:22px;height:22px;border-radius:7px;border:2px solid var(--muted);flex:none;display:grid;place-items:center;font-size:13px;color:#04211F}
+  .prow.on .box{background:var(--accentInk);border-color:var(--accentInk)}
+  .prow.fixed .box{background:var(--accentInk);border-color:var(--accentInk)}
+  .prow.fixed{cursor:default}
+  .pname{font-size:13.5px;font-weight:700}
+  .pnum{font-size:11.5px;color:var(--muted);margin-top:1px}
+  .pbadge{font-size:9.5px;font-weight:800;color:var(--accentInk);background:var(--accentBg);border-radius:12px;padding:3px 8px;margin-left:auto}
+  .count{font-size:12px;font-weight:700;color:var(--accentInk);padding:9px 14px;background:var(--accentBg)}
+
+  /* toggles */
+  .tcard{background:var(--surface);border:1px solid var(--cardBorder);border-radius:14px;padding:13px 14px;margin-top:11px;display:flex;align-items:center;gap:12px;transition:opacity .2s}
+  .tcard.disabled{opacity:.4}
+  .tinfo .tt{font-size:13.5px;font-weight:800}
+  .tinfo .ts{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .switch{margin-left:auto;width:46px;height:26px;border-radius:20px;background:#2b3b3d;position:relative;flex:none;cursor:pointer;transition:.2s}
+  .switch .k{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#8aa;transition:.2s}
+  .switch.on{background:var(--accent)} .switch.on .k{left:23px;background:#04211F}
+  .note{font-size:11px;color:var(--amber);margin-top:8px;padding:0 4px;min-height:15px}
+
+  .geo{background:var(--accentBg);border:1px solid #1E5A46;border-radius:12px;padding:12px 14px;margin-top:14px;font-size:12px;color:var(--accentInk)}
+  .save{margin-top:16px;width:100%;background:var(--accent);color:#04211F;border:0;border-radius:14px;padding:15px;font-size:15px;font-weight:800;cursor:pointer}
+  .save:disabled{background:#243d3c;color:var(--muted)}
+  .tag{text-align:center;font-size:10px;color:#5f8f8c;font-weight:700;letter-spacing:1px;padding:8px 0 0}
+</style>
+</head>
+<body>
+  <div class="phone">
+    <div class="tag">INTERACTIVO · TOCÁ LOS PRODUCTOS Y LOS TOGGLES</div>
+    <div class="hero">
+      <div class="t">Registrar interacción</div>
+      <div class="s">Yelba Mario Ramírez Téllez · 3 productos</div>
+    </div>
+    <div class="wrap">
+      <div class="lbl">¿Qué pasó? <span class="req">*</span></div>
+      <textarea id="com" placeholder="Escribí el comentario de la interacción…">No estaba en casa</textarea>
+      <div class="chips">
+        <span class="chip">Promesa de pago</span><span class="chip">No localizado</span>
+        <span class="chip">Cliente pagó</span><span class="chip">Negocio cerrado</span>
+      </div>
+
+      <div class="lbl">Aplicar a estos productos</div>
+      <div class="selcard" id="selcard">
+        <div class="prow fixed on" data-fixed="1">
+          <div class="box">✓</div>
+          <div><div class="pname">Tarjeta Platino</div><div class="pnum">…0668</div></div>
+          <span class="pbadge">ACTUAL</span>
+        </div>
+        <div class="prow on" onclick="tog(this)">
+          <div class="box">✓</div>
+          <div><div class="pname">Tarjeta Oro</div><div class="pnum">…9384</div></div>
+        </div>
+        <div class="prow" onclick="tog(this)">
+          <div class="box"></div>
+          <div><div class="pname">Préstamo Personal</div><div class="pnum">…1122</div></div>
+        </div>
+        <div class="count" id="count">2 productos seleccionados</div>
+      </div>
+      <div class="note" id="noteSel"></div>
+
+      <div class="tcard" id="tcPago">
+        <div>💵</div>
+        <div class="tinfo"><div class="tt">Aplica pago</div><div class="ts">El cliente pagó algo en esta visita</div></div>
+        <div class="switch" onclick="togSw('pago')" id="swPago"><div class="k"></div></div>
+      </div>
+      <div class="tcard" id="tcDatos">
+        <div>✏️</div>
+        <div class="tinfo"><div class="tt">Actualizar datos</div><div class="ts">Cambió un teléfono, dirección o correo</div></div>
+        <div class="switch" onclick="togSw('datos')" id="swDatos"><div class="k"></div></div>
+      </div>
+      <div class="note" id="noteTog"></div>
+
+      <div class="geo">📍 Ubicación capturada · 11.9477, −85.9486</div>
+      <button class="save" id="save">Guardar interacción (2 productos)</button>
+    </div>
+  </div>
+
+<script>
+  let pago=false, datos=false;
+  function selCount(){return document.querySelectorAll('.prow.on, .prow.fixed').length}
+  function render(){
+    const multi = selCount()>1;
+    // si hay pago o datos -> bloquear multi-select al actual
+    const lock = pago||datos;
+    document.getElementById('selcard').classList.toggle('locked', lock);
+    if(lock){ // forzar solo el actual
+      document.querySelectorAll('.prow:not(.fixed)').forEach(p=>p.classList.remove('on'));
+    }
+    // si hay multi -> deshabilitar toggles
+    document.getElementById('tcPago').classList.toggle('disabled', multi && !pago);
+    document.getElementById('tcDatos').classList.toggle('disabled', multi && !datos);
+    const n=selCount();
+    document.getElementById('count').textContent = n+' producto'+(n>1?'s':'')+' seleccionado'+(n>1?'s':'');
+    document.getElementById('noteSel').textContent = lock ? '🔒 Con pago o actualización de datos, solo aplica a esta cuenta.' : '';
+    document.getElementById('noteTog').textContent = (multi && !pago && !datos) ? 'Pago y datos son por 1 sola cuenta (recibo con numeración única).' : '';
+    document.getElementById('save').textContent = 'Guardar interacción ('+n+' producto'+(n>1?'s':'')+')';
+  }
+  function tog(el){ if(pago||datos) return; el.classList.toggle('on'); el.querySelector('.box').textContent = el.classList.contains('on')?'✓':''; render(); }
+  function togSw(which){
+    const multi = selCount()>1;
+    if(which==='pago'){ if(!pago && multi) return; pago=!pago; if(pago) datos=false; }
+    if(which==='datos'){ if(!datos && multi) return; datos=!datos; if(datos) pago=false; }
+    document.getElementById('swPago').classList.toggle('on', pago);
+    document.getElementById('swDatos').classList.toggle('on', datos);
+    render();
+  }
+  render();
+</script>
+</body>
+</html>
