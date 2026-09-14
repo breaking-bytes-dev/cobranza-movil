@@ -68,6 +68,7 @@ jobs:
                   zout.writestr(zi, data)
           print("deploy.zip listo")
           PY
-      - name: Importar con publish
+      - name: Importar con publish (async)
         run: |
-          pac solution import --path /tmp/deploy.zip --force-overwrite --publish-changes --activate-plugins
+          pac solution import --path /tmp/deploy.zip --force-overwrite --publish-changes --activate-plugins \
+            --async --max-async-wait-time 30
