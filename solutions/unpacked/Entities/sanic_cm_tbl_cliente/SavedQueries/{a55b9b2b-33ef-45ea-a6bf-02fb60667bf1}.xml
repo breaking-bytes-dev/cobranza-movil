@@ -10,8 +10,11 @@
     <layoutxml>
       <grid name="resultset" jump="sanic_cm_cl_nombre" select="1" icon="1" preview="1">
         <row name="result" id="sanic_cm_tbl_clienteid">
-          <cell name="sanic_cm_cl_nombre" width="300" />
-          <cell name="createdon" width="125" />
+          <cell name="sanic_cm_cl_nombre" width="200" />
+          <cell name="sanic_cm_cl_cif" width="140" />
+          <cell name="sanic_cm_cl_departamento" width="140" />
+          <cell name="sanic_cm_cl_distrito" width="140" />
+          <cell name="sanic_cm_cl_trabajo" width="160" />
         </row>
       </grid>
     </layoutxml>
@@ -19,13 +22,13 @@
     <fetchxml>
       <fetch version="1.0" mapping="logical">
         <entity name="sanic_cm_tbl_cliente">
-          <attribute name="sanic_cm_tbl_clienteid" />
           <attribute name="sanic_cm_cl_nombre" />
-          <attribute name="createdon" />
+          <attribute name="sanic_cm_cl_cif" />
+          <attribute name="sanic_cm_cl_departamento" />
+          <attribute name="sanic_cm_cl_distrito" />
+          <attribute name="sanic_cm_cl_trabajo" />
+          <attribute name="sanic_cm_tbl_clienteid" />
           <order attribute="sanic_cm_cl_nombre" descending="false" />
-          <filter type="and">
-            <condition attribute="statecode" operator="eq" value="0" />
-          </filter>
         </entity>
       </fetch>
     </fetchxml>

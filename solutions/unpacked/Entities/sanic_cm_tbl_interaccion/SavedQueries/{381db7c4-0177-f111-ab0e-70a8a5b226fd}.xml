@@ -10,17 +10,13 @@
     <layoutxml>
       <grid name="resultset" jump="sanic_cm_in_numerointeraccion" select="1" icon="1" preview="1">
         <row name="result" id="sanic_cm_tbl_interaccionid">
-          <cell name="createdon" width="220" imageproviderfunctionname="Fecha de Interaccion" />
-          <cell name="sanic_cm_in_numerointeraccion" width="200" />
-          <cell name="a_3ecb8358b88c4b74b8db0835e55b4092.sanic_cm_ct_clienteid" width="192" />
-          <cell name="a_3ecb8358b88c4b74b8db0835e55b4092.sanic_cm_ct_numerodecuenta" width="254" />
-          <cell name="sanic_cm_cd_aplicapago" width="136" />
-          <cell name="sanic_cm_in_actualizainfo" width="148" />
-          <cell name="sanic_cm_in_agente" width="109" />
-          <cell name="sanic_cm_in_grabadopor" width="138" />
-          <cell name="sanic_cm_in_fechagrabacion" width="160" />
-          <cell name="sanic_cm_in_estadograbacion" width="165" />
-          <cell name="sanic_cm_in_codigograbacion" width="171" />
+          <cell name="sanic_cm_in_numerointeraccion" width="110" />
+          <cell name="sanic_cm_in_agente" width="170" />
+          <cell name="a_3ecb8358b88c4b74b8db0835e55b4092.sanic_cm_ct_clienteid" width="160" />
+          <cell name="a_3ecb8358b88c4b74b8db0835e55b4092.sanic_cm_ct_numerodecuenta" width="130" />
+          <cell name="sanic_cm_in_estadograbacion" width="120" />
+          <cell name="sanic_cm_cd_aplicapago" width="90" />
+          <cell name="createdon" width="125" />
         </row>
       </grid>
     </layoutxml>
@@ -43,6 +39,9 @@
           <attribute name="sanic_cm_in_estadograbacion" />
           <attribute name="sanic_cm_in_codigograbacion" />
           <order attribute="createdon" descending="false" />
+          <filter type="and">
+            <condition attribute="sanic_cm_in_estadograbacion" operator="eq" value="1" />
+          </filter>
         </entity>
       </fetch>
     </fetchxml>

@@ -10,10 +10,31 @@
   <ClientType>4</ClientType>
   <NavigationType>0</NavigationType>
   <AppModuleComponents>
+    <AppModuleComponent type="1" schemaName="sanic_cm_tbl_agente" />
+    <AppModuleComponent type="1" schemaName="sanic_cm_tbl_asignacion" />
+    <AppModuleComponent type="1" schemaName="sanic_cm_tbl_cargadiaria" />
+    <AppModuleComponent type="1" schemaName="sanic_cm_tbl_cliente" />
+    <AppModuleComponent type="1" schemaName="sanic_cm_tbl_cuenta" />
     <AppModuleComponent type="1" schemaName="sanic_cm_tbl_interaccion" />
+    <AppModuleComponent type="1" schemaName="sanic_tbl_smlt_importjob" />
+    <AppModuleComponent type="26" id="{f5c85ab1-a81c-4246-82af-1d82c8408a8d}" />
+    <AppModuleComponent type="26" id="{3003850c-290d-4751-8b78-255d788aaa1f}" />
+    <AppModuleComponent type="26" id="{35446d7c-db56-4b30-9fa4-37d88941c9bb}" />
+    <AppModuleComponent type="26" id="{d51e05e1-738a-f111-8076-70a8a59c703e}" />
+    <AppModuleComponent type="26" id="{7e3336ce-798a-f111-8076-70a8a59c703e}" />
+    <AppModuleComponent type="26" id="{4a8679ba-7b8a-f111-8076-70a8a59c703e}" />
+    <AppModuleComponent type="26" id="{4e8679ba-7b8a-f111-8076-70a8a59c703e}" />
+    <AppModuleComponent type="26" id="{518679ba-7b8a-f111-8076-70a8a59c703e}" />
+    <AppModuleComponent type="26" id="{41930724-ea65-4c10-b896-a3240a93bbd0}" />
+    <AppModuleComponent type="26" id="{07eec5e9-1a6c-4ae4-b673-c9a5e623bcbc}" />
     <AppModuleComponent type="62" schemaName="sanic_AppCMBackoffice" />
   </AppModuleComponents>
   <AppModuleRoleMaps>
+    <Role id="{b2884281-f573-f111-ab0e-000d3a3483e7}" />
+    <Role id="{e56809a5-fc76-f111-ab0e-70a8a5b226fd}" />
+    <Role id="{6488515d-fe76-f111-ab0e-70a8a5b226fd}" />
+    <Role id="{d9f0f107-fd76-f111-ab0e-70a8a5b226fd}" />
+    <Role id="{0ed5c9cb-fd76-f111-ab0e-70a8a5b226fd}" />
     <Role id="{627090ff-40a3-4053-8790-584edc5be201}" />
     <Role id="{119f245c-3cc8-4b62-b31c-d1a046ced15d}" />
   </AppModuleRoleMaps>

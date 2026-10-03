@@ -8,10 +8,92 @@
   <SiteMap IntroducedVersion="7.0.0.0">
     <Area Id="area_0c425811" ResourceId="SitemapDesigner.NewTitle" DescriptionResourceId="SitemapDesigner.NewTitle" ShowGroups="true" IntroducedVersion="7.0.0.0">
       <Titles>
-        <Title LCID="1033" Title="Area1" />
+        <Title LCID="1033" Title="Backoffice" />
       </Titles>
       <Group Id="group_4f85d9e0" ResourceId="SitemapDesigner.NewGroup" DescriptionResourceId="SitemapDesigner.NewGroup" IntroducedVersion="7.0.0.0" IsProfile="false" ToolTipResourseId="SitemapDesigner.Unknown">
-        <SubArea Id="subarea_9f5936eb" Icon="/_imgs/imagestrips/transparent_spacer.gif" Entity="sanic_cm_tbl_interaccion" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA" />
+        <Titles>
+          <Title LCID="1033" Title="Backoffice" />
+        </Titles>
+        <SubArea Id="subarea_9f5936eb" Icon="/_imgs/imagestrips/transparent_spacer.gif" Entity="sanic_cm_tbl_interaccion" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="Interacciones" />
+          </Titles>
+        </SubArea>
+      </Group>
+    </Area>
+    <Area Id="area_67b62100" ResourceId="SitemapDesigner.NewTitle" DescriptionResourceId="SitemapDesigner.NewTitle" ShowGroups="true" IntroducedVersion="7.0.0.0">
+      <Titles>
+        <Title LCID="1033" Title="Administracion" />
+      </Titles>
+      <Group Id="group_9e36f934" ResourceId="SitemapDesigner.NewGroup" DescriptionResourceId="SitemapDesigner.NewGroup" IntroducedVersion="7.0.0.0" IsProfile="false" ToolTipResourseId="SitemapDesigner.Unknown">
+        <Titles>
+          <Title LCID="1033" Title="Administracion" />
+        </Titles>
+        <SubArea Id="subarea_6169d209" Icon="/_imgs/imagestrips/transparent_spacer.gif" Entity="sanic_cm_tbl_asignacion" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="Incobrables abiertas" />
+          </Titles>
+        </SubArea>
+        <SubArea Id="subarea_8394c05a" Icon="/_imgs/imagestrips/transparent_spacer.gif" Entity="sanic_cm_tbl_asignacion" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="Especiales activas" />
+          </Titles>
+        </SubArea>
+        <SubArea Id="subarea_500b6474" Icon="/_imgs/imagestrips/transparent_spacer.gif" Entity="sanic_cm_tbl_asignacion" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="Diarias (revisar carga)" />
+          </Titles>
+        </SubArea>
+        <SubArea Id="subarea_2db675e4" Icon="/_imgs/imagestrips/transparent_spacer.gif" Entity="sanic_cm_tbl_cargadiaria" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="Monitoreo de carga" />
+          </Titles>
+        </SubArea>
+        <SubArea Id="subarea_b610d97b" Icon="/_imgs/imagestrips/transparent_spacer.gif" Entity="sanic_cm_tbl_agente" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="Agentes y usuarios" />
+          </Titles>
+        </SubArea>
+        <SubArea Id="subarea_71010c05" Icon="/_imgs/imagestrips/transparent_spacer.gif" Entity="sanic_tbl_smlt_importjob" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="Importacion" />
+          </Titles>
+        </SubArea>
+      </Group>
+    </Area>
+    <Area Id="area_bb193e30" ResourceId="SitemapDesigner.NewTitle" DescriptionResourceId="SitemapDesigner.NewTitle" ShowGroups="true" IntroducedVersion="7.0.0.0">
+      <Titles>
+        <Title LCID="1033" Title="Especiales" />
+      </Titles>
+      <Group Id="group_d9447f98" ResourceId="SitemapDesigner.NewGroup" DescriptionResourceId="SitemapDesigner.NewGroup" IntroducedVersion="7.0.0.0" IsProfile="false" ToolTipResourseId="SitemapDesigner.Unknown">
+        <Titles>
+          <Title LCID="1033" Title="Especiales" />
+        </Titles>
+        <SubArea Id="subarea_3677705c" Icon="/_imgs/imagestrips/transparent_spacer.gif" Entity="sanic_cm_tbl_cliente" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="Clientes" />
+          </Titles>
+        </SubArea>
+        <SubArea Id="subarea_d1fdeacd" Icon="/_imgs/imagestrips/transparent_spacer.gif" Entity="sanic_cm_tbl_asignacion" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="Asignaciones" />
+          </Titles>
+        </SubArea>
+      </Group>
+    </Area>
+    <Area Id="area_3c9375c0" ResourceId="SitemapDesigner.NewTitle" DescriptionResourceId="SitemapDesigner.NewTitle" ShowGroups="true" IntroducedVersion="7.0.0.0">
+      <Titles>
+        <Title LCID="1033" Title="Supervisor" />
+      </Titles>
+      <Group Id="group_c9848fc2" ResourceId="SitemapDesigner.NewGroup" DescriptionResourceId="SitemapDesigner.NewGroup" IntroducedVersion="7.0.0.0" IsProfile="false" ToolTipResourseId="SitemapDesigner.Unknown">
+        <Titles>
+          <Title LCID="1033" Title="Especiales" />
+        </Titles>
+        <SubArea Id="subarea_56061037" Icon="/_imgs/imagestrips/transparent_spacer.gif" Entity="sanic_cm_tbl_asignacion" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="Asignaciones pendientes" />
+          </Titles>
+        </SubArea>
       </Group>
     </Area>
   </SiteMap>

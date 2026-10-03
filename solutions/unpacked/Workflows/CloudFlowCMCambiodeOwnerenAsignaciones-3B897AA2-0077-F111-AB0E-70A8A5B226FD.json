@@ -43,7 +43,12 @@
               "subscriptionRequest/filteringattributes": "sanic_cm_as_agenteid"
             },
             "authentication": "@parameters('$authentication')"
-          }
+          },
+          "conditions": [
+            {
+              "expression": "@not(equals(triggerOutputs()?['body/_sanic_cm_as_agenteid_value'], null))"
+            }
+          ]
         }
       },
       "actions": {
@@ -76,18 +81,7 @@
           "else": {
             "actions": {
               "Verificar_que_el_owner_actual_sea_el_usuario_del_agente": {
-                "actions": {
-                  "Terminate": {
-                    "runAfter": {},
-                    "metadata": {
-                      "operationMetadataId": "4bf39449-084c-4916-be19-831e30a9429a"
-                    },
-                    "type": "Terminate",
-                    "inputs": {
-                      "runStatus": "Succeeded"
-                    }
-                  }
-                },
+                "actions": {},
                 "runAfter": {},
                 "else": {
                   "actions": {
@@ -106,7 +100,7 @@
                         "parameters": {
                           "entityName": "sanic_cm_tbl_asignacions",
                           "recordId": "@triggerOutputs()?['body/sanic_cm_tbl_asignacionid']",
-                          "item/ownerid@odata.bind": "@outputs('Obtener_datos_del_Agente')?['body/_sanic_cm_ag_usuarioid_value']"
+                          "item/ownerid@odata.bind": "systemusers(@{outputs('Obtener_datos_del_Agente')?['body/_sanic_cm_ag_usuarioid_value']})"
                         },
                         "authentication": "@parameters('$authentication')"
                       }
@@ -116,20 +110,74 @@
                 "expression": {
                   "equals": [
                     "@triggerOutputs()?['body/_ownerid_value']",
-                    ""
+                    "@outputs('Obtener_datos_del_Agente')?['body/_sanic_cm_ag_usuarioid_value']"
                   ]
                 },
                 "metadata": {
                   "operationMetadataId": "db70a538-c3a0-4f33-88a8-55e6e3d0e6ff"
                 },
                 "type": "If"
+              },
+              "Compartir_la_Especial_con_el_solicitante": {
+                "runAfter": {
+                  "Verificar_que_el_owner_actual_sea_el_usuario_del_agente": [
+                    "Succeeded"
+                  ]
+                },
+                "type": "If",
+                "expression": {
+                  "and": [
+                    {
+                      "equals": [
+                        "@triggerOutputs()?['body/sanic_cm_as_tipo']",
+                        3
+                      ]
+                    },
+                    {
+                      "not": {
+                        "equals": [
+                          "@triggerOutputs()?['body/_sanic_cm_as_solicitadopor_value']",
+                          null
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "actions": {
+                  "GrantAccess_al_solicitante": {
+                    "runAfter": {},
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "host": {
+                        "connectionName": "shared_commondataserviceforapps",
+                        "operationId": "PerformUnboundAction",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                      },
+                      "parameters": {
+                        "actionName": "GrantAccess",
+                        "item/Target": "sanic_cm_tbl_asignacions(@{triggerOutputs()?['body/sanic_cm_tbl_asignacionid']})",
+                        "item/PrincipalAccess": {
+                          "Principal": {
+                            "@@odata.type": "Microsoft.Dynamics.CRM.systemuser",
+                            "systemuserid": "@triggerOutputs()?['body/_sanic_cm_as_solicitadopor_value']"
+                          },
+                          "AccessMask": "ReadAccess,WriteAccess,AppendAccess"
+                        }
+                      },
+                      "authentication": "@parameters('$authentication')"
+                    }
+                  }
+                },
+                "else": {
+                  "actions": {}
+                }
               }
             }
           },
           "expression": {
             "equals": [
-              "",
-              ""
+              "@outputs('Obtener_datos_del_Agente')?['body/_sanic_cm_ag_usuarioid_value']",
+              null
             ]
           },
           "metadata": {

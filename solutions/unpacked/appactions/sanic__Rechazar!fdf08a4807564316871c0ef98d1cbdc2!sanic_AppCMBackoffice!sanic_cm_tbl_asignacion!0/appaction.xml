@@ -1,0 +1,37 @@
+<appaction uniquename="sanic__Rechazar!fdf08a4807564316871c0ef98d1cbdc2!sanic_AppCMBackoffice!sanic_cm_tbl_asignacion!0">
+  <appmoduleid>
+    <uniquename>sanic_AppCMBackoffice</uniquename>
+  </appmoduleid>
+  <buttonlabeltext default="Rechazar">
+    <label description="Rechazar" languagecode="1033" />
+  </buttonlabeltext>
+  <context>1</context>
+  <contextentity>
+    <logicalname>sanic_cm_tbl_asignacion</logicalname>
+  </contextentity>
+  <contextvalue>sanic_cm_tbl_asignacion</contextvalue>
+  <fonticon>Cancel</fonticon>
+  <hidden>0</hidden>
+  <iscustomizable>1</iscustomizable>
+  <isdisabled>0</isdisabled>
+  <isgrouptitlehidden>0</isgrouptitlehidden>
+  <location>0</location>
+  <name>Rechazar!fdf08a4807564316871c0ef98d1cbdc2</name>
+  <onclickeventformulacomponentlibraryid>
+    <name>sanic_appcmbackofficedefaultcommandlibrary_d6eda</name>
+  </onclickeventformulacomponentlibraryid>
+  <onclickeventformulacomponentname>01a645050c5547539b4fb5ad09cda8cf</onclickeventformulacomponentname>
+  <onclickeventformulafunctionname>OnSelect</onclickeventformulafunctionname>
+  <onclickeventtype>1</onclickeventtype>
+  <origin>0</origin>
+  <sequence>100100017.5000000000</sequence>
+  <statecode>0</statecode>
+  <statuscode>1</statuscode>
+  <type>0</type>
+  <visibilityformulacomponentlibraryid>
+    <name>sanic_appcmbackofficedefaultcommandlibrary_d6eda</name>
+  </visibilityformulacomponentlibraryid>
+  <visibilityformulacomponentname>01a645050c5547539b4fb5ad09cda8cf</visibilityformulacomponentname>
+  <visibilityformulafunctionname>Visible</visibilityformulafunctionname>
+  <visibilitytype>1</visibilitytype>
+</appaction>

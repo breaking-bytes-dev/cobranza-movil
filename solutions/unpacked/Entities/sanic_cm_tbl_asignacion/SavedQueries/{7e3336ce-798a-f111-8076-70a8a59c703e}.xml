@@ -1,0 +1,50 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<savedqueries xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <savedquery>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <isquickfindquery>0</isquickfindquery>
+    <isprivate>0</isprivate>
+    <isdefault>0</isdefault>
+    <savedqueryid>{7e3336ce-798a-f111-8076-70a8a59c703e}</savedqueryid>
+    <layoutxml>
+      <grid name="resultset" jump="sanic_cm_as_numero" select="1" icon="1" preview="1">
+        <row name="result" id="sanic_cm_tbl_asignacionid">
+          <cell name="sanic_cm_as_numero" width="100" />
+          <cell name="sanic_cm_as_cuentaid" width="130" />
+          <cell name="createdby" width="140" />
+          <cell name="sanic_cm_as_retironio" width="100" />
+          <cell name="sanic_cm_as_retirousd" width="100" />
+          <cell name="sanic_cm_as_motivo" width="220" />
+        </row>
+      </grid>
+    </layoutxml>
+    <querytype>0</querytype>
+    <fetchxml>
+      <fetch version="1.0" mapping="logical" distinct="true">
+        <entity name="sanic_cm_tbl_asignacion">
+          <attribute name="sanic_cm_as_numero" />
+          <attribute name="sanic_cm_as_cuentaid" />
+          <attribute name="createdby" />
+          <attribute name="sanic_cm_as_retironio" />
+          <attribute name="sanic_cm_as_retirousd" />
+          <attribute name="createdon" />
+          <attribute name="sanic_cm_as_motivo" />
+          <attribute name="sanic_cm_tbl_asignacionid" />
+          <order attribute="createdon" descending="false" />
+          <filter type="and">
+            <condition attribute="sanic_cm_as_tipo" operator="eq" value="3" />
+            <condition attribute="sanic_cm_as_estadoaprobacion" operator="eq" value="2" />
+          </filter>
+        </entity>
+      </fetch>
+    </fetchxml>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <LocalizedNames>
+      <LocalizedName description="Especiales · Aprobaciones pendientes" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="Especiales pendientes de aprobacion (Supervisor)" languagecode="1033" />
+    </Descriptions>
+  </savedquery>
+</savedqueries>

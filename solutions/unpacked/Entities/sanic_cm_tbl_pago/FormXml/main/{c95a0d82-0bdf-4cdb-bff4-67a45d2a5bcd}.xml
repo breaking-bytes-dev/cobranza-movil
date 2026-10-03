@@ -5,7 +5,7 @@
     <IntroducedVersion>1.0</IntroducedVersion>
     <FormPresentation>1</FormPresentation>
     <FormActivationState>1</FormActivationState>
-    <form>
+    <form headerdensity="HighWithControls">
       <tabs>
         <tab verticallayout="true" id="{2e1d9ab3-3165-4d11-892b-d1056c14c83d}" IsUserDefined="1">
           <labels>
@@ -20,19 +20,67 @@
                   </labels>
                   <rows>
                     <row>
-                      <cell id="{7994bcfc-65ab-46df-aae6-9b04e6bffffe}">
+                      <cell id="{7994bcfc-65ab-46df-aae6-9b04e6bffffe}" locklevel="1">
                         <labels>
                           <label description="[PG] Numero" languagecode="1033" />
                         </labels>
-                        <control id="sanic_cm_pg_numero" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_cm_pg_numero" />
+                        <control id="sanic_cm_pg_numero" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_cm_pg_numero" disabled="true" />
                       </cell>
                     </row>
                     <row>
-                      <cell id="{664f4ad3-b927-4d08-837e-329fb9092704}">
+                      <cell id="{b3ad1ea2-c8c2-4b92-b674-904b490a1b17}" locklevel="1" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="[PG] Interaccion" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_pg_interaccion" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="sanic_cm_pg_interaccion" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{500aa122-4ed0-4d10-a19b-934fb46d4502}" locklevel="1" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="[PG] Numero Interaccion" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_pg_numerointeraccion" classid="{4273EDBD-AC1D-40D3-9FB2-095C621B552D}" datafieldname="sanic_cm_pg_numerointeraccion" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{e8f83ec0-77e2-4156-8e2d-24e99ad2550b}" locklevel="1" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="[PG] Numero Cuenta" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_pg_numerocuenta" classid="{4273EDBD-AC1D-40D3-9FB2-095C621B552D}" datafieldname="sanic_cm_pg_numerocuenta" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{d18544e4-12fc-44cd-8c2f-5c2d8a1d516a}" locklevel="1" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="[PG] Numero recibo" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_pg_numerorecibo" classid="{4273EDBD-AC1D-40D3-9FB2-095C621B552D}" datafieldname="sanic_cm_pg_numerorecibo" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{fa312397-1d6e-46b3-a5dc-d7a2b59e6e07}" locklevel="1" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="[PG] Moneda" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_pg_moneda" classid="{3EF39988-22BB-4F0B-BBBE-64B5A3748AEE}" datafieldname="sanic_cm_pg_moneda" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{5d0cd5e0-52b3-4743-b9af-a800f70aba44}" locklevel="1" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="[PG] Monto" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_pg_monto" classid="{C3EFE0C3-0EC6-42BE-8349-CBD9079DFD8E}" datafieldname="sanic_cm_pg_monto" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{664f4ad3-b927-4d08-837e-329fb9092704}" locklevel="1">
                         <labels>
                           <label description="Owner" languagecode="1033" />
                         </labels>
-                        <control id="ownerid" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="ownerid" />
+                        <control id="ownerid" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="ownerid" disabled="true" />
                       </cell>
                     </row>
                   </rows>
@@ -42,6 +90,51 @@
           </columns>
         </tab>
       </tabs>
+      <header id="{593fd4ab-85de-43de-8d35-3561611f150a}" celllabelposition="Top" columns="111" labelwidth="115" celllabelalignment="Left">
+        <rows>
+          <row>
+            <cell id="{2cddd09d-ea1e-48ed-a6ef-3f84a3bbc8b5}" showlabel="false">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+            <cell id="{51317c0d-b380-416f-910a-53155d8d340b}" showlabel="false">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+            <cell id="{ef41951d-8fcc-4abe-9e1a-bec2932fa644}" showlabel="false">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+          </row>
+        </rows>
+      </header>
+      <footer id="{0215c20d-cb4c-4d4c-b3d5-55bef9a496cf}" celllabelposition="Top" columns="111" labelwidth="115" celllabelalignment="Left">
+        <rows>
+          <row>
+            <cell id="{4816cb13-240c-4da8-9f8a-ce57bbb2e9e7}" showlabel="false">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+            <cell id="{ff2e6477-e6bd-47e3-893e-19b53a599937}" showlabel="false">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+            <cell id="{59d2833e-db1d-44a9-b60a-2f6e02581ed4}" showlabel="false">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+          </row>
+        </rows>
+      </footer>
+      <DisplayConditions Order="0" FallbackForm="true">
+        <Everyone />
+      </DisplayConditions>
     </form>
     <IsCustomizable>1</IsCustomizable>
     <CanBeDeleted>1</CanBeDeleted>

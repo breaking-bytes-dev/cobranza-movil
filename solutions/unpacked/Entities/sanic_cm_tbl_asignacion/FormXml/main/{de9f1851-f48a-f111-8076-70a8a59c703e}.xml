@@ -1,0 +1,168 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{de9f1851-f48a-f111-8076-70a8a59c703e}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>0</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab name="t" verticallayout="true" id="{2b818fb2-9a7d-477a-bea0-60699b10d705}" IsUserDefined="0" locklevel="0" showlabel="true" expanded="true">
+          <labels>
+            <label description="Asignación" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section name="a1" showlabel="true" showbar="false" id="{03e2c30c-714a-4427-8037-5644064b6ff4}" columns="11" labelwidth="150" celllabelalignment="Left" celllabelposition="Left">
+                  <labels>
+                    <label description="Asignación" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{257253da-7002-4730-a7ca-c9752065abdc}">
+                        <labels>
+                          <label description="Número" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_as_numero" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_cm_as_numero" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{3f369e0f-75f2-4297-aece-57f79ac264cc}">
+                        <labels>
+                          <label description="Cuenta" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_as_cuentaid" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="sanic_cm_as_cuentaid" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{02e9891e-44fb-478b-95b4-42f9fa7ee0f2}">
+                        <labels>
+                          <label description="Tipo" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_as_tipo" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="sanic_cm_as_tipo" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{e4ec4fa8-eadc-482b-a08c-3b8fca26c332}">
+                        <labels>
+                          <label description="Localizador" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_as_agenteid" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="sanic_cm_as_agenteid" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{b65eeaad-9d4b-47c5-bdd8-d43f5c7ed3ea}">
+                        <labels>
+                          <label description="Fecha de asignación" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_as_fechasignacion" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="sanic_cm_as_fechasignacion" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{8d62491d-da30-4cde-865e-41ee9b7faa91}">
+                        <labels>
+                          <label description="Última carga" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_as_ultimacarga" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="sanic_cm_as_ultimacarga" disabled="true" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="a2" showlabel="true" showbar="false" id="{b843e70d-8ea6-48ec-904e-0090a26f480b}" columns="11" labelwidth="150" celllabelalignment="Left" celllabelposition="Left">
+                  <labels>
+                    <label description="Cierre (Admin)" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{3e4d8de7-d09a-4aa3-9676-02bc731e9855}">
+                        <labels>
+                          <label description="Estado (Activa / Cerrada)" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_as_estado" classid="{67FAC785-CD58-4f9f-ABB3-4B7DDC6ED5ED}" datafieldname="sanic_cm_as_estado" disabled="false" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{f91b20e1-3e31-4805-8e64-8df10fc772d7}">
+                        <labels>
+                          <label description="Fecha de cierre" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_as_fechacierre" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="sanic_cm_as_fechacierre" disabled="false" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="a3" showlabel="true" showbar="false" id="{b6148f7d-750a-4419-8fb6-0f8025f19c49}" columns="11" labelwidth="150" celllabelalignment="Left" celllabelposition="Left">
+                  <labels>
+                    <label description="Especial (si aplica)" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{a1e0d003-c9ea-4acf-b544-9e96ed1ef8ae}">
+                        <labels>
+                          <label description="Estado de aprobación" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_as_estadoaprobacion" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="sanic_cm_as_estadoaprobacion" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{3e4b4c9f-9bcd-4e12-afd7-25e7896367f7}">
+                        <labels>
+                          <label description="Retiro NIO" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_as_retironio" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="sanic_cm_as_retironio" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{000c8a13-f42c-4a99-94de-881d6ea47f63}">
+                        <labels>
+                          <label description="Retiro USD" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_as_retirousd" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="sanic_cm_as_retirousd" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{e303a58a-0808-4d53-b995-b370d653c65c}">
+                        <labels>
+                          <label description="Motivo" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_as_motivo" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" datafieldname="sanic_cm_as_motivo" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{a27ba4f5-fb17-4bdc-9468-c0229038786e}">
+                        <labels>
+                          <label description="Notas" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_as_notas" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" datafieldname="sanic_cm_as_notas" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{fff877aa-da34-42d9-a8ca-73c71451c552}">
+                        <labels>
+                          <label description="Solicitado por" languagecode="1033" />
+                        </labels>
+                        <control id="createdby" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="createdby" disabled="true" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+      <DisplayConditions FallbackForm="true" Order="0">
+        <Role Id="{B2884281-F573-F111-AB0E-000D3A3483E7}" />
+      </DisplayConditions>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="CM | Admin - Asignación" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="Form del Admin para gestionar/cerrar cualquier asignacion" languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

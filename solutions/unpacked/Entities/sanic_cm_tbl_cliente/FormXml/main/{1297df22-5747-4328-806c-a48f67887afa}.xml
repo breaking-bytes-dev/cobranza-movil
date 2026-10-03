@@ -7,32 +7,152 @@
     <FormActivationState>1</FormActivationState>
     <form>
       <tabs>
-        <tab verticallayout="true" id="{9771301a-147a-497c-8576-d88fb814daad}" IsUserDefined="1">
+        <tab name="tab_cliente" verticallayout="true" id="{aa0bde60-22c9-4bcb-b09f-4e51c6a11d89}" IsUserDefined="0" locklevel="0" showlabel="true" expanded="true">
           <labels>
-            <label description="General" languagecode="1033" />
+            <label description="Cliente" languagecode="1033" />
           </labels>
           <columns>
             <column width="100%">
               <sections>
-                <section showlabel="false" showbar="false" IsUserDefined="0" id="{24c7ee06-13e1-496c-8dc2-6cf07debf8ac}">
+                <section name="sec_datos" showlabel="true" showbar="false" id="{10422d17-b3e3-4aec-938e-29665750b438}" columns="11" labelwidth="115" celllabelalignment="Left" celllabelposition="Left">
                   <labels>
-                    <label description="General" languagecode="1033" />
+                    <label description="Datos del cliente" languagecode="1033" />
                   </labels>
                   <rows>
                     <row>
-                      <cell id="{5ea5c7d1-4d2a-46f1-9301-91c51e677089}">
+                      <cell id="{9a5975ed-4bd2-4143-b639-5ef3f453f83c}">
                         <labels>
-                          <label description="[CL] Nombre" languagecode="1033" />
+                          <label description="Nombre" languagecode="1033" />
                         </labels>
-                        <control id="sanic_cm_cl_nombre" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_cm_cl_nombre" />
+                        <control id="sanic_cm_cl_nombre" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_cm_cl_nombre" disabled="false" />
                       </cell>
                     </row>
                     <row>
-                      <cell id="{a2659d65-eacf-4ccf-a79d-c8ca3b747deb}">
+                      <cell id="{39be74f8-f93b-47e6-b388-e0e3a278c9b2}">
                         <labels>
-                          <label description="Owner" languagecode="1033" />
+                          <label description="CIF" languagecode="1033" />
                         </labels>
-                        <control id="ownerid" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="ownerid" />
+                        <control id="sanic_cm_cl_cif" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_cm_cl_cif" disabled="false" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{df722c00-8061-4bec-a0a4-1dbe7a1a16ab}">
+                        <labels>
+                          <label description="Departamento" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_cl_departamento" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_cm_cl_departamento" disabled="false" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{bbe6ebe1-fed8-470f-b777-827c34eda1da}">
+                        <labels>
+                          <label description="Distrito" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_cl_distrito" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_cm_cl_distrito" disabled="false" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{fe16d90b-9a97-4c2e-b17b-60194b1ac5a6}">
+                        <labels>
+                          <label description="Trabajo" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_cl_trabajo" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_cm_cl_trabajo" disabled="false" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="sec_dir" showlabel="true" showbar="false" id="{2e518e99-4e61-476a-af8e-90fbfba7de5a}" columns="1" labelwidth="115" celllabelalignment="Left" celllabelposition="Left">
+                  <labels>
+                    <label description="Direcciones" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{9d1e28ed-acb5-4448-81f7-172bcd6b2151}" showlabel="false" rowspan="6" colspan="1">
+                        <labels>
+                          <label description="Direcciones" languagecode="1033" />
+                        </labels>
+                        <control id="sg_dir" classid="{E7A81278-8635-4d9e-8D4D-59480B391C5B}" indicationOfSubgrid="true" uniqueid="{59eb9740-f2d5-4e33-a732-472437668513}">
+                          <parameters>
+                            <ViewId>{5a14f1cf-8271-495b-bdd4-fb9c373971d8}</ViewId>
+                            <IsUserView>false</IsUserView>
+                            <RelationshipName>sanic_cm_tbl_direccion_cm_dr_clienteid_sanic_cm_tbl_cliente</RelationshipName>
+                            <TargetEntityType>sanic_cm_tbl_direccion</TargetEntityType>
+                            <EnableQuickFind>false</EnableQuickFind>
+                            <EnableViewPicker>false</EnableViewPicker>
+                            <ViewIds />
+                            <EnableJumpBar>false</EnableJumpBar>
+                            <ChartGridMode>Grid</ChartGridMode>
+                            <VisualizationId />
+                            <IsUserChart>false</IsUserChart>
+                            <EnableChartPicker>false</EnableChartPicker>
+                            <RecordsPerPage>5</RecordsPerPage>
+                            <AutoExpand>Fixed</AutoExpand>
+                          </parameters>
+                        </control>
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="sec_tel" showlabel="true" showbar="false" id="{8dc0eab5-3eed-407a-8259-d671d3242339}" columns="1" labelwidth="115" celllabelalignment="Left" celllabelposition="Left">
+                  <labels>
+                    <label description="Teléfonos" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{09057511-28cc-42ee-a724-f738917f6f5d}" showlabel="false" rowspan="6" colspan="1">
+                        <labels>
+                          <label description="Teléfonos" languagecode="1033" />
+                        </labels>
+                        <control id="sg_tel" classid="{E7A81278-8635-4d9e-8D4D-59480B391C5B}" indicationOfSubgrid="true" uniqueid="{ca160990-8e80-4911-b9fc-f93da72b8413}">
+                          <parameters>
+                            <ViewId>{98dae23e-bd33-4f4f-b1cc-ba007a553102}</ViewId>
+                            <IsUserView>false</IsUserView>
+                            <RelationshipName>sanic_cm_tbl_telefono_cm_tl_clienteid_sanic_cm_tbl_cliente</RelationshipName>
+                            <TargetEntityType>sanic_cm_tbl_telefono</TargetEntityType>
+                            <EnableQuickFind>false</EnableQuickFind>
+                            <EnableViewPicker>false</EnableViewPicker>
+                            <ViewIds />
+                            <EnableJumpBar>false</EnableJumpBar>
+                            <ChartGridMode>Grid</ChartGridMode>
+                            <VisualizationId />
+                            <IsUserChart>false</IsUserChart>
+                            <EnableChartPicker>false</EnableChartPicker>
+                            <RecordsPerPage>5</RecordsPerPage>
+                            <AutoExpand>Fixed</AutoExpand>
+                          </parameters>
+                        </control>
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="sec_cta" showlabel="true" showbar="false" id="{121bd26f-621a-4a20-b4b0-580d2ae44475}" columns="1" labelwidth="115" celllabelalignment="Left" celllabelposition="Left">
+                  <labels>
+                    <label description="Productos / Cuentas" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{1f80bc08-07ba-418e-84da-169db631ff7b}" showlabel="false" rowspan="6" colspan="1">
+                        <labels>
+                          <label description="Productos / Cuentas" languagecode="1033" />
+                        </labels>
+                        <control id="sg_cta" classid="{E7A81278-8635-4d9e-8D4D-59480B391C5B}" indicationOfSubgrid="true" uniqueid="{40e708b3-4efa-4ba2-9c03-fd52119c0eb8}">
+                          <parameters>
+                            <ViewId>{2cd4888e-30b0-43ac-a127-f9f8f6d8e9cf}</ViewId>
+                            <IsUserView>false</IsUserView>
+                            <RelationshipName>sanic_cm_tbl_cuenta_cm_ct_clienteid_sanic_cm_tbl_cliente</RelationshipName>
+                            <TargetEntityType>sanic_cm_tbl_cuenta</TargetEntityType>
+                            <EnableQuickFind>false</EnableQuickFind>
+                            <EnableViewPicker>false</EnableViewPicker>
+                            <ViewIds />
+                            <EnableJumpBar>false</EnableJumpBar>
+                            <ChartGridMode>Grid</ChartGridMode>
+                            <VisualizationId />
+                            <IsUserChart>false</IsUserChart>
+                            <EnableChartPicker>false</EnableChartPicker>
+                            <RecordsPerPage>5</RecordsPerPage>
+                            <AutoExpand>Fixed</AutoExpand>
+                          </parameters>
+                        </control>
                       </cell>
                     </row>
                   </rows>

@@ -9,6 +9,6 @@
       "azureactivedirectoryobjectid"
     ]
   },
-  "RequiredEntityReferences": {},
+  "RequiredEntityReferences": null,
   "RequiredEntityReferenceUniqueNames": null
 }

@@ -7,32 +7,48 @@
     <FormActivationState>1</FormActivationState>
     <form>
       <tabs>
-        <tab verticallayout="true" id="{53a25414-784c-4325-9179-b63e71cb6fe5}" IsUserDefined="1">
+        <tab name="t" verticallayout="true" id="{c69886d9-3e53-4054-aeb4-32b3f58c2e8c}" IsUserDefined="0" locklevel="0" showlabel="true" expanded="true">
           <labels>
-            <label description="General" languagecode="1033" />
+            <label description="Agente" languagecode="1033" />
           </labels>
           <columns>
             <column width="100%">
               <sections>
-                <section showlabel="false" showbar="false" IsUserDefined="0" id="{61a3ce91-c17d-475f-a944-c656e5d296f5}">
+                <section name="a1" showlabel="true" showbar="false" id="{e595e450-90a3-41ec-9f57-061d3a3e3364}" columns="11" labelwidth="150" celllabelalignment="Left" celllabelposition="Left">
                   <labels>
-                    <label description="General" languagecode="1033" />
+                    <label description="Localizador" languagecode="1033" />
                   </labels>
                   <rows>
                     <row>
-                      <cell id="{87486012-8a2a-455a-9fcb-f043d3da1f20}">
+                      <cell id="{7913aca9-6ce7-4461-8a7e-2aa7b4ae1e12}">
                         <labels>
-                          <label description="[AG] Nombre" languagecode="1033" />
+                          <label description="Nombre del localizador" languagecode="1033" />
                         </labels>
-                        <control id="sanic_cm_ag_nombre" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_cm_ag_nombre" />
+                        <control id="sanic_cm_ag_nombre" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_cm_ag_nombre" disabled="false" />
                       </cell>
                     </row>
                     <row>
-                      <cell id="{c165b557-da30-495a-9337-5b63c4f31a97}">
+                      <cell id="{b8a9fb63-2a07-4e25-8a87-d930a9b1374f}">
                         <labels>
-                          <label description="Owner" languagecode="1033" />
+                          <label description="Email de usuario" languagecode="1033" />
                         </labels>
-                        <control id="ownerid" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="ownerid" />
+                        <control id="sanic_cm_ag_emailusuario" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_cm_ag_emailusuario" disabled="false" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{72cfaace-25b3-4fa6-8c81-ae0adb73e5b4}">
+                        <labels>
+                          <label description="Usuario (Dataverse)" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_ag_usuarioid" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="sanic_cm_ag_usuarioid" disabled="false" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{1e8200ee-3151-4a5c-bb5d-6548ff060c56}">
+                        <labels>
+                          <label description="Activo" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_ag_activo" classid="{67FAC785-CD58-4f9f-ABB3-4B7DDC6ED5ED}" datafieldname="sanic_cm_ag_activo" disabled="false" />
                       </cell>
                     </row>
                   </rows>

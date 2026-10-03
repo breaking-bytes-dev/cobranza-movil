@@ -31,10 +31,6 @@
     <RolePrivilege name="prvAssignWorkflowSession" level="Basic" />
     <RolePrivilege name="prvCreateNewProcess" level="Global" />
     <RolePrivilege name="prvCreatesanic_cm_tbl_asignacion" level="Global" />
-    <RolePrivilege name="prvCreatesanic_cm_tbl_cliente" level="Global" />
-    <RolePrivilege name="prvCreatesanic_cm_tbl_cuenta" level="Global" />
-    <RolePrivilege name="prvCreatesanic_cm_tbl_direccion" level="Global" />
-    <RolePrivilege name="prvCreatesanic_cm_tbl_telefono" level="Global" />
     <RolePrivilege name="prvCreateSharePointData" level="Global" />
     <RolePrivilege name="prvCreateTranslationProcess" level="Global" />
     <RolePrivilege name="prvCreateUserApplicationMetadata" level="Basic" />
@@ -71,7 +67,7 @@
     <RolePrivilege name="prvReadReport" level="Basic" />
     <RolePrivilege name="prvReadRole" level="Global" />
     <RolePrivilege name="prvReadsanic_cm_tbl_agente" level="Global" />
-    <RolePrivilege name="prvReadsanic_cm_tbl_asignacion" level="Global" />
+    <RolePrivilege name="prvReadsanic_cm_tbl_asignacion" level="Basic" />
     <RolePrivilege name="prvReadsanic_cm_tbl_cliente" level="Global" />
     <RolePrivilege name="prvReadsanic_cm_tbl_cuenta" level="Global" />
     <RolePrivilege name="prvReadsanic_cm_tbl_direccion" level="Global" />
@@ -104,11 +100,7 @@
     <RolePrivilege name="prvWorkflowExecution" level="Global" />
     <RolePrivilege name="prvWriteAsyncOperation" level="Basic" />
     <RolePrivilege name="prvWriteNewProcess" level="Global" />
-    <RolePrivilege name="prvWritesanic_cm_tbl_asignacion" level="Global" />
-    <RolePrivilege name="prvWritesanic_cm_tbl_cliente" level="Global" />
-    <RolePrivilege name="prvWritesanic_cm_tbl_cuenta" level="Global" />
-    <RolePrivilege name="prvWritesanic_cm_tbl_direccion" level="Global" />
-    <RolePrivilege name="prvWritesanic_cm_tbl_telefono" level="Global" />
+    <RolePrivilege name="prvWritesanic_cm_tbl_asignacion" level="Basic" />
     <RolePrivilege name="prvWriteSharePointData" level="Global" />
     <RolePrivilege name="prvWriteTranslationProcess" level="Global" />
     <RolePrivilege name="prvWriteUserApplicationMetadata" level="Basic" />

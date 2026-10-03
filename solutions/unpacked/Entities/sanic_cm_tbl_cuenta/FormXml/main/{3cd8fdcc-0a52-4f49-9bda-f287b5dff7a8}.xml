@@ -7,32 +7,151 @@
     <FormActivationState>1</FormActivationState>
     <form>
       <tabs>
-        <tab verticallayout="true" id="{242d63ce-2ecd-4afd-b54b-6eca394266c9}" IsUserDefined="1">
+        <tab name="tab_cuenta" verticallayout="true" id="{9da58bd0-7d1b-4710-ac56-c93b1ead4325}" IsUserDefined="0" locklevel="0" showlabel="true" expanded="true">
           <labels>
-            <label description="General" languagecode="1033" />
+            <label description="Producto / Cuenta" languagecode="1033" />
           </labels>
           <columns>
             <column width="100%">
               <sections>
-                <section showlabel="false" showbar="false" IsUserDefined="0" id="{820c26d1-4581-45b0-91ab-69bc3944f893}">
+                <section name="sec_datos" showlabel="true" showbar="false" id="{8ee43e05-021a-4b6a-ae07-25d2f25f03c7}" columns="11" labelwidth="140" celllabelalignment="Left" celllabelposition="Left">
                   <labels>
-                    <label description="General" languagecode="1033" />
+                    <label description="Datos del producto" languagecode="1033" />
                   </labels>
                   <rows>
                     <row>
-                      <cell id="{7d25a734-457f-46aa-ab14-2279feb85757}">
+                      <cell id="{0e0b3f4e-4715-4049-8f74-68dc41e2e373}">
                         <labels>
-                          <label description="[CT] Numero de cuenta" languagecode="1033" />
+                          <label description="Cliente" languagecode="1033" />
                         </labels>
-                        <control id="sanic_cm_ct_numerodecuenta" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_cm_ct_numerodecuenta" />
+                        <control id="sanic_cm_ct_clienteid" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="sanic_cm_ct_clienteid" disabled="false" />
                       </cell>
                     </row>
                     <row>
-                      <cell id="{4b2faee2-00ae-4df3-9ca4-7c20fb2bcc1f}">
+                      <cell id="{636b8ff1-b0ad-4466-af3e-2d73dd918eba}">
                         <labels>
-                          <label description="Owner" languagecode="1033" />
+                          <label description="Número de cuenta" languagecode="1033" />
                         </labels>
-                        <control id="ownerid" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="ownerid" />
+                        <control id="sanic_cm_ct_numerodecuenta" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_cm_ct_numerodecuenta" disabled="false" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{0c96c9db-7c69-4670-bf97-c4b9c1f04c81}">
+                        <labels>
+                          <label description="Producto" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_ct_productoid" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="sanic_cm_ct_productoid" disabled="false" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{3cb1bd5f-0496-4989-944b-ae75dbf1c1f9}">
+                        <labels>
+                          <label description="Tipo de producto" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_ct_tipoproducto" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_cm_ct_tipoproducto" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{54293317-661a-432a-a00e-36520c543cb5}">
+                        <labels>
+                          <label description="Fiador" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_ct_fiador" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="sanic_cm_ct_fiador" disabled="false" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{3d6a46b5-4614-4b23-8aff-8e03b91dbb1d}">
+                        <labels>
+                          <label description="Nota" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_ct_nota" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" datafieldname="sanic_cm_ct_nota" disabled="false" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="sec_montos" showlabel="true" showbar="false" id="{f391d309-ca31-4094-862a-205990fc0f13}" columns="11" labelwidth="140" celllabelalignment="Left" celllabelposition="Left">
+                  <labels>
+                    <label description="Montos y mora" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{ed801ce9-7969-4083-8f31-4dd204bf08a7}">
+                        <labels>
+                          <label description="Retiro C$" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_ct_retironio" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="sanic_cm_ct_retironio" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{d9ec15d7-5b6f-4a9b-9d56-7ca4126e646b}">
+                        <labels>
+                          <label description="Retiro US$" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_ct_retirousd" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="sanic_cm_ct_retirousd" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{d8bd955e-c2d7-4913-9f1f-c690093898ba}">
+                        <labels>
+                          <label description="Saldo vencido C$" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_ct_saldovencidonio" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="sanic_cm_ct_saldovencidonio" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{8ea31d1a-a1a5-4ce7-bbfd-6f0c8049d275}">
+                        <labels>
+                          <label description="Saldo vencido US$" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_ct_saldovencidousd" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="sanic_cm_ct_saldovencidousd" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{af2d15b1-8964-4bda-a27a-cbf2f1f0617d}">
+                        <labels>
+                          <label description="Días mora" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_ct_diasmora" classid="{C6D124CA-7EDA-4a60-AAD6-1F44BC4A6D5B}" datafieldname="sanic_cm_ct_diasmora" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{fb0a8834-d331-4ed0-b6aa-13cfc12f86d8}">
+                        <labels>
+                          <label description="Nivel mora" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_ct_nivelmora" classid="{C6D124CA-7EDA-4a60-AAD6-1F44BC4A6D5B}" datafieldname="sanic_cm_ct_nivelmora" disabled="true" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="sec_asig" showlabel="true" showbar="false" id="{cc6d3beb-ba65-409f-a308-4f14da9005ed}" columns="1" labelwidth="140" celllabelalignment="Left" celllabelposition="Left">
+                  <labels>
+                    <label description="Asignaciones / Solicitudes" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{613c1a50-efa2-402b-9b03-1315b52d5b78}" showlabel="false" rowspan="6" colspan="1">
+                        <labels>
+                          <label description="Asignaciones" languagecode="1033" />
+                        </labels>
+                        <control id="sg_asig" classid="{E7A81278-8635-4d9e-8D4D-59480B391C5B}" indicationOfSubgrid="true" uniqueid="{e04490ba-cdfe-4f96-8bc3-c1490607c113}">
+                          <parameters>
+                            <ViewId>{41930724-ea65-4c10-b896-a3240a93bbd0}</ViewId>
+                            <IsUserView>false</IsUserView>
+                            <RelationshipName>sanic_cm_tbl_asignacion_cm_as_cuentaid_sanic_cm_tbl_cuenta</RelationshipName>
+                            <TargetEntityType>sanic_cm_tbl_asignacion</TargetEntityType>
+                            <EnableQuickFind>false</EnableQuickFind>
+                            <EnableViewPicker>false</EnableViewPicker>
+                            <ViewIds />
+                            <EnableJumpBar>false</EnableJumpBar>
+                            <ChartGridMode>Grid</ChartGridMode>
+                            <VisualizationId />
+                            <IsUserChart>false</IsUserChart>
+                            <EnableChartPicker>false</EnableChartPicker>
+                            <RecordsPerPage>5</RecordsPerPage>
+                            <AutoExpand>Fixed</AutoExpand>
+                          </parameters>
+                        </control>
                       </cell>
                     </row>
                   </rows>

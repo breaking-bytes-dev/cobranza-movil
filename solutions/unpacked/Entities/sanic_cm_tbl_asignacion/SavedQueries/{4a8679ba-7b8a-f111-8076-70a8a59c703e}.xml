@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<savedqueries xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <savedquery>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <isquickfindquery>0</isquickfindquery>
+    <isprivate>0</isprivate>
+    <isdefault>0</isdefault>
+    <savedqueryid>{4a8679ba-7b8a-f111-8076-70a8a59c703e}</savedqueryid>
+    <layoutxml>
+      <grid name="resultset" jump="sanic_cm_as_numero" select="1" icon="1" preview="1">
+        <row name="result" id="sanic_cm_tbl_asignacionid">
+          <cell name="sanic_cm_as_numero" width="110" />
+          <cell name="sanic_cm_as_cuentaid" width="150" />
+          <cell name="sanic_cm_as_numerocuenta" width="130" />
+          <cell name="sanic_cm_as_agenteid" width="140" />
+          <cell name="sanic_cm_as_ultimacarga" width="140" />
+        </row>
+      </grid>
+    </layoutxml>
+    <querytype>0</querytype>
+    <fetchxml>
+      <fetch version="1.0" mapping="logical">
+        <entity name="sanic_cm_tbl_asignacion">
+          <attribute name="sanic_cm_as_numero" />
+          <attribute name="sanic_cm_as_cuentaid" />
+          <attribute name="sanic_cm_as_numerocuenta" />
+          <attribute name="sanic_cm_as_agenteid" />
+          <attribute name="sanic_cm_as_ultimacarga" />
+          <attribute name="sanic_cm_tbl_asignacionid" />
+          <order attribute="sanic_cm_as_numero" descending="false" />
+          <filter type="and">
+            <condition attribute="sanic_cm_as_tipo" operator="eq" value="2" />
+            <condition attribute="sanic_cm_as_estado" operator="eq" value="1" />
+          </filter>
+        </entity>
+      </fetch>
+    </fetchxml>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <LocalizedNames>
+      <LocalizedName description="Admin · Incobrables abiertas" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="Admin" languagecode="1033" />
+    </Descriptions>
+  </savedquery>
+</savedqueries>

@@ -1,0 +1,141 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{813336ce-798a-f111-8076-70a8a59c703e}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>0</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab name="t" verticallayout="true" id="{5ff727d5-6298-4f8b-97fd-512cde31d520}" IsUserDefined="0" locklevel="0" showlabel="true" expanded="true">
+          <labels>
+            <label description="Aprobación de Especial" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section name="a1" showlabel="true" showbar="false" id="{e5312a75-f2f6-4af8-b808-23b23cfad6a8}" columns="11" labelwidth="150" celllabelalignment="Left" celllabelposition="Left">
+                  <labels>
+                    <label description="Solicitud a revisar" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{4980fb16-f740-4abe-aa4f-7bad59eb0689}">
+                        <labels>
+                          <label description="Producto / Cuenta" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_as_cuentaid" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="sanic_cm_as_cuentaid" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{53c2e703-77e0-4797-9fc3-020b5dae168a}">
+                        <labels>
+                          <label description="Retiro NIO" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_as_retironio" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="sanic_cm_as_retironio" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{69f9635b-9d1d-4519-8048-a2f997b28820}">
+                        <labels>
+                          <label description="Retiro USD" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_as_retirousd" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="sanic_cm_as_retirousd" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{da1c1cda-0915-4bf8-b83a-06d0fc345c91}">
+                        <labels>
+                          <label description="Solicitado por" languagecode="1033" />
+                        </labels>
+                        <control id="createdby" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="createdby" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{577bd13a-b6b3-4a89-91eb-412935cad283}">
+                        <labels>
+                          <label description="Fecha de solicitud" languagecode="1033" />
+                        </labels>
+                        <control id="createdon" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="createdon" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{f5e0b3cf-4052-4b3e-a877-bf72dd069dbc}">
+                        <labels>
+                          <label description="Motivo de la solicitud" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_as_motivo" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" datafieldname="sanic_cm_as_motivo" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{e1fde5eb-2f7d-4531-a4a5-3816fcc85ed0}">
+                        <labels>
+                          <label description="Notas (para el localizador)" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_as_notas" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" datafieldname="sanic_cm_as_notas" disabled="true" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="a2" showlabel="true" showbar="false" id="{389b0f63-b1a5-4187-a046-cf945c8bc7b6}" columns="11" labelwidth="150" celllabelalignment="Left" celllabelposition="Left">
+                  <labels>
+                    <label description="Decisión del supervisor" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{7219a435-467a-4cb7-8e66-bac67832def9}">
+                        <labels>
+                          <label description="Asignar localizador" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_as_agenteid" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="sanic_cm_as_agenteid" disabled="false" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{285df008-6677-4f5d-8b61-48da1a6566a4}">
+                        <labels>
+                          <label description="Decisión (Aprobado / Rechazada)" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_as_estadoaprobacion" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="sanic_cm_as_estadoaprobacion" disabled="false" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{d3fcf79f-c350-4838-869a-4446d3c1ce4e}">
+                        <labels>
+                          <label description="Motivo de rechazo (si rechaza)" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_as_motivorechazo" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" datafieldname="sanic_cm_as_motivorechazo" disabled="false" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="a3" showlabel="true" showbar="false" id="{d601f4fe-cb6b-4d40-9f29-392e51ac3090}" columns="11" labelwidth="150" celllabelalignment="Left" celllabelposition="Left">
+                  <labels>
+                    <label description="Estado" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{f4bdd47f-458b-4607-a06d-86b6dd2b6b48}">
+                        <labels>
+                          <label description="Resuelto por" languagecode="1033" />
+                        </labels>
+                        <control id="modifiedby" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="modifiedby" disabled="true" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="CM | Aprobación de Especial" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="Formulario del Supervisor para aprobar/rechazar" languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

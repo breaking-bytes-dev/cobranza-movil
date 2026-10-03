@@ -42,6 +42,9 @@
           </columns>
         </tab>
       </tabs>
+      <DisplayConditions FallbackForm="true" Order="0">
+        <Role Id="{B2884281-F573-F111-AB0E-000D3A3483E7}" />
+      </DisplayConditions>
     </form>
     <IsCustomizable>1</IsCustomizable>
     <CanBeDeleted>1</CanBeDeleted>

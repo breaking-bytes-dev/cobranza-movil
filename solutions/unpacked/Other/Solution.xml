@@ -1,12 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<ImportExportXml version="9.2.26072.132" SolutionPackageVersion="9.2" languagecode="1033" generatedBy="CrmLive" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.26072.132" OrganizationSchemaType="Standard" CRMServerServiceabilityVersion="9.2.26072.00132">
+<ImportExportXml version="9.2.26093.135" SolutionPackageVersion="9.2" languagecode="1033" generatedBy="CrmLive" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.26093.135" OrganizationSchemaType="Standard" CRMServerServiceabilityVersion="9.2.26093.00139">
   <SolutionManifest>
     <UniqueName>cm_core_cobranzamovil</UniqueName>
     <LocalizedNames>
       <LocalizedName description="CM | Core | Cobranza Movil" languagecode="1033" />
     </LocalizedNames>
     <Descriptions />
-    <Version>1.0.0.0</Version>
+    <Version>1.1.0.0</Version>
     <Managed>0</Managed>
     <Publisher>
       <UniqueName>Sistemas_Abiertos_Nicaragua</UniqueName>
@@ -92,6 +92,7 @@
       <RootComponent type="1" schemaName="sanic_cm_tbl_pago" behavior="0" />
       <RootComponent type="1" schemaName="sanic_cm_tbl_producto" behavior="0" />
       <RootComponent type="1" schemaName="sanic_cm_tbl_telefono" behavior="0" />
+      <RootComponent type="1" schemaName="sanic_cm_tbl_usuarioapp" behavior="0" />
       <RootComponent type="1" schemaName="systemuser" behavior="1" />
       <RootComponent type="20" id="{0ed5c9cb-fd76-f111-ab0e-70a8a5b226fd}" behavior="0" />
       <RootComponent type="20" id="{6488515d-fe76-f111-ab0e-70a8a5b226fd}" behavior="0" />
@@ -101,7 +102,9 @@
       <RootComponent type="20" id="{e56809a5-fc76-f111-ab0e-70a8a5b226fd}" behavior="0" />
       <RootComponent type="29" id="{3b897aa2-0077-f111-ab0e-70a8a5b226fd}" behavior="0" />
       <RootComponent type="29" id="{6fdd6914-0777-f111-ab0e-70a8a5b226fd}" behavior="0" />
+      <RootComponent type="29" id="{bc33bc07-f48a-f111-8076-70a8a59c703e}" behavior="0" />
       <RootComponent type="29" id="{d6f8caac-9871-f111-ab0d-000d3a5d0906}" behavior="0" />
+      <RootComponent type="300" schemaName="sanic_appcmbackofficecanvas_d0162" behavior="0" />
       <RootComponent type="300" schemaName="sanic_appcmbackofficedefaultcommandlibrary_d6eda" behavior="0" />
       <RootComponent type="300" schemaName="sanic_appcobranzamovil_c4e67" behavior="0" />
       <RootComponent type="62" schemaName="sanic_AppCMBackoffice" behavior="0" />
@@ -113,11 +116,19 @@
     </RootComponents>
     <MissingDependencies>
       <MissingDependency>
-        <Required type="1" schemaName="systemuser" displayName="SystemUser" parentSchemaName="" solution="msdyn_PowerAdminSettingsEmail (2.2.3468.1)" />
+        <Required type="1" schemaName="sanic_tbl_smlt_importjob" displayName="TBL | SMLT | Import Job" solution="Active" />
+        <Dependent type="62" schemaName="sanic_AppCMBackoffice" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="1" schemaName="sanic_tbl_smlt_importjob" displayName="TBL | SMLT | Import Job" solution="Active" />
+        <Dependent type="80" schemaName="sanic_AppCMBackoffice" displayName="App - CM - Backoffice" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="1" schemaName="systemuser" displayName="SystemUser" parentSchemaName="" solution="msdyn_PowerAdminSettingsEmail (2.2.3538.1)" />
         <Dependent type="1" schemaName="systemuser" displayName="SystemUser" />
       </MissingDependency>
       <MissingDependency>
-        <Required type="161" displayName="autogenProfile-sanic_appcobranzamovil_c4e67" solution="Active" id="{9c55d748-b071-f111-ab0d-000d3a5d0906}" />
+        <Required type="161" displayName="autogenProfile-sanic_appcobranzamovil_c4e67" solution="Active" id="{f5f8e1c2-2c89-f111-8076-70a8a5b317f2}" />
         <Dependent type="300" schemaName="sanic_appcobranzamovil_c4e67" displayName="App - Cobranza Movil" />
       </MissingDependency>
       <MissingDependency>
@@ -127,18 +138,402 @@
         <Dependent type="80" schemaName="sanic_AppCMBackoffice" displayName="App - CM - Backoffice" />
       </MissingDependency>
       <MissingDependency>
+        <Required type="61" schemaName="msdyn_CopilotIcon.svg" displayName="msdyn_CopilotIcon.svg" solution="msdyn_AppCopilotFeatures (9.2.2026084.260813071)">
+          <package appName="PowerAppsAppCopilotApp Package" version="9.2.0.5">msdyn_M365CopilotAppInfraSettings (9.2.0.5)</package>
+        </Required>
+        <Dependent type="appaction" displayName="sanic__msdyn_Mscrm.Form.Copilot.Summarize!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.uniquename="sanic__msdyn_Mscrm.Form.Copilot.Summarize!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="61" schemaName="msdyn_CopilotSummarizeLibrary.js" displayName="msdyn_CopilotSummarizeLibrary.js" solution="msdyn_AppCopilotFeatures (9.2.2026084.260813071)">
+          <package appName="PowerAppsAppCopilotApp Package" version="9.2.0.5">msdyn_M365CopilotAppInfraSettings (9.2.0.5)</package>
+        </Required>
+        <Dependent type="appaction" displayName="sanic__msdyn_Mscrm.Form.Copilot.Summarize!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.uniquename="sanic__msdyn_Mscrm.Form.Copilot.Summarize!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" />
+      </MissingDependency>
+      <MissingDependency>
         <Required type="90" schemaName="Microsoft.PowerFx.Evaluator, Microsoft.PowerFx.PlexPlugins, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" displayName="Microsoft.PowerFx.Evaluator" solution="msft_PowerfxRuleSolution (1.0.3464.116)" id="{462b3e8f-beb4-4981-9b87-a60c2162a9f7}">
           <package appName="PowerfxRuleApp Package" version="1.0.3464.116">PowerfxRuleApp_Anchor (1.0.3464.116)</package>
         </Required>
         <Dependent type="CustomAPI" displayName="sanic_PlugInCMMarcarinteraccioncomograbadaenCORE" id.uniquename="sanic_PlugInCMMarcarinteraccioncomograbadaenCORE" />
       </MissingDependency>
       <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.AssignPrimaryPermission!0" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.AssignPrimaryPermission!0">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.Assign!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.AssignPrimaryPermission!0" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.Assign!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.AssignPrimaryPermission!0" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.AssignPrimaryPermission!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.AssignPrimaryPermission!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.Assign!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.AssignPrimaryPermission!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.Assign!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.AssignPrimaryPermission!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.AvailableOnForm!0" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.AvailableOnForm!0">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.NewRecord!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.AvailableOnForm!0" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.NewRecord!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.AvailableOnForm!0" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.AvailableOnForm!0" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.AvailableOnForm!0">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.NewRecordForBPFEntity!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.AvailableOnForm!0" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.NewRecordForBPFEntity!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.AvailableOnForm!0" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.AvailableOnForm!0" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.AvailableOnForm!0">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.Save!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.AvailableOnForm!0" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.Save!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.AvailableOnForm!0" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.AvailableOnForm!0" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.AvailableOnForm!0">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.SaveAsComplete!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.AvailableOnForm!0" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.SaveAsComplete!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.AvailableOnForm!0" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.CanDeletePrimary!0" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.CanDeletePrimary!0">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.Delete!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.CanDeletePrimary!0" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.Delete!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.CanDeletePrimary!0" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.CanSavePrimary!0" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.CanSavePrimary!0">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.Save!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.CanSavePrimary!0" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.Save!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.CanSavePrimary!0" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.CanSavePrimary!0" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.CanSavePrimary!0">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.SaveAsComplete!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.CanSavePrimary!0" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.SaveAsComplete!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.CanSavePrimary!0" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.CanSavePrimaryEntityType!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.CanSavePrimaryEntityType!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.Save!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.CanSavePrimaryEntityType!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.Save!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.CanSavePrimaryEntityType!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.CanSavePrimaryEntityType!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.CanSavePrimaryEntityType!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.SaveAsComplete!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.CanSavePrimaryEntityType!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.SaveAsComplete!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.CanSavePrimaryEntityType!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.CanWritePrimary!0" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.CanWritePrimary!0">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.Activate!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.CanWritePrimary!0" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.Activate!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.CanWritePrimary!0" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.CanWritePrimary!0" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.CanWritePrimary!0">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.Deactivate!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.CanWritePrimary!0" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.Deactivate!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.CanWritePrimary!0" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.CanWritePrimary!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.CanWritePrimary!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.Activate!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.CanWritePrimary!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.Activate!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.CanWritePrimary!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.CanWritePrimary!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.CanWritePrimary!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.Deactivate!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.CanWritePrimary!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.Deactivate!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.CanWritePrimary!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.CopilotClientApi!1" solution="msdyn_AppCopilotFeatures (9.2.2026084.260813071)" id.uniquename="msdyn_Mscrm.CopilotClientApi!1">
+          <package appName="PowerAppsAppCopilotApp Package" version="9.2.0.5">msdyn_M365CopilotAppInfraSettings (9.2.0.5)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__msdyn_Mscrm.Form.Copilot.Summarize!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.CopilotClientApi!1" id.appactionid.uniquename="sanic__msdyn_Mscrm.Form.Copilot.Summarize!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.CopilotClientApi!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.CreatePrimaryEntityPermission!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.CreatePrimaryEntityPermission!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.NewRecord!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.CreatePrimaryEntityPermission!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.NewRecord!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.CreatePrimaryEntityPermission!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.DeletePrimaryEntityPermission!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.DeletePrimaryEntityPermission!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.Delete!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.DeletePrimaryEntityPermission!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.Delete!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.DeletePrimaryEntityPermission!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.EnableCopilotSummarizeCommandButton!1" solution="msdyn_AppCopilotFeatures (9.2.2026084.260813071)" id.uniquename="msdyn_Mscrm.EnableCopilotSummarizeCommandButton!1">
+          <package appName="PowerAppsAppCopilotApp Package" version="9.2.0.5">msdyn_M365CopilotAppInfraSettings (9.2.0.5)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__msdyn_Mscrm.Form.Copilot.Summarize!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.EnableCopilotSummarizeCommandButton!1" id.appactionid.uniquename="sanic__msdyn_Mscrm.Form.Copilot.Summarize!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.EnableCopilotSummarizeCommandButton!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.EnableCopilotSummarizeFeatures!1" solution="msdyn_AppCopilotFeatures (9.2.2026084.260813071)" id.uniquename="msdyn_Mscrm.EnableCopilotSummarizeFeatures!1">
+          <package appName="PowerAppsAppCopilotApp Package" version="9.2.0.5">msdyn_M365CopilotAppInfraSettings (9.2.0.5)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__msdyn_Mscrm.Form.Copilot.Summarize!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.EnableCopilotSummarizeFeatures!1" id.appactionid.uniquename="sanic__msdyn_Mscrm.Form.Copilot.Summarize!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.EnableCopilotSummarizeFeatures!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.FormStateNotNew!0" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.FormStateNotNew!0">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.Assign!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.FormStateNotNew!0" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.Assign!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.FormStateNotNew!0" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.FormStateNotNew!0" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.FormStateNotNew!0">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.Delete!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.FormStateNotNew!0" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.Delete!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.FormStateNotNew!0" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.FormStateNotNew!0" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.FormStateNotNew!0">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.OpenActiveStage!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.FormStateNotNew!0" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.OpenActiveStage!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.FormStateNotNew!0" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.FormStateNotNew!0" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.FormStateNotNew!0">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__msdyn_Mscrm.Form.Copilot.Summarize!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.FormStateNotNew!0" id.appactionid.uniquename="sanic__msdyn_Mscrm.Form.Copilot.Summarize!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.FormStateNotNew!0" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.HideInLegacyRibbon!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.HideInLegacyRibbon!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.NewRecord!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.HideInLegacyRibbon!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.NewRecord!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.HideInLegacyRibbon!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.HideOnMobile!0" solution="msdyn_AppCopilotFeatures (9.2.2026084.260813071)" id.uniquename="msdyn_Mscrm.HideOnMobile!0">
+          <package appName="PowerAppsAppCopilotApp Package" version="9.2.0.5">msdyn_M365CopilotAppInfraSettings (9.2.0.5)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__msdyn_Mscrm.Form.Copilot.Summarize!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.HideOnMobile!0" id.appactionid.uniquename="sanic__msdyn_Mscrm.Form.Copilot.Summarize!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.HideOnMobile!0" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.InitializeCopilotSidePaneOnBoot!1" solution="msdyn_AppCopilotFeatures (9.2.2026084.260813071)" id.uniquename="msdyn_Mscrm.InitializeCopilotSidePaneOnBoot!1">
+          <package appName="PowerAppsAppCopilotApp Package" version="9.2.0.5">msdyn_M365CopilotAppInfraSettings (9.2.0.5)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__msdyn_Mscrm.Form.Copilot.Summarize!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.InitializeCopilotSidePaneOnBoot!1" id.appactionid.uniquename="sanic__msdyn_Mscrm.Form.Copilot.Summarize!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.InitializeCopilotSidePaneOnBoot!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.IsAppCopilotEnabled!0" solution="msdyn_AppCopilotFeatures (9.2.2026084.260813071)" id.uniquename="msdyn_Mscrm.IsAppCopilotEnabled!0">
+          <package appName="PowerAppsAppCopilotApp Package" version="9.2.0.5">msdyn_M365CopilotAppInfraSettings (9.2.0.5)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__msdyn_Mscrm.Form.Copilot.Summarize!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.IsAppCopilotEnabled!0" id.appactionid.uniquename="sanic__msdyn_Mscrm.Form.Copilot.Summarize!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.IsAppCopilotEnabled!0" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.IsAutoSaveDisable!0" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.IsAutoSaveDisable!0">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.Save!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.IsAutoSaveDisable!0" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.Save!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.IsAutoSaveDisable!0" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.IsBPFEntityCustomizationFeatureEnabled!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.IsBPFEntityCustomizationFeatureEnabled!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.NewRecordForBPFEntity!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.IsBPFEntityCustomizationFeatureEnabled!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.NewRecordForBPFEntity!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.IsBPFEntityCustomizationFeatureEnabled!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.IsBPFEntityCustomizationFeatureEnabled!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.IsBPFEntityCustomizationFeatureEnabled!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.OpenActiveStage!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.IsBPFEntityCustomizationFeatureEnabled!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.OpenActiveStage!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.IsBPFEntityCustomizationFeatureEnabled!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.IsEntityAvailableForUserInMocaOffline!0" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.IsEntityAvailableForUserInMocaOffline!0">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.Delete!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.IsEntityAvailableForUserInMocaOffline!0" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.Delete!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.IsEntityAvailableForUserInMocaOffline!0" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.IsEntityAvailableForUserInMocaOffline!0" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.IsEntityAvailableForUserInMocaOffline!0">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.NewRecord!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.IsEntityAvailableForUserInMocaOffline!0" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.NewRecord!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.IsEntityAvailableForUserInMocaOffline!0" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.IsEntityAvailableForUserInMocaOffline!0" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.IsEntityAvailableForUserInMocaOffline!0">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.NewRecordForBPFEntity!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.IsEntityAvailableForUserInMocaOffline!0" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.NewRecordForBPFEntity!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.IsEntityAvailableForUserInMocaOffline!0" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.IsEntityAvailableForUserInMocaOffline!0" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.IsEntityAvailableForUserInMocaOffline!0">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.Save!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.IsEntityAvailableForUserInMocaOffline!0" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.Save!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.IsEntityAvailableForUserInMocaOffline!0" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.IsEntityAvailableForUserInMocaOffline!0" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.IsEntityAvailableForUserInMocaOffline!0">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.SaveAsComplete!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.IsEntityAvailableForUserInMocaOffline!0" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.SaveAsComplete!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.IsEntityAvailableForUserInMocaOffline!0" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.IsPUV2EntityCustomizationEnabled!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.IsPUV2EntityCustomizationEnabled!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.NewRecordForBPFEntity!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.IsPUV2EntityCustomizationEnabled!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.NewRecordForBPFEntity!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.IsPUV2EntityCustomizationEnabled!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.IsPUV2EntityCustomizationEnabled!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.IsPUV2EntityCustomizationEnabled!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.OpenActiveStage!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.IsPUV2EntityCustomizationEnabled!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.OpenActiveStage!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.IsPUV2EntityCustomizationEnabled!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.NotClosedActivity!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.NotClosedActivity!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.Assign!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.NotClosedActivity!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.Assign!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.NotClosedActivity!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.NotOffline!0" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.NotOffline!0">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.Assign!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.NotOffline!0" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.Assign!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.NotOffline!0" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.OutlookRenderTypeWeb!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.OutlookRenderTypeWeb!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.Activate!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.OutlookRenderTypeWeb!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.Activate!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.OutlookRenderTypeWeb!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.OutlookRenderTypeWeb!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.OutlookRenderTypeWeb!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.Assign!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.OutlookRenderTypeWeb!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.Assign!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.OutlookRenderTypeWeb!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.OutlookRenderTypeWeb!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.OutlookRenderTypeWeb!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.Deactivate!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.OutlookRenderTypeWeb!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.Deactivate!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.OutlookRenderTypeWeb!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.OutlookRenderTypeWeb!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.OutlookRenderTypeWeb!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.Delete!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.OutlookRenderTypeWeb!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.Delete!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.OutlookRenderTypeWeb!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.OutlookRenderTypeWeb!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.OutlookRenderTypeWeb!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.NewRecord!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.OutlookRenderTypeWeb!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.NewRecord!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.OutlookRenderTypeWeb!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.OutlookRenderTypeWeb!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.OutlookRenderTypeWeb!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.NewRecordForBPFEntity!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.OutlookRenderTypeWeb!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.NewRecordForBPFEntity!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.OutlookRenderTypeWeb!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.OutlookRenderTypeWeb!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.OutlookRenderTypeWeb!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.OpenActiveStage!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.OutlookRenderTypeWeb!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.OpenActiveStage!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.OutlookRenderTypeWeb!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.OutlookRenderTypeWeb!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.OutlookRenderTypeWeb!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.Save!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.OutlookRenderTypeWeb!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.Save!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.OutlookRenderTypeWeb!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.OutlookRenderTypeWeb!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.OutlookRenderTypeWeb!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.SaveAsComplete!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.OutlookRenderTypeWeb!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.SaveAsComplete!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.OutlookRenderTypeWeb!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.PrimaryEntityHasStatecode!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.PrimaryEntityHasStatecode!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.Activate!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.PrimaryEntityHasStatecode!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.Activate!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.PrimaryEntityHasStatecode!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.PrimaryEntityHasStatecode!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.PrimaryEntityHasStatecode!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.Deactivate!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.PrimaryEntityHasStatecode!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.Deactivate!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.PrimaryEntityHasStatecode!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.PrimaryEntityIsBPFEntity!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.PrimaryEntityIsBPFEntity!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.NewRecordForBPFEntity!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.PrimaryEntityIsBPFEntity!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.NewRecordForBPFEntity!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.PrimaryEntityIsBPFEntity!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.PrimaryEntityIsBPFEntity!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.PrimaryEntityIsBPFEntity!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.OpenActiveStage!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.PrimaryEntityIsBPFEntity!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.OpenActiveStage!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.PrimaryEntityIsBPFEntity!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.PrimaryEntityIsNotBPFEntity!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.PrimaryEntityIsNotBPFEntity!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.NewRecord!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.PrimaryEntityIsNotBPFEntity!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.NewRecord!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.PrimaryEntityIsNotBPFEntity!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.PrimaryIsActive!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.PrimaryIsActive!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.Deactivate!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.PrimaryIsActive!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.Deactivate!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.PrimaryIsActive!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.PrimaryIsActivity!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.PrimaryIsActivity!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.SaveAsComplete!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.PrimaryIsActivity!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.SaveAsComplete!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.PrimaryIsActivity!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.PrimaryIsInactive!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.PrimaryIsInactive!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.Activate!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.PrimaryIsInactive!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.Activate!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.PrimaryIsInactive!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.PrimaryIsNotActivity!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.PrimaryIsNotActivity!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.Activate!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.PrimaryIsNotActivity!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.Activate!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.PrimaryIsNotActivity!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.PrimaryIsNotActivity!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.PrimaryIsNotActivity!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.Deactivate!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.PrimaryIsNotActivity!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.Deactivate!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.PrimaryIsNotActivity!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.PrimaryIsNotActivity!1" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.PrimaryIsNotActivity!1">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.NewRecord!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.PrimaryIsNotActivity!1" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.NewRecord!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.PrimaryIsNotActivity!1" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.ReadPrimaryPermission!0" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.ReadPrimaryPermission!0">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.Save!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.ReadPrimaryPermission!0" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.Save!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.ReadPrimaryPermission!0" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="appactionrule" displayName="msdyn_Mscrm.ReadPrimaryPermission!0" solution="msdyn_SystemAppActions (9.1.0.57)" id.uniquename="msdyn_Mscrm.ReadPrimaryPermission!0">
+          <package appName="PowerAppsActions Package" version="9.1.0.57">PowerAppsActions_Anchor (9.1.0.57)</package>
+        </Required>
+        <Dependent type="appaction_appactionrule_classicrules" displayName="appactionid.uniquename=sanic__Mscrm.Form.%7B!EntityLogicalName%7D.SaveAsComplete!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0,appactionruleid.uniquename=msdyn_Mscrm.ReadPrimaryPermission!0" id.appactionid.uniquename="sanic__Mscrm.Form.{!EntityLogicalName}.SaveAsComplete!sanic_AppCMBackoffice!sanic_cm_tbl_interaccion!0" id.appactionruleid.uniquename="msdyn_Mscrm.ReadPrimaryPermission!0" />
+      </MissingDependency>
+      <MissingDependency>
         <Required type="connectionreference" displayName="wf_sharedcommondataserviceforapps_3bc81" solution="Active" id.connectionreferencelogicalname="wf_sharedcommondataserviceforapps_3bc81" />
         <Dependent type="29" displayName="Cloud Flow | CM | Cambio de Owner en Asignaciones" id="{3b897aa2-0077-f111-ab0e-70a8a5b226fd}" />
       </MissingDependency>
       <MissingDependency>
-        <Required type="SettingDefinition" displayName="AppChannel" solution="msdyn_AppFrameworkInfraExtensions (1.0.0.19)" id.uniquename="AppChannel">
-          <package appName="PowerAppsAppFramework Package" version="1.0.0.25">PowerAppsAppFramework_Anchor (1.0.0.25)</package>
+        <Required type="SettingDefinition" displayName="AppChannel" solution="msdyn_AppFrameworkInfraExtensions (1.0.0.20)" id.uniquename="AppChannel">
+          <package appName="PowerAppsAppFramework Package" version="1.0.0.26">PowerAppsAppFramework_Anchor (1.0.0.26)</package>
         </Required>
         <Dependent type="AppSetting" displayName="parentappmoduleid.uniquename=sanic_AppCMBackoffice,settingdefinitionid.uniquename=AppChannel" id.parentappmoduleid.uniquename="sanic_AppCMBackoffice" id.settingdefinitionid.uniquename="AppChannel" />
       </MissingDependency>

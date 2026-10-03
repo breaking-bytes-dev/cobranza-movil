@@ -5,34 +5,256 @@
     <IntroducedVersion>1.0</IntroducedVersion>
     <FormPresentation>1</FormPresentation>
     <FormActivationState>1</FormActivationState>
-    <form>
+    <form headerdensity="HighWithControls">
       <tabs>
-        <tab verticallayout="true" id="{b9932031-17b1-409f-8109-54dafec710fe}" IsUserDefined="1">
+        <tab name="tab_transcripcion" verticallayout="true" id="{1527ed2b-da33-4cb1-aded-56a750749a64}" IsUserDefined="0" locklevel="0" showlabel="true" expanded="true">
           <labels>
-            <label description="General" languagecode="1033" />
+            <label description="Transcripción" languagecode="1033" />
           </labels>
           <columns>
             <column width="100%">
               <sections>
-                <section showlabel="false" showbar="false" IsUserDefined="0" id="{0b6697f2-eb6a-4419-89a5-dac51ef61274}">
+                <section name="sec_gestion" showlabel="true" showbar="false" IsUserDefined="0" id="{168c1379-b607-4bcc-90d2-bf777e132248}" columns="1" labelwidth="140" celllabelalignment="Left" celllabelposition="Left">
                   <labels>
-                    <label description="General" languagecode="1033" />
+                    <label description="Gestión (campo · solo lectura)" languagecode="1033" />
                   </labels>
                   <rows>
                     <row>
-                      <cell id="{5fec3ca6-c5bb-4a9e-a058-987a19e19bbd}">
+                      <cell id="{a6d12334-8cd9-47b1-870f-7c37e3886c1e}">
                         <labels>
-                          <label description="[IN] Numero de Interaccion" languagecode="1033" />
+                          <label description="N° interacción" languagecode="1033" />
                         </labels>
-                        <control id="sanic_cm_in_numerointeraccion" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_cm_in_numerointeraccion" />
+                        <control id="sanic_cm_in_numerointeraccion" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_cm_in_numerointeraccion" disabled="true" />
                       </cell>
                     </row>
                     <row>
-                      <cell id="{18649bb8-ced6-4635-b071-a39680f9080b}">
+                      <cell id="{b43835fa-d559-42da-adfb-ae1a8c3e1848}">
                         <labels>
-                          <label description="Owner" languagecode="1033" />
+                          <label description="Cuenta" languagecode="1033" />
                         </labels>
-                        <control id="ownerid" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="ownerid" />
+                        <control id="sanic_cm_in_cuentaid" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="sanic_cm_in_cuentaid" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{7ee408f6-b416-47e1-8164-b3b2062334fb}">
+                        <labels>
+                          <label description="N° de cuenta" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_in_numerocuenta" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_cm_in_numerocuenta" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{a9b08bbc-90bf-4fc4-9571-aa2ada2ebafe}">
+                        <labels>
+                          <label description="Localizador" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_in_agente" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="sanic_cm_in_agente" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{0e20747d-0076-4b4a-9ac2-ee0e47bec11b}">
+                        <labels>
+                          <label description="Comentario" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_in_comentario" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" datafieldname="sanic_cm_in_comentario" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{9e9319fa-200c-41eb-8b48-fef9cd7cda50}">
+                        <labels>
+                          <label description="Fecha de interacción" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_in_fechacaptura" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="sanic_cm_in_fechacaptura" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{0534e8e3-47d4-4a8b-8dae-0d3bf7876ee8}">
+                        <labels>
+                          <label description="¿Aplica pago?" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_cd_aplicapago" classid="{67FAC785-CD58-4f9f-ABB3-4B7DDC6ED5ED}" datafieldname="sanic_cm_cd_aplicapago" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{b5f92beb-812f-45b0-82fa-11a5a2335204}" locklevel="0" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="Actualiza info" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_in_actualizainfo" classid="{67FAC785-CD58-4F9F-ABB3-4B7DDC6ED5ED}" datafieldname="sanic_cm_in_actualizainfo" disabled="false" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{7f9c322e-6a41-4c1a-93ce-b05bf00d8af7}">
+                        <labels>
+                          <label description="Latitud" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_in_latitud" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="sanic_cm_in_latitud" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{e83b6456-53a1-4a4b-8664-ac3ec5e1a17a}">
+                        <labels>
+                          <label description="Longitud" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_in_longitud" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="sanic_cm_in_longitud" disabled="true" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="sec_pagos" showlabel="true" showbar="false" IsUserDefined="0" id="{089782b3-077c-4358-b3a7-5b56b388bcda}" columns="1" labelwidth="140" celllabelalignment="Left" celllabelposition="Left">
+                  <labels>
+                    <label description="Pagos" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{631c79d8-e53f-4c6b-ae2c-93e2abbad95c}" showlabel="true" rowspan="6" colspan="1">
+                        <labels>
+                          <label description="Pagos de la interacción" languagecode="1033" />
+                        </labels>
+                        <control id="Subgrid_pagos" classid="{E7A81278-8635-4d9e-8D4D-59480B391C5B}" indicationOfSubgrid="true" uniqueid="{7624a8ad-de0f-412c-b872-469c4cd374a8}">
+                          <parameters>
+                            <ViewId>{79E571AB-0377-F111-AB0E-70A8A5B226FD}</ViewId>
+                            <IsUserView>false</IsUserView>
+                            <RelationshipName>sanic_cm_tbl_pago_cm_pg_interaccion_sanic_cm_tbl_interaccion</RelationshipName>
+                            <TargetEntityType>sanic_cm_tbl_pago</TargetEntityType>
+                            <EnableQuickFind>false</EnableQuickFind>
+                            <EnableViewPicker>false</EnableViewPicker>
+                            <ViewIds>{D1EB237D-EAF3-43AE-BADD-65623D781809},{382780D8-4231-47B7-BAF3-A78C47AC7A03},{79E571AB-0377-F111-AB0E-70A8A5B226FD}</ViewIds>
+                            <EnableJumpBar>false</EnableJumpBar>
+                            <ChartGridMode>Grid</ChartGridMode>
+                            <VisualizationId />
+                            <IsUserChart>false</IsUserChart>
+                            <EnableChartPicker>false</EnableChartPicker>
+                            <RecordsPerPage>5</RecordsPerPage>
+                            <AutoExpand>Fixed</AutoExpand>
+                          </parameters>
+                        </control>
+                      </cell>
+                    </row>
+                    <row>
+                      <cell locklevel="0" id="{db9579f9-255f-4883-8948-b6c7cb145fab}" rowspan="4" colspan="1" auto="false">
+                        <labels>
+                          <label description="New SG control 1785925434772" languagecode="1033" />
+                        </labels>
+                        <control indicationOfSubgrid="true" id="Subgrid_new_1" classid="{E7A81278-8635-4D9E-8D4D-59480B391C5B}">
+                          <parameters>
+                            <RecordsPerPage>4</RecordsPerPage>
+                            <AutoExpand>Fixed</AutoExpand>
+                            <EnableQuickFind>false</EnableQuickFind>
+                            <EnableViewPicker>false</EnableViewPicker>
+                            <EnableChartPicker>true</EnableChartPicker>
+                            <ChartGridMode>All</ChartGridMode>
+                            <RelationshipName>sanic_cm_tbl_actualizaciondatos_cm_ad_interaccionid_sanic_cm_tbl_interaccion</RelationshipName>
+                            <TargetEntityType>sanic_cm_tbl_actualizaciondatos</TargetEntityType>
+                            <ViewId>{e85aacd4-49dd-4665-a272-41f9f7082f04}</ViewId>
+                            <ViewIds>{e85aacd4-49dd-4665-a272-41f9f7082f04}</ViewIds>
+                          </parameters>
+                        </control>
+                      </cell>
+                    </row>
+                    <row />
+                    <row />
+                    <row />
+                    <row>
+                      <cell locklevel="0" id="{a91ca97a-4c05-4308-942c-cb14cac3db2b}" rowspan="4" colspan="1" auto="false">
+                        <labels>
+                          <label description="New SG control 1785925456386" languagecode="1033" />
+                        </labels>
+                        <control indicationOfSubgrid="true" id="Subgrid_new_2" classid="{E7A81278-8635-4D9E-8D4D-59480B391C5B}">
+                          <parameters>
+                            <RecordsPerPage>4</RecordsPerPage>
+                            <AutoExpand>Fixed</AutoExpand>
+                            <EnableQuickFind>false</EnableQuickFind>
+                            <EnableViewPicker>false</EnableViewPicker>
+                            <EnableChartPicker>true</EnableChartPicker>
+                            <ChartGridMode>All</ChartGridMode>
+                            <RelationshipName>sanic_cm_tbl_actualizaciondatos_cm_ad_interaccionid_sanic_cm_tbl_interaccion</RelationshipName>
+                            <TargetEntityType>sanic_cm_tbl_actualizaciondatos</TargetEntityType>
+                            <ViewId>{E85AACD4-49DD-4665-A272-41F9F7082F04}</ViewId>
+                            <ViewIds>{E85AACD4-49DD-4665-A272-41F9F7082F04}</ViewIds>
+                          </parameters>
+                        </control>
+                      </cell>
+                    </row>
+                    <row />
+                    <row />
+                    <row />
+                  </rows>
+                </section>
+                <section name="tab_transcripcion_section_7" id="e7b88477-7149-4072-8d0b-e01b35a1e5f2" IsUserDefined="0" locklevel="0" showlabel="true" showbar="false" layout="varwidth" celllabelalignment="Left" celllabelposition="Left" columns="1" labelwidth="115">
+                  <labels>
+                    <label description="Actualizacion de datos" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row />
+                    <row>
+                      <cell locklevel="0" id="{29a43a2a-5493-4e8a-a91c-61359da5c04b}" rowspan="4" colspan="1" auto="false">
+                        <labels>
+                          <label description="Datos" languagecode="1033" />
+                        </labels>
+                        <control indicationOfSubgrid="true" id="Subgrid_new_3" classid="{E7A81278-8635-4D9E-8D4D-59480B391C5B}">
+                          <parameters>
+                            <RecordsPerPage>4</RecordsPerPage>
+                            <AutoExpand>Fixed</AutoExpand>
+                            <EnableQuickFind>false</EnableQuickFind>
+                            <EnableViewPicker>false</EnableViewPicker>
+                            <EnableChartPicker>true</EnableChartPicker>
+                            <ChartGridMode>All</ChartGridMode>
+                            <RelationshipName>sanic_cm_tbl_actualizaciondatos_cm_ad_interaccionid_sanic_cm_tbl_interaccion</RelationshipName>
+                            <TargetEntityType>sanic_cm_tbl_actualizaciondatos</TargetEntityType>
+                            <ViewId>{E85AACD4-49DD-4665-A272-41F9F7082F04}</ViewId>
+                            <ViewIds>{E85AACD4-49DD-4665-A272-41F9F7082F04}</ViewIds>
+                          </parameters>
+                        </control>
+                      </cell>
+                    </row>
+                    <row />
+                    <row />
+                    <row />
+                  </rows>
+                </section>
+                <section name="sec_transc" showlabel="true" showbar="false" IsUserDefined="0" id="{a5dbd767-3142-4b47-83a3-593a1e84bf32}" columns="1" labelwidth="140" celllabelalignment="Left" celllabelposition="Left">
+                  <labels>
+                    <label description="Transcripción al core" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{5126ac91-2893-468d-8716-abd8f5f3353b}">
+                        <labels>
+                          <label description="Estado de transcripción" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_in_estadograbacion" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="sanic_cm_in_estadograbacion" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{2127dae5-5f16-4ee5-bc1b-60780a1a5967}">
+                        <labels>
+                          <label description="Código del core" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_in_codigograbacion" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_cm_in_codigograbacion" disabled="false" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="sec_audit" showlabel="true" showbar="false" IsUserDefined="0" id="{b7a2b39a-7d51-4b4b-a8ac-8e7054be57b6}" columns="1" labelwidth="140" celllabelalignment="Left" celllabelposition="Left">
+                  <labels>
+                    <label description="Auditoría" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{5ae864ce-ccc7-44ee-bde9-753faf47623a}">
+                        <labels>
+                          <label description="Fecha grabada en core" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_in_fechagrabacion" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="sanic_cm_in_fechagrabacion" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{d2949c48-f9ff-42f8-8ecf-4b37fe080a34}">
+                        <labels>
+                          <label description="Grabada por" languagecode="1033" />
+                        </labels>
+                        <control id="sanic_cm_in_grabadopor" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="sanic_cm_in_grabadopor" disabled="true" />
                       </cell>
                     </row>
                   </rows>
@@ -42,6 +264,51 @@
           </columns>
         </tab>
       </tabs>
+      <header id="{29eeaaac-dc2c-493f-b138-a9227cfd846a}" celllabelposition="Top" columns="111" labelwidth="115" celllabelalignment="Left">
+        <rows>
+          <row>
+            <cell id="{378e6d1c-315e-49d5-809d-521dcad5a204}" showlabel="false">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+            <cell id="{daded707-9501-406e-848b-4e9a528698e7}" showlabel="false">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+            <cell id="{31bd10ea-50b0-4123-bd9e-3efac0c2393f}" showlabel="false">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+          </row>
+        </rows>
+      </header>
+      <footer id="{cb8b68e0-d67a-4795-a00c-b595bfabc8a5}" celllabelposition="Top" columns="111" labelwidth="115" celllabelalignment="Left">
+        <rows>
+          <row>
+            <cell id="{0bd0cf3e-d392-43b0-8f32-5069c00d4edc}" showlabel="false">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+            <cell id="{a3ea7bb7-37ef-4a5a-b695-a5006b370ab7}" showlabel="false">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+            <cell id="{fc2bebec-fff9-49ba-bd19-8181c8b036ef}" showlabel="false">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+          </row>
+        </rows>
+      </footer>
+      <DisplayConditions Order="0" FallbackForm="true">
+        <Everyone />
+      </DisplayConditions>
     </form>
     <IsCustomizable>1</IsCustomizable>
     <CanBeDeleted>1</CanBeDeleted>
