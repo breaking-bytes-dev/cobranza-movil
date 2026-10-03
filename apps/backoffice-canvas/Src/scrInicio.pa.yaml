@@ -35,7 +35,7 @@ Screens:
                     Filter('CM | TBL | Interaccions',
                         '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Grabado
                         && '[IN] Fecha grabacion' >= Today()
-                        && '[IN] Grabado por' = gblUsuarioDV))
+                        && '[IN] Grabado por'.User = gblUsuarioDV.User))
             )
         );
         // 3) Solicitante: TODAS mis Especiales (los 3 KPIs se cuentan en memoria sobre esta colección).
@@ -43,7 +43,7 @@ Screens:
             ClearCollect(colSolIni,
                 Filter('CM | TBL | Asignacions',
                     '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
-                    && '[AS] Solicitado por' = gblUsuarioDV))
+                    && '[AS] Solicitado por'.User = gblUsuarioDV.User))
         );
         // 4) Supervisor: Especiales pendientes de aprobación (cota real: unidades — 00 §4.1).
         If("Supervisor" in gblRol,
@@ -896,7 +896,7 @@ Screens:
             Height: =200
             Icono: |-
               ="🔐"
-            Mensaje: ="Tu usuario no tiene rol asignado en Cobranza Móvil. Pedile al Admin que te agregue en Usuario App."
+            Mensaje: ="Tu usuario no tiene un rol de Cobranza Móvil (SR | CM | …). Pedile al Admin que te agregue al team correspondiente."
             Titulo: ="Sin acceso"
             Visible: =IsBlank(gblRol)
             Width: =Min(420, Parent.Width - 2*gblE.Pad)

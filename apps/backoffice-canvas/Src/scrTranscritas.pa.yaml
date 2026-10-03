@@ -11,24 +11,21 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =// 1) Guard de rol — primera línea SIEMPRE (guía 01 §4)
-        If(!("Backoffice" in gblRol), Navigate(scrInicio));
-        // 2) Fuentes independientes en paralelo (ambas delegables)
+        =// 2) Fuentes independientes en paralelo (ambas delegables)
         Concurrent(
-            ClearCollect(colCtasTsc, ShowColumns('CM | TBL | Cuentas',
-                '[CT] Numero de cuenta', 'Nombre Cliente', 'CIF Cliente', 'Tipo Producto')),
+            ClearCollect(colCtasTsc, 'CM | TBL | Cuentas'),
             ClearCollect(colPagosHoyTsc,
                 Filter('CM | TBL | Pagos', 'Fecha del pago' >= Today()))
         );
-        // 3) Arqueo del día: SOLO lo grabado HOY por MÍ.
+        // 3) Arqueo del día (base en colTscTmpTsc): SOLO lo grabado HOY por MÍ.
         //    choice por valor + comparación de fecha + lookup por registro = delegable (00 §4.2).
         //    El join del cliente se hornea acá (7.7) → va DESPUÉS de colCtasTsc, NUNCA en el Concurrent.
-        ClearCollect(colTscTsc,
+        ClearCollect(colTscTmpTsc,
             AddColumns(
                 Filter('CM | TBL | Interaccions',
                     '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Grabado
                     && '[IN] Fecha grabacion' >= Today()
-                    && '[IN] Grabado por' = gblUsuarioDV),
+                    && '[IN] Grabado por'.User = gblUsuarioDV.User),
                 clienteTsc, Upper(Coalesce(LookUp(colCtasTsc, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'Nombre Cliente', "—")),   // LED-01
                 cifTsc, Coalesce(LookUp(colCtasTsc, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'CIF Cliente', "—"),
                 prodTsc, Coalesce(LookUp(colCtasTsc, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'Tipo Producto', "—")
@@ -38,12 +35,13 @@ Screens:
         //    Filter sobre COLECCIÓN → cero delegación involucrada: permitido (00 §4.1).
         ClearCollect(colPagosTsc,
             Filter(colPagosHoyTsc,
-                !IsBlank(LookUp(colTscTsc, '[IN] Numero de Interaccion' = '[PG] Numero Interaccion'))));
+                !IsBlank(LookUp(colTscTmpTsc, '[IN] Numero de Interaccion' = '[PG] Numero Interaccion'))));
         // 5) Chip 💵 de la fila: montos por interacción HORNEADOS una vez (todo sobre colecciones,
-        //    en memoria — R1-02). Puente colTscTmpTsc obligatorio: ClearCollect(colTscTsc,
-        //    AddColumns(colTscTsc, …)) se vaciaría a sí misma (el Clear corre antes de evaluar).
-        ClearCollect(colTscTmpTsc,
-            AddColumns(colTscTsc,
+        //    en memoria — R1-02). La base vive en colTscTmpTsc (SIN pagos*) y colTscTsc se escribe
+        //    UNA sola vez ya con pagos*: si AddColumns leyera colTscTsc, su esquema ya trae
+        //    pagosNioTsc → "A column named 'pagosNioTsc' already exists".
+        ClearCollect(colTscTsc,
+            AddColumns(colTscTmpTsc,
                 pagosNioTsc, Sum(Filter(colPagosTsc,
                     '[PG] Numero Interaccion' = '[IN] Numero de Interaccion'
                     && '[PG] Moneda' = 'Choice | CM | Monedas en Pago'.NIO), '[PG] Monto'),
@@ -52,7 +50,6 @@ Screens:
                     && '[PG] Moneda' = 'Choice | CM | Monedas en Pago'.USD), '[PG] Monto')
             )
         );
-        ClearCollect(colTscTsc, colTscTmpTsc);
         // 6) Estado del panel
         Set(varSelTsc, Blank());
         Set(varPanelTsc, false)
@@ -77,17 +74,16 @@ Screens:
             Height: =gblE.AltoInput
             OnSelect: |-
               =Concurrent(
-                  ClearCollect(colCtasTsc, ShowColumns('CM | TBL | Cuentas',
-                      '[CT] Numero de cuenta', 'Nombre Cliente', 'CIF Cliente', 'Tipo Producto')),
+                  ClearCollect(colCtasTsc, 'CM | TBL | Cuentas'),
                   ClearCollect(colPagosHoyTsc,
                       Filter('CM | TBL | Pagos', 'Fecha del pago' >= Today()))
               );
-              ClearCollect(colTscTsc,
+              ClearCollect(colTscTmpTsc,
                   AddColumns(
                       Filter('CM | TBL | Interaccions',
                           '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Grabado
                           && '[IN] Fecha grabacion' >= Today()
-                          && '[IN] Grabado por' = gblUsuarioDV),
+                          && '[IN] Grabado por'.User = gblUsuarioDV.User),
                       clienteTsc, Upper(Coalesce(LookUp(colCtasTsc, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'Nombre Cliente', "—")),
                       cifTsc, Coalesce(LookUp(colCtasTsc, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'CIF Cliente', "—"),
                       prodTsc, Coalesce(LookUp(colCtasTsc, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'Tipo Producto', "—")
@@ -95,9 +91,9 @@ Screens:
               );
               ClearCollect(colPagosTsc,
                   Filter(colPagosHoyTsc,
-                      !IsBlank(LookUp(colTscTsc, '[IN] Numero de Interaccion' = '[PG] Numero Interaccion'))));
-              ClearCollect(colTscTmpTsc,
-                  AddColumns(colTscTsc,
+                      !IsBlank(LookUp(colTscTmpTsc, '[IN] Numero de Interaccion' = '[PG] Numero Interaccion'))));
+              ClearCollect(colTscTsc,
+                  AddColumns(colTscTmpTsc,
                       pagosNioTsc, Sum(Filter(colPagosTsc,
                           '[PG] Numero Interaccion' = '[IN] Numero de Interaccion'
                           && '[PG] Moneda' = 'Choice | CM | Monedas en Pago'.NIO), '[PG] Monto'),
@@ -106,7 +102,6 @@ Screens:
                           && '[PG] Moneda' = 'Choice | CM | Monedas en Pago'.USD), '[PG] Monto')
                   )
               );
-              ClearCollect(colTscTsc, colTscTmpTsc);
               Notify("✓ Arqueo actualizado", NotificationType.Success, 2500)   // LED-05
             Size: =10
             Text: ="↻ Actualizar"

@@ -55,8 +55,9 @@ App:
       // conjuntos de UN usuario (puñados de filas): sin delegación en juego, corre una sola vez.
       Set(gblUsuarioDV, LookUp(Users, 'Primary Email' = Lower(User().Email)));
       ClearCollect(colRolesUsrTmp, gblUsuarioDV.'Security Roles (systemuserroles_association)');
+      // desde Team la relación es única → 'Security Roles' pelado
       ForAll(gblUsuarioDV.'Teams (teammembership_association)' As Tm,
-          Collect(colRolesUsrTmp, Tm.'Security Roles (teamroles_association)'));
+          Collect(colRolesUsrTmp, Tm.'Security Roles'));
       // "SR | CM | Backoffice" -> "Backoffice"; multi-rol => "Backoffice|Admin". El `in` de los
       // guards es case-insensitive (el rol real "SR | CM | BackOffice" matchea igual).
       // Sin ningún rol SR | CM => gblRol vacío => estado "sin acceso" de scrInicio.

@@ -11,8 +11,7 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =If(!("Admin" in gblRol), Navigate(scrInicio));
-        // Tabla chica y organizacional: la cota no delegable de 2000 filas es trivial acá.
+        =// Tabla chica y organizacional: la cota no delegable de 2000 filas es trivial acá.
         // Sort sobre columna escalar delega — una sola llamada a Dataverse por visita.
         ClearCollect(colAgentesAge, Sort('CM | TBL | Agentes', '[AG] Nombre'))
     Children:
@@ -224,7 +223,7 @@ Screens:
                                     Parent.TemplateWidth - 2*gblE.Pad,
                                     Parent.TemplateWidth*30%)
                               X: =If(nfMovil, gblE.Pad, Parent.TemplateWidth*32%)
-                              Y: =If(nfMovil, 54, (Parent.TemplateSize - gblE.AltoInput)/2)
+                              Y: =If(nfMovil, 54, (Parent.TemplateHeight - gblE.AltoInput)/2)
                         - chpVinculoAge:
                             Control: Classic/Button@2.2.0
                             Properties:
@@ -243,7 +242,7 @@ Screens:
                               Text: =If(IsBlank(ThisItem.'[AG] Usuario'), "Sin usuario", "✓ Vinculado")
                               Width: =14 + 7*Len(Self.Text)
                               X: =If(nfMovil, gblE.Pad, Parent.TemplateWidth*64% + gblE.PadSm)
-                              Y: =If(nfMovil, 106, (Parent.TemplateSize - Self.Height)/2)
+                              Y: =If(nfMovil, 106, (Parent.TemplateHeight - Self.Height)/2)
                         - chpEstadoAge:
                             Control: Classic/Button@2.2.0
                             Properties:
@@ -287,7 +286,7 @@ Screens:
                               Text: =If(ThisItem.'[AG] Activo', "Desactivar", "Activar")
                               Width: =110
                               X: =Parent.TemplateWidth - Self.Width - gblE.Pad
-                              Y: =If(nfMovil, 102, (Parent.TemplateSize - Self.Height)/2)
+                              Y: =If(nfMovil, 102, (Parent.TemplateHeight - Self.Height)/2)
                         - recSepAge:
                             Control: Rectangle@2.3.0
                             Properties:

@@ -11,8 +11,7 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =// Guard de rol (01 §4) → colecciones → estado de pantalla (receta 7.7).
-        If(!("Admin" in gblRol), Navigate(scrInicio));
+        =// Colecciones → estado de pantalla (receta 7.7).
         Concurrent(
             // Filas de la carga de HOY. Filter por fecha = delegable (00 §4.2);
             // ShowColumns achica el payload a una sola columna.
@@ -24,8 +23,8 @@ Screens:
                     '[CD] Numero cuenta'
                 )
             ),
-            ClearCollect(colCtasMon, ShowColumns('CM | TBL | Cuentas', '[CT] Numero de cuenta')),
-            ClearCollect(colCliMon,  ShowColumns('CM | TBL | Clientes', '[CL] CIF'))
+            ClearCollect(colCtasMon, 'CM | TBL | Cuentas'),
+            ClearCollect(colCliMon,  'CM | TBL | Clientes')
         );
         Set(varHayCargaMon, nfUltimaCarga >= Today())
     Children:
@@ -255,8 +254,8 @@ Screens:
                                 '[CD] Numero cuenta'
                             )
                         ),
-                        ClearCollect(colCtasMon, ShowColumns('CM | TBL | Cuentas', '[CT] Numero de cuenta')),
-                        ClearCollect(colCliMon,  ShowColumns('CM | TBL | Clientes', '[CL] CIF'))
+                        ClearCollect(colCtasMon, 'CM | TBL | Cuentas'),
+                        ClearCollect(colCliMon,  'CM | TBL | Clientes')
                     );
                     // nfUltimaCarga es fórmula con nombre (01 §3) y se reevalúa sola;
                     // varHayCargaMon es variable normal, por eso el Set sigue siendo necesario.

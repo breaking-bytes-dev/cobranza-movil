@@ -11,11 +11,8 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =// 1) guard de rol — SIEMPRE primera línea
-        If(!("Backoffice" in gblRol), Navigate(scrInicio));
-        // 2) cuentas para el join (cota 2000 declarada — 00 §4.1)
-        ClearCollect(colCtasTrx, ShowColumns('CM | TBL | Cuentas',
-            '[CT] Numero de cuenta', 'Nombre Cliente', 'CIF Cliente', 'Tipo Producto'));
+        =// 2) cuentas para el join (cota 2000 declarada — 00 §4.1)
+        ClearCollect(colCtasTrx, 'CM | TBL | Cuentas');
         // 3) pendientes del día + join horneado UNA vez (receta 7.7); nombre en Upper (LED-01)
         ClearCollect(colPendTrx,
             AddColumns(
@@ -37,14 +34,14 @@ Screens:
                     SortByColumns(
                         AddColumns(
                             GroupBy(AddColumns(colPendTrx, agenteTrx, '[IN] NombreAgente'),
-                                "agenteTrx", "grpTrx"),
+                                agenteTrx, grpTrx),
                             nTrx, CountRows(grpTrx)
                         ),
-                        "nTrx", SortOrder.Descending
+                        nTrx, SortOrder.Descending
                     ),
-                    "agenteTrx", "nTrx"
+                    agenteTrx, nTrx
                 ),
-                "agenteTrx", "locTrx"
+                agenteTrx, locTrx
             )
         );
         // 5) estado inicial
@@ -54,10 +51,10 @@ Screens:
         Set(varActualTrx,
             First(SortByColumns(
                 Filter(colPendTrx, varLocSelTrx = "Todos" || '[IN] NombreAgente' = varLocSelTrx),
-                "Fecha de captura", SortOrder.Ascending)));
+                'Fecha de captura', SortOrder.Ascending)));
         If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info',
             Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
-                '[AD] Interaccion' = varActualTrx));
+                '[AD] Interaccion'.'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'));
             ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
             ClearCollect(colDirAntesTrx, Filter('CM | TBL | Direccions', '[DR] CIF' = varActualTrx.cifTrx));
             ClearCollect(colCambiosTrx, Filter(Table(
@@ -92,8 +89,7 @@ Screens:
             Height: =36
             OnSelect: |-
               =// 1) cuentas para el join (idéntico al paso 2 del OnVisible)
-              ClearCollect(colCtasTrx, ShowColumns('CM | TBL | Cuentas',
-                  '[CT] Numero de cuenta', 'Nombre Cliente', 'CIF Cliente', 'Tipo Producto'));
+              ClearCollect(colCtasTrx, 'CM | TBL | Cuentas');
               // 2) pendientes del día + join horneado (idéntico al paso 3 del OnVisible)
               ClearCollect(colPendTrx,
                   AddColumns(
@@ -115,24 +111,24 @@ Screens:
                           SortByColumns(
                               AddColumns(
                                   GroupBy(AddColumns(colPendTrx, agenteTrx, '[IN] NombreAgente'),
-                                      "agenteTrx", "grpTrx"),
+                                      agenteTrx, grpTrx),
                                   nTrx, CountRows(grpTrx)
                               ),
-                              "nTrx", SortOrder.Descending
+                              nTrx, SortOrder.Descending
                           ),
-                          "agenteTrx", "nTrx"
+                          agenteTrx, nTrx
                       ),
-                      "agenteTrx", "locTrx"
+                      agenteTrx, locTrx
                   )
               );
               // 4) reselección sobre la cola refrescada (varLocSelTrx queda como estaba)
               Set(varActualTrx,
                   First(SortByColumns(
                       Filter(colPendTrx, varLocSelTrx = "Todos" || '[IN] NombreAgente' = varLocSelTrx),
-                      "Fecha de captura", SortOrder.Ascending)));
+                      'Fecha de captura', SortOrder.Ascending)));
               If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info',
                   Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
-                      '[AD] Interaccion' = varActualTrx));
+                      '[AD] Interaccion'.'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'));
                   ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
                   ClearCollect(colDirAntesTrx, Filter('CM | TBL | Direccions', '[DR] CIF' = varActualTrx.cifTrx));
                   ClearCollect(colCambiosTrx, Filter(Table(
@@ -189,10 +185,10 @@ Screens:
                     Set(varActualTrx,
                         First(SortByColumns(
                             Filter(colPendTrx, varLocSelTrx = "Todos" || '[IN] NombreAgente' = varLocSelTrx),
-                            "Fecha de captura", SortOrder.Ascending)));
+                            'Fecha de captura', SortOrder.Ascending)));
                     If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info',
                         Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
-                            '[AD] Interaccion' = varActualTrx));
+                            '[AD] Interaccion'.'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'));
                         ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
                         ClearCollect(colDirAntesTrx, Filter('CM | TBL | Direccions', '[DR] CIF' = varActualTrx.cifTrx));
                         ClearCollect(colCambiosTrx, Filter(Table(
@@ -273,10 +269,10 @@ Screens:
                     Set(varActualTrx,
                         First(SortByColumns(
                             Filter(colPendTrx, varLocSelTrx = "Todos" || '[IN] NombreAgente' = varLocSelTrx),
-                            "Fecha de captura", SortOrder.Ascending)));
+                            'Fecha de captura', SortOrder.Ascending)));
                     If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info',
                         Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
-                            '[AD] Interaccion' = varActualTrx));
+                            '[AD] Interaccion'.'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'));
                         ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
                         ClearCollect(colDirAntesTrx, Filter('CM | TBL | Direccions', '[DR] CIF' = varActualTrx.cifTrx));
                         ClearCollect(colCambiosTrx, Filter(Table(
@@ -368,12 +364,12 @@ Screens:
                   Items: |-
                     =SortByColumns(
                         Filter(colPendTrx, varLocSelTrx = "Todos" || '[IN] NombreAgente' = varLocSelTrx),
-                        "Fecha de captura", SortOrder.Ascending)
+                        'Fecha de captura', SortOrder.Ascending)
                   OnSelect: |-
                     =Set(varActualTrx, ThisItem);
                     If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info',
                         Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
-                            '[AD] Interaccion' = varActualTrx));
+                            '[AD] Interaccion'.'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'));
                         ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
                         ClearCollect(colDirAntesTrx, Filter('CM | TBL | Direccions', '[DR] CIF' = varActualTrx.cifTrx));
                         ClearCollect(colCambiosTrx, Filter(Table(
@@ -495,7 +491,7 @@ Screens:
                         Text: |-
                           =With({_cola: SortByColumns(
                                   Filter(colPendTrx, varLocSelTrx = "Todos" || '[IN] NombreAgente' = varLocSelTrx),
-                                  "Fecha de captura", SortOrder.Ascending)},
+                                  'Fecha de captura', SortOrder.Ascending)},
                               (CountRows(Filter(_cola, 'Fecha de captura' < varActualTrx.'Fecha de captura')) + 1)
                                   & " DE " & CountRows(_cola))
                               & If(varLocSelTrx <> "Todos", " · " & Upper(varLocSelTrx), "")
@@ -910,7 +906,7 @@ Screens:
                                 ClearCollect(colVistaTrx,
                                     SortByColumns(
                                         Filter(colPendTrx, varLocSelTrx = "Todos" || '[IN] NombreAgente' = varLocSelTrx),
-                                        "Fecha de captura", SortOrder.Ascending));
+                                        'Fecha de captura', SortOrder.Ascending));
                                 Set(varPosTrx,
                                     CountRows(Filter(colVistaTrx, 'Fecha de captura' < varActualTrx.'Fecha de captura')) + 1);
                                 Set(varNumTrx, varActualTrx.'[IN] Numero de Interaccion');
@@ -935,14 +931,14 @@ Screens:
                                             SortByColumns(
                                                 AddColumns(
                                                     GroupBy(AddColumns(colPendTrx, agenteTrx, '[IN] NombreAgente'),
-                                                        "agenteTrx", "grpTrx"),
+                                                        agenteTrx, grpTrx),
                                                     nTrx, CountRows(grpTrx)
                                                 ),
-                                                "nTrx", SortOrder.Descending
+                                                nTrx, SortOrder.Descending
                                             ),
-                                            "agenteTrx", "nTrx"
+                                            agenteTrx, nTrx
                                         ),
-                                        "agenteTrx", "locTrx"
+                                        agenteTrx, locTrx
                                     )
                                 );
                                 // 5) reselección: siguiente de la MISMA cola filtrada en la MISMA posición
@@ -950,13 +946,13 @@ Screens:
                                 ClearCollect(colVistaTrx,
                                     SortByColumns(
                                         Filter(colPendTrx, varLocSelTrx = "Todos" || '[IN] NombreAgente' = varLocSelTrx),
-                                        "Fecha de captura", SortOrder.Ascending));
+                                        'Fecha de captura', SortOrder.Ascending));
                                 Set(varActualTrx,
                                     If(CountRows(colVistaTrx) = 0, Blank(),
                                         Last(FirstN(colVistaTrx, Min(varPosTrx, CountRows(colVistaTrx))))));
                                 If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info',
                                     Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
-                                        '[AD] Interaccion' = varActualTrx));
+                                        '[AD] Interaccion'.'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'));
                                     ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
                                     ClearCollect(colDirAntesTrx, Filter('CM | TBL | Direccions', '[DR] CIF' = varActualTrx.cifTrx));
                                     ClearCollect(colCambiosTrx, Filter(Table(
@@ -996,7 +992,7 @@ Screens:
                                 =ClearCollect(colVistaTrx,
                                     SortByColumns(
                                         Filter(colPendTrx, varLocSelTrx = "Todos" || '[IN] NombreAgente' = varLocSelTrx),
-                                        "Fecha de captura", SortOrder.Ascending));
+                                        'Fecha de captura', SortOrder.Ascending));
                                 If(CountRows(colVistaTrx) >= 2,
                                     Set(varPosTrx,
                                         CountRows(Filter(colVistaTrx, 'Fecha de captura' < varActualTrx.'Fecha de captura')) + 1);
@@ -1004,7 +1000,7 @@ Screens:
                                         Last(FirstN(colVistaTrx, Mod(varPosTrx, CountRows(colVistaTrx)) + 1)));
                                     If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info',
                                         Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
-                                            '[AD] Interaccion' = varActualTrx));
+                                            '[AD] Interaccion'.'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'));
                                         ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
                                         ClearCollect(colDirAntesTrx, Filter('CM | TBL | Direccions', '[DR] CIF' = varActualTrx.cifTrx));
                                         ClearCollect(colCambiosTrx, Filter(Table(

@@ -11,11 +11,8 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =If(!("Solicitante" in gblRol), Navigate(scrInicio));
-        // SIN Concurrent: el join de colSolSol necesita colCtasSol ya cargada (gotcha 7.7)
-        ClearCollect(colCtasSol, ShowColumns('CM | TBL | Cuentas',
-            '[CT] Numero de cuenta', 'Nombre Cliente', 'CIF Cliente', 'Tipo Producto',
-            '[CT] Saldo Vencido NIO', '[CT] Saldo Vencido USD', '[CT] Dias Mora'));
+        =// SIN Concurrent: el join de colSolSol necesita colCtasSol ya cargada (gotcha 7.7)
+        ClearCollect(colCtasSol, 'CM | TBL | Cuentas');
         // Mis Especiales — Filter delegable (choice por valor + lookup por registro, 00 §4.2);
         // AddColumns y Sort corren EN MEMORIA sobre el resultado (cota 2000, 00 §4.1)
         ClearCollect(colSolSol,
@@ -23,7 +20,7 @@ Screens:
                 AddColumns(
                     Filter('CM | TBL | Asignacions',
                         '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
-                        && '[AS] Solicitado por' = gblUsuarioDV),
+                        && '[AS] Solicitado por'.User = gblUsuarioDV.User),
                     clienteSol, Upper(Coalesce(
                         LookUp(colCtasSol, '[CT] Numero de cuenta' = '[AS] NumeroCuenta').'Nombre Cliente', "—")),
                     prodSol, Coalesce(
@@ -60,15 +57,13 @@ Screens:
             Font: =Font.'Segoe UI'
             Height: =gblE.AltoBoton
             OnSelect: |-
-              =ClearCollect(colCtasSol, ShowColumns('CM | TBL | Cuentas',
-                  '[CT] Numero de cuenta', 'Nombre Cliente', 'CIF Cliente', 'Tipo Producto',
-                  '[CT] Saldo Vencido NIO', '[CT] Saldo Vencido USD', '[CT] Dias Mora'));
+              =ClearCollect(colCtasSol, 'CM | TBL | Cuentas');
               ClearCollect(colSolSol,
                   Sort(
                       AddColumns(
                           Filter('CM | TBL | Asignacions',
                               '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
-                              && '[AS] Solicitado por' = gblUsuarioDV),
+                              && '[AS] Solicitado por'.User = gblUsuarioDV.User),
                           clienteSol, Upper(Coalesce(
                               LookUp(colCtasSol, '[CT] Numero de cuenta' = '[AS] NumeroCuenta').'Nombre Cliente', "—")),
                           prodSol, Coalesce(

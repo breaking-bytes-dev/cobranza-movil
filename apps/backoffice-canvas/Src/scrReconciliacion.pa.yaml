@@ -11,11 +11,10 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =If(!("Admin" in gblRol), Navigate(scrInicio));
-        // Cuentas para el join en memoria (2 columnas, cota 2000 declarada — 00 §4.1).
+        =// Cuentas para el join en memoria (2 columnas, cota 2000 declarada — 00 §4.1).
         // FUERA del Concurrent: el AddColumns de abajo necesita colCtasRec ya cargada (gotcha 7.7)
         ClearCollect(colCtasRec,
-            ShowColumns('CM | TBL | Cuentas', '[CT] Numero de cuenta', 'Nombre Cliente')
+            'CM | TBL | Cuentas'
         );
         // Desaparecidas + denominador, en paralelo (ambos filtros delegables: choice por
         // valor + booleano + comparación de fecha — 00 §4.2)

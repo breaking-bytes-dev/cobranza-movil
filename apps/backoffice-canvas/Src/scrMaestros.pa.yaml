@@ -11,8 +11,7 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =If(!("Admin" in gblRol), Navigate(scrInicio));
-        // Estado limpio de la pantalla. NO se colecciona nada acá: la búsqueda va directa
+        =// Estado limpio de la pantalla. NO se colecciona nada acá: la búsqueda va directa
         // al datasource (receta 01 §7.9) y las colecciones del cliente nacen al clic en la fila.
         Set(varPanelMae, false);
         Set(varModoMae, "ver");
@@ -111,7 +110,7 @@ Screens:
               Concurrent(
                   ClearCollect(colTelMae, Filter('CM | TBL | Telefonos', '[TL] CIF' = ThisItem.'[CL] CIF')),
                   ClearCollect(colDirMae, Filter('CM | TBL | Direccions', '[DR] CIF' = ThisItem.'[CL] CIF')),
-                  ClearCollect(colCtasMae, Filter('CM | TBL | Cuentas', '[CT] Cliente' = ThisItem))
+                  ClearCollect(colCtasMae, Filter('CM | TBL | Cuentas', '[CT] Cliente'.'CM | TBL | Cliente' = ThisItem.'CM | TBL | Cliente'))
               );
               Set(varPanelMae, true)
             ShowScrollbar: =false

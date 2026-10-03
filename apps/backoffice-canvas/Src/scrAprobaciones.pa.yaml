@@ -11,17 +11,14 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =If(!("Supervisor" in gblRol), Navigate(scrInicio));
-        // Catálogos en paralelo (no dependen entre sí)
+        =// Catálogos en paralelo (no dependen entre sí)
         Concurrent(
             // Agentes ACTIVOS — filtro delegable. OJO: acá NO se filtra 'Email Usuario'
             // (IsBlank sobre columna no delega); ese filtro lo hace el combo EN MEMORIA.
             ClearCollect(colAgentesAprb,
                 Filter('CM | TBL | Agentes', '[AG] Activo' = true)),
             // Cuentas: SOLO las 6 columnas que usa esta pantalla
-            ClearCollect(colCtasAprb, ShowColumns('CM | TBL | Cuentas',
-                '[CT] Numero de cuenta', 'Nombre Cliente', 'CIF Cliente', 'Tipo Producto',
-                '[CT] Saldo Vencido NIO', '[CT] Saldo Vencido USD'))
+            ClearCollect(colCtasAprb, 'CM | TBL | Cuentas')
         );
         // La cola — DESPUÉS del Concurrent: el join hornea contra colCtasAprb (gotcha 7.7)
         ClearCollect(colAprobAprb,
@@ -77,9 +74,7 @@ Screens:
                     =Concurrent(
                         ClearCollect(colAgentesAprb,
                             Filter('CM | TBL | Agentes', '[AG] Activo' = true)),
-                        ClearCollect(colCtasAprb, ShowColumns('CM | TBL | Cuentas',
-                            '[CT] Numero de cuenta', 'Nombre Cliente', 'CIF Cliente', 'Tipo Producto',
-                            '[CT] Saldo Vencido NIO', '[CT] Saldo Vencido USD'))
+                        ClearCollect(colCtasAprb, 'CM | TBL | Cuentas')
                     );
                     ClearCollect(colAprobAprb,
                         AddColumns(

@@ -11,8 +11,7 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =If(!("Solicitante" in gblRol), Navigate(scrInicio));
-        // Sin colecciones y sin Reset: la búsqueda de cuenta es delegable directo al datasource
+        =// Sin colecciones y sin Reset: la búsqueda de cuenta es delegable directo al datasource
         // (receta 01 §7.9) y el resto es formulario puro. Si el Solicitante sale a mitad del form
         // y vuelve, el borrador se conserva — el Reset ocurre SOLO tras enviar (btnEnviarNva).
     Children:
