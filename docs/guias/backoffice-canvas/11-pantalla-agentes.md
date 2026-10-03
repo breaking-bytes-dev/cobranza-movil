@@ -3,9 +3,10 @@
 > ⚠ **Esta guía es el diseño original; el código vigente (validado en Studio) está en `apps/backoffice-canvas/Src/scrAgentes.pa.yaml`.** Diferencias principales (ver 00 §2/§4 y 01 §7/§11):
 > - Sin guard de rol (LED-20).
 > - Alerta de agentes sin usuario: `CountIf('CM | TBL | Agentes', '[AG] Activo' && 'Email Usuario' = Blank())` (no `IsBlank('[AG] Usuario')`, lookup no delega). ⚠ `lblAlertaDetalleAge` aún lista desde `colAgentesAge` con `IsBlank('[AG] Usuario')` — puede no cuadrar con el conteo.
-> - `cmbUsuarioAge`: `DefaultSelectedItems = Filter(Users, 'Primary Email' = ThisItem.'Email Usuario')` y el vínculo actual se MUESTRA en `InputTextPlaceholder` (01 §11.1 #9); `DisplayFields/SearchFields` lógicos.
+> - **B-04: la fila YA NO tiene Cuadro combinado.** El ComboBox clásico no pinta registros de Dataverse en esta app (Users incluido) y además disparaba escrituras al abrir (B-08). La fila muestra el vínculo actual en texto (`lblUsrAge`) + botón **`btnVincularAge`** ("Vincular"/"Cambiar") que abre UN panel (`conPanelAge`, receta 7.4) con **buscador `txtBuscarUsrAge` + galería `galUsrAge` sobre `Users`**; tocar un usuario confirma el vínculo. Agente objetivo en `varAgenteAge`, visibilidad en `varPanelAge`. Ver §4.1 y 01 §11.
+> - Desvincular es el botón aparte `btnDesvincularAge` (B-08); todas las escrituras con `IfError` + `Notify` del detalle (B-03).
 > - `Parent.TemplateHeight` en vez de `Parent.TemplateSize` en los Y del template.
-> - `AccessibleLabel` en galería y combo, foco visible; `ShowScrollbar = false`. Sin overlay (filas no clicables).
+> - `AccessibleLabel` en galerías y buscador, foco visible; `ShowScrollbar = false`. Filas de agentes sin overlay (no clicables); filas de `galUsrAge` con overlay `btnFilaUsrAge`.
 
 > **Por qué esta pantalla importa (leelo antes de construir):** la app del localizador identifica
 > al agente que entra por **`'Email Usuario'`** (`LookUp` contra `User().Email`) y el Cloud Flow
@@ -14,8 +15,9 @@
 > visibles para otros). La vista "sin usuario" de esta pantalla debe estar **VACÍA** antes de operar.
 
 **Propósito:** el Admin liga cada localizador (`'CM | TBL | Agentes'`) a su usuario de Entra
-(`Users`) y lo activa/desactiva. Filas **NO clicables** — toda la acción vive en el combo y el
-botón de cada fila (igual que el mockup: `row static`).
+(`Users`) y lo activa/desactiva. Filas **NO clicables** — toda la acción vive en los botones de
+cada fila ("Vincular/Cambiar", "Desvincular", "Desactivar/Activar"); el vínculo se elige en el
+panel `conPanelAge` (igual que el mockup: `row static`).
 
 **Contrato de entrada:** `"Admin" in gblRol` (App.OnStart, 00 §3.1) · tokens `gblC`/`gblE`
 (App.OnStart) · `nfMovil` (App.Formulas) · `colNav` (App.OnStart, la consume `cmpNavAge`) ·
@@ -37,13 +39,28 @@ scrAgentes                          ESTILO-Pantalla
 │   │   ├── galAgentesAge           Galería vertical en blanco
 │   │   │   ├── lblNombreAge        Etiqueta clásica
 │   │   │   ├── lblEmailAge         Etiqueta clásica
-│   │   │   ├── cmbUsuarioAge       Cuadro combinado (usuario de Entra)
+│   │   │   ├── lblUsrAge           Etiqueta clásica — usuario vinculado actual (nombre o email)
+│   │   │   ├── btnVincularAge      Botón clásico "Vincular"/"Cambiar" → abre conPanelAge
+│   │   │   ├── btnDesvincularAge   Botón clásico "Desvincular" (B-08)
 │   │   │   ├── chpVinculoAge       Botón clásico — chip receta 7.2
 │   │   │   ├── chpEstadoAge        Botón clásico — chip receta 7.2
 │   │   │   ├── btnToggleAge        Botón clásico "Desactivar"/"Activar"
 │   │   │   └── recSepAge           Rectángulo — separador receta 7.11
 │   │   └── cmpVacioAge             cmpVacio (receta 7.12)
 │   └── lblAdvertenciaAge           Etiqueta clásica — advertencia bajo la galería
+├── recScrimAge                     Rectángulo — scrim del panel (receta 7.4)
+├── conPanelAge                     Contenedor — panel lateral "Vincular usuario" (receta 7.4)
+│   ├── lblTituloPanelAge           "Vincular usuario — <agente>"
+│   ├── icoCerrarPanelAge           Ícono Cancel
+│   ├── lblActualPanelAge           "Vínculo actual: …"
+│   ├── lblBuscarKAge               "Usuario de Entra (tocá uno para vincularlo)"
+│   ├── txtBuscarUsrAge             Entrada de texto clásica (buscador, DelayOutput)
+│   ├── icoBuscarUsrAge             Ícono lupa
+│   ├── galUsrAge                   Galería vertical — usuarios (nombre + correo)
+│   │   ├── lblNomFilaUsrAge / lblMailFilaUsrAge / recSepUsrAge
+│   │   └── btnFilaUsrAge           overlay de fila (tocar = CONFIRMAR vínculo)
+│   ├── lblSinUsrAge                "Ningún usuario empieza con «…»"
+│   └── btnCancelarPanelAge         "Cancelar" (cierra sin escribir)
 └── cmpNavAge                       cmpNavLateral (AL FINAL del árbol — flota en móvil)
 ```
 
@@ -133,8 +150,12 @@ móvil = 3 renglones apilados dentro de 148):
 | `lblEmailAge` (Etiqueta clásica) | X/Y/W/H | `gblE.Pad` / `lblNombreAge.Y + lblNombreAge.Height` / `lblNombreAge.Width` / `18` |
 | | Text | `If(IsBlank(ThisItem.'Email Usuario'), "sin correo", ThisItem.'Email Usuario')` |
 | | Color / Size | `gblC.muted` / `9` |
-| `cmbUsuarioAge` (Cuadro combinado) | X/Y/W/H | `If(nfMovil, gblE.Pad, Parent.TemplateWidth*32%)` / `If(nfMovil, 54, (Parent.TemplateSize - gblE.AltoInput)/2)` / `If(nfMovil, Parent.TemplateWidth - 2*gblE.Pad, Parent.TemplateWidth*30%)` / `gblE.AltoInput` |
-| | resto | §4.1 |
+| `lblUsrAge` (Etiqueta clásica) | X/Y/H | `If(nfMovil, gblE.Pad, Parent.TemplateWidth*32%)` / `If(nfMovil, 54, (Parent.TemplateHeight - Self.Height)/2)` / `gblE.AltoInput` |
+| | Width | `If(nfMovil, Parent.TemplateWidth - 2*gblE.Pad, Parent.TemplateWidth*30%) - btnVincularAge.Width - gblE.PadSm` |
+| | Text | `If(IsBlank(ThisItem.'Email Usuario'), "— Sin usuario —", Coalesce(ThisItem.'[AG] Usuario'.'Full Name', ThisItem.'Email Usuario'))` |
+| `btnVincularAge` (Botón clásico) | X/Y/W/H | `If(nfMovil, Parent.TemplateWidth - Self.Width - gblE.Pad, Parent.TemplateWidth*62% - Self.Width)` / `lblUsrAge.Y + (lblUsrAge.Height - Self.Height)/2` / `96` / `34` |
+| | Text | `If(IsBlank(ThisItem.'Email Usuario'), "Vincular", "Cambiar")` (sin usuario → ESTILO-BotonPri; con usuario → secundario) |
+| | OnSelect | `Set(varAgenteAge, ThisItem); Reset(txtBuscarUsrAge); Set(varPanelAge, true)` — NO escribe nada (§4.1) |
 | `chpVinculoAge` (Botón clásico, chip 7.2) | X/Y/W/H | `If(nfMovil, gblE.Pad, Parent.TemplateWidth*64% + gblE.PadSm)` / `If(nfMovil, 106, (Parent.TemplateSize - Self.Height)/2)` / `14 + 7*Len(Self.Text)` / `26` |
 | | Text | `If(IsBlank(ThisItem.'[AG] Usuario'), "Sin usuario", "✓ Vinculado")` |
 | | Fill / Color | `If(IsBlank(ThisItem.'[AG] Usuario'), gblC.redBg, gblC.okBg)` / `If(IsBlank(ThisItem.'[AG] Usuario'), gblC.redInk, gblC.okInk)` |
@@ -153,46 +174,67 @@ móvil = 3 renglones apilados dentro de 148):
 > y `TemplateFill` es plano. (Las galerías auto-seleccionan la 1ª fila — acá no tiene consecuencia
 > visual ni de estado, y así se deja.)
 
-### 4.1 cmbUsuarioAge — el vínculo con Entra (el corazón de la pantalla)
+### 4.1 Panel `conPanelAge` — el vínculo con Entra (el corazón de la pantalla)
 
-| Propiedad | Valor |
-|---|---|
-| Items | `Users` |
-| Campos (panel Propiedades → Editar) | primario `'Full Name'`, secundario `'Primary Email'` (diseño "Doble") |
-| SearchFields | `["fullname", "internalemailaddress"]` *(lógicos de 'Full Name' y 'Primary Email'; si el panel los escribe distinto al tildearlos, aceptá lo que genere Studio)* |
-| SelectMultiple | `false` |
-| IsSearchable | `true` — el combo delega la búsqueda como `StartsWith` (solo StartsWith: buscar "García" encuentra "García, Ana" pero no "Ana García") |
-| InputTextPlaceholder | `"— Sin usuario —"` |
-| DefaultSelectedItems | `If(!IsBlank(ThisItem.'[AG] Usuario'), Table(ThisItem.'[AG] Usuario'))` |
-| OnChange | fórmula abajo |
+> **B-04:** el Cuadro combinado de la fila (`Items = Users`) renderizaba opciones con el texto
+> vacío (el ComboBox clásico no pinta registros de Dataverse en esta app) y su `OnChange` se
+> disparaba con la preselección al abrir (B-08). Reemplazo: botón por fila + UN panel con
+> buscador + galería. No se anidan galerías (el panel vive fuera de `galAgentesAge`).
 
-> ⚠ **VERIFICÁ `DefaultSelectedItems` con IntelliSense**: la forma `Table(<registro lookup>)` es
-> la esperada; si tu versión de Studio la subraya, usá la equivalente
-> `Filter(Users, 'Primary Email' = ThisItem.'Email Usuario')` y anotá cuál quedó.
+`recScrimAge` y `conPanelAge` van al final del árbol (antes de `cmpNavAge`) con la receta 7.4
+(`varPanelAge`). El scrim, `icoCerrarPanelAge` y `btnCancelarPanelAge` cierran con
+`Set(varPanelAge, false); Set(varAgenteAge, Blank()); Reset(txtBuscarUsrAge)` — sin escribir.
+El `OnVisible` de la pantalla deja el panel cerrado y `varAgenteAge` en blanco.
 
-**OnChange (pegar completo):**
+| Control | Propiedad | Valor |
+|---|---|---|
+| `txtBuscarUsrAge` (Entrada de texto clásica) | Y/H | `lblBuscarKAge.Y + lblBuscarKAge.Height + 4` / `gblE.AltoInput` · ESTILO-Input · PaddingLeft `34` · DelayOutput `true` |
+| | HintText | `"Buscar por nombre o correo (mín. 2)"` |
+| `galUsrAge` (Galería vertical) | Y | `txtBuscarUsrAge.Y + txtBuscarUsrAge.Height + 4` |
+| | TemplateSize / Height | `48` / `Min(Max(Self.AllItemsCount, 1) * Self.TemplateHeight, btnCancelarPanelAge.Y - gblE.PadSm - Self.Y)` |
+| | Visible | `Len(Trim(txtBuscarUsrAge.Text)) >= 2` |
+| | Items | fórmula ↓ |
+| | OnSelect | fórmula ↓ (tocar una fila = CONFIRMAR) |
+| `lblNomFilaUsrAge` / `lblMailFilaUsrAge` | Text | `ThisItem.'Full Name'` / `If(IsBlank(ThisItem.'Primary Email'), "sin correo principal", ThisItem.'Primary Email')` |
+| `btnFilaUsrAge` (overlay) | Text | `"Vincular a " & ThisItem.'Full Name' & " · " & ThisItem.'Primary Email'` · transparente, `Select(Parent)`, `TabIndex 0` |
+| `lblSinUsrAge` | Visible | `galUsrAge.Visible && galUsrAge.AllItemsCount = 0` |
 
 ```powerfx
-If(!IsBlank(Self.Selected),
-    Patch('CM | TBL | Agentes',
-        LookUp('CM | TBL | Agentes', '[AG] Nombre' = ThisItem.'[AG] Nombre'),
-        {
-            '[AG] Usuario': Self.Selected,
-            'Email Usuario': Lower(Self.Selected.'Primary Email')
-        }
-    );
-    Notify("✓ " & ThisItem.'[AG] Nombre' & " vinculado", NotificationType.Success, 2500),
+// galUsrAge.Items — delegable (StartsWith en ambas columnas); con < 2 caracteres, centinela
+// "§§": no se consulta la tabla entera (B-19) y siempre hay tabla (B-06).
+With({t: If(Len(Trim(txtBuscarUsrAge.Text)) < 2, "§§", Trim(txtBuscarUsrAge.Text))},
+    Filter(Users, StartsWith('Full Name', t) || StartsWith('Primary Email', t))
+)
+```
 
-    Patch('CM | TBL | Agentes',
-        LookUp('CM | TBL | Agentes', '[AG] Nombre' = ThisItem.'[AG] Nombre'),
-        {
-            '[AG] Usuario': Blank(),
-            'Email Usuario': Blank()
-        }
-    );
-    Notify("Vínculo quitado", NotificationType.Warning)
-);
-ClearCollect(colAgentesAge, Sort('CM | TBL | Agentes', '[AG] Nombre'))
+**galUsrAge.OnSelect (pegar completo):**
+
+```powerfx
+If(
+    IsBlank(ThisItem.'Primary Email'),
+    Notify("El usuario " & ThisItem.'Full Name' & " no tiene correo principal: no podría entrar a la app del celular. Elegí otro.",
+        NotificationType.Warning),
+    Lower(ThisItem.'Primary Email') = Lower(Coalesce(varAgenteAge.'Email Usuario', "")),
+    Notify(varAgenteAge.'[AG] Nombre' & " ya está vinculado a " & Lower(ThisItem.'Primary Email'),
+        NotificationType.Information, 2500),
+    IfError(
+        Patch('CM | TBL | Agentes',
+            LookUp('CM | TBL | Agentes', '[AG] Nombre' = varAgenteAge.'[AG] Nombre'),
+            {
+                '[AG] Usuario': ThisItem,
+                'Email Usuario': Lower(ThisItem.'Primary Email')
+            }
+        ),
+        Notify("No se pudo vincular " & varAgenteAge.'[AG] Nombre' & ": " & FirstError.Message,
+            NotificationType.Error),
+        Notify("✓ " & varAgenteAge.'[AG] Nombre' & " vinculado a " & Lower(ThisItem.'Primary Email'),
+            NotificationType.Success, 2500);
+        Set(varPanelAge, false);
+        Set(varAgenteAge, Blank());
+        Reset(txtBuscarUsrAge);
+        ClearCollect(colAgentesAge, Sort('CM | TBL | Agentes', '[AG] Nombre'))
+    )
+)
 ```
 
 > ⚠ **Se escriben las DOS columnas, siempre juntas**: `'[AG] Usuario'` (lookup — lo usa Comp-14
@@ -201,10 +243,11 @@ ClearCollect(colAgentesAge, Sort('CM | TBL | Agentes', '[AG] Nombre'))
 > entra a la app pero sus asignaciones no se aíslan, o al revés. Si tocás esta fórmula,
 > mantené las dos.
 >
-> El `LookUp` por `'[AG] Nombre'` delega (igualdad sobre la columna primaria, que el import
-> mantiene única). El `ClearCollect` final refresca chips y alerta; borrar el texto del combo
-> y salir dispara la rama "quitar vínculo" (OnChange solo corre por interacción del usuario,
-> no en la carga).
+> Misma lógica que el viejo `OnChange` (B-08): SOLO vincula y SOLO si el usuario elegido es
+> distinto del vínculo actual; un usuario sin correo principal no se vincula (no podría hacer
+> login en el celular). Si el Patch falla, Notify con el detalle y el panel queda ABIERTO.
+> Desvincular es `btnDesvincularAge` (fuera del panel). El `LookUp` por `'[AG] Nombre'` delega
+> (igualdad sobre la columna primaria, que el import mantiene única).
 
 ### 4.2 btnToggleAge.OnSelect (pegar completo)
 
@@ -231,12 +274,13 @@ ClearCollect(colAgentesAge, Sort('CM | TBL | Agentes', '[AG] Nombre'))
 
 ## Notas
 
-- **Mockup → canvas**: el `<select>` de `ligar()` se implementa como `Cuadro combinado` con
-  búsqueda (mismo contrato funcional: opción vacía = quitar vínculo). Filas `row static`,
+- **Mockup → canvas**: el `<select>` de `ligar()` se implementa como botón "Vincular/Cambiar" +
+  panel con buscador y galería de `Users` (B-04); quitar el vínculo es `btnDesvincularAge`. Filas `row static`,
   chips y textos del mockup (`scrAgentes()`, `toggleAg()`) se conservan 1:1. Sin entradas LED
   nuevas. Toasts → `Notify` (LED-05).
-- El combo dentro del template se instancia por fila: con la nómina de localizadores de la
-  empresa (decenas) el costo es irrelevante; `Users` solo se consulta al abrir/buscar.
+- `Users` solo se consulta desde el panel y con ≥ 2 caracteres. `lblUsrAge` navega el lookup
+  `'[AG] Usuario'.'Full Name'` por fila (lectura perezosa): con decenas de localizadores es
+  irrelevante; si no resuelve, muestra el email (texto plano).
 - Si IntelliSense difiere de un display name (`'[AG] Usuario'`, `'Email Usuario'`,
   `'Primary Email'`…), **el IntelliSense manda** — anotá y avisá (guía 01, encabezado).
 
@@ -245,15 +289,18 @@ ClearCollect(colAgentesAge, Sort('CM | TBL | Agentes', '[AG] Nombre'))
 - [ ] Entrar con rol ≠ Admin rebota a `scrInicio` sin parpadeo de datos.
 - [ ] Con ≥1 agente activo sin usuario: la card warn muestra el conteo y los nombres; al
       vincular el último, la card desaparece sola (sin tocar Actualizar).
-- [ ] Elegir un usuario en el combo → Notify "✓ … vinculado", chip pasa a "✓ Vinculado" y
+- [ ] "Vincular"/"Cambiar" abre el panel del agente de ESA fila sin escribir nada; con < 2
+      caracteres no hay galería; con ≥ 2 filtra por nombre o correo (StartsWith) con texto visible.
+- [ ] Tocar un usuario en `galUsrAge` → Notify "✓ … vinculado", el panel se cierra, chip pasa a "✓ Vinculado" y
       `lblEmailAge` muestra el correo en minúsculas (verificá en Dataverse que se escribieron
       `'[AG] Usuario'` **y** `'Email Usuario'`).
-- [ ] Borrar la selección del combo → "Vínculo quitado", chip "Sin usuario", ambas columnas Blank.
+- [ ] "Cancelar" / scrim / ✕ cierran el panel SIN escribir. Si el Patch falla, Notify rojo y el panel sigue abierto.
+- [ ] "Desvincular" → "Vínculo quitado", chip "Sin usuario", ambas columnas Blank.
 - [ ] Con ese vínculo hecho, el usuario entra a la app del localizador (login por
       `'Email Usuario'`) — la prueba de humo cruzada de las dos apps.
 - [ ] Desactivar/Activar alterna chip y texto del botón; el registro cambia en Dataverse.
 - [ ] "↻ Actualizar" re-colecta y refleja cambios hechos por otro Admin.
-- [ ] Buscar en el combo por nombre o correo filtra (StartsWith) sin warning de delegación;
+- [ ] La búsqueda de `galUsrAge` no tiene warning de delegación;
       cero subrayados azules en toda la pantalla.
-- [ ] En ventana angosta (`nfMovil`): filas apiladas de 148, combo a ancho completo, nada
+- [ ] En ventana angosta (`nfMovil`): filas apiladas de 148, vínculo + botón en el 2.º renglón, panel a ancho completo, nada
       recortado; nav colapsa a hamburguesa.

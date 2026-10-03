@@ -4,7 +4,7 @@
 > - Sin guard de rol (LED-20); sin `Concurrent` ni `colCtasAprb`.
 > - Cola horneada por navegación `ThisRecord.'[AS] Cuenta'.…` (`clienteAprb`, `prodAprb`, `nioAprb`, `usdAprb`); el panel lee esas columnas en vez de `LookUp(colCtasAprb…)` (receta 7.7).
 > - Overlay `btnFilaAprb` (último hijo, `TabIndex 0`, hover translúcido) reemplaza a `recFilaAprb`; etiquetas sin `OnSelect` (receta 7.3).
-> - `cmbAgenteAprb` con `DisplayFields/SearchFields` lógicos (`sanic_cm_ag_nombre`); `AccessibleLabel` + foco visible en galería, scrim, cerrar, combo y motivo.
+> - **B-04: el localizador YA NO se elige con un Cuadro combinado** (el ComboBox clásico no pinta registros de Dataverse en esta app). Se reemplazó por **buscador `txtBuscarAgeAprb` + galería `galAgeAprb` (Filter directo delegado) + tarjeta `conAgeSelAprb` con variable `varAgeAprb`** — sin `colAgentesAprb` (§3 y 01 §11). `AccessibleLabel` + foco visible en galerías, scrim, cerrar, buscador y motivo.
 > - `lblFilaNotasAprb` sin `Wrap`, `VerticalAlign.Top`.
 
 Cola FIFO de solicitudes **Especiales pendientes de aprobación**. El Supervisor abre una,
@@ -51,8 +51,16 @@ scrAprobaciones                     (ESTILO-Pantalla)
 │   ├── conNotasAprb                card gris con las Notas completas
 │   │   └── lblNotasAprb
 │   ├── lblSecResAprb               "RESOLUCIÓN"
-│   ├── lblLocKAprb                 label del combo de localizador
-│   ├── cmbAgenteAprb               (Cuadro combinado)
+│   ├── lblLocKAprb                 label del localizador
+│   ├── txtBuscarAgeAprb            Entrada de texto clásica (buscador, DelayOutput) — visible sin localizador elegido
+│   ├── icoBuscarAgeAprb            Ícono lupa
+│   ├── galAgeAprb                  Galería vertical (resultados: nombre + email, hasta 3 filas)
+│   │   ├── lblNomFilaAgeAprb / lblMailFilaAgeAprb / recSepAgeAprb
+│   │   └── btnFilaAgeAprb          overlay de fila
+│   ├── lblSinAgeAprb               "Ningún localizador activo con usuario empieza con «…»"
+│   ├── conAgeSelAprb               Contenedor · tarjeta del localizador ELEGIDO (reemplaza al buscador)
+│   │   ├── lblAgeSelAprb           nombre · email
+│   │   └── btnCambiarAgeAprb       "Cambiar"
 │   ├── lblMotKAprb                 label del motivo de rechazo
 │   ├── txtMotRechAprb              (Entrada de texto clásica)
 │   ├── btnRechazarAprb             (ESTILO-BotonPeligro)
@@ -72,10 +80,7 @@ scrAprobaciones                     (ESTILO-Pantalla)
 If(!("Supervisor" in gblRol), Navigate(scrInicio));
 // 2) Catálogos en paralelo (no dependen entre sí)
 Concurrent(
-    // Agentes ACTIVOS — filtro delegable. OJO: acá NO se filtra 'Email Usuario'
-    // (IsBlank sobre columna no delega); ese filtro lo hace el combo EN MEMORIA (§4).
-    ClearCollect(colAgentesAprb,
-        Filter('CM | TBL | Agentes', '[AG] Activo' = true)),
+    // (Sin catálogo de agentes: el localizador se busca en galAgeAprb con Filter directo, §3 — B-04.)
     // Cuentas: SOLO las 6 columnas que usa esta pantalla
     ClearCollect(colCtasAprb, ShowColumns('CM | TBL | Cuentas',
         '[CT] Numero de cuenta', 'Nombre Cliente', 'CIF Cliente', 'Tipo Producto',
@@ -131,9 +136,8 @@ Set(varPanelAprb, false)
 recarga catálogos y cola, y cierra el panel):
 
 ```powerfx
+// (Sin catálogo de agentes — galAgeAprb, §3, B-04. Código vigente: también limpia varAgeAprb.)
 Concurrent(
-    ClearCollect(colAgentesAprb,
-        Filter('CM | TBL | Agentes', '[AG] Activo' = true)),
     ClearCollect(colCtasAprb, ShowColumns('CM | TBL | Cuentas',
         '[CT] Numero de cuenta', 'Nombre Cliente', 'CIF Cliente', 'Tipo Producto',
         '[CT] Saldo Vencido NIO', '[CT] Saldo Vencido USD'))
@@ -165,7 +169,7 @@ Set(varPanelAprb, false)
 | Items | `Sort(colAprobAprb, '[AS] Fecha de Asignacion', SortOrder.Ascending)` — **FIFO: la más vieja arriba** (orden en memoria, cero delegación) |
 | TemplateSize / TemplatePadding | `84` / `0` |
 | TemplateFill | `If(ThisItem.IsSelected, gblC.tealSuave, gblC.card)` (7.3) |
-| OnSelect | `Set(varSelAprb, ThisItem); Set(varPanelAprb, true); Reset(cmbAgenteAprb); Reset(txtMotRechAprb)` |
+| OnSelect | `Set(varSelAprb, ThisItem); Set(varAgeAprb, Blank()); Reset(txtBuscarAgeAprb); Reset(txtMotRechAprb); Set(varPanelAprb, true)` |
 
 Template — regla 7.3: **TODO hijo lleva `OnSelect = Select(Parent)`** (no se repite por fila).
 El chip va **SIN** `DisplayMode.View` (excepción de la receta 7.2 para chips dentro de fila
@@ -205,7 +209,7 @@ las propiedades de la receta 7.4 y `varPanelAprb` como variable de visibilidad. 
 | `lblPanelTituloAprb` (Etiqueta clásica) | Y/H | `gblE.Pad` / `28` · ESTILO-TituloPagina con Size `13` (7.4) |
 | | Text | `"Solicitud " & varSelAprb.'[AS] Numero'` |
 | `icoCerrarAprb` (Icono, Cancel) | X/Y/W/H | `Parent.Width - 40` / `gblE.Pad` / `28` / `28` · Color `gblC.muted` |
-| | OnSelect | `Set(varPanelAprb, false)` |
+| | OnSelect | `Set(varPanelAprb, false); Set(varAgeAprb, Blank()); Reset(txtBuscarAgeAprb)` (igual en `recScrimAprb`) |
 | `lblSecCtaAprb` (Etiqueta clásica) | Y/H | `64` / `18` · ESTILO-SecHead · Text `"CUENTA"` |
 
 Pares K/V — filas de alto `24`: K (`lblCtaKnAprb`/`lblSolKnAprb`, Etiqueta clásica, X `gblE.Pad`,
@@ -235,12 +239,24 @@ Notas completas y sección de resolución (desde acá, posiciones RELATIVAS — 
 | `lblSecResAprb` (Etiqueta clásica) | Y/H | `conNotasAprb.Y + conNotasAprb.Height + gblE.Pad` / `18` · ESTILO-SecHead · Text `"RESOLUCIÓN"` |
 | `lblLocKAprb` (Etiqueta clásica) | Y/H | `lblSecResAprb.Y + 24` / `18` · Size `9` · FontWeight `Semibold` |
 | | Text | `"Localizador * (requerido para aprobar)"` |
-| `cmbAgenteAprb` (Cuadro combinado) | Y/H | `lblLocKAprb.Y + 20` / `gblE.AltoInput` · ESTILO-Input |
-| | Items | `Filter(colAgentesAprb, !IsBlank('Email Usuario'))` — filtro EN MEMORIA sobre la colección (§1): solo agentes con usuario vinculado pueden recibir la asignación; `IsBlank` sobre colección no delega nada porque no toca el datasource |
-| | Campos (panel Datos) | texto principal = `'[AG] Nombre'` · SearchField `'[AG] Nombre'` |
-| | SelectMultiple / IsSearchable | `false` / `true` |
-| | DefaultSelectedItems | `Blank()` — el `Reset` del OnSelect de la galería lo limpia entre solicitudes |
-| `lblMotKAprb` (Etiqueta clásica) | Y/H | `cmbAgenteAprb.Y + cmbAgenteAprb.Height + gblE.PadSm` / `18` · Size `9` · FontWeight `Semibold` |
+| `txtBuscarAgeAprb` (Entrada de texto clásica) | Y/H | `lblLocKAprb.Y + 20` / `gblE.AltoInput` · ESTILO-Input · PaddingLeft `34` · DelayOutput `true` |
+| | HintText / Default | `"Buscar localizador por nombre (mín. 2)"` / `""` |
+| | Visible | `IsBlank(varAgeAprb)` |
+| `icoBuscarAgeAprb` (Ícono) | Icon / X / Y | `Icon.Search` / `txtBuscarAgeAprb.X + 8` / centrado en el buscador · Visible `txtBuscarAgeAprb.Visible` |
+| `galAgeAprb` (Galería vertical) | Y | `txtBuscarAgeAprb.Y + txtBuscarAgeAprb.Height + 4` |
+| | TemplateSize / Height | `48` / `Min(Max(Self.AllItemsCount, 1), 3) * Self.TemplateHeight` |
+| | Fill / BorderColor / BorderThickness | `gblC.card` / `gblC.borde` / `1` |
+| | Visible | `IsBlank(varAgeAprb) && Len(Trim(txtBuscarAgeAprb.Text)) >= 2` |
+| | Items | `With({t: If(Len(Trim(txtBuscarAgeAprb.Text)) < 2, "§§", Trim(txtBuscarAgeAprb.Text))}, Filter('CM \| TBL \| Agentes', '[AG] Activo' = true && 'Email Usuario' <> Blank() && StartsWith('[AG] Nombre', t)))` — todo delegable; solo agentes activos CON usuario (sin usuario Comp-14 no puede pasarles el owner); centinela `"§§"` con < 2 caracteres (B-19, B-06) |
+| | OnSelect | `Set(varAgeAprb, ThisItem)` |
+| `lblNomFilaAgeAprb` / `lblMailFilaAgeAprb` | Text | `ThisItem.'[AG] Nombre'` / `ThisItem.'Email Usuario'` |
+| `btnFilaAgeAprb` (overlay) | Text | `"Asignar a " & ThisItem.'[AG] Nombre'` · transparente, `Select(Parent)`, `TabIndex 0` |
+| `lblSinAgeAprb` (Etiqueta clásica) | Visible | `galAgeAprb.Visible && galAgeAprb.AllItemsCount = 0` (sobre la galería) |
+| `conAgeSelAprb` (Contenedor) | Y/H | `txtBuscarAgeAprb.Y` / `gblE.AltoInput` · Fill `gblC.tealSuave` · borde `gblC.teal` |
+| | Visible | `!IsBlank(varAgeAprb)` |
+| `lblAgeSelAprb` (hijo) | Text | `varAgeAprb.'[AG] Nombre' & "  ·  " & varAgeAprb.'Email Usuario'` |
+| `btnCambiarAgeAprb` (hijo) | OnSelect | `Set(varAgeAprb, Blank()); Reset(txtBuscarAgeAprb)` |
+| `lblMotKAprb` (Etiqueta clásica) | Y/H | `If(galAgeAprb.Visible, galAgeAprb.Y + galAgeAprb.Height, txtBuscarAgeAprb.Y + txtBuscarAgeAprb.Height) + gblE.PadSm` / `18` · Size `9` · FontWeight `Semibold` |
 | | Text | `"Motivo de rechazo (requerido para rechazar)"` |
 | `txtMotRechAprb` (Entrada de texto clásica) | Y/H | `lblMotKAprb.Y + 20` / `gblE.AltoInput` · ESTILO-Input |
 | | HintText / Default | `"¿Por qué se rechaza?"` / `""` |
@@ -254,7 +270,7 @@ Pie del panel — dos botones anclados abajo, mitad y mitad:
 | | DisplayMode | `If(!IsBlank(Trim(txtMotRechAprb.Text)), DisplayMode.Edit, DisplayMode.Disabled)` |
 | `btnAprobarAprb` (Botón clásico) | Estilo | ESTILO-BotonPri · Text `"✓ Aprobar y asignar"` |
 | | X/Y/W/H | `btnRechazarAprb.X + btnRechazarAprb.Width + gblE.Pad` / igual Y / igual W / igual H |
-| | DisplayMode | `If(!IsBlank(cmbAgenteAprb.Selected), DisplayMode.Edit, DisplayMode.Disabled)` |
+| | DisplayMode | `If(!IsBlank(varAgeAprb), DisplayMode.Edit, DisplayMode.Disabled)` |
 
 **btnAprobarAprb.OnSelect** (completo):
 
@@ -263,17 +279,20 @@ Patch('CM | TBL | Asignacions',
     LookUp('CM | TBL | Asignacions', '[AS] Numero' = varSelAprb.'[AS] Numero'),
     {
         '[AS] Estado de aprobacion': 'Choice | CM | Estado aprobacion especial'.Aprobado,
-        '[AS] Agente': cmbAgenteAprb.Selected,
+        '[AS] Agente': varAgeAprb,
         '[AS] Resolutor': gblUsuarioDV
     }
 );
+// (código vigente: todo envuelto en IfError — B-03; el Notify va ANTES de limpiar varAgeAprb)
+Notify("✓ Aprobada — asignada a " & varAgeAprb.'[AG] Nombre' &
+    ". El flujo de owner la baja al celular del localizador.",
+    NotificationType.Success, 2500);
 Remove(colAprobAprb,
     LookUp(colAprobAprb, '[AS] Numero' = varSelAprb.'[AS] Numero'));
 Set(varPanelAprb, false);
 Set(varSelAprb, Blank());
-Notify("✓ Aprobada — asignada a " & cmbAgenteAprb.Selected.'[AG] Nombre' &
-    ". El flujo de owner la baja al celular del localizador.",
-    NotificationType.Success, 2500)
+Set(varAgeAprb, Blank());
+Reset(txtBuscarAgeAprb)
 ```
 
 > Al setear `'[AS] Agente'`, el Cloud Flow **Comp-14** cambia el OWNER del registro al usuario
@@ -314,12 +333,12 @@ flota encima del panel).
 - [ ] Un usuario con rol ≠ Supervisor que navegue a la pantalla rebota a `scrInicio`.
 - [ ] La cola ordena FIFO: la solicitud MÁS VIEJA arriba (`Fecha de Asignacion` ascendente).
 - [ ] Clic en CUALQUIER punto de la fila (cliente, notas, monto) abre el panel — sin cazar píxeles.
-- [ ] Al cambiar de solicitud, el combo de localizador y el motivo de rechazo llegan LIMPIOS (`Reset`).
-- [ ] El combo de localizador solo ofrece agentes activos CON `Email Usuario`.
+- [ ] Al cambiar de solicitud (o cerrar el panel), el localizador (`varAgeAprb` + buscador) y el motivo de rechazo llegan LIMPIOS.
+- [ ] Con 0–1 caracteres la galería de localizadores no aparece; con ≥ 2 ofrece SOLO agentes activos CON `Email Usuario` cuyo nombre empieza así, con el texto visible (B-04). Tocar uno muestra la tarjeta con "Cambiar".
 - [ ] "✓ Aprobar y asignar" está deshabilitado sin localizador; "Rechazar" sin motivo (espacios no cuentan).
 - [ ] Aprobar: la fila desaparece de la cola SIN recargar, Notify verde, y en Dataverse el registro
       queda `Aprobado` + `'[AS] Agente'` + `'[AS] Resolutor'` (y el owner cambia solo — Comp-14).
 - [ ] Rechazar: registro `Rechazada` con `'Motivo de rechazo'` y `'[AS] Resolutor'` grabados.
 - [ ] Vaciar la cola muestra "🎉 Nada por aprobar"; «↻ Actualizar» re-colecta y cierra el panel.
-- [ ] Cero banda azul de delegación en Studio (filtro de cola y de agentes delegables; el resto en memoria).
+- [ ] Cero banda azul de delegación en Studio (filtro de cola y `galAgeAprb.Items` delegables; el resto en memoria).
 - [ ] Móvil (`nfMovil`): panel a ancho completo, columna de notas oculta, nav por hamburguesa.

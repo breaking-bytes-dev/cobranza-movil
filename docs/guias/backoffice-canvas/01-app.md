@@ -81,22 +81,9 @@ nfUltimaCarga = First(
     Sort('CM | TBL | Carga diarias', '[CD] FechaCarga', SortOrder.Descending)
 ).'[CD] FechaCarga';
 
-// Navegación por rol: catálogo ESTÁTICO que alimenta cmpNavLateral (galNavCmp.Items, §8.1).
-// Fórmula con nombre y NO colección: nunca muta (App Checker: "initialized but never updated").
-// Reemplaza al ClearCollect(colNav, ...) del OnStart del diseño original.
-nfNav = Table(
-    {Orden:1, Icono:"🏠", Titulo:"Inicio",            Ruta:"ini",  Roles:"Backoffice|Solicitante|Supervisor|Admin"},
-    {Orden:2, Icono:"📥", Titulo:"Por transcribir",   Ruta:"trx",  Roles:"Backoffice"},
-    {Orden:3, Icono:"✅", Titulo:"Transcritas hoy",   Ruta:"tsc",  Roles:"Backoffice"},
-    {Orden:4, Icono:"✨", Titulo:"Nueva solicitud",   Ruta:"nva",  Roles:"Solicitante"},
-    {Orden:5, Icono:"🗂️", Titulo:"Mis solicitudes",  Ruta:"sol",  Roles:"Solicitante"},
-    {Orden:6, Icono:"⚖️", Titulo:"Aprobaciones",      Ruta:"aprb", Roles:"Supervisor"},
-    {Orden:7, Icono:"📡", Titulo:"Monitoreo de carga",Ruta:"mon",  Roles:"Admin"},
-    {Orden:8, Icono:"🧹", Titulo:"Reconciliación",    Ruta:"rec",  Roles:"Admin"},
-    {Orden:9, Icono:"🔒", Titulo:"Cierres",           Ruta:"cie",  Roles:"Admin"},
-    {Orden:10,Icono:"🏍️", Titulo:"Agentes y usuarios",Ruta:"age", Roles:"Admin"},
-    {Orden:11,Icono:"👥", Titulo:"Datos maestros",    Ruta:"mae",  Roles:"Admin"}
-);
+// Navegación por rol: el catálogo NO vive acá. Está dentro de cmpNavLateral (galNavCmp.Items, §8.1)
+// como tabla literal LOCAL del componente (B-06: leer una fórmula con nombre de la app desde el
+// componente no era tabla en la 1.ª evaluación → banner "expected a table" al abrir).
 ```
 
 ⚠ App.Formulas se edita en el FUENTE (`Src/App.pa.yaml`) y se verifica en el export: editarla en
@@ -164,7 +151,7 @@ Set(gblRol,
 );
 // Si IntelliSense ofrece las relaciones sin el paréntesis ('Security Roles' / 'Teams' pelados),
 // usá esa forma — IntelliSense manda.
-// 4) La navegación por rol es la fórmula con nombre nfNav (App.Formulas, §3) — ya NO hay colNav.
+// 4) La navegación por rol vive en cmpNavLateral (galNavCmp.Items, catálogo local — B-06). Ya NO hay colNav ni nfNav.
 Set(gblNavMovilAbierta, false)
 
 // ===== App.OnError =====
@@ -418,7 +405,7 @@ con `ForAll` y se carga de una (`ClearCollect(col, ForAll(...))`). Leer por posi
 
 ## 8. Componentes locales (crear ANTES que las pantallas, en este orden)
 
-> Todos con **Acceder al ámbito de la aplicación = Activado** (leen `gblC/gblE/nfMovil/nfNav` y navegan).
+> Todos con **Acceder al ámbito de la aplicación = Activado** (leen `gblC/gblE/nfMovil/gblRol` y navegan).
 > Contenedores manuales adentro, mismas convenciones de nombres con sufijo `Cmp`.
 
 ### 8.1 `cmpNavLateral` — navegación por rol (LA pieza de control de acceso visual)
@@ -426,9 +413,30 @@ con `ForAll` y se carga de una (`ClearCollect(col, ForAll(...))`). Leer por posi
 - Custom properties (Entrada): `RutaActiva` (Texto) — la pantalla le pasa su ruta (`"trx"`, `"aprb"`…).
 - Estructura: `conRaizNavCmp` (Fill `gblC.teal`) → marca (logo ₡ + "Cobranza Móvil / BACKOFFICE") →
   `galNavCmp` (`Galería vertical en blanco`):
-  - `Items = Sort(Filter(nfNav, CountRows(Filter(Split(Roles, "|"), Value in gblRol)) > 0), Orden)`
+  - `Items = Sort(Filter(Table(<catálogo de navegación>), CountRows(Filter(Split(Roles, "|"), Value in gblRol)) > 0), Orden)`
     ← el filtro de ROL vive acá (multi-rol: el ítem se muestra si ALGUNO de sus roles está en
-    gblRol): un rol jamás VE navegación ajena. Todo en memoria (nfNav + Split), cero delegación.
+    gblRol): un rol jamás VE navegación ajena. Todo en memoria (tabla literal + Split), cero delegación.
+    con el catálogo **literal dentro del componente**:
+
+    ```
+    Table(
+        {Orden:1, Icono:"🏠", Titulo:"Inicio",            Ruta:"ini",  Roles:"Backoffice|Solicitante|Supervisor|Admin"},
+    {Orden:2, Icono:"📥", Titulo:"Por transcribir",   Ruta:"trx",  Roles:"Backoffice"},
+    {Orden:3, Icono:"✅", Titulo:"Transcritas hoy",   Ruta:"tsc",  Roles:"Backoffice"},
+    {Orden:4, Icono:"✨", Titulo:"Nueva solicitud",   Ruta:"nva",  Roles:"Solicitante"},
+    {Orden:5, Icono:"🗂️", Titulo:"Mis solicitudes",  Ruta:"sol",  Roles:"Solicitante"},
+    {Orden:6, Icono:"⚖️", Titulo:"Aprobaciones",      Ruta:"aprb", Roles:"Supervisor"},
+    {Orden:7, Icono:"📡", Titulo:"Monitoreo de carga",Ruta:"mon",  Roles:"Admin"},
+    {Orden:8, Icono:"🧹", Titulo:"Reconciliación",    Ruta:"rec",  Roles:"Admin"},
+    {Orden:9, Icono:"🔒", Titulo:"Cierres",           Ruta:"cie",  Roles:"Admin"},
+    {Orden:10,Icono:"🏍️", Titulo:"Agentes y usuarios",Ruta:"age", Roles:"Admin"},
+    {Orden:11,Icono:"👥", Titulo:"Datos maestros",    Ruta:"mae",  Roles:"Admin"}
+)
+    ```
+
+    > ⚠ **B-06 (verificado por telemetría del player):** con `Filter(nfNav, …)` leyendo la fórmula con nombre de la
+    > **app** desde el componente, la 1.ª evaluación al abrir fallaba con "Incorrect argument type, expected a table"
+    > (`functionName: Filter`, `entityName: galNavCmp`, `propertyName: Items`). Catálogos estáticos de un componente: **locales**.
     (`Sort` con la columna como identificador, no `SortByColumns(..., "Orden")` — §11.)
   - `AccessibleLabel = "Menú de navegación"`.
   - Template: `lblIconoNavCmp` + `lblTituloNavCmp` (sin `OnSelect`) — **sin badge de conteo** (LED-17);
@@ -505,8 +513,8 @@ contradiga esta sección está desactualizada: **manda esta sección y el códig
 | 6 | `Parent.TemplateSize` dentro del template | `Parent.TemplateHeight` (`TemplateSize` es propiedad de la galería, no se lee desde el hijo) |
 | 7 | `AddColumns` que agrega una columna que ya existe (p.ej. re-hornear sobre una colección ya horneada) → *"column already exists"* | Hornear UNA vez desde la base sin esa columna (`colTscTmpTsc` → `AddColumns` → `colTscTsc`, guía 04) |
 | 8 | Navegar `Team → 'Security Roles'` dentro de `ForAll` → *"not accessible in this context"* | Perfil derivado del nombre del team (00 §3.1, §4) |
-| 9 | `ComboBox` clásico dentro de galería: `DefaultSelectedItems` no siempre pinta la selección | Mostrar el vínculo actual en `InputTextPlaceholder` desde la columna de texto (`ThisItem.'Email Usuario'`, guía 11) |
-| 10 | `DisplayFields`/`SearchFields` del combo con display names | Nombres **lógicos**: `["sanic_cm_ag_nombre"]`, `["fullname","internalemailaddress"]` |
+| 9 | `ComboBox` clásico dentro de galería: `DefaultSelectedItems` no siempre pinta la selección | **Superado por §11.5**: ya no hay combos sobre Dataverse; el vínculo actual se muestra en texto (`lblUsrAge`, guía 11) |
+| 10 | `DisplayFields`/`SearchFields` del combo con display names | Nombres **lógicos** (sigue valiendo para combos de tablas estáticas). Para registros de Dataverse no alcanza: ver §11.5 |
 
 ### 11.2 Propiedades inválidas que impiden ABRIR la app (PA2108)
 
@@ -527,6 +535,36 @@ contradiga esta sección está desactualizada: **manda esta sección y el códig
   persistió en el export**. Regla: esos dos se fijan en el FUENTE (`Src/App.pa.yaml` y
   `msapp/Properties.json` del `.msapr`) y **se verifican SIEMPRE en el export** después de guardar —
   nunca se da por aplicado algo porque Studio lo mostró.
+
+### 11.5 Classic ComboBox no pinta registros de Dataverse en esta app → buscador + galería (B-04)
+
+- **Síntoma (verificado en el DOM del player y en Studio Preview):** `Classic/ComboBox@2.4.0` con
+  `Items` de Dataverse (Cuentas, Agentes y hasta `Users`) renderiza 15 `<li role=option>`
+  placeholder con el `<span>` de texto **vacío** y nunca termina de poblarse. Con tablas estáticas
+  (`["Celular","Casa"]`, `DisplayFields ["Value"]`) SÍ funciona → esos combos quedan.
+- **Parche descartado:** registros planos con `ForAll(Filter(…)) As x, {Value: …}` — tampoco
+  pintaba y además **`ForAll` sobre Dataverse no delega** (bajaba la tabla entera). Los comentarios
+  viejos que afirmaban "Filter directo verificado en Studio" para el combo eran falsos.
+- **Patrón definitivo (pantallas 06, 07, 11):**
+  1. Buscador `Classic/TextInput` con `DelayOutput = true` y `HintText "… (mín. 2)"`.
+  2. Galería de resultados con `Items` delegable y centinela para < 2 caracteres (nunca la tabla
+     entera, nunca un `If` sin rama falsa → B-06):
+     `With({t: If(Len(Trim(txt.Text)) < 2, "§§", Trim(txt.Text))}, Filter(Tabla, StartsWith(col1, t) || StartsWith(col2, t)))`.
+     Alto acotado `Min(Max(Self.AllItemsCount, 1), N) * Self.TemplateHeight`; visible solo con
+     búsqueda ≥ 2 y sin selección; overlay `btnFila*` por fila (receta 7.3) y etiqueta "sin
+     coincidencias" con `AllItemsCount = 0`.
+  3. Selección en una **variable** con el registro de Dataverse (`Set(varX, ThisItem)`), mostrada
+     como tarjeta en el lugar del buscador con botón **"Cambiar"** (`Set(varX, Blank()); Reset(txt)`).
+     El `Patch` usa la variable tal cual para el lookup (`'[AS] Cuenta': varCtaNva`).
+  4. **Columnas que se leen de la variable → pintarlas también en la fila** de la galería: la
+     selección explícita de columnas puede perder el linaje al pasar por variables (doc oficial
+     "Optimize app load" → *Use Explicit column selection*); usadas en la fila, viajan en la consulta.
+  5. Si el selector vivía DENTRO de una galería (scrAgentes): no anidar galerías → botón por fila
+     que guarda el registro objetivo en una variable y abre UN panel (receta 7.4) con buscador +
+     galería; tocar una fila confirma la escritura (con `IfError`, sin cerrar en error).
+- **Variables por pantalla:** `varCtaNva` (06), `varAgeAprb` (07), `varAgenteAge` + `varPanelAge` (11).
+- **Suite E2E:** `elegirEnBuscador(app, { buscador, galeria, buscar, opcion, cambiar })` en
+  `tests/backoffice-canvas/escenarios/comun.js`.
 
 ### 11.4 Delegación, zona horaria y performance
 

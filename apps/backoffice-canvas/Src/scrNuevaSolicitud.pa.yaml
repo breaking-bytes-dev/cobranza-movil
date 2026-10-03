@@ -12,8 +12,10 @@ Screens:
       Fill: =gblC.pantalla
       OnVisible: |-
         =// Sin colecciones y sin Reset: la búsqueda de cuenta es delegable directo al datasource
-        // (receta 01 §7.9) y el resto es formulario puro. Si el Solicitante sale a mitad del form
-        // y vuelve, el borrador se conserva — el Reset ocurre SOLO tras enviar (btnEnviarNva).
+        // (galCtaNva, receta 01 §7.9) y el resto es formulario puro. Si el Solicitante sale a mitad
+        // del form y vuelve, el borrador se conserva — INCLUIDA la cuenta elegida (varCtaNva) — y la
+        // limpieza (varCtaNva + Reset de buscador e inputs) ocurre SOLO tras enviar con éxito
+        // (btnEnviarNva). Si el Patch falla, nada se limpia (IfError, B-03).
     Children:
       - cmpEncabezadoNva:
           Control: CanvasComponent
@@ -60,67 +62,248 @@ Screens:
                   Wrap: =false
                   X: =gblE.Pad
                   Y: =gblE.Pad
-            - cmbCuentaNva:
-                Control: Classic/ComboBox@2.4.0
+            - txtBuscarCtaNva:
+                Control: Classic/TextInput@2.3.2
                 Properties:
-                  AccessibleLabel: ="Cuenta del cliente"
+                  AccessibleLabel: ="Buscar cuenta por número o cliente"
                   BorderColor: =gblC.borde
-                  DisplayFields: =["Value"]
+                  Default: =""
+                  DelayOutput: =true
                   Fill: =gblC.card
                   FocusedBorderColor: =gblC.teal
                   FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
-                  Height: =48
-                  InputTextPlaceholder: ="— Buscar cuenta (mín. 2 caracteres) —"
-                  IsSearchable: =true
-                  Items: |-
-                    =// B-04 (causa real, verificada en el DOM del player y en Studio Preview): el combo clásico
-                    // NO pinta el texto cuando sus Items son registros de Dataverse (Cuentas, Agentes y hasta
-                    // Users salían en blanco); con registros PLANOS (como ["…"] → Value) sí. Por eso el combo
-                    // recibe registros armados con ForAll y los campos que la pantalla usa, explícitos.
-                    // Delegación: el Filter interno SÍ delega (StartsWith en Dataverse) y ForAll solo da
-                    // forma a las filas que devolvió el servidor (patrón Filter + shaping de la doc oficial).
-                    // B-19: sin al menos 2 caracteres no se consulta la tabla entera (Len(t) es constante por
-                    // consulta, no rompe la delegación).
-                    With({t: cmbCuentaNva.SearchText},
-                        ForAll(
-                            Filter('CM | TBL | Cuentas',
-                                Len(t) >= 2
-                                && (StartsWith('[CT] Numero de cuenta', t) || StartsWith('Nombre Cliente', t))
-                            ) As c,
-                            {
-                                Value: c.'[CT] Numero de cuenta' & "  ·  " & c.'Nombre Cliente',
-                                Numero: c.'[CT] Numero de cuenta',
-                                NIO: c.'[CT] Saldo Vencido NIO',
-                                USD: c.'[CT] Saldo Vencido USD',
-                                DiasMora: c.'[CT] Dias Mora',
-                                NivelMora: c.'[CT] Nivel Mora',
-                                Cuenta: c
-                            }
-                        )
-                    )
-                  SearchFields: =["Value"]
-                  SelectMultiple: =false
+                  Height: =gblE.AltoInput
+                  HintText: ="Buscar por número de cuenta o cliente (mín. 2)"
+                  PaddingLeft: =34
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
                   Size: =10
+                  Visible: =IsBlank(varCtaNva)
                   Width: =Parent.Width - 2*gblE.Pad
                   X: =gblE.Pad
                   Y: =lblCuentaTitNva.Y + lblCuentaTitNva.Height + 4
+            - icoBuscarCtaNva:
+                Control: Classic/Icon@2.5.0
+                Properties:
+                  AccessibleLabel: ="Buscar cuenta"
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: =20
+                  Icon: =Icon.Search
+                  Visible: =txtBuscarCtaNva.Visible
+                  Width: =20
+                  X: =txtBuscarCtaNva.X + 8
+                  Y: =txtBuscarCtaNva.Y + (txtBuscarCtaNva.Height - Self.Height) / 2
+            - galCtaNva:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  AccessibleLabel: ="Cuentas que coinciden con la búsqueda"
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: |-
+                    =// Alto acotado: crece con los resultados hasta 4 filas (mín. 1 para el aviso "sin coincidencias").
+                    Min(Max(Self.AllItemsCount, 1), 4) * Self.TemplateHeight
+                  Items: |-
+                    =// B-04 (causa real, verificada en el DOM del player y en Studio Preview): el ComboBox
+                    // clásico NO pinta registros de Dataverse en esta app (Cuentas, Agentes y hasta Users:
+                    // 15 opciones con el texto vacío); ni con registros planos vía ForAll, que además NO
+                    // delega (bajaba la tabla entera). Por eso: buscador + galería sobre el Filter directo.
+                    // Delegación: StartsWith delega en Dataverse; t es constante por consulta.
+                    // B-19: con menos de 2 caracteres t es un centinela que no matchea nada → nunca se
+                    // trae la tabla entera (y siempre hay tabla: sin If sin rama falsa, B-06).
+                    With({t: If(Len(Trim(txtBuscarCtaNva.Text)) < 2, "§§", Trim(txtBuscarCtaNva.Text))},
+                        Filter('CM | TBL | Cuentas',
+                            StartsWith('[CT] Numero de cuenta', t) || StartsWith('Nombre Cliente', t))
+                    )
+                  OnSelect: |-
+                    =// El registro de Dataverse entero queda en la variable: el Patch de btnEnviarNva lo usa
+                    // tal cual para el lookup '[AS] Cuenta'. Las columnas que la pantalla lee de varCtaNva
+                    // (saldos, mora) se pintan también en la fila: así la selección explícita de columnas
+                    // las trae en ESTA consulta y no se pierden al pasar por la variable.
+                    Set(varCtaNva, ThisItem)
+                  ShowScrollbar: =false
+                  TemplateFill: =gblC.card
+                  TemplatePadding: =0
+                  TemplateSize: =52
+                  Visible: =IsBlank(varCtaNva) && Len(Trim(txtBuscarCtaNva.Text)) >= 2
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =txtBuscarCtaNva.Y + txtBuscarCtaNva.Height + 4
+                Children:
+                  - lblNumFilaCtaNva:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =20
+                        PaddingLeft: =0
+                        Size: =10
+                        Text: =ThisItem.'[CT] Numero de cuenta'
+                        Width: =Parent.TemplateWidth - 2*gblE.PadSm - lblSaldoFilaCtaNva.Width
+                        Wrap: =false
+                        X: =gblE.PadSm
+                        Y: =6
+                  - lblCliFilaCtaNva:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.muted
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =18
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: =ThisItem.'Nombre Cliente'
+                        Width: =lblNumFilaCtaNva.Width
+                        Wrap: =false
+                        X: =gblE.PadSm
+                        Y: =lblNumFilaCtaNva.Y + lblNumFilaCtaNva.Height + 2
+                  - lblSaldoFilaCtaNva:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =Align.Right
+                        Color: =gblC.ink2
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =20
+                        PaddingLeft: =0
+                        PaddingRight: =0
+                        Size: =9
+                        Text: =Moneda(ThisItem.'[CT] Saldo Vencido NIO', ThisItem.'[CT] Saldo Vencido USD')
+                        Width: =Min(170, Parent.TemplateWidth * 40%)
+                        Wrap: =false
+                        X: =Parent.TemplateWidth - Self.Width - gblE.PadSm
+                        Y: =lblNumFilaCtaNva.Y
+                  - lblMoraFilaCtaNva:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =Align.Right
+                        Color: =gblC.muted
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =18
+                        PaddingLeft: =0
+                        PaddingRight: =0
+                        Size: =8
+                        Text: ="Mora " & ThisItem.'[CT] Dias Mora' & " d · nivel " & ThisItem.'[CT] Nivel Mora'
+                        Width: =lblSaldoFilaCtaNva.Width
+                        Wrap: =false
+                        X: =lblSaldoFilaCtaNva.X
+                        Y: =lblCliFilaCtaNva.Y
+                  - recSepCtaNva:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.hairline
+                        Height: =1
+                        Width: =Parent.TemplateWidth
+                        Y: =Parent.TemplateHeight - 1
+                  - btnFilaCtaNva:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =Color.Transparent
+                        Fill: =Color.Transparent
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Height: =Parent.TemplateHeight
+                        HoverFill: =RGBA(15, 107, 107, 0.06)
+                        OnSelect: =Select(Parent)
+                        PressedFill: =RGBA(15, 107, 107, 0.12)
+                        TabIndex: =0
+                        Text: ="Elegir cuenta " & ThisItem.'[CT] Numero de cuenta' & " · " & ThisItem.'Nombre Cliente'
+                        Width: =Parent.TemplateWidth
+                        X: =0
+                        Y: =0
+            - lblSinCtaNva:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =galCtaNva.Height
+                  PaddingLeft: =gblE.PadSm
+                  Size: =9
+                  Text: ="Ninguna cuenta ni cliente empieza con «" & Trim(txtBuscarCtaNva.Text) & "»."
+                  Visible: |-
+                    =// AllItemsCount es client-side (la página cargada): para "¿cero resultados?" alcanza.
+                    galCtaNva.Visible && galCtaNva.AllItemsCount = 0
+                  Width: =galCtaNva.Width
+                  Wrap: =false
+                  X: =galCtaNva.X
+                  Y: =galCtaNva.Y
             - conPreviewNva:
                 Control: GroupContainer@1.5.0
                 Variant: ManualLayout
                 Properties:
+                  BorderColor: =gblC.teal
+                  BorderThickness: =1
                   DropShadow: =DropShadow.None
-                  Fill: =gblC.pantalla
-                  Height: =62
+                  Fill: =gblC.tealSuave
+                  Height: =lblPrevMoraNva.Y + lblPrevMoraNva.Height + gblE.PadSm
                   RadiusBottomLeft: =gblE.RadioSm
                   RadiusBottomRight: =gblE.RadioSm
                   RadiusTopLeft: =gblE.RadioSm
                   RadiusTopRight: =gblE.RadioSm
-                  Visible: =!IsBlank(cmbCuentaNva.Selected)
+                  Visible: =!IsBlank(varCtaNva)
                   Width: =Parent.Width - 2*gblE.Pad
                   X: =gblE.Pad
-                  Y: =cmbCuentaNva.Y + cmbCuentaNva.Height + gblE.PadSm
+                  Y: =txtBuscarCtaNva.Y
                 Children:
+                  - lblCtaSelNva:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =22
+                        PaddingLeft: =0
+                        Size: =10
+                        Text: =varCtaNva.'[CT] Numero de cuenta' & "  ·  " & varCtaNva.'Nombre Cliente'
+                        Width: =Parent.Width - 3*gblE.PadSm - btnCambiarCtaNva.Width
+                        Wrap: =false
+                        X: =gblE.PadSm
+                        Y: =gblE.PadSm
+                  - btnCambiarCtaNva:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderColor: =gblC.borde
+                        BorderThickness: =1
+                        Color: =gblC.ink2
+                        Fill: =gblC.card
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =28
+                        HoverFill: =ColorFade(gblC.card, 10%)
+                        OnSelect: |-
+                          =// Vuelve al buscador vacío (sin búsqueda previa → la galería no consulta nada).
+                          Set(varCtaNva, Blank());
+                          Reset(txtBuscarCtaNva)
+                        Size: =9
+                        TabIndex: =0
+                        Text: ="Cambiar"
+                        Width: =92
+                        X: =Parent.Width - Self.Width - gblE.PadSm
+                        Y: =gblE.PadSm
                   - lblPrevSaldoNva:
                       Control: Label@2.5.1
                       Properties:
@@ -134,12 +317,12 @@ Screens:
                         Size: =10
                         Text: |-
                           ="Saldo vencido: " & Moneda(
-                              cmbCuentaNva.Selected.NIO,
-                              cmbCuentaNva.Selected.USD)
-                        Width: =Parent.Width - 2*gblE.PadSm
+                              varCtaNva.'[CT] Saldo Vencido NIO',
+                              varCtaNva.'[CT] Saldo Vencido USD')
+                        Width: =lblCtaSelNva.Width
                         Wrap: =false
                         X: =gblE.PadSm
-                        Y: =gblE.PadSm
+                        Y: =lblCtaSelNva.Y + lblCtaSelNva.Height + 4
                   - lblPrevMoraNva:
                       Control: Label@2.5.1
                       Properties:
@@ -151,12 +334,12 @@ Screens:
                         PaddingLeft: =0
                         Size: =9
                         Text: |-
-                          ="Mora: " & cmbCuentaNva.Selected.DiasMora & " días · nivel "
-                              & cmbCuentaNva.Selected.NivelMora
-                        Width: =Parent.Width - 2*gblE.PadSm
+                          ="Mora: " & varCtaNva.'[CT] Dias Mora' & " días · nivel "
+                              & varCtaNva.'[CT] Nivel Mora'
+                        Width: =lblCtaSelNva.Width
                         Wrap: =false
                         X: =gblE.PadSm
-                        Y: =32
+                        Y: =lblPrevSaldoNva.Y + lblPrevSaldoNva.Height
             - lblTipoTitNva:
                 Control: Label@2.5.1
                 Properties:
@@ -172,7 +355,12 @@ Screens:
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
                   X: =gblE.Pad
-                  Y: =conPreviewNva.Y + If(conPreviewNva.Visible, conPreviewNva.Height + gblE.PadSm, 0)
+                  Y: |-
+                    =// Debajo de lo que esté visible en el bloque Cuenta: tarjeta elegida, resultados o buscador.
+                    If(conPreviewNva.Visible, conPreviewNva.Y + conPreviewNva.Height,
+                        galCtaNva.Visible, galCtaNva.Y + galCtaNva.Height,
+                        txtBuscarCtaNva.Y + txtBuscarCtaNva.Height)
+                    + gblE.PadSm
             - cmbTipoNva:
                 Control: Classic/ComboBox@2.4.0
                 Properties:
@@ -337,7 +525,7 @@ Screens:
                         Concat(
                             Filter(
                                 Table(
-                                    {t: If(IsBlank(cmbCuentaNva.Selected), "cuenta")},
+                                    {t: If(IsBlank(varCtaNva), "cuenta")},
                                     {t: If(!(Value(txtRetiroNioNva.Text) > 0 || Value(txtRetiroUsdNva.Text) > 0), "monto")},
                                     {t: If(IsBlank(Trim(txtMotivoNva.Text)), "motivo")}
                                 ),
@@ -359,7 +547,7 @@ Screens:
                   DisabledColor: =Color.White
                   DisabledFill: =ColorFade(gblC.teal, 60%)
                   DisplayMode: |-
-                    =If(!IsBlank(cmbCuentaNva.Selected)
+                    =If(!IsBlank(varCtaNva)
                         && (Value(txtRetiroNioNva.Text) > 0 || Value(txtRetiroUsdNva.Text) > 0)
                         && !IsBlank(Trim(txtMotivoNva.Text)),
                         DisplayMode.Edit, DisplayMode.Disabled)
@@ -381,9 +569,9 @@ Screens:
                     // IfError (B-03): si el Patch falla se muestra el detalle y el formulario NO se limpia.
                     With(
                         {
-                            _cta: cmbCuentaNva.Selected.Numero,
+                            _cta: varCtaNva.'[CT] Numero de cuenta',
                             _cerrada: LookUp('CM | TBL | Asignacions',
-                                '[AS] NumeroCuenta' = cmbCuentaNva.Selected.Numero
+                                '[AS] NumeroCuenta' = varCtaNva.'[CT] Numero de cuenta'
                                 && '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
                                 && '[AS] Estado' = false)
                         },
@@ -419,7 +607,7 @@ Screens:
                                     // c) Crear
                                     Patch('CM | TBL | Asignacions', Defaults('CM | TBL | Asignacions'),
                                         {
-                                            '[AS] Cuenta': cmbCuentaNva.Selected.Cuenta,
+                                            '[AS] Cuenta': varCtaNva,
                                             '[AS] NumeroCuenta': _cta,
                                             '[AS] Tipo': 'Choice | CM | Tipo asignacion'.Especial,
                                             '[AS] Estado': true,
@@ -435,7 +623,8 @@ Screens:
                                 Notify("No se pudo enviar la solicitud de la cuenta " & _cta & ": " & FirstError.Message,
                                     NotificationType.Error),
                                 Notify("✨ Solicitud enviada — quedó Pendiente de aprobación", NotificationType.Success, 2500);
-                                Reset(cmbCuentaNva);
+                                Set(varCtaNva, Blank());
+                                Reset(txtBuscarCtaNva);
                                 Reset(cmbTipoNva);
                                 Reset(txtRetiroNioNva);
                                 Reset(txtRetiroUsdNva);

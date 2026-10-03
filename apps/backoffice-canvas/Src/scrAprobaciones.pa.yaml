@@ -11,7 +11,7 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =// Catálogo de agentes: lo resuelve cmbAgenteAprb.Items (Filter delegado + registros planos, B-04).
+        =// Localizador: buscador + galería (galAgeAprb, Filter directo delegado, B-04) — sin catálogo.
         // La cola + datos de la cuenta horneados navegando el lookup '[AS] Cuenta' (lo resuelve el
         // servidor, sin catálogo de cuentas truncable al Data row limit).
         ClearCollect(colAprobAprb,
@@ -31,6 +31,7 @@ Screens:
         );
         // Estado de pantalla
         Set(varSelAprb, Blank());
+        Set(varAgeAprb, Blank());
         Set(varPanelAprb, false)
     Children:
       - cmpEncAprb:
@@ -83,6 +84,7 @@ Screens:
                         )
                     );
                     Set(varSelAprb, Blank());
+                    Set(varAgeAprb, Blank());
                     Set(varPanelAprb, false)
                   Size: =9
                   Text: ="↻ Actualizar"
@@ -98,10 +100,12 @@ Screens:
                   Height: =Parent.Height - Self.Y - gblE.Pad
                   Items: =Sort(colAprobAprb, '[AS] Fecha de Asignacion', SortOrder.Ascending)
                   OnSelect: |-
-                    =Set(varSelAprb, ThisItem);
-                    Set(varPanelAprb, true);
-                    Reset(cmbAgenteAprb);
-                    Reset(txtMotRechAprb)
+                    =// Cada apertura del panel arranca sin localizador elegido y con el buscador vacío.
+                    Set(varSelAprb, ThisItem);
+                    Set(varAgeAprb, Blank());
+                    Reset(txtBuscarAgeAprb);
+                    Reset(txtMotRechAprb);
+                    Set(varPanelAprb, true)
                   ShowScrollbar: =false
                   TemplateFill: =If(ThisItem.IsSelected, gblC.tealSuave, gblC.card)
                   TemplatePadding: =0
@@ -258,7 +262,10 @@ Screens:
             FocusedBorderColor: =gblC.teal
             FocusedBorderThickness: =2
             Height: =Parent.Height
-            OnSelect: =Set(varPanelAprb, false)
+            OnSelect: |-
+              =Set(varPanelAprb, false);
+              Set(varAgeAprb, Blank());
+              Reset(txtBuscarAgeAprb)
             TabIndex: =0
             Visible: =varPanelAprb
             Width: =Parent.Width
@@ -303,7 +310,10 @@ Screens:
                   FocusedBorderThickness: =2
                   Height: =28
                   Icon: =Icon.Cancel
-                  OnSelect: =Set(varPanelAprb, false)
+                  OnSelect: |-
+                    =Set(varPanelAprb, false);
+                    Set(varAgeAprb, Blank());
+                    Reset(txtBuscarAgeAprb)
                   TabIndex: =0
                   Width: =28
                   X: =Parent.Width - 40
@@ -566,31 +576,206 @@ Screens:
                   Wrap: =false
                   X: =gblE.Pad
                   Y: =lblSecResAprb.Y + 24
-            - cmbAgenteAprb:
-                Control: Classic/ComboBox@2.4.0
+            - txtBuscarAgeAprb:
+                Control: Classic/TextInput@2.3.2
                 Properties:
-                  AccessibleLabel: ="Agente asignado"
+                  AccessibleLabel: ="Buscar localizador por nombre"
                   BorderColor: =gblC.borde
-                  DisplayFields: =["Value"]
+                  Default: =""
+                  DelayOutput: =true
                   Fill: =gblC.card
                   FocusedBorderColor: =gblC.teal
                   FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
-                  Items: |-
-                    =// B-04: el combo clásico no pinta registros de Dataverse; recibe registros PLANOS
-                    // (ver cmbCuentaNva). El Filter delega; ForAll da forma a lo que devolvió el servidor.
-                    // Agentes activos con usuario vinculado (<> Blank() delega).
-                    ForAll(
-                        Filter('CM | TBL | Agentes', '[AG] Activo' = true && 'Email Usuario' <> Blank()) As a,
-                        {Value: a.'[AG] Nombre', Agente: a}
-                    )
-                  SearchFields: =["Value"]
-                  SelectMultiple: =false
+                  HintText: ="Buscar localizador por nombre (mín. 2)"
+                  PaddingLeft: =34
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
                   Size: =10
+                  Visible: =IsBlank(varAgeAprb)
                   Width: =Parent.Width - 2*gblE.Pad
                   X: =gblE.Pad
                   Y: =lblLocKAprb.Y + 20
+            - icoBuscarAgeAprb:
+                Control: Classic/Icon@2.5.0
+                Properties:
+                  AccessibleLabel: ="Buscar localizador"
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: =20
+                  Icon: =Icon.Search
+                  Visible: =txtBuscarAgeAprb.Visible
+                  Width: =20
+                  X: =txtBuscarAgeAprb.X + 8
+                  Y: =txtBuscarAgeAprb.Y + (txtBuscarAgeAprb.Height - Self.Height) / 2
+            - galAgeAprb:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  AccessibleLabel: ="Localizadores que coinciden con la búsqueda"
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: |-
+                    =// Alto acotado: hasta 3 filas (mín. 1 para el aviso "sin coincidencias").
+                    Min(Max(Self.AllItemsCount, 1), 3) * Self.TemplateHeight
+                  Items: |-
+                    =// B-04: el ComboBox clásico no pinta registros de Dataverse en esta app → buscador +
+                    // galería (ver galCtaNva). Filter directo, todo delegable: igualdad booleana,
+                    // <> Blank() y StartsWith. Solo agentes activos con usuario vinculado (sin usuario
+                    // Comp-14 no puede pasarle el owner). Con menos de 2 caracteres, centinela "§§":
+                    // no se consulta la tabla entera (B-19) y siempre hay tabla (B-06).
+                    With({t: If(Len(Trim(txtBuscarAgeAprb.Text)) < 2, "§§", Trim(txtBuscarAgeAprb.Text))},
+                        Filter('CM | TBL | Agentes',
+                            '[AG] Activo' = true
+                            && 'Email Usuario' <> Blank()
+                            && StartsWith('[AG] Nombre', t))
+                    )
+                  OnSelect: =Set(varAgeAprb, ThisItem)
+                  ShowScrollbar: =false
+                  TemplateFill: =gblC.card
+                  TemplatePadding: =0
+                  TemplateSize: =48
+                  Visible: =IsBlank(varAgeAprb) && Len(Trim(txtBuscarAgeAprb.Text)) >= 2
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =txtBuscarAgeAprb.Y + txtBuscarAgeAprb.Height + 4
+                Children:
+                  - lblNomFilaAgeAprb:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =20
+                        PaddingLeft: =0
+                        Size: =10
+                        Text: =ThisItem.'[AG] Nombre'
+                        Width: =Parent.TemplateWidth - 2*gblE.PadSm
+                        Wrap: =false
+                        X: =gblE.PadSm
+                        Y: =5
+                  - lblMailFilaAgeAprb:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.muted
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =18
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: =ThisItem.'Email Usuario'
+                        Width: =lblNomFilaAgeAprb.Width
+                        Wrap: =false
+                        X: =gblE.PadSm
+                        Y: =lblNomFilaAgeAprb.Y + lblNomFilaAgeAprb.Height + 2
+                  - recSepAgeAprb:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.hairline
+                        Height: =1
+                        Width: =Parent.TemplateWidth
+                        Y: =Parent.TemplateHeight - 1
+                  - btnFilaAgeAprb:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =Color.Transparent
+                        Fill: =Color.Transparent
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Height: =Parent.TemplateHeight
+                        HoverFill: =RGBA(15, 107, 107, 0.06)
+                        OnSelect: =Select(Parent)
+                        PressedFill: =RGBA(15, 107, 107, 0.12)
+                        TabIndex: =0
+                        Text: ="Asignar a " & ThisItem.'[AG] Nombre'
+                        Width: =Parent.TemplateWidth
+                        X: =0
+                        Y: =0
+            - lblSinAgeAprb:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =galAgeAprb.Height
+                  PaddingLeft: =gblE.PadSm
+                  Size: =9
+                  Text: ="Ningún localizador activo con usuario empieza con «" & Trim(txtBuscarAgeAprb.Text) & "»."
+                  Visible: =galAgeAprb.Visible && galAgeAprb.AllItemsCount = 0
+                  Width: =galAgeAprb.Width
+                  Wrap: =false
+                  X: =galAgeAprb.X
+                  Y: =galAgeAprb.Y
+            - conAgeSelAprb:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderColor: =gblC.teal
+                  BorderThickness: =1
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.tealSuave
+                  Height: =gblE.AltoInput
+                  RadiusBottomLeft: =gblE.RadioSm
+                  RadiusBottomRight: =gblE.RadioSm
+                  RadiusTopLeft: =gblE.RadioSm
+                  RadiusTopRight: =gblE.RadioSm
+                  Visible: =!IsBlank(varAgeAprb)
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =txtBuscarAgeAprb.Y
+                Children:
+                  - lblAgeSelAprb:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =Parent.Height
+                        PaddingLeft: =0
+                        Size: =10
+                        Text: =varAgeAprb.'[AG] Nombre' & "  ·  " & varAgeAprb.'Email Usuario'
+                        Width: =Parent.Width - 3*gblE.PadSm - btnCambiarAgeAprb.Width
+                        Wrap: =false
+                        X: =gblE.PadSm
+                        Y: =0
+                  - btnCambiarAgeAprb:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderColor: =gblC.borde
+                        BorderThickness: =1
+                        Color: =gblC.ink2
+                        Fill: =gblC.card
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =28
+                        HoverFill: =ColorFade(gblC.card, 10%)
+                        OnSelect: |-
+                          =Set(varAgeAprb, Blank());
+                          Reset(txtBuscarAgeAprb)
+                        Size: =9
+                        TabIndex: =0
+                        Text: ="Cambiar"
+                        Width: =92
+                        X: =Parent.Width - Self.Width - gblE.PadSm
+                        Y: =(Parent.Height - Self.Height) / 2
             - lblMotKAprb:
                 Control: Label@2.5.1
                 Properties:
@@ -606,7 +791,12 @@ Screens:
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
                   X: =gblE.Pad
-                  Y: =cmbAgenteAprb.Y + cmbAgenteAprb.Height + gblE.PadSm
+                  Y: |-
+                    =// Debajo de los resultados si están abiertos; si no, del buscador o la tarjeta
+                    // (mismo Y y mismo alto).
+                    If(galAgeAprb.Visible, galAgeAprb.Y + galAgeAprb.Height,
+                        txtBuscarAgeAprb.Y + txtBuscarAgeAprb.Height)
+                    + gblE.PadSm
             - txtMotRechAprb:
                 Control: Classic/TextInput@2.3.2
                 Properties:
@@ -658,6 +848,8 @@ Screens:
                             LookUp(colAprobAprb, '[AS] Numero' = varSelAprb.'[AS] Numero'));
                         Set(varPanelAprb, false);
                         Set(varSelAprb, Blank());
+                        Set(varAgeAprb, Blank());
+                        Reset(txtBuscarAgeAprb);
                         Notify("Solicitud rechazada", NotificationType.Warning)
                     )
                   Size: =10
@@ -672,7 +864,7 @@ Screens:
                   Color: =Color.White
                   DisabledColor: =Color.White
                   DisabledFill: =ColorFade(gblC.teal, 60%)
-                  DisplayMode: =If(!IsBlank(cmbAgenteAprb.Selected), DisplayMode.Edit, DisplayMode.Disabled)
+                  DisplayMode: =If(!IsBlank(varAgeAprb), DisplayMode.Edit, DisplayMode.Disabled)
                   Fill: =gblC.teal
                   FocusedBorderColor: =gblC.ink
                   FocusedBorderThickness: =2
@@ -691,19 +883,22 @@ Screens:
                             LookUp('CM | TBL | Asignacions', '[AS] Numero' = varSelAprb.'[AS] Numero'),
                             {
                                 '[AS] Estado de aprobacion': 'Choice | CM | Estado aprobacion especial'.Aprobado,
-                                '[AS] Agente': cmbAgenteAprb.Selected.Agente,
+                                '[AS] Agente': varAgeAprb,
                                 '[AS] Resolutor': gblUsuarioDV
                             }
                         ),
                         Notify("No se pudo aprobar " & varSelAprb.'[AS] Numero' & ": " & FirstError.Message,
                             NotificationType.Error),
+                        // El Notify va ANTES de limpiar varAgeAprb (lee el nombre del localizador).
+                        Notify("✓ Aprobada — asignada a " & varAgeAprb.'[AG] Nombre' &
+                            ". El flujo de owner la baja al celular del localizador.",
+                            NotificationType.Success, 2500);
                         Remove(colAprobAprb,
                             LookUp(colAprobAprb, '[AS] Numero' = varSelAprb.'[AS] Numero'));
                         Set(varPanelAprb, false);
                         Set(varSelAprb, Blank());
-                        Notify("✓ Aprobada — asignada a " & cmbAgenteAprb.Selected.Value &
-                            ". El flujo de owner la baja al celular del localizador.",
-                            NotificationType.Success, 2500)
+                        Set(varAgeAprb, Blank());
+                        Reset(txtBuscarAgeAprb)
                     )
                   Size: =10
                   Text: ="✓ Aprobar y asignar"

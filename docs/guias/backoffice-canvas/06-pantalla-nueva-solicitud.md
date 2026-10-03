@@ -2,7 +2,7 @@
 
 > ⚠ **Esta guía es el diseño original; el código vigente (validado en Studio) está en `apps/backoffice-canvas/Src/scrNuevaSolicitud.pa.yaml`.** Diferencias principales (ver 00 §2/§4 y 01 §7/§11):
 > - Sin guard de rol en `OnVisible` (LED-20).
-> - `cmbCuentaNva.DisplayFields` con nombres LÓGICOS (`["sanic_cm_ct_numerodecuenta","lineaNva"]`); sin `IsSearchable` (01 §11.1 #10).
+> - **B-04: el selector de cuenta YA NO es un Cuadro combinado.** El ComboBox clásico no pinta registros de Dataverse en esta app (opciones con texto vacío, también en Studio Preview). Se reemplazó por **buscador (`txtBuscarCtaNva`) + galería de resultados (`galCtaNva`) + tarjeta de la cuenta elegida (`conPreviewNva`, variable `varCtaNva`)** — ver §3.1–§3.2 y 01 §11.
 > - `AccessibleLabel` en combos/inputs y `FocusedBorderThickness 2` en todo lo interactivo (LED-19).
 > - `cmpEncabezadoNva`: sin `Y`, `Height = If(nfMovil, gblE.AltoBarra + 84, 84)` (receta 7.5). Patch, anti-duplicado y `Moneda()` iguales a la guía.
 
@@ -29,8 +29,19 @@ scrNuevaSolicitud                     ESTILO-Pantalla
 ├── cmpEncabezadoNva                  cmpEncabezado (receta 7.5)
 ├── conFormNva                        Contenedor · ESTILO-Card (la card central del form)
 │   ├── lblCuentaTitNva               "Cuenta *"
-│   ├── cmbCuentaNva                  Cuadro combinado (búsqueda delegable, 2 líneas)
-│   ├── conPreviewNva                 Contenedor · card gris (saldo/mora de la cuenta elegida)
+│   ├── txtBuscarCtaNva               Entrada de texto clásica (buscador, DelayOutput) — visible sin cuenta elegida
+│   ├── icoBuscarCtaNva               Ícono lupa (dentro del buscador)
+│   ├── galCtaNva                     Galería vertical (resultados, 2 líneas, alto acotado)
+│   │   ├── lblNumFilaCtaNva          número de cuenta
+│   │   ├── lblCliFilaCtaNva          nombre del cliente
+│   │   ├── lblSaldoFilaCtaNva        saldo vencido (derecha)
+│   │   ├── lblMoraFilaCtaNva         mora (derecha)
+│   │   ├── recSepCtaNva              separador
+│   │   └── btnFilaCtaNva             overlay de fila (un tab stop por fila)
+│   ├── lblSinCtaNva                  "Ninguna cuenta ni cliente empieza con «…»"
+│   ├── conPreviewNva                 Contenedor · tarjeta de la cuenta ELEGIDA (reemplaza al buscador)
+│   │   ├── lblCtaSelNva              número · cliente
+│   │   ├── btnCambiarCtaNva          "Cambiar" (limpia varCtaNva y el buscador)
 │   │   ├── lblPrevSaldoNva
 │   │   └── lblPrevMoraNva
 │   ├── lblTipoTitNva                 "Tipo de especial *"
@@ -59,7 +70,9 @@ If(!("Solicitante" in gblRol), Navigate(scrInicio));
 ```
 
 Nada más en OnVisible: sin colecciones y sin Reset — si el Solicitante sale a mitad del form y
-vuelve, el borrador se conserva (decisión deliberada; el Reset ocurre solo tras enviar, §5).
+vuelve, el borrador se conserva **incluida la cuenta elegida (`varCtaNva`)** (decisión deliberada;
+la limpieza — `Set(varCtaNva, Blank())` + `Reset` del buscador y de los inputs — ocurre solo tras
+enviar con éxito, §5; si el Patch falla no se limpia nada).
 
 ## 2. Encabezado y navegación
 
@@ -95,63 +108,76 @@ vuelve, el borrador se conserva (decisión deliberada; el Reset ocurre solo tras
 `Height = 18` · Text el del árbol (el `*` de requerido va EN el texto). X/Width del párrafo
 inicial; las de NIO/USD usan X/Width del par (§4). Y de cada una, en §3.1–§4.
 
-### 3.1 Cuenta — `cmbCuentaNva` (Cuadro combinado)
+### 3.1 Cuenta — buscador `txtBuscarCtaNva` + galería `galCtaNva`
 
-| Propiedad | Valor |
-|---|---|
-| (lblCuentaTitNva) Y | `gblE.Pad` |
-| Y / Height | `lblCuentaTitNva.Y + lblCuentaTitNva.Height + 4` / `48` (layout de dos líneas) |
-| Items | fórmula ↓ |
-| SelectMultiple / IsSearchable | `false` / `true` |
-| InputTextPlaceholder | `"— Buscar cuenta —"` |
-| Campos (panel Propiedades → Editar) | **Primario** `'[CT] Numero de cuenta'` · **Secundario** `lineaNva` *(columna horneada en Items: `cliente · producto` — el layout "Doble" del combo solo admite 2 columnas, por eso el producto viaja concatenado en la línea secundaria; R1-08)* |
-| Fill / BorderColor | `gblC.card` / `gblC.borde` (lo que el combo permita de ESTILO-Input) |
-
-```powerfx
-AddColumns(
-    Filter('CM | TBL | Cuentas',
-        StartsWith('[CT] Numero de cuenta', cmbCuentaNva.SearchText)
-        || StartsWith('Nombre Cliente', cmbCuentaNva.SearchText)
-    ),
-    lineaNva, 'Nombre Cliente' & " · " & 'Tipo Producto'
-)
-```
-
-> `StartsWith` es delegable en Dataverse (receta 7.9) — el combo busca contra ~7 000 cuentas sin
-> warning azul; el `AddColumns` corre EN MEMORIA sobre la página ya traída (no rompe la
-> delegación del `Filter` interno). Si tu versión de Studio expone **SearchFields** en vez del
-> filtro manual sobre `Self.SearchText`, configurá esas MISMAS 2 columnas
-> (`'[CT] Numero de cuenta'`, `'Nombre Cliente'`) y dejá
-> `Items = AddColumns('CM | TBL | Cuentas', lineaNva, 'Nombre Cliente' & " · " & 'Tipo Producto')`.
-> Cualquiera de las dos variantes cumple. Si IntelliSense marca `'Tipo Producto'` como choice,
-> envolvelo en `Text('Tipo Producto')` y anotalo.
-
-### 3.2 Preview de la cuenta — `conPreviewNva`
-
-`Contenedor` (manual), la "card gris" del mockup (`nsPreview()`): sin borde, fondo pantalla.
+> **B-04 (causa real):** el `Classic/ComboBox@2.4.0` de esta app **no pinta registros de
+> Dataverse** — renderiza 15 `<li role=option>` con el `<span>` de texto vacío (Cuentas, Agentes y
+> hasta Users), también en Studio Preview. Con tablas estáticas (`["…"]`, `DisplayFields ["Value"]`)
+> sí funciona. El parche intermedio (registros planos con `ForAll(Filter(…))`) tampoco sirvió y además
+> **no delega** (bajaba la tabla entera). Patrón definitivo: buscador + galería + variable.
 
 | Control | Propiedad | Valor |
 |---|---|---|
-| `conPreviewNva` | X / Width | `gblE.Pad` / `Parent.Width - 2*gblE.Pad` |
-| | Y / Height | `cmbCuentaNva.Y + cmbCuentaNva.Height + gblE.PadSm` / `62` |
-| | Fill / BorderThickness | `gblC.pantalla` / `0` |
-| | RadiusTopLeft/TopRight/BottomLeft/BottomRight | `gblE.RadioSm` |
-| | Visible | `!IsBlank(cmbCuentaNva.Selected)` |
-| `lblPrevSaldoNva` (Etiqueta clásica) | X / Y / Width / Height | `gblE.PadSm` / `gblE.PadSm` / `Parent.Width - 2*gblE.PadSm` / `20` |
-| | Text | `"Saldo vencido: " & Moneda(cmbCuentaNva.Selected.'[CT] Saldo Vencido NIO', cmbCuentaNva.Selected.'[CT] Saldo Vencido USD')` |
-| | FontWeight | `FontWeight.Semibold` |
-| `lblPrevMoraNva` (Etiqueta clásica) | X / Y / Width / Height | `gblE.PadSm` / `32` / `Parent.Width - 2*gblE.PadSm` / `20` |
-| | Text | `"Mora: " & cmbCuentaNva.Selected.'[CT] Dias Mora' & " días · nivel " & cmbCuentaNva.Selected.'[CT] Nivel Mora'` |
-| | Color / Size | `gblC.ink2` / `9` |
+| (lblCuentaTitNva) | Y | `gblE.Pad` |
+| `txtBuscarCtaNva` (Entrada de texto clásica) | X / Y / Width / Height | `gblE.Pad` / `lblCuentaTitNva.Y + lblCuentaTitNva.Height + 4` / `Parent.Width - 2*gblE.Pad` / `gblE.AltoInput` |
+| | Estilo / PaddingLeft / Default | ESTILO-Input / `34` (lugar de la lupa) / `""` |
+| | DelayOutput | `true` (la consulta sale al terminar de tipear, B-13) |
+| | HintText | `"Buscar por número de cuenta o cliente (mín. 2)"` |
+| | Visible | `IsBlank(varCtaNva)` |
+| `icoBuscarCtaNva` (Ícono) | Icon / X / Y | `Icon.Search` / `txtBuscarCtaNva.X + 8` / `txtBuscarCtaNva.Y + (txtBuscarCtaNva.Height - Self.Height)/2` · `20×20` · Visible `txtBuscarCtaNva.Visible` |
+| `galCtaNva` (Galería vertical) | X / Y / Width | `gblE.Pad` / `txtBuscarCtaNva.Y + txtBuscarCtaNva.Height + 4` / `Parent.Width - 2*gblE.Pad` |
+| | TemplateSize / TemplatePadding | `52` / `0` |
+| | Height | `Min(Max(Self.AllItemsCount, 1), 4) * Self.TemplateHeight` (alto acotado: hasta 4 filas) |
+| | Fill / BorderColor / BorderThickness | `gblC.card` / `gblC.borde` / `1` |
+| | Visible | `IsBlank(varCtaNva) && Len(Trim(txtBuscarCtaNva.Text)) >= 2` |
+| | Items | fórmula ↓ |
+| | OnSelect | `Set(varCtaNva, ThisItem)` |
+| `lblNumFilaCtaNva` / `lblCliFilaCtaNva` | Text | `ThisItem.'[CT] Numero de cuenta'` (Semibold, 10) / `ThisItem.'Nombre Cliente'` (muted, 9) |
+| `lblSaldoFilaCtaNva` / `lblMoraFilaCtaNva` | Text | `Moneda(ThisItem.'[CT] Saldo Vencido NIO', ThisItem.'[CT] Saldo Vencido USD')` / `"Mora " & ThisItem.'[CT] Dias Mora' & " d · nivel " & ThisItem.'[CT] Nivel Mora'` (alineadas a la derecha, `Width = Min(170, Parent.TemplateWidth * 40%)`) |
+| `btnFilaCtaNva` (Botón clásico, overlay) | Fill / Color | `Color.Transparent` (patrón de fila de la app: `OnSelect = Select(Parent)`, `TabIndex 0`, `Height = Parent.TemplateHeight`) |
+| | Text | `"Elegir cuenta " & ThisItem.'[CT] Numero de cuenta' & " · " & ThisItem.'Nombre Cliente'` |
+| `lblSinCtaNva` (Etiqueta clásica) | Visible | `galCtaNva.Visible && galCtaNva.AllItemsCount = 0` (encima de la galería, mismo X/Y/Width/Height) |
 
-Los controles siguientes se corren solos cuando el preview aparece: su Y arranca de
-`conPreviewNva.Y + If(conPreviewNva.Visible, conPreviewNva.Height + gblE.PadSm, 0)` (§3.3).
+```powerfx
+// galCtaNva.Items — con menos de 2 caracteres, centinela "§§": no se consulta la tabla entera
+// (B-19) y SIEMPRE hay tabla (nada de If sin rama falsa → "expected a table", B-06).
+With({t: If(Len(Trim(txtBuscarCtaNva.Text)) < 2, "§§", Trim(txtBuscarCtaNva.Text))},
+    Filter('CM | TBL | Cuentas',
+        StartsWith('[CT] Numero de cuenta', t) || StartsWith('Nombre Cliente', t))
+)
+```
+
+> `StartsWith` delega en Dataverse (receta 7.9) y `t` es constante por consulta. **Nada de
+> `ForAll`/`AddColumns`/colecciones** sobre Dataverse para esta lista.
+> **Por qué saldo y mora se pintan en la fila:** la selección explícita de columnas trae solo lo que
+> los controles usan; la doc oficial advierte que el linaje de columnas puede perderse al pasar por
+> variables. Al usarlas en la fila, viajan en ESTA consulta y `varCtaNva` las tiene completas.
+
+### 3.2 Cuenta elegida — tarjeta `conPreviewNva`
+
+`Contenedor` (manual) en el MISMO lugar que el buscador (lo reemplaza mientras hay cuenta elegida).
+
+| Control | Propiedad | Valor |
+|---|---|---|
+| `conPreviewNva` | X / Y / Width | `gblE.Pad` / `txtBuscarCtaNva.Y` / `Parent.Width - 2*gblE.Pad` |
+| | Height | `lblPrevMoraNva.Y + lblPrevMoraNva.Height + gblE.PadSm` |
+| | Fill / BorderColor / BorderThickness | `gblC.tealSuave` / `gblC.teal` / `1` · Radius* `gblE.RadioSm` |
+| | Visible | `!IsBlank(varCtaNva)` |
+| `lblCtaSelNva` (Etiqueta clásica) | X / Y / Height | `gblE.PadSm` / `gblE.PadSm` / `22` · Bold 10 |
+| | Width | `Parent.Width - 3*gblE.PadSm - btnCambiarCtaNva.Width` |
+| | Text | `varCtaNva.'[CT] Numero de cuenta' & "  ·  " & varCtaNva.'Nombre Cliente'` |
+| `btnCambiarCtaNva` (Botón clásico, secundario) | X / Y / Width / Height | `Parent.Width - Self.Width - gblE.PadSm` / `gblE.PadSm` / `92` / `28` |
+| | OnSelect | `Set(varCtaNva, Blank()); Reset(txtBuscarCtaNva)` |
+| `lblPrevSaldoNva` | Y / Text | `lblCtaSelNva.Y + lblCtaSelNva.Height + 4` / `"Saldo vencido: " & Moneda(varCtaNva.'[CT] Saldo Vencido NIO', varCtaNva.'[CT] Saldo Vencido USD')` |
+| `lblPrevMoraNva` | Y / Text | `lblPrevSaldoNva.Y + lblPrevSaldoNva.Height` / `"Mora: " & varCtaNva.'[CT] Dias Mora' & " días · nivel " & varCtaNva.'[CT] Nivel Mora'` |
+
+Los controles siguientes se corren solos según lo visible en el bloque Cuenta (§3.3).
 
 ### 3.3 Tipo de especial — `cmbTipoNva` (Cuadro combinado)
 
 | Propiedad | Valor |
 |---|---|
-| (lblTipoTitNva) Y | `conPreviewNva.Y + If(conPreviewNva.Visible, conPreviewNva.Height + gblE.PadSm, 0)` |
+| (lblTipoTitNva) Y | `If(conPreviewNva.Visible, conPreviewNva.Y + conPreviewNva.Height, galCtaNva.Visible, galCtaNva.Y + galCtaNva.Height, txtBuscarCtaNva.Y + txtBuscarCtaNva.Height) + gblE.PadSm` |
 | Y / Height | `lblTipoTitNva.Y + lblTipoTitNva.Height + 4` / `gblE.AltoInput` |
 | Items | `["Retiro urgente", "Cobro especial", "Verificación"]` |
 | DefaultSelectedItems | `["Retiro urgente"]` |
@@ -203,7 +229,7 @@ With({_falta:
     Concat(
         Filter(
             Table(
-                {t: If(IsBlank(cmbCuentaNva.Selected), "cuenta")},
+                {t: If(IsBlank(varCtaNva), "cuenta")},
                 {t: If(!(Value(txtRetiroNioNva.Text) > 0 || Value(txtRetiroUsdNva.Text) > 0), "monto")},
                 {t: If(IsBlank(Trim(txtMotivoNva.Text)), "motivo")}
             ),
@@ -221,13 +247,13 @@ With({_falta:
 |---|---|
 | X / Y / Width / Height | `gblE.Pad` / `lblHintNva.Y + lblHintNva.Height + gblE.PadSm` / `Parent.Width - 2*gblE.Pad` / `gblE.AltoBoton` |
 | Text | `"✨ Enviar solicitud"` |
-| DisplayMode | `If(!IsBlank(cmbCuentaNva.Selected) && (Value(txtRetiroNioNva.Text) > 0 || Value(txtRetiroUsdNva.Text) > 0) && !IsBlank(Trim(txtMotivoNva.Text)), DisplayMode.Edit, DisplayMode.Disabled)` |
+| DisplayMode | `If(!IsBlank(varCtaNva) && (Value(txtRetiroNioNva.Text) > 0 || Value(txtRetiroUsdNva.Text) > 0) && !IsBlank(Trim(txtMotivoNva.Text)), DisplayMode.Edit, DisplayMode.Disabled)` |
 | OnSelect | fórmula ↓ (pegar COMPLETA) |
 
 ```powerfx
 If(
     !IsBlank(LookUp('CM | TBL | Asignacions',
-        '[AS] NumeroCuenta' = cmbCuentaNva.Selected.'[CT] Numero de cuenta'
+        '[AS] NumeroCuenta' = varCtaNva.'[CT] Numero de cuenta'
         && '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
         && '[AS] Estado' = true)),
 
@@ -236,8 +262,8 @@ If(
 
     Patch('CM | TBL | Asignacions', Defaults('CM | TBL | Asignacions'),
         {
-            '[AS] Cuenta': cmbCuentaNva.Selected,
-            '[AS] NumeroCuenta': cmbCuentaNva.Selected.'[CT] Numero de cuenta',
+            '[AS] Cuenta': varCtaNva,
+            '[AS] NumeroCuenta': varCtaNva.'[CT] Numero de cuenta',
             '[AS] Tipo': 'Choice | CM | Tipo asignacion'.Especial,
             '[AS] Estado': true,
             '[AS] Estado de aprobacion': 'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion',
@@ -249,7 +275,8 @@ If(
         }
     );
     Notify("✨ Solicitud enviada — quedó Pendiente de aprobación", NotificationType.Success, 2500);
-    Reset(cmbCuentaNva);
+    Set(varCtaNva, Blank());
+    Reset(txtBuscarCtaNva);
     Reset(cmbTipoNva);
     Reset(txtRetiroNioNva);
     Reset(txtRetiroUsdNva);
@@ -269,18 +296,21 @@ If(
 ## 6. Checklist de salida
 
 - [ ] Entrar con rol ≠ Solicitante rebota a scrInicio (guard del OnVisible).
-- [ ] Escribir en el combo de cuenta filtra por Nº de cuenta Y por nombre de cliente,
-      **sin subrayado azul de delegación**; cada opción muestra el número arriba y
-      "cliente · producto" en la línea secundaria (R1-08).
-- [ ] Elegir cuenta muestra `conPreviewNva` con saldo bimoneda (`Moneda()`) y mora; el resto
-      del form se desplaza hacia abajo sin encimarse. Deseleccionar lo oculta y el form sube.
+- [ ] Con 0–1 caracteres en `txtBuscarCtaNva` la galería NO aparece (y no se trae la tabla).
+- [ ] Con ≥ 2 caracteres, `galCtaNva` filtra por Nº de cuenta Y por nombre de cliente, **sin
+      subrayado azul de delegación**; cada fila muestra número + cliente (izq.) y saldo + mora (der.)
+      **con texto visible** (B-04). Sin coincidencias → `lblSinCtaNva`.
+- [ ] Tocar una fila oculta buscador y galería y muestra la tarjeta `conPreviewNva` (número ·
+      cliente, saldo bimoneda con `Moneda()` y mora); el resto del form se acomoda sin encimarse.
+      "Cambiar" vuelve al buscador vacío.
 - [ ] `lblHintNva` arranca en "Falta: cuenta · monto · motivo" (ámbar) y va quitando piezas al
       completar; con todo lleno pasa a "✓ Todo listo" (verde) y el botón se habilita.
 - [ ] Solo NIO **o** solo USD con monto > 0 alcanza para habilitar (no exige ambas).
 - [ ] Motivo con solo espacios NO habilita el botón (`Trim`).
 - [ ] Enviar sobre cuenta con Especial activa → Notify ámbar y NO crea registro.
 - [ ] Enviar válido → crea la fila (verificar en la tabla: Tipo Especial, Estado activo,
-      `Pendiente aprobacion`, Notas con prefijo de tipo, sin Agente), notifica éxito, limpia los
-      5 controles y navega a scrMisSolicitudes donde aparece la solicitud.
+      `Pendiente aprobacion`, Notas con prefijo de tipo, sin Agente), notifica éxito, limpia
+      `varCtaNva` + buscador + los 4 inputs y navega a scrMisSolicitudes donde aparece la solicitud.
+- [ ] Si el Patch falla → Notify rojo con el detalle y el formulario queda INTACTO (tarjeta incluida).
 - [ ] En ventana angosta (< 920): NIO/USD apilados, card a ancho completo menos padding,
       hamburguesa abre `cmpNavNva`.

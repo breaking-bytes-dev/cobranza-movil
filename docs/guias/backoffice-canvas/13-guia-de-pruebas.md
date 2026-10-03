@@ -69,12 +69,12 @@ azul = parar, anotar la fórmula exacta y arreglar antes de seguir.
 | 2 | scrTranscripcion | OnVisible · btnActualizar · btnGrabar (Patch+LookUp) · galPagosTrx.Items · BLOQUE S (AD/tel/dir) | [ ] |
 | 3 | scrTranscritas | OnVisible (choice+fecha+usuario) · btnActualizar · galPagosPanelTsc.Items | [ ] |
 | 4 | scrMisSolicitudes | OnVisible (tipo+solicitante) · btnActualizar | [ ] |
-| 5 | scrNuevaSolicitud | cmbCuentaNva.Items (StartsWith) · anti-duplicado y Patch de btnEnviar | [ ] |
-| 6 | scrAprobaciones | OnVisible (cola+agentes+cuentas) · Patch aprobar/rechazar | [ ] |
+| 5 | scrNuevaSolicitud | galCtaNva.Items (StartsWith, centinela < 2 caracteres) · anti-duplicado y Patch de btnEnviar | [ ] |
+| 6 | scrAprobaciones | OnVisible (cola) · galAgeAprb.Items (StartsWith + Activo + Email <> Blank) · Patch aprobar/rechazar | [ ] |
 | 7 | scrMonitoreo | OnVisible (carga hoy, cuentas, clientes) · btnActualizar | [ ] |
 | 8 | scrReconciliacion | OnVisible (desap+denominador) · btnCerrarRec (ForAll+Patch) | [ ] |
 | 9 | scrCierres | OnVisible (OR de choices+booleano) · btnCerrarCie | [ ] |
-| 10 | scrAgentes | OnVisible (Sort) · cmbUsuarioAge (Users) · Patch vincular/toggle | [ ] |
+| 10 | scrAgentes | OnVisible (Sort) · galUsrAge.Items (Users, StartsWith) · Patch vincular (galUsrAge.OnSelect)/toggle | [ ] |
 | 11 | scrMaestros | galClientesMae.Items (Sort/StartsWith) · OnSelect (tel/dir/ctas) · Patch editar/crear/anti-duplicado | [ ] |
 
 **Esperado:** App Checker en cero y ninguna fórmula con banda azul. Cualquier hallazgo va a la bitácora como 🔴.
