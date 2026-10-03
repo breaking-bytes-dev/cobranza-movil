@@ -19,6 +19,7 @@ Screens:
             AddColumns(
                 Filter('CM | TBL | Asignacions',
                     '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial &&
+                    '[AS] Estado' = true &&  // B-18: una Especial cerrada estando pendiente no se aprueba
                     '[AS] Estado de aprobacion' =
                         'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion'),
                 clienteAprb,
@@ -71,6 +72,7 @@ Screens:
                         AddColumns(
                             Filter('CM | TBL | Asignacions',
                                 '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial &&
+                                '[AS] Estado' = true &&  // B-18: una Especial cerrada estando pendiente no se aprueba
                                 '[AS] Estado de aprobacion' =
                                     'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion'),
                             clienteAprb,

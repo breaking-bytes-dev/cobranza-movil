@@ -68,6 +68,7 @@ Screens:
             Set(varNAprbIni,
                 CountIf('CM | TBL | Asignacions',
                     '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                    && '[AS] Estado' = true  // B-18: misma regla que la cola de Aprobaciones
                     && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion'))
         );
         // 5) Admin: diarias fuera de cartera + agentes sin usuario (independientes → Concurrent).
