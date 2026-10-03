@@ -4,6 +4,7 @@ const pl = require('../lib/player');
 const inf = require('../lib/informe');
 const v = require('../lib/verdad');
 const dv = require('../lib/dataverse');
+const cfg = require('../lib/config');
 const c = require('./comun');
 
 module.exports = async function faseA(suite) {
@@ -108,6 +109,31 @@ module.exports = async function faseA(suite) {
       const txtDesv = nDesv ? (await pl.ctl(app, 'btnDesvincularAge').locator('visible=true').first().innerText()).trim() : null;
       e.check(nDesv === conUsuario && txtDesv === 'Desvincular', 'botón "Desvincular" aparte, uno por agente con usuario (no se pulsa)', `${conUsuario} × "Desvincular"`, `${nDesv} × ${JSON.stringify(txtDesv)}`);
       e.evid(await pl.foto(app, 'F-04c-agentes'));
+      // B-04: el combo de usuario de la fila se reemplazó por "Vincular/Cambiar" + UN panel con buscador +
+      // galería sobre Users. SEGURIDAD: los agentes son REALES → se abre el panel, se busca y se CANCELA.
+      // NUNCA se toca una fila de galUsrAge (tocarla CONFIRMA el vínculo).
+      const nVinc = await pl.ctl(app, 'btnVincularAge').locator('visible=true').count();
+      e.check(nVinc > 0, 'cada fila de agente tiene su botón Vincular/Cambiar (sin combo en la fila)', '> 0', nVinc);
+      if (!nVinc) return;
+      const agente = (await pl.ctl(app, 'lblNombreAge').locator('visible=true').first().innerText()).trim();
+      app.red.marcar('A:scrAgentes(panel vínculo)');
+      await pl.ctl(app, 'btnVincularAge').locator('visible=true').first().click(); await pl.esperar(app, 1500);
+      const titPanel = await pl.texto(app, 'lblTituloPanelAge').catch(() => '');
+      e.check(titPanel.includes(agente), 'Vincular/Cambiar abre el panel del agente de esa fila', agente, titPanel);
+      const galAntes = await pl.existeVisible(app, 'galUsrAge');
+      e.check(!galAntes, 'sin búsqueda (< 2 caracteres) la galería de usuarios está oculta', false, galAntes);
+      const u = await dv.get(`systemusers(${cfg.usuarios.user3.id})?$select=fullname`);
+      const pref = u.fullname.slice(0, Math.min(5, u.fullname.length));
+      const r = await c.buscarEnBuscador(app, { buscador: 'txtBuscarUsrAge', galeria: 'galUsrAge', buscar: pref });
+      const rutas = app.red.de('A:scrAgentes(panel vínculo)').flatMap(x => x.subs.map(s2 => s2.ruta));
+      e.check(rutas.some(ru => /systemusers/.test(ru) && /startswith\(fullname/.test(ru)), 'la búsqueda de usuarios viaja con startswith(fullname, …) en $filter (delegada)', 'startswith en $filter', rutas.filter(ru => /systemusers/.test(ru)).slice(-1)[0] || '(sin request a systemusers)');
+      e.check(r.textos.some(t => t.includes(u.fullname)), `buscar "${pref}" muestra al usuario ${u.fullname}`, u.fullname, r.textos.slice(0, 5));
+      e.evid(await pl.foto(app, 'F-04c-panel-vinculo'));
+      await (await pl.visible(app, 'btnCancelarPanelAge')).click(); await pl.esperar(app, 1200);
+      const panelAbierto = await pl.existeVisible(app, 'conPanelAge');
+      e.check(!panelAbierto, 'Cancelar cierra el panel', false, panelAbierto);
+      const escrPanel = app.red.de('A:scrAgentes(panel vínculo)').flatMap(x => x.subs).filter(s => s.metodo !== 'GET');
+      e.check(escrPanel.length === 0, 'abrir, buscar y cancelar el panel NO escribe en Dataverse', 0, escrPanel.map(s => `${s.metodo} ${s.ruta}`));
     });
 
     await inf.correr('D-03', 'Datos maestros: búsqueda delegada (StartsWith) encuentra un cliente fuera de la 1.ª página', 'Admin', async (e) => {

@@ -1,6 +1,6 @@
 // FASE B — User2 en su rol REAL (team "CM · Solicitantes · DEV"; rol Solicitante: Read/Write de
 // asignaciones a nivel USUARIO = solo las propias).
-// Cubre: R-03, E-01b, D-02e (B-01 frío + subtítulo B-05), D-05 (mínimo privilegio), D-04/F-02a (combo B-04),
+// Cubre: R-03, E-01b, D-02e (B-01 frío + subtítulo B-05), D-05 (mínimo privilegio), D-04/F-02a (buscador de cuentas B-04),
 // F-02 (crear por UI), F-02b (anti-duplicado), X-02 (falla CONTROLADA de escritura → B-03) y F-02d (reactivar
 // una Especial CERRADA propia → B-11).
 const pl = require('../lib/player');
@@ -12,10 +12,12 @@ const qa = require('../lib/datosqa');
 const c = require('./comun');
 
 const SEL_AS = 'sanic_cm_tbl_asignacionid,sanic_cm_as_numero,sanic_cm_as_tipo,sanic_cm_as_estado,sanic_cm_as_estadoaprobacion,sanic_cm_as_notas,sanic_cm_as_retironio,sanic_cm_as_motivo,sanic_cm_as_fechacierre,sanic_cm_as_motivorechazo,_sanic_cm_as_solicitadopor_value,_sanic_cm_as_agenteid_value,_sanic_cm_as_resolutorid_value,_ownerid_value';
+// Selector de cuenta (B-04): buscador + galería; la cuenta elegida se muestra en la tarjeta lblCtaSelNva.
+const BUSCA_CTA = { buscador: 'txtBuscarCtaNva', galeria: 'galCtaNva', cambiar: 'btnCambiarCtaNva' };
 const especialesDe = async (cta) => (await dv.get(`sanic_cm_tbl_asignacions?$select=${SEL_AS}&$filter=sanic_cm_as_numerocuenta eq '${cta}' and sanic_cm_as_tipo eq 3`)).value;
 
 async function llenarSolicitud(app, cuenta, { nio, motivo, tipo = 'Retiro urgente' }) {
-  const r = await c.elegirCombo(app, 'cmbCuentaNva', { buscar: cuenta.slice(0, 14), opcion: cuenta });
+  const r = await c.elegirEnBuscador(app, { ...BUSCA_CTA, buscar: cuenta.slice(0, 14), opcion: cuenta });
   if (!r.ok) return r;
   await c.elegirCombo(app, 'cmbTipoNva', { opcion: tipo });
   await pl.escribir(app, 'txtRetiroNioNva', String(nio));
@@ -28,8 +30,8 @@ async function llenarSolicitud(app, cuenta, { nio, motivo, tipo = 'Retiro urgent
 async function pedirEspecial(app, cuenta, { nio, motivo, etiqueta }) {
   await c.ir(app, 'Nueva solicitud', etiqueta);
   const r = await llenarSolicitud(app, cuenta, { nio, motivo });
-  if (!r.ok) throw new Error(`No se pudo elegir la cuenta ${cuenta} en el combo (opciones: ${r.textos.join(' / ')})`);
-  const sel = await pl.texto(app, 'cmbCuentaNva');
+  if (!r.ok) throw new Error(`No se pudo elegir la cuenta ${cuenta} en el buscador (filas: ${r.textos.join(' / ')})`);
+  const sel = await pl.texto(app, 'lblCtaSelNva');
   if (!sel.includes(cuenta) || !/^QA-E2E-CTA-/.test(cuenta)) throw new Error(`Seguridad: la cuenta elegida no es QA (${sel})`);
   await (await pl.boton(app, 'btnEnviarNva')).click();
   const n = await c.esperarNotif(app, /Solicitud enviada|Ya existe|No se pudo/, 20000);
@@ -67,31 +69,39 @@ module.exports = async function faseB(suite) {
       }
     });
 
-    let combo = null;
-    await inf.correr('D-04', 'Nueva solicitud: la búsqueda del combo de cuentas viaja con StartsWith ($filter en servidor)', 'Solicitante', async (e) => {
+    let busq = null;
+    await inf.correr('D-04', 'Nueva solicitud: la búsqueda de cuentas (buscador + galería) viaja con StartsWith ($filter en servidor)', 'Solicitante', async (e) => {
       await c.ir(app, 'Nueva solicitud', 'scrNuevaSolicitud');
-      app.red.marcar('B:scrNuevaSolicitud(combo)');
-      combo = await c.elegirCombo(app, 'cmbCuentaNva', { buscar: 'QA-E2E-CTA-000', opcion: ctaQA });
-      const ents = app.red.de('B:scrNuevaSolicitud(combo)');
+      // B-19: sin búsqueda (< 2 caracteres) la galería de resultados no se muestra.
+      const galAntes = await pl.existeVisible(app, 'galCtaNva');
+      e.check(!galAntes, 'sin búsqueda la galería de cuentas está oculta (no lista la tabla entera)', false, galAntes);
+      app.red.marcar('B:scrNuevaSolicitud(buscador)');
+      busq = await c.elegirEnBuscador(app, { ...BUSCA_CTA, buscar: 'QA-E2E-CTA-000', opcion: ctaQA });
+      const ents = app.red.de('B:scrNuevaSolicitud(buscador)');
       const i = ents.findIndex(x => x.subs.some(s2 => /sanic_cm_tbl_cuentas.*startswith\(sanic_cm_ct_numerodecuenta,'QA-E2E-CTA/.test(s2.ruta)));
       e.check(i >= 0, "la request lleva startswith(sanic_cm_ct_numerodecuenta, 'QA-E2E-CTA-000') en $filter", 'startswith en $filter', ents.flatMap(x => x.subs.map(s2 => s2.ruta)).slice(-1)[0]);
       const filas = i >= 0 ? ents[i].respuestas?.[0]?.filas : null;
       e.check(filas === suite.datos.cuentas.length, `el servidor devuelve las ${suite.datos.cuentas.length} cuentas QA`, suite.datos.cuentas.length, filas);
-      e.evid(await pl.foto(app, 'D-04-combo-cuentas'));
+      e.evid(await pl.foto(app, 'D-04-buscador-cuentas'));
     });
 
-    await inf.correr('F-02a', 'Nueva solicitud: el combo MUESTRA número + nombre del cliente y deja elegir la cuenta (B-04)', 'Solicitante', async (e) => {
-      e.nota(`opciones al abrir (sin buscar): ${combo.iniciales.length} — textos: ${JSON.stringify(combo.iniciales.slice(0, 3))}`);
-      e.check(combo.iniciales.length > 0 && combo.iniciales.every(t => t.length > 0), 'las opciones iniciales tienen texto (no vacías)', 'texto visible', JSON.stringify(combo.iniciales.slice(0, 3)));
-      e.check(combo.textos.some(t => t.includes(ctaQA) && t.includes('QA-E2E CLIENTE UNO')), 'tras buscar, la opción muestra número de cuenta + nombre del cliente', `${ctaQA} + QA-E2E CLIENTE UNO`, JSON.stringify(combo.textos.slice(0, 4)));
-      e.check(combo.ok, `la cuenta ${ctaQA} se puede elegir`, ctaQA, combo.sinResultados ? 'flyout "sin resultados"' : combo.textos.slice(0, 4));
-      e.check(!combo.sinResultados, 'el flyout NO dice "sin resultados"', false, combo.sinResultados);
+    await inf.correr('F-02a', 'Nueva solicitud: la galería de resultados MUESTRA número + nombre del cliente y deja elegir la cuenta (B-04)', 'Solicitante', async (e) => {
+      e.nota(`filas tras buscar: ${busq.textos.length} — ${JSON.stringify(busq.textos.slice(0, 3))}`);
+      e.check(busq.textos.length > 0 && busq.textos.every(t => t.length > 0), 'las filas de resultados tienen texto (no vacías)', 'texto visible', JSON.stringify(busq.textos.slice(0, 3)));
+      e.check(busq.textos.some(t => t.includes(ctaQA) && t.includes('QA-E2E CLIENTE UNO')), 'la fila muestra número de cuenta + nombre del cliente', `${ctaQA} + QA-E2E CLIENTE UNO`, JSON.stringify(busq.textos.slice(0, 4)));
+      e.check(busq.ok, `la cuenta ${ctaQA} se puede elegir`, ctaQA, busq.sinResultados ? 'galería sin resultados' : busq.textos.slice(0, 4));
+      e.check(!busq.sinResultados, 'la galería NO queda vacía', false, busq.sinResultados);
+      const tarjeta = busq.ok ? await pl.texto(app, 'lblCtaSelNva').catch(() => '') : '';
+      e.check(tarjeta.includes(ctaQA) && tarjeta.includes('QA-E2E CLIENTE UNO'), 'la tarjeta de cuenta elegida muestra número + cliente', `${ctaQA} · QA-E2E CLIENTE UNO`, tarjeta);
+      const saldo = busq.ok ? await pl.texto(app, 'lblPrevSaldoNva').catch(() => '') : '';
+      e.check(/Saldo vencido: .*\d/.test(saldo), 'la tarjeta muestra el saldo vencido (columnas traídas por la galería)', 'Saldo vencido: …', saldo);
+      e.check(!(await pl.existeVisible(app, 'galCtaNva')), 'al elegir, la galería de resultados se oculta', false, true);
     });
 
     await inf.correr('F-02', 'Solicitante crea una Especial QA (retiro NIO) por la UI y aparece en Mis solicitudes', 'Solicitante', async (e) => {
       const motivo = 'QA-E2E solicitud F-02';
-      if (!combo || !combo.ok) {
-        e.check(false, 'crear la Especial desde la UI', 'Especial creada con el formulario', 'imposible: el combo de cuentas no deja elegir (F-02a)');
+      if (!busq || !busq.ok) {
+        e.check(false, 'crear la Especial desde la UI', 'Especial creada con el formulario', 'imposible: el buscador de cuentas no deja elegir (F-02a)');
         // Respaldo para no bloquear C/F/G: la MISMA Especial por API (dueño User2).
         suite.datos.especialF02 = await qa.crearEspecialPendiente(cta1, yo, 'F-02 (API)', { notas: `Retiro urgente — ${motivo}`, nio: 350, owner: yo });
         e.nota(`Especial ${suite.datos.especialF02.sanic_cm_as_numero} creada POR API para continuar`);
@@ -101,7 +111,7 @@ module.exports = async function faseB(suite) {
       await pl.escribir(app, 'txtRetiroNioNva', '350');
       await pl.escribir(app, 'txtMotivoNva', motivo);
       await pl.esperar(app, 1000);
-      const sel = await pl.texto(app, 'cmbCuentaNva');
+      const sel = await pl.texto(app, 'lblCtaSelNva');
       if (!sel.includes(ctaQA)) throw new Error(`Seguridad: la cuenta elegida no es QA (${sel})`);
       e.check((await pl.texto(app, 'lblHintNva')).includes('Todo listo'), 'hint "✓ Todo listo"', '✓ Todo listo', await pl.texto(app, 'lblHintNva'));
       e.check(await pl.botonHabilitado(app, 'btnEnviarNva'), 'Enviar habilitado', true, false);
@@ -128,7 +138,7 @@ module.exports = async function faseB(suite) {
     });
 
     await inf.correr('F-02b', 'Anti-duplicado: segunda solicitud para la misma cuenta (Especial ACTIVA) → aviso y NO se crea', 'Solicitante', async (e) => {
-      if (!combo || !combo.ok) { e.bloquear('depende de elegir la cuenta en el combo (F-02a)'); return; }
+      if (!busq || !busq.ok) { e.bloquear('depende de elegir la cuenta en el buscador (F-02a)'); return; }
       const n = await pedirEspecial(app, ctaQA, { nio: 10, motivo: 'QA-E2E duplicado F-02b', etiqueta: 'scrNuevaSolicitud(dup)' });
       e.check(/Ya existe una Especial ACTIVA/.test(n || ''), 'Notify anti-duplicado', 'Ya existe una Especial ACTIVA …', n);
       e.evid(await pl.foto(app, 'F-02b-anti-duplicado'));
@@ -137,15 +147,15 @@ module.exports = async function faseB(suite) {
     });
 
     await inf.correr('X-02', 'Falla CONTROLADA de escritura (B-03): pedir Especial sobre una cuenta QA cuya Especial cerrada el Solicitante NO puede ver → la app muestra el error y NO da por hecho', 'Solicitante', async (e) => {
-      if (!combo || !combo.ok) { e.bloquear('depende del combo de cuentas (F-02a)'); return; }
+      if (!busq || !busq.ok) { e.bloquear('depende del buscador de cuentas (F-02a)'); return; }
       const cta = cta3.sanic_cm_ct_numerodecuenta; const previa = suite.datos.cerradaAjena;
       e.nota(`Precondición: ${previa.sanic_cm_as_numero} (cuenta ${cta}) CERRADA y con dueño = Service Principal; el rol Solicitante lee asignaciones a nivel USUARIO → la app no la ve, intenta CREAR y Dataverse rechaza por la alt key cuenta+tipo.`);
       const n = await pedirEspecial(app, cta, { nio: 77, motivo: 'QA-E2E falla controlada X-02', etiqueta: 'scrNuevaSolicitud(falla controlada)' });
       e.check(new RegExp(`No se pudo enviar la solicitud de la cuenta ${cta}`).test(n || ''), 'Notify de ERROR con el detalle (IfError)', `No se pudo enviar la solicitud de la cuenta ${cta}: …`, n);
       e.check(!/Solicitud enviada/.test(n || ''), 'NO anuncia "Solicitud enviada"', 'sin ✨', n);
-      const sigue = await pl.existeVisible(app, 'cmbCuentaNva');
-      const sel = sigue ? await pl.texto(app, 'cmbCuentaNva').catch(() => '') : '';
-      e.check(sigue && sel.includes(cta), 'se queda en Nueva solicitud con el formulario intacto (no Reset, no Navigate)', `cmbCuentaNva = ${cta}`, sigue ? sel : 'navegó fuera');
+      const sigue = await pl.existeVisible(app, 'lblCtaSelNva');
+      const sel = sigue ? await pl.texto(app, 'lblCtaSelNva').catch(() => '') : '';
+      e.check(sigue && sel.includes(cta), 'se queda en Nueva solicitud con el formulario intacto (no Reset, no Navigate)', `lblCtaSelNva = ${cta}`, sigue ? sel : 'navegó fuera');
       const escr = c.erroresRed(app, 'B:scrNuevaSolicitud(falla controlada)');
       e.nota(`respuesta de Dataverse: ${escr.join(' | ') || '(sin error en red)'}`);
       e.evid(await pl.foto(app, 'X-02-falla-controlada'));
@@ -154,7 +164,7 @@ module.exports = async function faseB(suite) {
     });
 
     await inf.correr('F-02d', 'Re-solicitar Especial sobre cuenta con Especial CERRADA PROPIA → la app REACTIVA el mismo registro (B-11)', 'Solicitante', async (e) => {
-      if (!combo || !combo.ok) { e.bloquear('depende del combo de cuentas (F-02a)'); return; }
+      if (!busq || !busq.ok) { e.bloquear('depende del buscador de cuentas (F-02a)'); return; }
       const cta = cta4.sanic_cm_ct_numerodecuenta; const previa = suite.datos.cerradaPropia;
       const n = await pedirEspecial(app, cta, { nio: 88, motivo: 'QA-E2E reactivación F-02d', etiqueta: 'scrNuevaSolicitud(reactivar)' });
       e.check(/Solicitud enviada/.test(n || ''), 'Notify de envío (sin 412)', '✨ Solicitud enviada …', n);

@@ -73,6 +73,45 @@ async function elegirCombo(app, nombre, { buscar, opcion }) {
   return { ok: true, textos, iniciales, sinResultados };
 }
 
+// Buscador (Classic/TextInput) + galería de resultados — el patrón que reemplazó a los ComboBox
+// clásicos sobre Dataverse (B-04: el combo no pintaba el texto de los registros).
+// Tipea `buscar` en el TextInput `buscador` (DelayOutput: la consulta sale al terminar de tipear),
+// espera la red quieta y devuelve las filas visibles de `galeria`. Si el buscador está oculto porque ya
+// hay una selección (tarjeta con botón "Cambiar"), primero pulsa `cambiar`.
+// Filas: cada `[role="listitem"]` de la galería; si el player no expone ese rol, el overlay de fila
+// (`btnFila*`, cuyo Text describe la fila: el patrón de la app).
+async function buscarEnBuscador(app, { buscador, galeria, buscar, cambiar }) {
+  if (cambiar && !(await pl.existeVisible(app, buscador)) && await pl.existeVisible(app, cambiar)) {
+    await (await pl.visible(app, cambiar)).click(); await pl.esperar(app, 1000);
+  }
+  const cont = await pl.visible(app, buscador);
+  const inp = cont.locator('input, textarea').first();
+  await inp.click(); await inp.fill('');
+  await inp.pressSequentially(buscar, { delay: 60 });
+  await app.red.quieta(app.page, { quietoMs: 2500, maxMs: 20000, minMs: 1500 });
+  await pl.esperar(app, 1500);
+  const gal = pl.ctl(app, galeria).locator('visible=true').first();
+  if (!(await gal.count())) return { filas: null, textos: [], sinResultados: true, galeriaVisible: false };
+  let filas = gal.locator('[role="listitem"]').locator('visible=true');
+  if (!(await filas.count())) filas = gal.locator('[data-control-name^="btnFila"]').locator('visible=true');
+  const textos = (await filas.allInnerTexts()).map(s => s.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  return { filas, textos, sinResultados: textos.length === 0, galeriaVisible: true };
+}
+
+// Busca y ELIGE: toma la fila que contiene `opcion` y la pulsa vía su overlay (btnFila*).
+// Devuelve { ok, textos, sinResultados } como elegirCombo (sin `iniciales`: con < 2 caracteres la
+// galería no consulta ni se muestra — B-19).
+async function elegirEnBuscador(app, { buscador, galeria, buscar, opcion, cambiar }) {
+  const r = await buscarEnBuscador(app, { buscador, galeria, buscar, cambiar });
+  if (!r.filas) return { ok: false, textos: r.textos, sinResultados: true };
+  const fila = r.filas.filter({ hasText: opcion }).first();
+  if (!(await fila.count())) return { ok: false, textos: r.textos, sinResultados: r.sinResultados };
+  const nombre = await fila.getAttribute('data-control-name');
+  const overlay = nombre && nombre.startsWith('btnFila') ? fila : fila.locator('[data-control-name^="btnFila"]').first();
+  await overlay.click(); await pl.esperar(app, 1200);
+  return { ok: true, textos: r.textos, sinResultados: r.sinResultados };
+}
+
 // Estado deshabilitado de una casilla clásica (Classic/CheckBox).
 async function chkDeshabilitado(app, nombre) {
   const c = await pl.visible(app, nombre);
@@ -142,4 +181,4 @@ const c_err = (app) => erroresVisibles(app);
 
 const num = s => (s === null || s === undefined || s === '' ? null : Number(String(s).replace(/[^\d.-]/g, '')));
 
-module.exports = { errorAlAbrir, erroresRed, NAV, navEsperada, SECCION, abrir, ir, erroresVisibles, esperarNotif, elegirCombo, chkDeshabilitado, kpisInicio, cambiarTeams, verificarRol, num };
+module.exports = { errorAlAbrir, erroresRed, NAV, navEsperada, SECCION, abrir, ir, erroresVisibles, esperarNotif, elegirCombo, buscarEnBuscador, elegirEnBuscador, chkDeshabilitado, kpisInicio, cambiarTeams, verificarRol, num };

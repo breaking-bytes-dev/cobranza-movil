@@ -37,7 +37,7 @@ module.exports = async function faseG(suite) {
       if (!(previa.length === 1 && previa[0].sanic_cm_as_estado === false)) { e.bloquear(`precondición: 1 Especial CERRADA en ${cta} (hay ${previa.length}, estados ${JSON.stringify(previa.map(x => x.sanic_cm_as_estado))})`); return; }
       let n;
       try { n = await pedirEspecial(app, cta, { nio: 120, motivo: 'QA-E2E re-solicitud F-02c', etiqueta: 'scrNuevaSolicitud(re-solicitud)' }); }
-      catch (err) { if (/No se pudo elegir la cuenta/.test(err.message)) { e.bloquear(`el combo de cuentas no deja elegir (B-04): ${err.message.slice(0, 120)}`); return; } throw err; }
+      catch (err) { if (/No se pudo elegir la cuenta/.test(err.message)) { e.bloquear(`el buscador de cuentas no deja elegir (B-04): ${err.message.slice(0, 120)}`); return; } throw err; }
       e.check(/Solicitud enviada/.test(n || ''), 'Notify de envío', '✨ Solicitud enviada …', n);
       const rows = await especialesDe(cta); const a = rows[0] || {};
       e.check(rows.length === 1 && a.sanic_cm_tbl_asignacionid === previa[0].sanic_cm_tbl_asignacionid && a.sanic_cm_as_estado === true && a.sanic_cm_as_estadoaprobacion === 2,

@@ -43,7 +43,7 @@ module.exports = async function faseC(suite) {
       e.check(c.num(k.tibio['POR APROBAR']) === p, 'POR APROBAR = API', p, k.tibio['POR APROBAR']);
     });
 
-    await inf.correr('F-03', 'Supervisor aprueba la Especial QA asignando localizador (combo de agentes)', 'Supervisor', async (e) => {
+    await inf.correr('F-03', 'Supervisor aprueba la Especial QA asignando localizador (buscador + galería de agentes)', 'Supervisor', async (e) => {
       await c.ir(app, 'Aprobaciones', 'scrAprobaciones');
       app.red.marcar('C:scrAprobaciones(aprobar)');
       const notas = await abrirFilaQA(app, 'QA-E2E solicitud F-02');
@@ -53,13 +53,22 @@ module.exports = async function faseC(suite) {
       if (!esp || !tit.includes(esp.sanic_cm_as_numero)) throw new Error(`Seguridad: el panel (${tit}) no es la Especial QA ${esp && esp.sanic_cm_as_numero}`);
       e.check(!(await pl.botonHabilitado(app, 'btnAprobarAprb')), 'Aprobar deshabilitado sin localizador', 'Disabled', 'Edit');
       const ag = suite.datos.agente;
-      const r = await c.elegirCombo(app, 'cmbAgenteAprb', { buscar: ag.sanic_cm_ag_nombre.split(' ')[0], opcion: ag.sanic_cm_ag_nombre });
-      e.nota(`opciones del combo al abrir: ${r.iniciales.length} — textos ${JSON.stringify(r.iniciales.slice(0, 5))}`);
-      e.check(r.iniciales.length > 0 && r.iniciales.every(t => t.length > 0), 'las opciones del combo de localizador muestran el nombre del agente (B-04)', 'nombres visibles', JSON.stringify(r.iniciales.slice(0, 5)));
+      // Prefijo de búsqueda: primera palabra del nombre (mín. 2 caracteres: con menos la galería no consulta, B-19).
+      let prefijo = ag.sanic_cm_ag_nombre.split(' ')[0];
+      if (prefijo.length < 2) prefijo = ag.sanic_cm_ag_nombre.slice(0, 2);
+      const r = await c.elegirEnBuscador(app, { buscador: 'txtBuscarAgeAprb', galeria: 'galAgeAprb', cambiar: 'btnCambiarAgeAprb', buscar: prefijo, opcion: ag.sanic_cm_ag_nombre });
+      e.nota(`filas de la galería de localizadores tras buscar "${prefijo}": ${r.textos.length} — ${JSON.stringify(r.textos.slice(0, 5))}`);
+      e.check(r.textos.length > 0 && r.textos.every(t => t.length > 0), 'las filas de la galería de localizador muestran el nombre del agente (B-04)', 'nombres visibles', JSON.stringify(r.textos.slice(0, 5)));
+      const busqRed = app.red.de('C:scrAprobaciones(aprobar)').flatMap(x => x.subs.map(s2 => s2.ruta)).filter(ru => /sanic_cm_tbl_agentes/.test(ru) && /startswith\(sanic_cm_ag_nombre/.test(ru));
+      e.check(busqRed.length > 0, 'la búsqueda de agentes viaja con startswith(sanic_cm_ag_nombre, …) en $filter (delegada)', 'startswith en $filter', busqRed.slice(-1)[0] || '(sin request de agentes)');
       const conEmailApi = (await dv.getAll("sanic_cm_tbl_agentes?$select=sanic_cm_ag_nombre&$filter=sanic_cm_ag_activo eq true and sanic_cm_ag_emailusuario ne null")).map(x => x.sanic_cm_ag_nombre).sort();
-      e.check(r.iniciales.length === conEmailApi.length && conEmailApi.every(nm => r.iniciales.some(t => t.includes(nm))), 'el combo ofrece EXACTAMENTE los agentes activos con usuario (API)', conEmailApi, r.iniciales);
-      e.check(r.ok, `buscar "${ag.sanic_cm_ag_nombre.split(' ')[0]}" ofrece al agente ${ag.sanic_cm_ag_nombre}`, ag.sanic_cm_ag_nombre, r.sinResultados ? 'flyout "sin resultados"' : r.textos);
-      if (!r.ok) { suite.datos.aprobacionUiImposible = true; await (await pl.visible(app, 'icoCerrarAprb')).click().catch(() => {}); e.evid(await pl.foto(app, 'F-03-combo-agente')); return; }
+      const esperados = conEmailApi.filter(nm => nm.toLowerCase().startsWith(prefijo.toLowerCase()));
+      // La galería virtualiza (alto acotado): se exige que cada fila sea un agente esperado y que el objetivo esté.
+      e.check(r.textos.every(t => esperados.some(nm => t.includes(nm))), `la galería ofrece SOLO agentes activos con usuario cuyo nombre empieza con "${prefijo}" (API)`, esperados, r.textos);
+      e.check(r.ok, `buscar "${prefijo}" ofrece al agente ${ag.sanic_cm_ag_nombre}`, ag.sanic_cm_ag_nombre, r.sinResultados ? 'galería sin resultados' : r.textos);
+      if (!r.ok) { suite.datos.aprobacionUiImposible = true; await (await pl.visible(app, 'icoCerrarAprb')).click().catch(() => {}); e.evid(await pl.foto(app, 'F-03-buscador-agente')); return; }
+      const tarjeta = await pl.texto(app, 'lblAgeSelAprb').catch(() => '');
+      e.check(tarjeta.includes(ag.sanic_cm_ag_nombre), 'la tarjeta del localizador elegido muestra su nombre', ag.sanic_cm_ag_nombre, tarjeta);
       const conEmail = (await dv.getAll("sanic_cm_tbl_agentes?$select=sanic_cm_ag_nombre&$filter=sanic_cm_ag_activo eq true and sanic_cm_ag_emailusuario ne null")).map(a => a.sanic_cm_ag_nombre);
       e.nota(`agentes activos con usuario (API): ${conEmail.join(', ')}`);
       e.check(await pl.botonHabilitado(app, 'btnAprobarAprb'), 'Aprobar habilitado con localizador', true, false);
