@@ -65,7 +65,7 @@ Screens:
                   RadiusBottomRight: =gblE.Radio
                   RadiusTopLeft: =gblE.Radio
                   RadiusTopRight: =gblE.Radio
-                  Visible: =CountRows(Filter(colAgentesAge, '[AG] Activo' && IsBlank('[AG] Usuario'))) > 0
+                  Visible: =CountIf('CM | TBL | Agentes', '[AG] Activo' && IsBlank('[AG] Usuario')) > 0
                   Width: =Parent.Width
                   Y: =btnActualizarAge.Y + btnActualizarAge.Height + gblE.PadSm
                 Children:
@@ -86,8 +86,8 @@ Screens:
                         Size: =11
                         Text: |-
                           ="⚠ " &
-                              CountRows(Filter(colAgentesAge,
-                                  '[AG] Activo' && IsBlank('[AG] Usuario'))) &
+                              CountIf('CM | TBL | Agentes',
+                                  '[AG] Activo' && IsBlank('[AG] Usuario')) &
                               " agente(s) activo(s) sin usuario vinculado"
                         Width: =Parent.Width - 2*gblE.Pad
                         Wrap: =false
@@ -181,9 +181,8 @@ Screens:
                             Properties:
                               BorderColor: =gblC.borde
                               DefaultSelectedItems: |-
-                                =// Si Studio subraya Table(<registro lookup>), la forma equivalente
-                                // documentada es: Filter(Users, 'Primary Email' = ThisItem.'Email Usuario')
-                                If(!IsBlank(ThisItem.'[AG] Usuario'), Table(ThisItem.'[AG] Usuario'))
+                                =// El lookup dentro de la colección viene sin hidratar → se re-lee el usuario por PK (delegable)
+                                If(!IsBlank(ThisItem.'[AG] Usuario'), Filter(Users, User = ThisItem.'[AG] Usuario'.User))
                               DisplayFields: =["fullname", "internalemailaddress"]
                               Fill: =gblC.card
                               Font: =Font.'Segoe UI'

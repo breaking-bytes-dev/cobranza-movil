@@ -11,41 +11,42 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =// Cuentas para el join en memoria (2 columnas, cota 2000 declarada — 00 §4.1).
-        // FUERA del Concurrent: el AddColumns de abajo necesita colCtasRec ya cargada (gotcha 7.7)
-        ClearCollect(colCtasRec,
-            'CM | TBL | Cuentas'
-        );
-        // Desaparecidas + denominador, en paralelo (ambos filtros delegables: choice por
-        // valor + booleano + comparación de fecha — 00 §4.2)
+        =// Corte del DÍA de la última carga (se compara por fecha, no fecha+hora): una Diaria cargada
+        // segundos antes del máximo NO es "desaparecida". Lado derecho constante → la comparación delega.
+        Set(varCorteRec, DateTime(Year(nfUltimaCarga), Month(nfUltimaCarga), Day(nfUltimaCarga), 0, 0, 0));
+        // Lista de desaparecidas + conteos EXACTOS, en paralelo. Filtros delegables (choice por
+        // valor + booleano + comparación de fecha — 00 §4.2). El nombre del cliente sale navegando
+        // el lookup '[AS] Cuenta' (lo resuelve el servidor, sin catálogo de cuentas truncable).
+        // Lista acotada a 2000; el conteo es exacto (CountIf).
         Concurrent(
             ClearCollect(colDesapRec,
                 AddColumns(
                     Filter('CM | TBL | Asignacions',
                         '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
                         && '[AS] Estado' = true
-                        && 'Última carga' < nfUltimaCarga
+                        && 'Última carga' < varCorteRec
                     ),
                     clienteRec,
-                    Upper(Coalesce(
-                        LookUp(colCtasRec, '[CT] Numero de cuenta' = '[AS] NumeroCuenta').'Nombre Cliente',
-                        "—"
-                    ))
+                    Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—"))
                 )
             ),
-            ClearCollect(colDiariasRec,
-                ShowColumns(
-                    Filter('CM | TBL | Asignacions',
-                        '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
-                        && '[AS] Estado' = true
-                    ),
-                    '[AS] Numero'
+            Set(varNDesapRec,
+                CountIf('CM | TBL | Asignacions',
+                    '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
+                    && '[AS] Estado' = true
+                    && 'Última carga' < varCorteRec
+                )
+            ),
+            Set(varNDiariasRec,
+                CountIf('CM | TBL | Asignacions',
+                    '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
+                    && '[AS] Estado' = true
                 )
             )
         );
         // Estado de pantalla. El Reset es obligatorio: el valor de la casilla PERSISTE entre
         // visitas (gotcha 01) — sin él, un cierre confirmado ayer deja el botón armado hoy.
-        Set(varPctRec, Round(100 * CountRows(colDesapRec) / Max(1, CountRows(colDiariasRec)), 0));
+        Set(varPctRec, Round(100 * varNDesapRec / Max(1, varNDiariasRec), 0));
         Set(varRojoRec, varPctRec > 30);
         Reset(chkConfirmarRec)
     Children:
@@ -109,7 +110,7 @@ Screens:
                   BorderThickness: =1
                   DropShadow: =DropShadow.None
                   Fill: =gblC.card
-                  Height: =116
+                  Height: =116 + If(varNDesapRec > CountRows(colDesapRec), 22, 0)
                   RadiusBottomLeft: =gblE.Radio
                   RadiusBottomRight: =gblE.Radio
                   RadiusTopLeft: =gblE.Radio
@@ -127,7 +128,7 @@ Screens:
                         Height: =24
                         PaddingLeft: =0
                         Size: =11
-                        Text: =CountRows(colDesapRec) & " de " & CountRows(colDiariasRec) & " Diarias activas (" & varPctRec & "%) quedaron fuera de la cartera"
+                        Text: =varNDesapRec & " de " & varNDiariasRec & " Diarias activas (" & varPctRec & "%) quedaron fuera de la cartera"
                         Width: =Parent.Width - 2*gblE.Pad
                         Wrap: =false
                         X: =gblE.Pad
@@ -169,6 +170,20 @@ Screens:
                         Width: =Parent.Width - 2*gblE.Pad
                         X: =gblE.Pad
                         Y: =conMeterRec.Y + conMeterRec.Height + gblE.PadSm
+                  - lblTopeRec:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.muted
+                        Font: =Font.'Segoe UI'
+                        Height: =22
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: ="Mostrando las primeras " & CountRows(colDesapRec) & " — el cierre en lote procesa lo listado; repetí hasta vaciar"
+                        Visible: =varNDesapRec > CountRows(colDesapRec)
+                        Width: =Parent.Width - 2*gblE.Pad
+                        Wrap: =false
+                        X: =gblE.Pad
+                        Y: =lblUmbralRec.Y + lblUmbralRec.Height
             - conListaRec:
                 Control: GroupContainer@1.5.0
                 Variant: ManualLayout
@@ -337,33 +352,36 @@ Screens:
                           );
                           Notify("🧹 " & CountRows(colDesapRec) & " Diarias cerradas — motivo: fuera de cartera",
                               NotificationType.Success, 2500);
-                          // Recarga — mismo bloque del OnVisible (colCtasRec sigue viva, no se re-pide)
+                          // Recarga — mismo bloque del OnVisible (corte del día recalculado)
+                          Set(varCorteRec, DateTime(Year(nfUltimaCarga), Month(nfUltimaCarga), Day(nfUltimaCarga), 0, 0, 0));
+                          // Lista acotada a 2000; el conteo es exacto (CountIf).
                           Concurrent(
                               ClearCollect(colDesapRec,
                                   AddColumns(
                                       Filter('CM | TBL | Asignacions',
                                           '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
                                           && '[AS] Estado' = true
-                                          && 'Última carga' < nfUltimaCarga
+                                          && 'Última carga' < varCorteRec
                                       ),
                                       clienteRec,
-                                      Upper(Coalesce(
-                                          LookUp(colCtasRec, '[CT] Numero de cuenta' = '[AS] NumeroCuenta').'Nombre Cliente',
-                                          "—"
-                                      ))
+                                      Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—"))
                                   )
                               ),
-                              ClearCollect(colDiariasRec,
-                                  ShowColumns(
-                                      Filter('CM | TBL | Asignacions',
-                                          '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
-                                          && '[AS] Estado' = true
-                                      ),
-                                      '[AS] Numero'
+                              Set(varNDesapRec,
+                                  CountIf('CM | TBL | Asignacions',
+                                      '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
+                                      && '[AS] Estado' = true
+                                      && 'Última carga' < varCorteRec
+                                  )
+                              ),
+                              Set(varNDiariasRec,
+                                  CountIf('CM | TBL | Asignacions',
+                                      '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
+                                      && '[AS] Estado' = true
                                   )
                               )
                           );
-                          Set(varPctRec, Round(100 * CountRows(colDesapRec) / Max(1, CountRows(colDiariasRec)), 0));
+                          Set(varPctRec, Round(100 * varNDesapRec / Max(1, varNDiariasRec), 0));
                           Set(varRojoRec, varPctRec > 30);
                           Reset(chkConfirmarRec)
                         Size: =10

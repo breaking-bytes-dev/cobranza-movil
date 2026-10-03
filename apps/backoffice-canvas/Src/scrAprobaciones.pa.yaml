@@ -11,16 +11,13 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =// Catálogos en paralelo (no dependen entre sí)
-        Concurrent(
-            // Agentes ACTIVOS — filtro delegable. OJO: acá NO se filtra 'Email Usuario'
-            // (IsBlank sobre columna no delega); ese filtro lo hace el combo EN MEMORIA.
-            ClearCollect(colAgentesAprb,
-                Filter('CM | TBL | Agentes', '[AG] Activo' = true)),
-            // Cuentas: SOLO las 6 columnas que usa esta pantalla
-            ClearCollect(colCtasAprb, 'CM | TBL | Cuentas')
-        );
-        // La cola — DESPUÉS del Concurrent: el join hornea contra colCtasAprb (gotcha 7.7)
+        =// Catálogo de agentes
+        // Agentes ACTIVOS — filtro delegable. OJO: acá NO se filtra 'Email Usuario'
+        // (IsBlank sobre columna no delega); ese filtro lo hace el combo EN MEMORIA.
+        ClearCollect(colAgentesAprb,
+            Filter('CM | TBL | Agentes', '[AG] Activo' = true));
+        // La cola + datos de la cuenta horneados navegando el lookup '[AS] Cuenta' (lo resuelve el
+        // servidor, sin catálogo de cuentas truncable al Data row limit).
         ClearCollect(colAprobAprb,
             AddColumns(
                 Filter('CM | TBL | Asignacions',
@@ -28,10 +25,10 @@ Screens:
                     '[AS] Estado de aprobacion' =
                         'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion'),
                 clienteAprb,
-                Upper(Coalesce(
-                    LookUp(colCtasAprb,
-                        '[CT] Numero de cuenta' = '[AS] NumeroCuenta').'Nombre Cliente',
-                    "—")),
+                Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
+                prodAprb, Coalesce(ThisRecord.'[AS] Cuenta'.'Tipo Producto', "—"),
+                nioAprb, ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO',
+                usdAprb, ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD',
                 pideAprb, Coalesce('[AS] Solicitado por'.'Full Name', "—")
             )
         );
@@ -71,11 +68,8 @@ Screens:
                   Font: =Font.'Segoe UI'
                   Height: =36
                   OnSelect: |-
-                    =Concurrent(
-                        ClearCollect(colAgentesAprb,
-                            Filter('CM | TBL | Agentes', '[AG] Activo' = true)),
-                        ClearCollect(colCtasAprb, 'CM | TBL | Cuentas')
-                    );
+                    =ClearCollect(colAgentesAprb,
+                        Filter('CM | TBL | Agentes', '[AG] Activo' = true));
                     ClearCollect(colAprobAprb,
                         AddColumns(
                             Filter('CM | TBL | Asignacions',
@@ -83,10 +77,10 @@ Screens:
                                 '[AS] Estado de aprobacion' =
                                     'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion'),
                             clienteAprb,
-                            Upper(Coalesce(
-                                LookUp(colCtasAprb,
-                                    '[CT] Numero de cuenta' = '[AS] NumeroCuenta').'Nombre Cliente',
-                                "—")),
+                            Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
+                            prodAprb, Coalesce(ThisRecord.'[AS] Cuenta'.'Tipo Producto', "—"),
+                            nioAprb, ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO',
+                            usdAprb, ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD',
                             pideAprb, Coalesce('[AS] Solicitado por'.'Full Name', "—")
                         )
                     );
@@ -351,11 +345,7 @@ Screens:
                   PaddingRight: =0
                   Size: =10
                   Text: |-
-                    =varSelAprb.'[AS] NumeroCuenta' & " · " &
-                        Coalesce(
-                            LookUp(colCtasAprb,
-                                '[CT] Numero de cuenta' = varSelAprb.'[AS] NumeroCuenta').'Tipo Producto',
-                            "—")
+                    =varSelAprb.'[AS] NumeroCuenta' & " · " & varSelAprb.prodAprb
                   Width: =Parent.Width - 2*gblE.Pad - 130
                   Wrap: =false
                   X: =gblE.Pad + 130
@@ -385,10 +375,7 @@ Screens:
                   PaddingRight: =0
                   Size: =10
                   Text: |-
-                    =With(
-                        {_c: LookUp(colCtasAprb,
-                            '[CT] Numero de cuenta' = varSelAprb.'[AS] NumeroCuenta')},
-                        Moneda(_c.'[CT] Saldo Vencido NIO', _c.'[CT] Saldo Vencido USD'))
+                    =Moneda(varSelAprb.nioAprb, varSelAprb.usdAprb)
                   Width: =Parent.Width - 2*gblE.Pad - 130
                   Wrap: =false
                   X: =gblE.Pad + 130

@@ -11,24 +11,30 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =// 2) Fuentes independientes en paralelo (ambas delegables)
+        =// 2) Fuentes independientes en paralelo (delegables). El KPI TRANSCRITAS es conteo EXACTO
+        //    directo al datasource (CountIf delega) con la MISMA condición del Filter del paso 3.
         Concurrent(
-            ClearCollect(colCtasTsc, 'CM | TBL | Cuentas'),
             ClearCollect(colPagosHoyTsc,
-                Filter('CM | TBL | Pagos', 'Fecha del pago' >= Today()))
+                Filter('CM | TBL | Pagos', 'Fecha del pago' >= Today())),
+            Set(varNTscTsc,
+                CountIf('CM | TBL | Interaccions',
+                    '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Grabado
+                    && '[IN] Fecha grabacion' >= Today()
+                    && '[IN] Grabado por'.User = gblUsuarioDV.User))
         );
         // 3) Arqueo del día (base en colTscTmpTsc): SOLO lo grabado HOY por MÍ.
         //    choice por valor + comparación de fecha + lookup por registro = delegable (00 §4.2).
-        //    El join del cliente se hornea acá (7.7) → va DESPUÉS de colCtasTsc, NUNCA en el Concurrent.
+        //    Datos de la cuenta navegando el lookup '[IN] Cuenta' (lo resuelve el servidor, sin
+        //    catálogo de cuentas truncable al Data row limit).
         ClearCollect(colTscTmpTsc,
             AddColumns(
                 Filter('CM | TBL | Interaccions',
                     '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Grabado
                     && '[IN] Fecha grabacion' >= Today()
                     && '[IN] Grabado por'.User = gblUsuarioDV.User),
-                clienteTsc, Upper(Coalesce(LookUp(colCtasTsc, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'Nombre Cliente', "—")),   // LED-01
-                cifTsc, Coalesce(LookUp(colCtasTsc, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'CIF Cliente', "—"),
-                prodTsc, Coalesce(LookUp(colCtasTsc, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'Tipo Producto', "—")
+                clienteTsc, Upper(Coalesce(ThisRecord.'[IN] Cuenta'.'Nombre Cliente', "—")),   // LED-01
+                cifTsc, Coalesce(ThisRecord.'[IN] Cuenta'.'CIF Cliente', "—"),
+                prodTsc, Coalesce(ThisRecord.'[IN] Cuenta'.'Tipo Producto', "—")
             )
         );
         // 4) Pagos del arqueo = pagos de HOY (ya en memoria) ∩ mis transcritas.
@@ -74,9 +80,13 @@ Screens:
             Height: =gblE.AltoInput
             OnSelect: |-
               =Concurrent(
-                  ClearCollect(colCtasTsc, 'CM | TBL | Cuentas'),
                   ClearCollect(colPagosHoyTsc,
-                      Filter('CM | TBL | Pagos', 'Fecha del pago' >= Today()))
+                      Filter('CM | TBL | Pagos', 'Fecha del pago' >= Today())),
+                  Set(varNTscTsc,
+                      CountIf('CM | TBL | Interaccions',
+                          '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Grabado
+                          && '[IN] Fecha grabacion' >= Today()
+                          && '[IN] Grabado por'.User = gblUsuarioDV.User))
               );
               ClearCollect(colTscTmpTsc,
                   AddColumns(
@@ -84,9 +94,9 @@ Screens:
                           '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Grabado
                           && '[IN] Fecha grabacion' >= Today()
                           && '[IN] Grabado por'.User = gblUsuarioDV.User),
-                      clienteTsc, Upper(Coalesce(LookUp(colCtasTsc, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'Nombre Cliente', "—")),
-                      cifTsc, Coalesce(LookUp(colCtasTsc, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'CIF Cliente', "—"),
-                      prodTsc, Coalesce(LookUp(colCtasTsc, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'Tipo Producto', "—")
+                      clienteTsc, Upper(Coalesce(ThisRecord.'[IN] Cuenta'.'Nombre Cliente', "—")),
+                      cifTsc, Coalesce(ThisRecord.'[IN] Cuenta'.'CIF Cliente', "—"),
+                      prodTsc, Coalesce(ThisRecord.'[IN] Cuenta'.'Tipo Producto', "—")
                   )
               );
               ClearCollect(colPagosTsc,
@@ -129,7 +139,7 @@ Screens:
                   EsHero: =false
                   Etiqueta: ="TRANSCRITAS"
                   Height: =96
-                  Valor: =Text(CountRows(colTscTsc))
+                  Valor: =Text(varNTscTsc)
                   Width: =If(nfMovil, Parent.Width, (Parent.Width - gblE.PadSm)/2)
             - cmpKpiPagosTsc:
                 Control: CanvasComponent

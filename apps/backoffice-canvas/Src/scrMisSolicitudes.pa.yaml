@@ -11,10 +11,10 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =// SIN Concurrent: el join de colSolSol necesita colCtasSol ya cargada (gotcha 7.7)
-        ClearCollect(colCtasSol, 'CM | TBL | Cuentas');
-        // Mis Especiales — Filter delegable (choice por valor + lookup por registro, 00 §4.2);
-        // AddColumns y Sort corren EN MEMORIA sobre el resultado (cota 2000, 00 §4.1)
+        =// Mis Especiales — Filter delegable (choice por valor + lookup por registro, 00 §4.2);
+        // AddColumns y Sort corren EN MEMORIA sobre el resultado (cota 2000, 00 §4.1).
+        // Datos de la cuenta navegando el lookup '[AS] Cuenta' (lo resuelve el servidor, sin
+        // catálogo de cuentas truncable al Data row limit).
         ClearCollect(colSolSol,
             Sort(
                 AddColumns(
@@ -22,15 +22,15 @@ Screens:
                         '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
                         && '[AS] Solicitado por'.User = gblUsuarioDV.User),
                     clienteSol, Upper(Coalesce(
-                        LookUp(colCtasSol, '[CT] Numero de cuenta' = '[AS] NumeroCuenta').'Nombre Cliente', "—")),
+                        ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
                     prodSol, Coalesce(
-                        LookUp(colCtasSol, '[CT] Numero de cuenta' = '[AS] NumeroCuenta').'Tipo Producto', "—"),
+                        ThisRecord.'[AS] Cuenta'.'Tipo Producto', "—"),
                     saldoNioSol, Coalesce(
-                        LookUp(colCtasSol, '[CT] Numero de cuenta' = '[AS] NumeroCuenta').'[CT] Saldo Vencido NIO', 0),
+                        ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO', 0),
                     saldoUsdSol, Coalesce(
-                        LookUp(colCtasSol, '[CT] Numero de cuenta' = '[AS] NumeroCuenta').'[CT] Saldo Vencido USD', 0),
+                        ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD', 0),
                     moraSol, Coalesce(
-                        LookUp(colCtasSol, '[CT] Numero de cuenta' = '[AS] NumeroCuenta').'[CT] Dias Mora', 0),
+                        ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
                     agenteSol, '[AS] Agente'.'[AG] Nombre'
                 ),
                 '[AS] Fecha de Asignacion', SortOrder.Descending
@@ -57,23 +57,22 @@ Screens:
             Font: =Font.'Segoe UI'
             Height: =gblE.AltoBoton
             OnSelect: |-
-              =ClearCollect(colCtasSol, 'CM | TBL | Cuentas');
-              ClearCollect(colSolSol,
+              =ClearCollect(colSolSol,
                   Sort(
                       AddColumns(
                           Filter('CM | TBL | Asignacions',
                               '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
                               && '[AS] Solicitado por'.User = gblUsuarioDV.User),
                           clienteSol, Upper(Coalesce(
-                              LookUp(colCtasSol, '[CT] Numero de cuenta' = '[AS] NumeroCuenta').'Nombre Cliente', "—")),
+                              ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
                           prodSol, Coalesce(
-                              LookUp(colCtasSol, '[CT] Numero de cuenta' = '[AS] NumeroCuenta').'Tipo Producto', "—"),
+                              ThisRecord.'[AS] Cuenta'.'Tipo Producto', "—"),
                           saldoNioSol, Coalesce(
-                              LookUp(colCtasSol, '[CT] Numero de cuenta' = '[AS] NumeroCuenta').'[CT] Saldo Vencido NIO', 0),
+                              ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO', 0),
                           saldoUsdSol, Coalesce(
-                              LookUp(colCtasSol, '[CT] Numero de cuenta' = '[AS] NumeroCuenta').'[CT] Saldo Vencido USD', 0),
+                              ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD', 0),
                           moraSol, Coalesce(
-                              LookUp(colCtasSol, '[CT] Numero de cuenta' = '[AS] NumeroCuenta').'[CT] Dias Mora', 0),
+                              ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
                           agenteSol, '[AS] Agente'.'[AG] Nombre'
                       ),
                       '[AS] Fecha de Asignacion', SortOrder.Descending

@@ -11,23 +11,24 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =// 2) cuentas para el join (cota 2000 declarada — 00 §4.1)
-        ClearCollect(colCtasTrx, 'CM | TBL | Cuentas');
-        // 3) pendientes del día + join horneado UNA vez (receta 7.7); nombre en Upper (LED-01)
+        =// 3) pendientes del día + join horneado UNA vez (receta 7.7); nombre en Upper (LED-01).
+        //    Datos de la cuenta navegando el lookup '[IN] Cuenta' (lo resuelve el servidor, sin
+        //    catálogo de cuentas truncable al Data row limit).
         ClearCollect(colPendTrx,
             AddColumns(
                 Filter('CM | TBL | Interaccions',
                     '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Pendiente),
                 clienteTrx, Upper(Coalesce(
-                    LookUp(colCtasTrx, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'Nombre Cliente', "—")),
+                    ThisRecord.'[IN] Cuenta'.'Nombre Cliente', "—")),
                 cifTrx, Coalesce(
-                    LookUp(colCtasTrx, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'CIF Cliente', "—"),
+                    ThisRecord.'[IN] Cuenta'.'CIF Cliente', "—"),
                 productoTrx, Coalesce(
-                    LookUp(colCtasTrx, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'Tipo Producto', "—")
+                    ThisRecord.'[IN] Cuenta'.'Tipo Producto', "—")
             )
         );
         // 4) columna de localizadores materializada
-        ClearCollect(colLocsTrx, Table({locTrx: "Todos", nTrx: CountRows(colPendTrx)}));
+        // "Todos" = conteo EXACTO al datasource (CountIf delega); por localizador desde la cola cargada (cota 2000)
+        ClearCollect(colLocsTrx, Table({locTrx: "Todos", nTrx: CountIf('CM | TBL | Interaccions', '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Pendiente)}));
         Collect(colLocsTrx,
             RenameColumns(
                 ShowColumns(
@@ -88,23 +89,22 @@ Screens:
             Font: =Font.'Segoe UI'
             Height: =36
             OnSelect: |-
-              =// 1) cuentas para el join (idéntico al paso 2 del OnVisible)
-              ClearCollect(colCtasTrx, 'CM | TBL | Cuentas');
-              // 2) pendientes del día + join horneado (idéntico al paso 3 del OnVisible)
+              =// 2) pendientes del día + join horneado (idéntico al paso 3 del OnVisible)
               ClearCollect(colPendTrx,
                   AddColumns(
                       Filter('CM | TBL | Interaccions',
                           '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Pendiente),
                       clienteTrx, Upper(Coalesce(
-                          LookUp(colCtasTrx, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'Nombre Cliente', "—")),
+                          ThisRecord.'[IN] Cuenta'.'Nombre Cliente', "—")),
                       cifTrx, Coalesce(
-                          LookUp(colCtasTrx, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'CIF Cliente', "—"),
+                          ThisRecord.'[IN] Cuenta'.'CIF Cliente', "—"),
                       productoTrx, Coalesce(
-                          LookUp(colCtasTrx, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'Tipo Producto', "—")
+                          ThisRecord.'[IN] Cuenta'.'Tipo Producto', "—")
                   )
               );
               // 3) columna de localizadores
-              ClearCollect(colLocsTrx, Table({locTrx: "Todos", nTrx: CountRows(colPendTrx)}));
+              // "Todos" = conteo EXACTO al datasource (CountIf delega); por localizador desde la cola cargada (cota 2000)
+              ClearCollect(colLocsTrx, Table({locTrx: "Todos", nTrx: CountIf('CM | TBL | Interaccions', '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Pendiente)}));
               Collect(colLocsTrx,
                   RenameColumns(
                       ShowColumns(
@@ -924,7 +924,8 @@ Screens:
                                 Remove(colPendTrx, LookUp(colPendTrx,
                                     '[IN] Numero de Interaccion' = varNumTrx));
                                 // 4) refrescar la columna de localizadores
-                                ClearCollect(colLocsTrx, Table({locTrx: "Todos", nTrx: CountRows(colPendTrx)}));
+                                // "Todos" = conteo EXACTO al datasource (CountIf delega); por localizador desde la cola cargada (cota 2000)
+                                ClearCollect(colLocsTrx, Table({locTrx: "Todos", nTrx: CountIf('CM | TBL | Interaccions', '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Pendiente)}));
                                 Collect(colLocsTrx,
                                     RenameColumns(
                                         ShowColumns(

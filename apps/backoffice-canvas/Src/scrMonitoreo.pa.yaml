@@ -11,20 +11,13 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =// Colecciones → estado de pantalla (receta 7.7).
+        =// Conteos EXACTOS directo al datasource: CountIf delega en Dataverse (exacto hasta 50.000).
+        // NO colección + CountRows: la colección se trunca al Data row limit.
+        // CountIf(tabla, true) en lugar de CountRows(tabla): CountRows sin filtro usa un valor cacheado.
         Concurrent(
-            // Filas de la carga de HOY. Filter por fecha = delegable (00 §4.2);
-            // ShowColumns achica el payload a una sola columna.
-            // ⚠ COTA 2000 DECLARADA (00 §4.1): si la cartera supera 2000 filas/día,
-            //   este conteo SATURA en 2000 — el KPI lo delata (§4).
-            ClearCollect(colCargaHoyMon,
-                ShowColumns(
-                    Filter('CM | TBL | Carga diarias', '[CD] FechaCarga' >= Today()),
-                    '[CD] Numero cuenta'
-                )
-            ),
-            ClearCollect(colCtasMon, 'CM | TBL | Cuentas'),
-            ClearCollect(colCliMon,  'CM | TBL | Clientes')
+            Set(varNCargaHoyMon, CountIf('CM | TBL | Carga diarias', '[CD] FechaCarga' >= Today())),
+            Set(varNCtasMon, CountIf('CM | TBL | Cuentas', true)),
+            Set(varNCliMon, CountIf('CM | TBL | Clientes', true))
         );
         Set(varHayCargaMon, nfUltimaCarga >= Today())
     Children:
@@ -93,9 +86,9 @@ Screens:
                         PaddingLeft: =0
                         Size: =9
                         Text: |-
-                          =Text(CountRows(colCargaHoyMon), "#,##0") & " filas de carga · "
-                              & Text(CountRows(colCtasMon), "#,##0") & " cuentas · "
-                              & Text(CountRows(colCliMon), "#,##0") & " clientes en maestros"
+                          =Text(varNCargaHoyMon, "#,##0") & " filas de carga · "
+                              & Text(varNCtasMon, "#,##0") & " cuentas · "
+                              & Text(varNCliMon, "#,##0") & " clientes en maestros"
                         Width: =Parent.Width - 2*gblE.Pad
                         Wrap: =false
                         X: =gblE.Pad
@@ -167,14 +160,11 @@ Screens:
                 Control: CanvasComponent
                 ComponentName: cmpKpi
                 Properties:
-                  Detalle: |-
-                    =If(CountRows(colCargaHoyMon) >= 2000,
-                        "⚠ cota 2000 alcanzada — conteo saturado",
-                        "desde las 00:00")
+                  Detalle: ="desde las 00:00"
                   EsHero: =false
                   Etiqueta: ="FILAS DE CARGA HOY"
                   Height: =96
-                  Valor: =Text(CountRows(colCargaHoyMon), "#,##0")
+                  Valor: =Text(varNCargaHoyMon, "#,##0")
                   Width: =If(nfMovil, Parent.Width, (Parent.Width - 2*gblE.Pad) / 3)
                   Y: =conEstadoOkMon.Y + conEstadoOkMon.Height + gblE.Pad
             - cmpKpiCuentasMon:
@@ -185,7 +175,7 @@ Screens:
                   EsHero: =false
                   Etiqueta: ="CUENTAS TOTALES"
                   Height: =96
-                  Valor: =Text(CountRows(colCtasMon), "#,##0")
+                  Valor: =Text(varNCtasMon, "#,##0")
                   Width: =cmpKpiFilasMon.Width
                   X: =If(nfMovil, 0, cmpKpiFilasMon.X + cmpKpiFilasMon.Width + gblE.Pad)
                   Y: |-
@@ -200,7 +190,7 @@ Screens:
                   EsHero: =false
                   Etiqueta: ="CLIENTES TOTALES"
                   Height: =96
-                  Valor: =Text(CountRows(colCliMon), "#,##0")
+                  Valor: =Text(varNCliMon, "#,##0")
                   Width: =cmpKpiFilasMon.Width
                   X: =If(nfMovil, 0, cmpKpiCuentasMon.X + cmpKpiCuentasMon.Width + gblE.Pad)
                   Y: |-
@@ -248,14 +238,9 @@ Screens:
                   HoverFill: =ColorFade(gblC.tealSuave, 10%)
                   OnSelect: |-
                     =Concurrent(
-                        ClearCollect(colCargaHoyMon,
-                            ShowColumns(
-                                Filter('CM | TBL | Carga diarias', '[CD] FechaCarga' >= Today()),
-                                '[CD] Numero cuenta'
-                            )
-                        ),
-                        ClearCollect(colCtasMon, 'CM | TBL | Cuentas'),
-                        ClearCollect(colCliMon,  'CM | TBL | Clientes')
+                        Set(varNCargaHoyMon, CountIf('CM | TBL | Carga diarias', '[CD] FechaCarga' >= Today())),
+                        Set(varNCtasMon, CountIf('CM | TBL | Cuentas', true)),
+                        Set(varNCliMon, CountIf('CM | TBL | Clientes', true))
                     );
                     // nfUltimaCarga es fórmula con nombre (01 §3) y se reevalúa sola;
                     // varHayCargaMon es variable normal, por eso el Set sigue siendo necesario.

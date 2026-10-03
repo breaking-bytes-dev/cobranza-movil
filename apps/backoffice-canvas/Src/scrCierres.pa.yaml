@@ -11,10 +11,9 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =// Cuentas PRIMERO: el join de abajo la necesita — NO usar Concurrent acá (gotcha receta 7.7)
-        ClearCollect(colCtasCie,
-            'CM | TBL | Cuentas');
-        // Asignaciones activas Incobrable/Especial + joins horneados una vez (receta 7.7)
+        =// Asignaciones activas Incobrable/Especial + joins horneados una vez (receta 7.7).
+        // Datos de la cuenta navegando el lookup '[AS] Cuenta' (lo resuelve el servidor, sin
+        // catálogo de cuentas truncable al Data row limit).
         // Filtro DELEGABLE: OR de igualdades de choice por valor + booleano (00 §4.2)
         ClearCollect(colCierresCie,
             AddColumns(
@@ -23,19 +22,19 @@ Screens:
                       || '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial)
                     && '[AS] Estado' = true),
                 clienteCie, Upper(Coalesce(
-                    LookUp(colCtasCie, '[CT] Numero de cuenta' = '[AS] NumeroCuenta').'Nombre Cliente', "—")),
+                    ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
                 diasCie, Coalesce(
-                    LookUp(colCtasCie, '[CT] Numero de cuenta' = '[AS] NumeroCuenta').'[CT] Dias Mora', 0),
+                    ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
                 nioCie, Coalesce(
-                    LookUp(colCtasCie, '[CT] Numero de cuenta' = '[AS] NumeroCuenta').'[CT] Saldo Vencido NIO', 0),
+                    ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO', 0),
                 usdCie, Coalesce(
-                    LookUp(colCtasCie, '[CT] Numero de cuenta' = '[AS] NumeroCuenta').'[CT] Saldo Vencido USD', 0),
+                    ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD', 0),
                 montoCie, If('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
                         && (Coalesce('Retiro NIO', 0) > 0 || Coalesce('Retiro USD', 0) > 0),
                     Moneda('Retiro NIO', 'Retiro USD'),
                     Moneda(
-                        Coalesce(LookUp(colCtasCie, '[CT] Numero de cuenta' = '[AS] NumeroCuenta').'[CT] Saldo Vencido NIO', 0),
-                        Coalesce(LookUp(colCtasCie, '[CT] Numero de cuenta' = '[AS] NumeroCuenta').'[CT] Saldo Vencido USD', 0)))
+                        Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO', 0),
+                        Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD', 0)))
             )
         );
         // Estado de pantalla (resetea tab/panel entre visitas — gotcha de persistencia)
@@ -98,8 +97,9 @@ Screens:
                         Size: =9
                         Text: |-
                           ="🟠 Incobrables (" &
-                              CountRows(Filter(colCierresCie,
-                                  '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable)) & ")"
+                              CountIf('CM | TBL | Asignacions',
+                                  '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable
+                                  && '[AS] Estado' = true) & ")"
                         Width: =170
                         X: =4
                         Y: =4
@@ -121,8 +121,9 @@ Screens:
                         Size: =9
                         Text: |-
                           ="🟣 Especiales (" &
-                              CountRows(Filter(colCierresCie,
-                                  '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial)) & ")"
+                              CountIf('CM | TBL | Asignacions',
+                                  '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                                  && '[AS] Estado' = true) & ")"
                         Width: =170
                         X: =178
                         Y: =4
@@ -136,9 +137,7 @@ Screens:
                   Font: =Font.'Segoe UI'
                   Height: =44
                   OnSelect: |-
-                    =// Re-colecta TODO (secuencial, cuentas primero) y cierra el panel
-                    ClearCollect(colCtasCie,
-                        'CM | TBL | Cuentas');
+                    =// Re-colecta y cierra el panel (mismo bloque del OnVisible)
                     ClearCollect(colCierresCie,
                         AddColumns(
                             Filter('CM | TBL | Asignacions',
@@ -146,19 +145,19 @@ Screens:
                                   || '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial)
                                 && '[AS] Estado' = true),
                             clienteCie, Upper(Coalesce(
-                                LookUp(colCtasCie, '[CT] Numero de cuenta' = '[AS] NumeroCuenta').'Nombre Cliente', "—")),
+                                ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
                             diasCie, Coalesce(
-                                LookUp(colCtasCie, '[CT] Numero de cuenta' = '[AS] NumeroCuenta').'[CT] Dias Mora', 0),
+                                ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
                             nioCie, Coalesce(
-                                LookUp(colCtasCie, '[CT] Numero de cuenta' = '[AS] NumeroCuenta').'[CT] Saldo Vencido NIO', 0),
+                                ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO', 0),
                             usdCie, Coalesce(
-                                LookUp(colCtasCie, '[CT] Numero de cuenta' = '[AS] NumeroCuenta').'[CT] Saldo Vencido USD', 0),
+                                ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD', 0),
                             montoCie, If('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
                                     && (Coalesce('Retiro NIO', 0) > 0 || Coalesce('Retiro USD', 0) > 0),
                                 Moneda('Retiro NIO', 'Retiro USD'),
                                 Moneda(
-                                    Coalesce(LookUp(colCtasCie, '[CT] Numero de cuenta' = '[AS] NumeroCuenta').'[CT] Saldo Vencido NIO', 0),
-                                    Coalesce(LookUp(colCtasCie, '[CT] Numero de cuenta' = '[AS] NumeroCuenta').'[CT] Saldo Vencido USD', 0)))
+                                    Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO', 0),
+                                    Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD', 0)))
                         )
                     );
                     Set(varSelCie, Blank());

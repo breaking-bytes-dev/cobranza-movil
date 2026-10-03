@@ -13,10 +13,15 @@ App:
       // Bimoneda: "C$ X · US$ Y", omite la moneda en cero. Igual que la app del localizador.
       Moneda(nio:Number, usd:Number): Text =
           Coalesce(
+              // Filter saca las entradas en blanco: sin él, Concat(0,0) devuelve " · " (no vacío)
+              // y el Coalesce nunca dispara.
               Concat(
-                  Table(
-                      {t: If(Coalesce(nio,0) > 0, "C$ " & Text(nio, "#,##0.00"))},
-                      {t: If(Coalesce(usd,0) > 0, "US$ " & Text(usd, "#,##0.00"))}
+                  Filter(
+                      Table(
+                          {t: If(Coalesce(nio,0) > 0, "C$ " & Text(nio, "#,##0.00"))},
+                          {t: If(Coalesce(usd,0) > 0, "US$ " & Text(usd, "#,##0.00"))}
+                      ),
+                      !IsBlank(t)
                   ),
                   t, " · "
               ),

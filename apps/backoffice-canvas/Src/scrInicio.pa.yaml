@@ -12,57 +12,76 @@ Screens:
       Fill: =gblC.pantalla
       OnVisible: |-
         =// 1) Cobrado hoy por los localizadores (subtítulo del encabezado) — común a todos los roles.
-        //    Filtro delegable por fecha (00 §4.2); cota 2000 declarada (00 §4.1).
+        //    Sum DIRECTO al datasource: delega en Dataverse para columnas numéricas (docs oficiales,
+        //    hasta 50.000 filas) — sin colección intermedia truncable al Data row limit.
         If(!IsBlank(gblRol),
-            ClearCollect(colPagosHoyIni,
-                Filter('CM | TBL | Pagos', 'Fecha del pago' >= Today()));
-            // Los Sum van sobre la colección, EN MEMORIA — jamás Sum directo al datasource (00 §4.3).
-            // Por eso NO van en Concurrent con el ClearCollect: dependen de él (secuencial con ;).
             Set(varCobNioIni,
-                Sum(Filter(colPagosHoyIni, '[PG] Moneda' = 'Choice | CM | Monedas en Pago'.NIO), '[PG] Monto'));
+                Sum(Filter('CM | TBL | Pagos', 'Fecha del pago' >= Today() &&
+                    '[PG] Moneda' = 'Choice | CM | Monedas en Pago'.NIO), '[PG] Monto'));
             Set(varCobUsdIni,
-                Sum(Filter(colPagosHoyIni, '[PG] Moneda' = 'Choice | CM | Monedas en Pago'.USD), '[PG] Monto'))
+                Sum(Filter('CM | TBL | Pagos', 'Fecha del pago' >= Today() &&
+                    '[PG] Moneda' = 'Choice | CM | Monedas en Pago'.USD), '[PG] Monto'))
         );
+        // 2..5) KPIs = conteos EXACTOS directo al datasource: CountIf delega en Dataverse (exacto
+        //    hasta 50.000). NO colección + CountRows: la colección se trunca al Data row limit.
+        //    Condiciones idénticas a los Filter de las pantallas destino; lookups comparados por PK.
         // 2) Backoffice: cola pendiente + transcritas hoy por mí (independientes → Concurrent).
         If("Backoffice" in gblRol,
             Concurrent(
-                // Delegable: igualdad de choice (00 §4.2). Cota 2000 declarada (00 §4.1).
-                ClearCollect(colPendIni,
-                    Filter('CM | TBL | Interaccions',
+                Set(varNPendIni,
+                    CountIf('CM | TBL | Interaccions',
                         '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Pendiente)),
-                // Delegable: choice + fecha + lookup por registro (00 §4.2).
-                ClearCollect(colTscIni,
-                    Filter('CM | TBL | Interaccions',
+                Set(varNPagoIni,
+                    CountIf('CM | TBL | Interaccions',
+                        '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Pendiente
+                        && '[IN] Aplica pago')),
+                Set(varNTscIni,
+                    CountIf('CM | TBL | Interaccions',
                         '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Grabado
                         && '[IN] Fecha grabacion' >= Today()
                         && '[IN] Grabado por'.User = gblUsuarioDV.User))
             )
         );
-        // 3) Solicitante: TODAS mis Especiales (los 3 KPIs se cuentan en memoria sobre esta colección).
+        // 3) Solicitante: mis Especiales por estado de aprobación.
         If("Solicitante" in gblRol,
-            ClearCollect(colSolIni,
-                Filter('CM | TBL | Asignacions',
-                    '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
-                    && '[AS] Solicitado por'.User = gblUsuarioDV.User))
+            Concurrent(
+                Set(varNSpenIni,
+                    CountIf('CM | TBL | Asignacions',
+                        '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                        && '[AS] Solicitado por'.User = gblUsuarioDV.User
+                        && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion')),
+                Set(varNSaprIni,
+                    CountIf('CM | TBL | Asignacions',
+                        '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                        && '[AS] Solicitado por'.User = gblUsuarioDV.User
+                        && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado)),
+                Set(varNSrecIni,
+                    CountIf('CM | TBL | Asignacions',
+                        '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                        && '[AS] Solicitado por'.User = gblUsuarioDV.User
+                        && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Rechazada))
+            )
         );
-        // 4) Supervisor: Especiales pendientes de aprobación (cota real: unidades — 00 §4.1).
+        // 4) Supervisor: Especiales pendientes de aprobación.
         If("Supervisor" in gblRol,
-            ClearCollect(colAprobIni,
-                Filter('CM | TBL | Asignacions',
+            Set(varNAprbIni,
+                CountIf('CM | TBL | Asignacions',
                     '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
                     && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion'))
         );
-        // 5) Admin: diarias fuera de cartera + agentes (independientes → Concurrent).
+        // 5) Admin: diarias fuera de cartera + agentes sin usuario (independientes → Concurrent).
+        //    Fuera de cartera se compara por FECHA (corte 00:00 del día de la última carga), igual que
+        //    Reconciliación — fecha+hora marcaba como desaparecidas las cargadas segundos antes del máximo.
         If("Admin" in gblRol,
+            Set(varCorteIni, DateTime(Year(nfUltimaCarga), Month(nfUltimaCarga), Day(nfUltimaCarga), 0, 0, 0));
             Concurrent(
-                // Delegable: choice + booleano + comparación de fecha (00 §4.2, patrón colDesap de 00 §4.1).
-                ClearCollect(colDesapIni,
-                    Filter('CM | TBL | Asignacions',
+                Set(varNDesapIni,
+                    CountIf('CM | TBL | Asignacions',
                         '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
                         && '[AS] Estado' = true
-                        && 'Última carga' < nfUltimaCarga)),
-                // Tabla chica (decenas de filas, org completa): se trae entera.
-                ClearCollect(colAgIni, 'CM | TBL | Agentes')
+                        && 'Última carga' < varCorteIni)),
+                Set(varNAgSinUsrIni,
+                    CountIf('CM | TBL | Agentes', '[AG] Activo' && IsBlank('[AG] Usuario')))
             )
         )
     Children:
@@ -109,7 +128,7 @@ Screens:
                         EsHero: =true
                         Etiqueta: ="EN COLA"
                         Height: =96
-                        Valor: =Text(CountRows(colPendIni))
+                        Valor: =Text(varNPendIni)
                         Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 3*gblE.PadSm) / 4)
                   - cmpKpiTscIni:
                       Control: CanvasComponent
@@ -119,7 +138,7 @@ Screens:
                         EsHero: =false
                         Etiqueta: ="TRANSCRITAS HOY"
                         Height: =96
-                        Valor: =Text(CountRows(colTscIni))
+                        Valor: =Text(varNTscIni)
                         Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 3*gblE.PadSm) / 4)
                         X: =If(nfMovil, (Parent.Width - gblE.PadSm)/2 + gblE.PadSm, (Parent.Width - 3*gblE.PadSm)/4 + gblE.PadSm)
                   - cmpKpiPagoIni:
@@ -130,7 +149,7 @@ Screens:
                         EsHero: =false
                         Etiqueta: ="CON PAGO"
                         Height: =96
-                        Valor: =Text(CountRows(Filter(colPendIni, '[IN] Aplica pago')))
+                        Valor: =Text(varNPagoIni)
                         Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 3*gblE.PadSm) / 4)
                         X: =If(nfMovil, 0, 2*((Parent.Width - 3*gblE.PadSm)/4 + gblE.PadSm))
                         Y: =If(nfMovil, 96 + gblE.PadSm, 0)
@@ -154,7 +173,7 @@ Screens:
                         EsHero: =true
                         Etiqueta: ="PENDIENTES"
                         Height: =96
-                        Valor: =Text(CountRows(Filter(colSolIni, '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion')))
+                        Valor: =Text(varNSpenIni)
                         Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 3*gblE.PadSm) / 4)
                   - cmpKpiSaprIni:
                       Control: CanvasComponent
@@ -164,7 +183,7 @@ Screens:
                         EsHero: =false
                         Etiqueta: ="APROBADAS"
                         Height: =96
-                        Valor: =Text(CountRows(Filter(colSolIni, '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado)))
+                        Valor: =Text(varNSaprIni)
                         Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 3*gblE.PadSm) / 4)
                         X: =If(nfMovil, (Parent.Width - gblE.PadSm)/2 + gblE.PadSm, (Parent.Width - 3*gblE.PadSm)/4 + gblE.PadSm)
                   - cmpKpiSrecIni:
@@ -175,7 +194,7 @@ Screens:
                         EsHero: =false
                         Etiqueta: ="RECHAZADAS"
                         Height: =96
-                        Valor: =Text(CountRows(Filter(colSolIni, '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Rechazada)))
+                        Valor: =Text(varNSrecIni)
                         Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 3*gblE.PadSm) / 4)
                         X: =If(nfMovil, 0, 2*((Parent.Width - 3*gblE.PadSm)/4 + gblE.PadSm))
                         Y: =If(nfMovil, 96 + gblE.PadSm, 0)
@@ -199,7 +218,7 @@ Screens:
                         EsHero: =true
                         Etiqueta: ="POR APROBAR"
                         Height: =96
-                        Valor: =Text(CountRows(colAprobIni))
+                        Valor: =Text(varNAprbIni)
                         Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 3*gblE.PadSm) / 4)
             - conKpisAdmIni:
                 Control: GroupContainer@1.5.0
@@ -231,7 +250,7 @@ Screens:
                         EsHero: =false
                         Etiqueta: ="DIARIAS FUERA DE CARTERA"
                         Height: =96
-                        Valor: =Text(CountRows(colDesapIni))
+                        Valor: =Text(varNDesapIni)
                         Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 3*gblE.PadSm) / 4)
                         X: =If(nfMovil, (Parent.Width - gblE.PadSm)/2 + gblE.PadSm, (Parent.Width - 3*gblE.PadSm)/4 + gblE.PadSm)
                   - cmpKpiAgeIni:
@@ -242,7 +261,7 @@ Screens:
                         EsHero: =false
                         Etiqueta: ="AGENTES SIN USUARIO"
                         Height: =96
-                        Valor: =Text(CountRows(Filter(colAgIni, '[AG] Activo' && IsBlank('[AG] Usuario'))))
+                        Valor: =Text(varNAgSinUsrIni)
                         Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 3*gblE.PadSm) / 4)
                         X: =If(nfMovil, 0, 2*((Parent.Width - 3*gblE.PadSm)/4 + gblE.PadSm))
                         Y: =If(nfMovil, 96 + gblE.PadSm, 0)

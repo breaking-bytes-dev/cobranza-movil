@@ -110,7 +110,7 @@ Screens:
               Concurrent(
                   ClearCollect(colTelMae, Filter('CM | TBL | Telefonos', '[TL] CIF' = ThisItem.'[CL] CIF')),
                   ClearCollect(colDirMae, Filter('CM | TBL | Direccions', '[DR] CIF' = ThisItem.'[CL] CIF')),
-                  ClearCollect(colCtasMae, Filter('CM | TBL | Cuentas', '[CT] Cliente'.'CM | TBL | Cliente' = ThisItem.'CM | TBL | Cliente'))
+                  ClearCollect(colCuentasCliMae, Filter('CM | TBL | Cuentas', '[CT] Cliente'.'CM | TBL | Cliente' = ThisItem.'CM | TBL | Cliente'))
               );
               Set(varPanelMae, true)
             ShowScrollbar: =false
@@ -470,7 +470,7 @@ Screens:
                   Height: =18
                   PaddingLeft: =0
                   Size: =8
-                  Text: ="CUENTAS (" & CountRows(colCtasMae) & ")"
+                  Text: ="CUENTAS (" & CountRows(colCuentasCliMae) & ")"
                   Visible: =varModoMae = "ver"
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
@@ -481,7 +481,7 @@ Screens:
                 Variant: Vertical
                 Properties:
                   Height: =112
-                  Items: =colCtasMae
+                  Items: =colCuentasCliMae
                   ShowScrollbar: =false
                   TemplateFill: =Color.Transparent
                   TemplatePadding: =0
@@ -516,7 +516,7 @@ Screens:
                   PaddingLeft: =0
                   Size: =10
                   Text: ="Sin cuentas en mora."
-                  Visible: =varModoMae = "ver" && CountRows(colCtasMae) = 0
+                  Visible: =varModoMae = "ver" && CountRows(colCuentasCliMae) = 0
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
                   X: =gblE.Pad
