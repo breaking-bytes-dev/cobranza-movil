@@ -644,3 +644,167 @@ Gotchas del conector encontrados al desplegar:
 
 Pendiente: re-correr F-03c, F-02e, X-02, F-02c y F-02d (los tres últimos siguen bloqueados por B-04). El flow corregido queda en el repo (`solutions/unpacked`) con el próximo `solution-release` → `solution-sync`.
 
+---
+
+## 11. Corrida 4 (buscador + galería, banner B-06 y flow de owner corregidos)
+
+### 11.1 Datos de la corrida
+
+| Ítem | Valor |
+|---|---|
+| Fecha | 2026-10-03 — corrida completa terminada 16:45 hora Managua (UTC−6; 22:45Z) + re-chequeo de la fase B 16:50 (22:50Z) |
+| App publicada | `sanic_appcmbackofficecanvas_d0162` · **appversion `2026-10-03T22:25:20Z`** (= `lastpublishtime`) |
+| **Versión que cargó el player** | **`2026-10-03T22:25:20Z` en las 10 aperturas** (A, B, C, D, E, E2, F, F2, G, X) y en la apertura del re-chequeo de B. Una sola versión, la última *Published* (≥ 22:25:20Z). Queda en `resultados.json` (`aperturas`) y en "Versión de la app probada" de `resumen.md` |
+| Flow "Cambio de Owner en Asignaciones" | Activado (`statecode 1`), modificado 22:28:11Z (la versión de §10.10) |
+| Cambio de la suite | `escenarios/comun.js` · `elegirCombo`: no pulsa la opción si el combo ya la muestra elegida (ver 11.5). Es la única corrección de test |
+| Usuarios | mapeo real y fijo. Único cambio temporal: R-06 (User1 + "Admin y Carga" en la fase E, quitado en la misma fase) |
+| Resultados crudos | `tests/backoffice-canvas/resultados/corrida-4/` y `…/corrida-4-retry-B/` (gitignoreadas) |
+| Reintentos | **Ninguno por infraestructura.** Solo se re-corrió la fase B completa (11 escenarios) tras corregir el test en 11.5; el resultado de F-02 y F-02d en la tabla usa ese re-chequeo y lo marca con ↻ |
+
+### 11.2 Veredicto
+
+**ACEPTABLE, CON UN DEFECTO NUEVO MENOR (B-20).** En la corrida completa pasaron **39 de 41** escenarios y, con el re-chequeo, **41 de 41**; los 2 ❌ (F-02 y F-02d) eran por B-20 y por el helper del test (11.5). Con el test corregido, la fase B completa se re-corrió en verde (11/11).
+
+| | C2 | C3 | **C4 (corrida completa)** | **C4 (con ↻)** |
+|---|:---:|:---:|:---:|:---:|
+| ✅ PASÓ | 17 | 28 | **39** | **41** |
+| ❌ FALLÓ | 20 | 9 | 2 | 0 |
+| ⛔ BLOQUEADO | 4 | 4 | **0** | **0** |
+
+Lo que cambió respecto de la corrida 3:
+
+- **B-04 y B-19 resueltos**: buscador + galería elige cuenta, localizador y usuario; el Solicitante **crea** una Especial por la UI y el Supervisor **elige** localizador. Los 4 ⛔ (F-02b, X-02, F-02d, F-02c) corren y pasan.
+- **B-06 resuelto**: los cuatro `E-01` pasan (cero banners, cero 403).
+- **B-10, B-16 y B-17 resueltos**: el flow mueve el owner en ~6 s y el Solicitante sigue viendo sus Especiales (compartido).
+- **Delegación limpia**: 49 combinaciones pantalla/rol, 0 errores de lectura, 0 N+1, **0 GET sin filtro a tablas grandes**.
+- **Bug nuevo B-20** (BAJA): el combo "Tipo de solicitud" se puede dejar vacío y la nota queda `" — motivo"`.
+
+### 11.3 Resultados por escenario
+
+Leyenda: ✅ PASÓ · ❌ FALLÓ · ⛔ BLOQUEADO · ↻ resultado del re-chequeo de la fase B · "C3" = estado en la corrida 3.
+Evidencia relativa a `resultados/corrida-4/` (↻ = `corrida-4-retry-B/`).
+
+| ID | Descripción | Usuario (rol) | C3 | C4 | Detalle |
+|---|---|---|:---:|:---:|---|
+| R-05 | Admin ve solo su nav (6) + sección Admin | User4 (Admin) | ✅ | ✅ | |
+| E-01a | Abrir sin banners ni 403 (Admin) | User4 | ❌ | ✅ | **B-06 RESUELTO**: sin banner, sin respuestas ≥ 400 |
+| D-02a | Inicio Admin: KPIs en la PRIMERA carga = API | User4 | ✅ ↻ | ✅ | A la primera: 0 y 16 = API, 4 consultas del OnVisible (la intermitencia de la corrida 3 no se reprodujo) |
+| D-02b | Inicio Admin (tibio) = API | User4 | ✅ | ✅ | |
+| D-02c | Monitoreo: cuentas, clientes, carga de hoy = API | User4 | ✅ | ✅ | 1,006 · 959 · 0 |
+| F-05 | Reconciliación sin carga de hoy: % y freno | User4 | ✅ | ✅ | card ⛔ visible |
+| D-02d | Cierres: contadores = API | User4 | ✅ | ✅ | 151 · 47 |
+| F-04c | Agentes: 0 escrituras al abrir + panel Vincular/Cambiar | User4 | ✅ | ✅ | **B-04/B-19 en Agentes**: botón de vínculo por fila abre el panel del agente; sin 2 caracteres la galería está oculta; "# Use" viaja con `startswith(fullname,…)` y muestra a # User 1/2/3; **Cancelar** cierra el panel; 0 escrituras. "Desvincular" ×2 visibles, **nunca pulsado**; ninguna fila de `galUsrAge` se tocó |
+| D-03 | Maestros: búsqueda delegada + B-13 | User4 | ✅ | ✅ | 14 caracteres = 1 consulta |
+| F-04b | Alta de cliente QA + anti-duplicado | User4 | ✅ | ✅ | |
+| R-03 | User2 (Solicitante real) abre y ve solo su nav | User2 | ✅ | ✅ | |
+| E-01b | Abrir sin banners ni 403 (Solicitante) | User2 | ❌ | ✅ | B-06 resuelto |
+| D-02e | Inicio Solicitante: frío = API + subtítulo propio | User2 | ✅ | ✅ | |
+| D-04 | Nueva solicitud: búsqueda de cuentas delegada | User2 | ✅ | ✅ | Sin texto la galería está oculta; `startswith(numerodecuenta,'QA-E2E-CTA-000')` en `$filter`; devuelve las 4 cuentas QA |
+| F-02a | La galería muestra número + cliente y deja elegir | User2 | ❌ | ✅ | **B-04 RESUELTO**: 4 filas con texto ("QA-E2E-CTA-0001 · QA-E2E CLIENTE UNO · C$ 1,500.00 · Mora 30 d"); la tarjeta elegida muestra número, cliente y saldo vencido; la galería se oculta al elegir |
+| F-02 | Crear Especial QA por la UI | User2 | ❌ | ❌ → ✅ ↻ | 1.ª: todo bien salvo `Notas = " — QA-E2E solicitud F-02"` (sin tipo): B-20 + helper (11.5). ↻: `Retiro urgente — QA-E2E solicitud F-02`, owner = Solicitado por = User2, pendiente, sin agente, aparece en Mis solicitudes |
+| F-02b | Anti-duplicado | User2 | ⛔ | ✅ | "Ya existe una Especial ACTIVA…", sigue 1 sola |
+| X-02 | Falla controlada de escritura (B-03) | User2 | ⛔ | ✅ | **B-03 RESUELTO**: sobre una Especial cerrada que el Solicitante no ve, el POST da 412 (alt key); la app muestra "No se pudo enviar la solicitud de la cuenta QA-E2E-CTA-0003: …", **no** dice "Solicitud enviada", el formulario queda intacto y Dataverse no cambia |
+| F-02d | Reactivar Especial cerrada PROPIA (B-11) | User2 | ⛔ | ❌ → ✅ ↻ | 1.ª: reactivó el MISMO registro (AS-2032, sin 412, limpia el ciclo anterior) pero con `Notas = " — …"` (B-20). ↻: `Retiro urgente — QA-E2E reactivación F-02d · 88` |
+| D-05 | Mínimo privilegio: sin Pagos/Carga ni 403 | User2 | ✅ | ✅ | |
+| R-04 | Supervisor ve solo su nav | User3 | ✅ | ✅ | |
+| E-01c | Abrir sin banners ni 403 (Supervisor) | User3 | ❌ | ✅ | B-06 resuelto |
+| D-02f | POR APROBAR frío y tibio = API | User3 | ✅ ↻ | ✅ | |
+| F-03 | Aprobar eligiendo localizador (buscador + galería) | User3 | ❌ | ✅ | **B-04 RESUELTO**: Aprobar deshabilitado sin localizador; buscar "Carlos" → 1 fila "Carlos Mendoza · user1@…" con `startswith(sanic_cm_ag_nombre,'Carlos')` + activo + con usuario (= API); aprobada (3), agente asignado, resolutor = User3; Notify "Aprobada — asignada a Carlos Mendoza" |
+| F-03c | Comp-14: owner → usuario del agente | API | ❌ | ✅ | **B-10 RESUELTO**: owner User2 → **User1 en ~6 s** (el flow tardó 5.3 s; no hizo falta esperar los 3 min) |
+| F-03b | Rechazar con motivo | User3 | ✅ | ✅ | |
+| R-02 | User1 (Backoffice real) abre y ve solo su nav | User1 | ✅ | ✅ | |
+| E-01d | Abrir sin banners ni 403 (Backoffice) | User1 | ❌ | ✅ | B-06 resuelto |
+| D-02g | Inicio BO: frío = API | User1 | ✅ | ✅ | |
+| D-02h | Estación: chip "Todos" y encabezado = API | User1 | ✅ | ✅ | |
+| F-01 | Transcripción con el rol Backoffice SOLO | User1 | ✅ | ✅ | |
+| F-01b | Transcritas hoy = API | User1 | ✅ | ✅ | |
+| R-06a | Multi-rol User1 (BO + Admin y Carga) | User1 | ✅ | ✅ | |
+| R-06b | Quitado de Admin y Carga → solo Backoffice | User1 | ✅ | ✅ | |
+| F-04 | Admin cierra la Especial QA (UI) | User4 | ✅ | ✅ | |
+| D-07 | Carga de HOY (1 fila QA) = API | User4 | ✅ | ✅ | |
+| F-05b | Reconciliación con carga de hoy + B-12 | User4 | ✅ | ✅ | 801 filas en 1 página, sin `nextLink`; botón "Cerrar 801…" solo **leído**, casilla y botón deshabilitados |
+| F-02e | Tras aprobar y cerrar: el Solicitante sigue viendo SUS Especiales | User2 | ✅ (condicionado) | ✅ | **Ya sin condición (B-17 RESUELTO)**: AS-2033 con owner = **User1** (no User2) y el Solicitante igual la ve: KPIs 1 · 1 · 1 = API y Mis solicitudes lista las 3 de la API |
+| F-02c | Re-solicitar por UI tras el ciclo real (B-11) | User2 | ⛔ | ✅ | La app reactiva el MISMO registro (AS-2033, `true · 2`) aunque el owner ya es User1: el compartido le deja leerlo y escribirlo |
+| X-01 | Responsive a 800×900 | User4 | ✅ | ✅ | |
+| D-01 | Delegación + errores de lectura en toda la red | todos | ❌ | ✅ | **B-19 RESUELTO** (11.6). Única escritura rechazada: el 412 esperado de X-02 |
+
+**Totales:** 41 escenarios → ✅ **39** · ❌ **2** · ⛔ **0** en la corrida completa; ✅ **41** con el re-chequeo de F-02 y F-02d (corrida 3: 28 / 9 / 4).
+
+**Comparación con la corrida 3:** los 9 ❌ de la corrida 3 (E-01a..d, F-02a, F-02, F-03, F-03c, D-01) pasan (F-02 con el re-chequeo) y los 4 ⛔ (F-02b, X-02, F-02d, F-02c) corren y pasan (F-02d con el re-chequeo): 13 casos mejoran. Ninguno pasó de ✅ a ❌.
+
+### 11.4 Estado de los bugs (B-01 … B-19)
+
+| # | Estado | Evidencia (corrida 4) |
+|---|:---:|---|
+| B-01 KPIs vacíos en la 1.ª carga | **NO REPRODUCIDO** | D-02a/e/f/g: frío = API en los 4 roles a la primera (Admin con 4 consultas del OnVisible). La intermitencia de Admin vista en la corrida 3 no apareció en esta corrida; con 1 sola muestra no se puede darlo por cerrado |
+| B-02 BackOffice sin Append | **RESUELTO** | F-01 |
+| B-03 Escritura fallida dada por hecha | **RESUELTO** | X-02: error mostrado, nada dado por hecho |
+| B-04 Combos con opciones vacías | **RESUELTO** | Buscador + galería en Nueva solicitud, Aprobaciones y Agentes: F-02a, F-03, F-04c, D-04 |
+| B-05 403 por falta de privilegios | **RESUELTO** | D-05 y E-01b/c/d |
+| B-06 Banner "expected a table" | **RESUELTO** | E-01a..d ✅ (0 errores visibles) |
+| B-07 Carga de hoy = 0 | **RESUELTO** | D-07 |
+| B-08 Abrir Agentes escribe | **RESUELTO** | F-04c: 0 escrituras |
+| B-09 Responsive / ScaleToFit | **RESUELTO** | X-01 |
+| B-10 Flow de owner | **RESUELTO** | F-03c: owner → User1 en ~6 s |
+| B-11 412 al re-pedir sobre cerrada | **RESUELTO** | F-02d (AS-2032) y F-02c (AS-2033): mismo registro reactivado, sin 412 |
+| B-12 Cota de 500 filas | **RESUELTO** | F-05b: 801 en 1 página |
+| B-13 Consulta por tecla | **RESUELTO** | D-03: 1 consulta |
+| B-14 Licencias User1/User2 | **RESUELTO** | R-02, R-03 |
+| B-15 "Versión publicada sin fixes" | **RETRACTADO** | (§10.7) |
+| B-16 Disparador del flow falla sin agente | **RESUELTO** | `flowruns` desde las 22:28Z (modificación del flow): **1 run, Succeeded** (la aprobación de F-03). Las altas y reactivaciones sin agente (F-02, F-02d, F-02c, siembra) **no dispararon** el flow: 0 runs Failed |
+| B-17 Rol Solicitante lee a nivel usuario | **RESUELTO** | F-02e y F-02c con el owner movido a User1 |
+| B-18 Cola y KPI POR APROBAR con cerradas | **RESUELTO** | D-02f: POR APROBAR 4 = 4 de la API, frío y tibio; la cola de Aprobaciones trae `Estado = true` y `estadoaprobacion = 2` (4 filas, las pendientes activas) |
+| B-19 Nueva solicitud descarga la tabla de cuentas | **RESUELTO** | 11.6 |
+
+### 11.5 Corrección del test (cambio mínimo) y causa de B-20
+
+**Síntoma.** En la corrida completa F-02 y F-02d fallaron en un solo check: `Notas = " — <motivo>"` en vez de `"Retiro urgente — <motivo>"`. Todo lo demás pasó (creación, owner, estado, reactivación del mismo registro, ciclo limpio).
+
+**Causa (diagnosticada con la app, sin escribir datos).** `cmbTipoNva` (`Src/scrNuevaSolicitud.pa.yaml` L365–383, `Classic/ComboBox`, `SelectMultiple: false`) nace con `DefaultSelectedItems: =["Retiro urgente"]`. Abierta como User2: el combo muestra "Retiro urgente"; **volver a pulsar esa misma opción lo DESELECCIONA** y el combo queda vacío (`innerText ""`). El helper `elegirCombo` abría el combo y pulsaba "Retiro urgente", o sea, la deseleccionaba. Como `Notas` se arma con `cmbTipoNva.Selected.Value & " — " & Trim(txtMotivoNva.Text)` y ni el hint ni `btnEnviarNva` exigen tipo, la solicitud se envía igual con la nota sin tipo. Por eso es **a la vez** un defecto del test y un defecto real de la app (B-20).
+
+**Corrección del test (`tests/backoffice-canvas/escenarios/comun.js` · `elegirCombo`).** Si el combo ya muestra la opción pedida (y no se pidió búsqueda), no se pulsa: devuelve `ok` con `yaElegida: true`. Afecta a `cmbTipoNva` (B-solicitante.js L22 y L110) y no cambia el resto de usos (`cmbMotivoCie` nace vacío). Se corrió de nuevo la fase B completa: **11/11 ✅** (F-02, F-02d incluidos; la versión probada sigue siendo `2026-10-03T22:25:20Z`).
+
+**Helper `elegirEnBuscador` / `buscarEnBuscador`**: no hizo falta tocarlo. Funcionó a la primera con los buscadores de cuenta (Nueva solicitud) y de agente (Aprobaciones); el panel de Agentes se recorrió con `buscarEnBuscador` (buscar y cancelar).
+
+### 11.6 Delegación (corrida 4)
+
+**Limpia.** 49 combinaciones pantalla/rol (corrida 3: 43):
+
+- **0 errores de lectura**, **0 N+1**, **0 alertas de GET sin filtro a tabla grande** (en la corrida 3 había 1: B-19).
+- **Nueva solicitud ya no baja la tabla de cuentas (B-19 confirmado):** al abrir la pantalla hay **1 GET** a `sanic_cm_tbl_cuentas` con `$filter=(startswith(sanic_cm_ct_numerodecuenta,'§§'))or(startswith(sanic_cm_ct_nombrecliente,'§§'))` → el centinela, **0 filas** (antes: 1,006 filas sin filtro). Al buscar `QA-E2E-CTA-000` la consulta lleva `startswith(...)` en `$filter` y devuelve las 4 cuentas QA. Lo mismo en Aprobaciones: al abrir `startswith(sanic_cm_ag_nombre,'§§')` (0 filas) y al buscar "Carlos" `startswith(sanic_cm_ag_nombre,'Carlos')` + activo + con usuario (1 fila); en Agentes: `systemusers?$filter=startswith(fullname,'§§')…` (0 filas) y `'# Use'` (10 filas) al buscar.
+- Conteos y sumas siguen como `$apply=…/aggregate(...)`; listas con `$filter` y `$expand`; Maestros con `startswith` (1 consulta por búsqueda).
+- Escrituras observadas, todas sobre registros QA-E2E: alta de cliente y teléfono, creación de Especial (POST), 1 POST rechazado con 412 (X-02, esperado), reactivación (PATCH ×2), aprobación y rechazo (PATCH), transcripciones (PATCH ×2), cierre (PATCH). Abrir Agentes y abrir/buscar/cancelar el panel de vínculo: 0 escrituras.
+
+Requests por pantalla (GET): Inicio frío 6–11 · Monitoreo 3–6 · Reconciliación 3 · Cierres 4 · Agentes 4 + 1 (panel) · Maestros 2 + 1 + 1 · Mis solicitudes 2 · **Nueva solicitud 1 (centinela, 0 filas) + 1 por búsqueda** · Aprobaciones 2 (cola + centinela) · Transcripción 5–12 · Transcritas 3.
+
+### 11.7 Bugs nuevos
+
+| # | Sev. | Dónde | Qué pasa | Evidencia / causa / fix candidato |
+|---|:---:|---|---|---|
+| B-20 | 🟢 BAJA | `Src/scrNuevaSolicitud.pa.yaml` · `cmbTipoNva` (L365–383), `btnEnviarNva.OnSelect` (L598 y L618), `lblHintNva` / `btnEnviarNva.DisplayMode` (L524–554) | El combo "Tipo de solicitud" admite quedar **vacío** (un segundo clic sobre la opción elegida la deselecciona) y nada lo valida: la solicitud se envía con `Notas = " — <motivo>"`, sin tipo. El Supervisor la ve en la cola de Aprobaciones con la nota " — QA-E2E reactivación F-02d" | F-02 y F-02d (1.ª pasada): `obtenido " — QA-E2E solicitud F-02"` / `" — QA-E2E reactivación F-02d · 88"`; el resto de los checks en verde. Diagnóstico: el combo muestra "Retiro urgente", tras pulsarla queda `""`. **Fix candidato** (no aplicado; la app no se toca en esta corrida): (a) exigir tipo en `lblHintNva` y `btnEnviarNva.DisplayMode` (`!IsBlank(cmbTipoNva.Selected.Value)`), o (b) `Coalesce(cmbTipoNva.Selected.Value, "Retiro urgente")` en los 2 `Notas`, o (c) cambiar el control a un Dropdown (no admite vaciar) |
+
+Observación menor (no es bug): al buscar, la primera fila de `galCtaNva` / `galAgeAprb` / `galUsrAge` figura como "Selected" por el `Default` de la galería (se ve en el texto accesible "Item 1. Selected."). No selecciona nada hasta que se pulsa una fila: F-02a verifica que la tarjeta de cuenta aparece solo tras elegir.
+
+### 11.8 Limpieza (verificada)
+
+| Verificación | Resultado |
+|---|---|
+| Restos QA-E2E en las 9 tablas (limpieza previa y final) | **0** en las 9 tablas, en la corrida completa y en el re-chequeo de B; 0 errores de borrado |
+| Membresías de teams | Backoffice = [User1] · Solicitantes = [User2] · Supervisores = [User3] · Admin y Carga = [User10, User4]: **exactamente el mapeo** (`mapeoFinal.comoMapeo = true`, `restauracion.iguales = true`, 0 cambios pendientes) en ambas corridas. User1 se agregó y se quitó de "Admin y Carga" dentro de la fase E |
+| Agentes reales | usuario, email y activo **idénticos** a la foto inicial (`agentes.identicos = true`, 0 restaurados) en ambas corridas. Nunca se pulsó Vincular ni Desvincular; en Agentes solo se abrió el panel, se buscó y se **canceló**; ninguna fila de `galUsrAge` se tocó |
+| Cierre en lote | **Nunca se pulsó**: solo se leyó el texto del botón ("Cerrar 801 asignaciones en lote") y su estado deshabilitado |
+| Fila QA de carga de hoy | Creada solo en la fase F y borrada al terminar |
+| Flow | Solo lectura: se consultaron `workflows` y `flowruns`. No se modificó |
+| App / flow / roles / Smelter / sesión admin / guías 00–13 | No se usaron ni se modificaron. Sin despliegues. Sin commit ni push |
+
+### 11.9 Próximo paso
+
+1. **B-20**: decidir el fix (11.7) y desplegarlo; hoy es BAJA porque el motivo sí se guarda y el tipo por defecto es el correcto salvo que el usuario lo vacíe a propósito.
+2. **B-01** en Admin: dejarlo en observación (no se reprodujo). Si reaparece, capturar con el Monitor de Studio.
+3. Llevar el flow corregido a `solutions/unpacked` con el próximo `solution-release` → `solution-sync` (§10.10).
+4. Con los 41 escenarios en verde y delegación limpia, la suite queda como **regresión previa a cada despliegue**: `BO_RESULTADOS_DIR=$PWD/resultados/corrida-N node run.js` y revisar "Versión de la app probada" contra el último *Published*.
+
+
+### 11.x Corrección de B-20 (después de la corrida 4)
+
+`scrNuevaSolicitud`: el tipo de solicitud pasa a ser **obligatorio**. El aviso agrega "tipo" a "Falta: …" cuando `cmbTipoNva.Selected.Value` está vacío, y `btnEnviarNva.DisplayMode` exige `!IsBlank(cmbTipoNva.Selected.Value)`. Así `Notas` nunca se graba como `" — motivo"`. Se mantiene el combo estático porque funciona; lo que se cerró es el hueco de validación.

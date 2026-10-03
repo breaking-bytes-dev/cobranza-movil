@@ -54,6 +54,10 @@ async function esperarNotif(app, re, ms = 12000) {
 // ComboBox clásico: abre, (opcional) escribe la búsqueda, elige la opción por texto.
 async function elegirCombo(app, nombre, { buscar, opcion }) {
   const c = await pl.visible(app, nombre);
+  // Corrida 4: un ComboBox clásico de selección única DESELECCIONA la opción ya elegida si se vuelve a
+  // pulsar (cmbTipoNva nace con "Retiro urgente" por defecto → quedaba vacío, B-20). Si ya está
+  // elegida, no se pulsa.
+  if (!buscar && ((await c.innerText().catch(() => '')) || '').trim() === opcion) return { ok: true, textos: [opcion], iniciales: [opcion], sinResultados: false, yaElegida: true };
   await c.locator('[role="button"]').first().click();
   await pl.esperar(app, 1200);
   const opts = app.frame.locator('[role="option"]:visible');

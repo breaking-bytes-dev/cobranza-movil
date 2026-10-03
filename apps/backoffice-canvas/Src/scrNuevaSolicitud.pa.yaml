@@ -527,6 +527,8 @@ Screens:
                             Filter(
                                 Table(
                                     {t: If(IsBlank(varCtaNva), "cuenta")},
+                                    // B-20: el combo estático permite deseleccionar la opción → exigir el tipo.
+                                    {t: If(IsBlank(cmbTipoNva.Selected.Value), "tipo")},
                                     {t: If(!(Value(txtRetiroNioNva.Text) > 0 || Value(txtRetiroUsdNva.Text) > 0), "monto")},
                                     {t: If(IsBlank(Trim(txtMotivoNva.Text)), "motivo")}
                                 ),
@@ -549,6 +551,7 @@ Screens:
                   DisabledFill: =ColorFade(gblC.teal, 60%)
                   DisplayMode: |-
                     =If(!IsBlank(varCtaNva)
+                        && !IsBlank(cmbTipoNva.Selected.Value)  // B-20
                         && (Value(txtRetiroNioNva.Text) > 0 || Value(txtRetiroUsdNva.Text) > 0)
                         && !IsBlank(Trim(txtMotivoNva.Text)),
                         DisplayMode.Edit, DisplayMode.Disabled)
