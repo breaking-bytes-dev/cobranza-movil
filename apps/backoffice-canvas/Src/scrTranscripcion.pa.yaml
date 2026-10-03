@@ -1044,71 +1044,76 @@ Screens:
                                     CountRows(Filter(colVistaTrx, 'Fecha de captura' < varActualTrx.'Fecha de captura')) + 1);
                                 Set(varNumTrx, varActualTrx.'[IN] Numero de Interaccion');
                                 // 2) patch (receta 7.8) — LA única llamada de escritura
-                                Patch('CM | TBL | Interaccions',
-                                    LookUp('CM | TBL | Interaccions',
-                                        '[IN] Numero de Interaccion' = varActualTrx.'[IN] Numero de Interaccion'),
-                                    {
-                                        '[IN] Estado grabacion': 'Choice | CM | Estado grabacion Interaccio'.Grabado,
-                                        '[IN] Codigo Grabacion': Upper(Trim(txtCodigoTrx.Text)),
-                                        '[IN] Fecha grabacion': Now(),          // ← quitar estas 2 líneas cuando el flujo
-                                        '[IN] Grabado por': gblUsuarioDV        //    de auditoría esté activo (00 §3.2)
-                                    });
-                                // 3) sacar de la cola local (00 §5: cero re-consulta)
-                                Remove(colPendTrx, LookUp(colPendTrx,
-                                    '[IN] Numero de Interaccion' = varNumTrx));
-                                // 4) refrescar la columna de localizadores
-                                // "Todos" = conteo EXACTO al datasource (CountIf delega); por localizador desde la cola cargada (cota 2000)
-                                ClearCollect(colLocsTrx, Table({locTrx: "Todos", nTrx: CountIf('CM | TBL | Interaccions', '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Pendiente)}));
-                                Collect(colLocsTrx,
-                                    RenameColumns(
-                                        ShowColumns(
-                                            Sort(
-                                                AddColumns(
-                                                    GroupBy(AddColumns(colPendTrx, agenteTrx, '[IN] NombreAgente'),
-                                                        agenteTrx, grpTrx),
-                                                    nTrx, CountRows(grpTrx)
+                                // IfError (B-03): si el Patch falla se muestra el detalle y NO se saca de la cola,
+                                // no se avanza ni se limpia el input. Si sale bien, el flujo 3..8 de siempre.
+                                IfError(
+                                    Patch('CM | TBL | Interaccions',
+                                        LookUp('CM | TBL | Interaccions',
+                                            '[IN] Numero de Interaccion' = varActualTrx.'[IN] Numero de Interaccion'),
+                                        {
+                                            '[IN] Estado grabacion': 'Choice | CM | Estado grabacion Interaccio'.Grabado,
+                                            '[IN] Codigo Grabacion': Upper(Trim(txtCodigoTrx.Text)),
+                                            '[IN] Fecha grabacion': Now(),          // ← quitar estas 2 líneas cuando el flujo
+                                            '[IN] Grabado por': gblUsuarioDV        //    de auditoría esté activo (00 §3.2)
+                                        }),
+                                    Notify("No se pudo grabar " & varNumTrx & ": " & FirstError.Message, NotificationType.Error),
+                                    // 3) sacar de la cola local (00 §5: cero re-consulta)
+                                    Remove(colPendTrx, LookUp(colPendTrx,
+                                        '[IN] Numero de Interaccion' = varNumTrx));
+                                    // 4) refrescar la columna de localizadores
+                                    // "Todos" = conteo EXACTO al datasource (CountIf delega); por localizador desde la cola cargada (cota 2000)
+                                    ClearCollect(colLocsTrx, Table({locTrx: "Todos", nTrx: CountIf('CM | TBL | Interaccions', '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Pendiente)}));
+                                    Collect(colLocsTrx,
+                                        RenameColumns(
+                                            ShowColumns(
+                                                Sort(
+                                                    AddColumns(
+                                                        GroupBy(AddColumns(colPendTrx, agenteTrx, '[IN] NombreAgente'),
+                                                            agenteTrx, grpTrx),
+                                                        nTrx, CountRows(grpTrx)
+                                                    ),
+                                                    nTrx, SortOrder.Descending
                                                 ),
-                                                nTrx, SortOrder.Descending
+                                                agenteTrx, nTrx
                                             ),
-                                            agenteTrx, nTrx
-                                        ),
-                                        agenteTrx, locTrx
-                                    )
-                                );
-                                // 5) reselección: siguiente de la MISMA cola filtrada en la MISMA posición
-                                //    (la anterior si era la última; Blank si quedó vacía)
-                                ClearCollect(colVistaTrx,
-                                    Sort(
-                                        Filter(colPendTrx, varLocSelTrx = "Todos" || '[IN] NombreAgente' = varLocSelTrx),
-                                        'Fecha de captura', SortOrder.Ascending));
-                                Set(varActualTrx,
-                                    If(CountRows(colVistaTrx) = 0, Blank(),
-                                        Index(colVistaTrx, Min(varPosTrx, CountRows(colVistaTrx)))));
-                                If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info',
-                                    Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
-                                        '[AD] Interaccion'.'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'));
-                                    ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
-                                    ClearCollect(colDirAntesTrx, Filter('CM | TBL | Direccions', '[DR] CIF' = varActualTrx.cifTrx));
-                                    ClearCollect(colCambiosTrx, Filter(Table(
-                                        {campoTrx: "TELÉFONO CASA",     antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Casa").'[TL] Numero',    nuevoTrx: varADTrx.'[AD] Telefono Casa'},
-                                        {campoTrx: "TELÉFONO CELULAR",  antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Celular").'[TL] Numero', nuevoTrx: varADTrx.'[AD] Telefono Celular'},
-                                        {campoTrx: "TELÉFONO TRABAJO",  antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Trabajo").'[TL] Numero', nuevoTrx: varADTrx.'[AD] Telefono trabajo'},
-                                        {campoTrx: "DIRECCIÓN CASA",    antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "Casa").'[DR] Direccion', nuevoTrx: varADTrx.'[AD] Direccion casa'},
-                                        {campoTrx: "DIRECCIÓN EC",      antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "EC").'[DR] Direccion',   nuevoTrx: varADTrx.'[AD] Direccion EC'},
-                                        {campoTrx: "DIRECCIÓN TRABAJO", antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "Trabajo").'[DR] Direccion', nuevoTrx: varADTrx.'[AD] Direccion trabajo'},
-                                        {campoTrx: "CORREO ELECTRÓNICO", antesTrx: Blank(), nuevoTrx: varADTrx.'[AD] Correo electronico'}
-                                    ), !IsBlank(nuevoTrx))),
-                                    Set(varADTrx, Blank()); Clear(colCambiosTrx)
-                                );
-                                // 6) limpiar el input
-                                Reset(txtCodigoTrx);
-                                // 7) confirmar ANUNCIANDO el siguiente (la reselección del paso 5 ya corrió — R1-06)
-                                Notify("✓ " & varNumTrx & " grabada" &
-                                        If(IsBlank(varActualTrx), " — ¡cola vacía!",
-                                            " — siguiente: " & varActualTrx.clienteTrx),
-                                    NotificationType.Success, 2500);
-                                // 8) devolver el foco al input — la fluidez de la estación (solo desktop; R1-04)
-                                If(!nfMovil, SetFocus(txtCodigoTrx))
+                                            agenteTrx, locTrx
+                                        )
+                                    );
+                                    // 5) reselección: siguiente de la MISMA cola filtrada en la MISMA posición
+                                    //    (la anterior si era la última; Blank si quedó vacía)
+                                    ClearCollect(colVistaTrx,
+                                        Sort(
+                                            Filter(colPendTrx, varLocSelTrx = "Todos" || '[IN] NombreAgente' = varLocSelTrx),
+                                            'Fecha de captura', SortOrder.Ascending));
+                                    Set(varActualTrx,
+                                        If(CountRows(colVistaTrx) = 0, Blank(),
+                                            Index(colVistaTrx, Min(varPosTrx, CountRows(colVistaTrx)))));
+                                    If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info',
+                                        Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
+                                            '[AD] Interaccion'.'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'));
+                                        ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
+                                        ClearCollect(colDirAntesTrx, Filter('CM | TBL | Direccions', '[DR] CIF' = varActualTrx.cifTrx));
+                                        ClearCollect(colCambiosTrx, Filter(Table(
+                                            {campoTrx: "TELÉFONO CASA",     antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Casa").'[TL] Numero',    nuevoTrx: varADTrx.'[AD] Telefono Casa'},
+                                            {campoTrx: "TELÉFONO CELULAR",  antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Celular").'[TL] Numero', nuevoTrx: varADTrx.'[AD] Telefono Celular'},
+                                            {campoTrx: "TELÉFONO TRABAJO",  antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Trabajo").'[TL] Numero', nuevoTrx: varADTrx.'[AD] Telefono trabajo'},
+                                            {campoTrx: "DIRECCIÓN CASA",    antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "Casa").'[DR] Direccion', nuevoTrx: varADTrx.'[AD] Direccion casa'},
+                                            {campoTrx: "DIRECCIÓN EC",      antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "EC").'[DR] Direccion',   nuevoTrx: varADTrx.'[AD] Direccion EC'},
+                                            {campoTrx: "DIRECCIÓN TRABAJO", antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "Trabajo").'[DR] Direccion', nuevoTrx: varADTrx.'[AD] Direccion trabajo'},
+                                            {campoTrx: "CORREO ELECTRÓNICO", antesTrx: Blank(), nuevoTrx: varADTrx.'[AD] Correo electronico'}
+                                        ), !IsBlank(nuevoTrx))),
+                                        Set(varADTrx, Blank()); Clear(colCambiosTrx)
+                                    );
+                                    // 6) limpiar el input
+                                    Reset(txtCodigoTrx);
+                                    // 7) confirmar ANUNCIANDO el siguiente (la reselección del paso 5 ya corrió — R1-06)
+                                    Notify("✓ " & varNumTrx & " grabada" &
+                                            If(IsBlank(varActualTrx), " — ¡cola vacía!",
+                                                " — siguiente: " & varActualTrx.clienteTrx),
+                                        NotificationType.Success, 2500);
+                                    // 8) devolver el foco al input — la fluidez de la estación (solo desktop; R1-04)
+                                    If(!nfMovil, SetFocus(txtCodigoTrx))
+                                )
                               Size: =9
                               Text: ="✓ y siguiente"
                               Width: =120

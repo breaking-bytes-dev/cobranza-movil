@@ -376,53 +376,58 @@ Screens:
                           // Sin LookUp por fila: colDesapRec ya trae la PK desde el Filter del OnVisible.
                           // Si algún día el lote legítimo fuera de CIENTOS, esto se muda a un flow/acción
                           // server-side que cierre en una transacción.
-                          Patch('CM | TBL | Asignacions',
-                              ForAll(colDesapRec As D,
-                                  {
-                                      'CM | TBL | Asignacion': D.'CM | TBL | Asignacion',
-                                      '[AS] Estado': false,
-                                      '[AS] Motivo': "fuera de cartera",
-                                      'Fecha de cierre': Now()
-                                  }
-                              )
-                          );
-                          Notify("🧹 " & CountRows(colDesapRec) & " Diarias cerradas — motivo: fuera de cartera",
-                              NotificationType.Success, 2500);
-                          // Recarga — mismo bloque del OnVisible (corte del día recalculado)
-                          // Corte = 00:00 UTC del día de la última carga. 'Última carga' es UserLocal y el import la graba
-                          // a medianoche UTC; [CD] FechaCarga es DateOnly. Sin este ajuste, en UTC-6 todo parece "desaparecido".
-                          Set(varCorteRec, With({d0: DateTime(Year(nfUltimaCarga), Month(nfUltimaCarga), Day(nfUltimaCarga), 0, 0, 0)},
-                              DateAdd(d0, -TimeZoneOffset(d0), TimeUnit.Minutes)));
-                          // Lista acotada a 2000; el conteo es exacto (CountIf).
-                          Concurrent(
-                              ClearCollect(colDesapRec,
-                                  AddColumns(
-                                      Filter('CM | TBL | Asignacions',
+                          // IfError (B-03): si el Patch masivo falla, detalle y sin aviso de éxito ni recarga.
+                          IfError(
+                              Patch('CM | TBL | Asignacions',
+                                  ForAll(colDesapRec As D,
+                                      {
+                                          'CM | TBL | Asignacion': D.'CM | TBL | Asignacion',
+                                          '[AS] Estado': false,
+                                          '[AS] Motivo': "fuera de cartera",
+                                          'Fecha de cierre': Now()
+                                      }
+                                  )
+                              ),
+                              Notify("No se pudo cerrar el lote de " & CountRows(colDesapRec) & " Diarias: " & FirstError.Message,
+                                  NotificationType.Error),
+                              Notify("🧹 " & CountRows(colDesapRec) & " Diarias cerradas — motivo: fuera de cartera",
+                                  NotificationType.Success, 2500);
+                              // Recarga — mismo bloque del OnVisible (corte del día recalculado)
+                              // Corte = 00:00 UTC del día de la última carga. 'Última carga' es UserLocal y el import la graba
+                              // a medianoche UTC; [CD] FechaCarga es DateOnly. Sin este ajuste, en UTC-6 todo parece "desaparecido".
+                              Set(varCorteRec, With({d0: DateTime(Year(nfUltimaCarga), Month(nfUltimaCarga), Day(nfUltimaCarga), 0, 0, 0)},
+                                  DateAdd(d0, -TimeZoneOffset(d0), TimeUnit.Minutes)));
+                              // Lista acotada a 2000; el conteo es exacto (CountIf).
+                              Concurrent(
+                                  ClearCollect(colDesapRec,
+                                      AddColumns(
+                                          Filter('CM | TBL | Asignacions',
+                                              '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
+                                              && '[AS] Estado' = true
+                                              && 'Última carga' < varCorteRec
+                                          ),
+                                          clienteRec,
+                                          Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—"))
+                                      )
+                                  ),
+                                  Set(varNDesapRec,
+                                      CountIf('CM | TBL | Asignacions',
                                           '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
                                           && '[AS] Estado' = true
                                           && 'Última carga' < varCorteRec
-                                      ),
-                                      clienteRec,
-                                      Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—"))
+                                      )
+                                  ),
+                                  Set(varNDiariasRec,
+                                      CountIf('CM | TBL | Asignacions',
+                                          '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
+                                          && '[AS] Estado' = true
+                                      )
                                   )
-                              ),
-                              Set(varNDesapRec,
-                                  CountIf('CM | TBL | Asignacions',
-                                      '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
-                                      && '[AS] Estado' = true
-                                      && 'Última carga' < varCorteRec
-                                  )
-                              ),
-                              Set(varNDiariasRec,
-                                  CountIf('CM | TBL | Asignacions',
-                                      '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
-                                      && '[AS] Estado' = true
-                                  )
-                              )
-                          );
-                          Set(varPctRec, Round(100 * varNDesapRec / Max(1, varNDiariasRec), 0));
-                          Set(varRojoRec, varPctRec > 30);
-                          Reset(chkConfirmarRec)
+                              );
+                              Set(varPctRec, Round(100 * varNDesapRec / Max(1, varNDiariasRec), 0));
+                              Set(varRojoRec, varPctRec > 30);
+                              Reset(chkConfirmarRec)
+                          )
                         Size: =10
                         Text: |-
                           ="🧹 Cerrar " & CountRows(colDesapRec) & " asignaciones en lote"

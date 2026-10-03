@@ -576,7 +576,6 @@ Screens:
                 Properties:
                   AccessibleLabel: ="Motivo del cierre"
                   BorderColor: =gblC.borde
-                  DefaultSelectedItems: =Blank()
                   DisplayFields: =["Value"]
                   Fill: =gblC.card
                   FocusedBorderColor: =gblC.teal
@@ -664,22 +663,26 @@ Screens:
                   HoverFill: =ColorFade(gblC.redBg, 10%)
                   OnSelect: |-
                     =// Un solo Patch delegable (LookUp por '[AS] Numero', texto exacto — 00 §4.2)
-                    // más limpieza local: cero recargas
-                    Patch('CM | TBL | Asignacions',
-                        LookUp('CM | TBL | Asignacions', '[AS] Numero' = varSelCie.'[AS] Numero'),
-                        {
-                            '[AS] Estado': false,
-                            '[AS] Motivo': cmbMotivoCie.Selected.Value &
-                                If(!IsBlank(Trim(txtDetalleCie.Text)), " — " & Trim(txtDetalleCie.Text), ""),
-                            'Fecha de cierre': Now()
-                        }
-                    );
-                    Remove(colCierresCie,
-                        LookUp(colCierresCie, '[AS] Numero' = varSelCie.'[AS] Numero'));
-                    Set(varPanelCie, false);
-                    Set(varSelCie, Blank());
-                    Notify("🔒 Asignación cerrada — " & cmbMotivoCie.Selected.Value,
-                        NotificationType.Success, 2500)
+                    // más limpieza local: cero recargas. IfError (B-03): si falla, detalle y sin limpieza.
+                    IfError(
+                        Patch('CM | TBL | Asignacions',
+                            LookUp('CM | TBL | Asignacions', '[AS] Numero' = varSelCie.'[AS] Numero'),
+                            {
+                                '[AS] Estado': false,
+                                '[AS] Motivo': cmbMotivoCie.Selected.Value &
+                                    If(!IsBlank(Trim(txtDetalleCie.Text)), " — " & Trim(txtDetalleCie.Text), ""),
+                                'Fecha de cierre': Now()
+                            }
+                        ),
+                        Notify("No se pudo cerrar " & varSelCie.'[AS] Numero' & ": " & FirstError.Message,
+                            NotificationType.Error),
+                        Remove(colCierresCie,
+                            LookUp(colCierresCie, '[AS] Numero' = varSelCie.'[AS] Numero'));
+                        Set(varPanelCie, false);
+                        Set(varSelCie, Blank());
+                        Notify("🔒 Asignación cerrada — " & cmbMotivoCie.Selected.Value,
+                            NotificationType.Success, 2500)
+                    )
                   Size: =10
                   Text: |-
                     ="🔒 Cerrar asignación"

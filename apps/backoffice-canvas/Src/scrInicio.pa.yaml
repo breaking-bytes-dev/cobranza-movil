@@ -11,10 +11,11 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =// 1) Cobrado hoy por los localizadores (subtítulo del encabezado) — común a todos los roles.
+        =// 1) Cobrado hoy por los localizadores (subtítulo del encabezado) — SOLO BackOffice, Admin y
+        //    Supervisor: el Solicitante puro no tiene lectura de Pagos (mínimo privilegio → 403, B-05).
         //    Sum DIRECTO al datasource: delega en Dataverse para columnas numéricas (docs oficiales,
         //    hasta 50.000 filas) — sin colección intermedia truncable al Data row limit.
-        If(!IsBlank(gblRol),
+        If("BackOffice" in gblRol || "Admin" in gblRol || "Supervisor" in gblRol,
             Set(varCobNioIni,
                 Sum(Filter('CM | TBL | Pagos', 'Fecha del pago' >= Today() &&
                     '[PG] Moneda' = 'Choice | CM | Monedas en Pago'.NIO), '[PG] Monto'));
@@ -73,9 +74,12 @@ Screens:
         //    Fuera de cartera se compara por FECHA (corte 00:00 del día de la última carga), igual que
         //    Reconciliación — fecha+hora marcaba como desaparecidas las cargadas segundos antes del máximo.
         If("Admin" in gblRol,
+            // nfUltimaCarga lee Carga diarias (solo Admin): se materializa acá para que el KPI "CARGA DE HOY"
+            // no la evalúe para otros roles aunque su contenedor esté oculto (403, B-05).
+            Set(varUltCargaIni, nfUltimaCarga);
             // Corte = 00:00 UTC del día de la última carga. 'Última carga' es UserLocal y el import la graba
             // a medianoche UTC; [CD] FechaCarga es DateOnly. Sin este ajuste, en UTC-6 todo parece "desaparecido".
-            Set(varCorteIni, With({d0: DateTime(Year(nfUltimaCarga), Month(nfUltimaCarga), Day(nfUltimaCarga), 0, 0, 0)},
+            Set(varCorteIni, With({d0: DateTime(Year(varUltCargaIni), Month(varUltCargaIni), Day(varUltCargaIni), 0, 0, 0)},
                 DateAdd(d0, -TimeZoneOffset(d0), TimeUnit.Minutes)));
             Concurrent(
                 Set(varNDesapIni,
@@ -94,7 +98,9 @@ Screens:
           Properties:
             Height: =If(nfMovil, gblE.AltoBarra + 84, 84)
             Subtitulo: |-
-              ="Cobrado hoy por los localizadores: " & Moneda(varCobNioIni, varCobUsdIni)
+              =If("BackOffice" in gblRol || "Admin" in gblRol || "Supervisor" in gblRol,
+                  "Cobrado hoy por los localizadores: " & Moneda(varCobNioIni, varCobUsdIni),
+                  "Tus solicitudes Especiales")
             Titulo: ="Hola, " & First(Split(User().FullName, " ")).Value
             Visible: =!IsBlank(gblRol)
             Width: =Parent.Width - Self.X
@@ -243,7 +249,7 @@ Screens:
                         EsHero: =true
                         Etiqueta: ="CARGA DE HOY"
                         Height: =96
-                        Valor: =If(IsBlank(nfUltimaCarga) || nfUltimaCarga < Today(), "sin carga", Text(nfUltimaCarga, "dd/mm HH:mm"))
+                        Valor: =If(IsBlank(varUltCargaIni) || varUltCargaIni < Today(), "sin carga", Text(varUltCargaIni, "dd/mm HH:mm"))
                         Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 3*gblE.PadSm) / 4)
                   - cmpKpiDesapIni:
                       Control: CanvasComponent

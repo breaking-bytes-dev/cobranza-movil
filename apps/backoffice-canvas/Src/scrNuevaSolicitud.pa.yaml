@@ -65,29 +65,25 @@ Screens:
                 Properties:
                   AccessibleLabel: ="Cuenta del cliente"
                   BorderColor: =gblC.borde
-                  DisplayFields: =["sanic_cm_ct_numerodecuenta", "lineaNva"]
+                  DisplayFields: =["sanic_cm_ct_numerodecuenta", "sanic_cm_ct_nombrecliente"]
                   Fill: =gblC.card
                   FocusedBorderColor: =gblC.teal
                   FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =48
                   InputTextPlaceholder: ="— Buscar cuenta —"
+                  IsSearchable: =true
                   Items: |-
                     =// Búsqueda delegable de maestros (receta 01 §7.9): StartsWith SÍ delega en Dataverse,
-                    // así el combo busca contra ~7 000 cuentas sin warning azul. El AddColumns corre EN
-                    // MEMORIA sobre la página ya traída y NO rompe la delegación del Filter interno.
-                    // Variante equivalente si tu Studio expone SearchFields en vez del filtro manual sobre
-                    // SearchText: dejar Items = AddColumns('CM | TBL | Cuentas', lineaNva,
-                    // 'Nombre Cliente' & " · " & 'Tipo Producto') y configurar esas MISMAS 2 columnas
-                    // ('[CT] Numero de cuenta', 'Nombre Cliente') en SearchFields. Cualquiera de las dos cumple.
-                    // Si IntelliSense marca 'Tipo Producto' como choice, envolvelo en Text('Tipo Producto').
-                    AddColumns(
-                        Filter('CM | TBL | Cuentas',
-                            StartsWith('[CT] Numero de cuenta', cmbCuentaNva.SearchText)
-                            || StartsWith('Nombre Cliente', cmbCuentaNva.SearchText)
-                        ),
-                        lineaNva, 'Nombre Cliente' & " · " & 'Tipo Producto'
+                    // así el combo busca contra ~7 000 cuentas sin warning azul.
+                    // Filter DIRECTO sobre la tabla, SIN AddColumns (B-04, ronda 6, verificado en Studio):
+                    // con AddColumns o colección el combo mostraba opciones en blanco y "sin resultados".
+                    // 2.ª línea del combo = nombre del cliente (DisplayFields).
+                    Filter('CM | TBL | Cuentas',
+                        StartsWith('[CT] Numero de cuenta', cmbCuentaNva.SearchText)
+                        || StartsWith('Nombre Cliente', cmbCuentaNva.SearchText)
                     )
+                  SearchFields: =["sanic_cm_ct_numerodecuenta", "sanic_cm_ct_nombrecliente"]
                   SelectMultiple: =false
                   Size: =10
                   Width: =Parent.Width - 2*gblE.Pad
@@ -358,41 +354,79 @@ Screens:
                   Height: =gblE.AltoBoton
                   HoverFill: =ColorFade(gblC.teal, 10%)
                   OnSelect: |-
-                    =// Anti-duplicado: LookUp delegable (igualdades + && sobre texto/choice/booleano).
-                    // Da el error AMABLE antes del error duro de la alt key cuenta+tipo de Dataverse.
-                    // '[AS] Estado' = true acota a la Especial ACTIVA: una cerrada no bloquea pedir otra.
-                    If(
-                        !IsBlank(LookUp('CM | TBL | Asignacions',
-                            '[AS] NumeroCuenta' = cmbCuentaNva.Selected.'[CT] Numero de cuenta'
-                            && '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
-                            && '[AS] Estado' = true)),
+                    =// Anti-duplicado y re-solicitud (DEC-016: UNA fila por cuenta+tipo, alt key de Dataverse).
+                    // LookUps delegables (igualdades + && sobre texto/choice/booleano).
+                    // a) Especial ACTIVA → aviso amable (antes del error duro de la alt key).
+                    // b) Especial CERRADA → se REACTIVA ese mismo registro (crear otra daba 412 por la
+                    //    alt key, B-11); el historial queda en la auditoría.
+                    // c) No existe → se crea.
+                    // Sin '[AS] Agente' a propósito: la solicitud nace SIN localizador — lo asigna
+                    // el Supervisor al aprobar (scrAprobaciones). Ver NOTA BACKEND de la guía 06.
+                    // IfError (B-03): si el Patch falla se muestra el detalle y el formulario NO se limpia.
+                    With(
+                        {
+                            _cta: cmbCuentaNva.Selected.'[CT] Numero de cuenta',
+                            _cerrada: LookUp('CM | TBL | Asignacions',
+                                '[AS] NumeroCuenta' = cmbCuentaNva.Selected.'[CT] Numero de cuenta'
+                                && '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                                && '[AS] Estado' = false)
+                        },
+                        If(
+                            !IsBlank(LookUp('CM | TBL | Asignacions',
+                                '[AS] NumeroCuenta' = _cta
+                                && '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                                && '[AS] Estado' = true)),
 
-                        Notify("Ya existe una Especial ACTIVA para esa cuenta. Revisá Mis solicitudes o esperá a que el Admin la cierre.",
-                            NotificationType.Warning),
+                            Notify("Ya existe una Especial ACTIVA para esa cuenta. Revisá Mis solicitudes o esperá a que el Admin la cierre.",
+                                NotificationType.Warning),
 
-                        // Sin '[AS] Agente' a propósito: la solicitud nace SIN localizador — lo asigna
-                        // el Supervisor al aprobar (scrAprobaciones). Ver NOTA BACKEND de la guía 06.
-                        Patch('CM | TBL | Asignacions', Defaults('CM | TBL | Asignacions'),
-                            {
-                                '[AS] Cuenta': cmbCuentaNva.Selected,
-                                '[AS] NumeroCuenta': cmbCuentaNva.Selected.'[CT] Numero de cuenta',
-                                '[AS] Tipo': 'Choice | CM | Tipo asignacion'.Especial,
-                                '[AS] Estado': true,
-                                '[AS] Estado de aprobacion': 'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion',
-                                'Retiro NIO': Value(txtRetiroNioNva.Text),
-                                'Retiro USD': Value(txtRetiroUsdNva.Text),
-                                Notas: cmbTipoNva.Selected.Value & " — " & Trim(txtMotivoNva.Text),
-                                '[AS] Solicitado por': gblUsuarioDV,
-                                '[AS] Fecha de Asignacion': Now()
-                            }
-                        );
-                        Notify("✨ Solicitud enviada — quedó Pendiente de aprobación", NotificationType.Success, 2500);
-                        Reset(cmbCuentaNva);
-                        Reset(cmbTipoNva);
-                        Reset(txtRetiroNioNva);
-                        Reset(txtRetiroUsdNva);
-                        Reset(txtMotivoNva);
-                        Navigate(scrMisSolicitudes)
+                            IfError(
+                                If(
+                                    !IsBlank(_cerrada),
+                                    // b) Reactivar la Especial cerrada: datos nuevos y limpieza del ciclo anterior.
+                                    Patch('CM | TBL | Asignacions', _cerrada,
+                                        {
+                                            '[AS] Estado': true,
+                                            '[AS] Estado de aprobacion': 'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion',
+                                            'Retiro NIO': Value(txtRetiroNioNva.Text),
+                                            'Retiro USD': Value(txtRetiroUsdNva.Text),
+                                            Notas: cmbTipoNva.Selected.Value & " — " & Trim(txtMotivoNva.Text),
+                                            '[AS] Solicitado por': gblUsuarioDV,
+                                            '[AS] Fecha de Asignacion': Now(),
+                                            '[AS] Agente': Blank(),
+                                            '[AS] Resolutor': Blank(),
+                                            '[AS] Motivo': Blank(),
+                                            'Motivo de rechazo': Blank(),
+                                            'Fecha de cierre': Blank()
+                                        }
+                                    ),
+                                    // c) Crear
+                                    Patch('CM | TBL | Asignacions', Defaults('CM | TBL | Asignacions'),
+                                        {
+                                            '[AS] Cuenta': cmbCuentaNva.Selected,
+                                            '[AS] NumeroCuenta': _cta,
+                                            '[AS] Tipo': 'Choice | CM | Tipo asignacion'.Especial,
+                                            '[AS] Estado': true,
+                                            '[AS] Estado de aprobacion': 'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion',
+                                            'Retiro NIO': Value(txtRetiroNioNva.Text),
+                                            'Retiro USD': Value(txtRetiroUsdNva.Text),
+                                            Notas: cmbTipoNva.Selected.Value & " — " & Trim(txtMotivoNva.Text),
+                                            '[AS] Solicitado por': gblUsuarioDV,
+                                            '[AS] Fecha de Asignacion': Now()
+                                        }
+                                    )
+                                ),
+                                Notify("No se pudo enviar la solicitud de la cuenta " & _cta & ": " & FirstError.Message,
+                                    NotificationType.Error),
+                                Notify("✨ Solicitud enviada — quedó Pendiente de aprobación", NotificationType.Success, 2500);
+                                Reset(cmbCuentaNva);
+                                Reset(cmbTipoNva);
+                                Reset(txtRetiroNioNva);
+                                Reset(txtRetiroUsdNva);
+                                Reset(txtMotivoNva);
+                                Navigate(scrMisSolicitudes)
+                            )
+                        )
                     )
                   Size: =10
                   Text: ="✨ Enviar solicitud"

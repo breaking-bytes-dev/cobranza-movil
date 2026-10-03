@@ -14,8 +14,10 @@ Screens:
         =// Conteos EXACTOS directo al datasource: CountIf delega en Dataverse (exacto hasta 50.000).
         // NO colección + CountRows: la colección se trunca al Data row limit.
         // CountIf(tabla, true) en lugar de CountRows(tabla): CountRows sin filtro usa un valor cacheado.
+        // [CD] FechaCarga es DateOnly: comparar contra Today() viajaba como ge <hoy>T06:00Z y daba 0 el día
+        // de la carga (B-07). Lado derecho constante = 00:00 UTC de hoy → sigue delegable.
         Concurrent(
-            Set(varNCargaHoyMon, CountIf('CM | TBL | Carga diarias', '[CD] FechaCarga' >= Today())),
+            Set(varNCargaHoyMon, CountIf('CM | TBL | Carga diarias', '[CD] FechaCarga' >= DateAdd(Today(), -TimeZoneOffset(Today()), TimeUnit.Minutes))),
             Set(varNCtasMon, CountIf('CM | TBL | Cuentas', true)),
             Set(varNCliMon, CountIf('CM | TBL | Clientes', true))
         );
@@ -258,7 +260,7 @@ Screens:
                   HoverFill: =ColorFade(gblC.tealSuave, 10%)
                   OnSelect: |-
                     =Concurrent(
-                        Set(varNCargaHoyMon, CountIf('CM | TBL | Carga diarias', '[CD] FechaCarga' >= Today())),
+                        Set(varNCargaHoyMon, CountIf('CM | TBL | Carga diarias', '[CD] FechaCarga' >= DateAdd(Today(), -TimeZoneOffset(Today()), TimeUnit.Minutes))),
                         Set(varNCtasMon, CountIf('CM | TBL | Cuentas', true)),
                         Set(varNCliMon, CountIf('CM | TBL | Clientes', true))
                     );

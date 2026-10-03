@@ -37,6 +37,89 @@ App:
           Sort('CM | TBL | Carga diarias', '[CD] FechaCarga', SortOrder.Descending)
       ).'[CD] FechaCarga';
 
+      // Identidad (B-01, ronda 6): fórmulas con nombre y NO Set en OnStart — el OnVisible de
+      // scrInicio corría antes de que OnStart terminara y los KPIs salían vacíos la 1ª vez.
+      // Se evalúan a demanda y siempre están disponibles. Nombres gbl* conservados (referencias).
+      // gblRol derivado de la seguridad REAL (00 §3.1 — sin tabla extra).
+      // a) Roles DIRECTOS del usuario: "SR | CM | Admin" -> "Admin".
+      // b) Roles por TEAM: en este proyecto el rol se asigna por membresía al team
+      //    "CM · <perfil> · <ENV>". Canvas no deja navegar Team -> Security Roles dentro de un
+      //    ForAll ("not accessible in this context", verificado en Studio), así que el perfil
+      //    sale del segmento del medio del nombre del team (el sufijo DEV/PRD se ignora).
+      //    ⚠ Renombrar un team CM rompe este mapeo (mismo acople que el prefijo "SR | CM | ").
+      gblUsuarioDV = LookUp(
+          Users,
+          'Primary Email' = Lower(User().Email)
+      );
+
+      // Expresión pura (Concat/Split/Distinct, sin Collect/Set): válida en fórmula con nombre.
+      gblRol = With(
+          {
+              // a) roles directos "SR | CM | Admin" -> "Admin"
+              rolesDirectos: Concat(
+                  Filter(
+                      gblUsuarioDV.'Security Roles (systemuserroles_association)',
+                      StartsWith(
+                          Name,
+                          "SR | CM | "
+                      )
+                  ),
+                  Substitute(
+                      Name,
+                      "SR | CM | ",
+                      ""
+                  ),
+                  "|"
+              ),
+              // b) roles por team "CM · <perfil> · <ENV>" -> perfil (segmento del medio)
+              //    (mismo recorrido que el ForAll original: If por fila, sin Filter sobre la relación)
+              rolesTeam: Concat(
+                  gblUsuarioDV.'Teams (teammembership_association)',
+                  If(
+                      StartsWith(
+                          'Team Name',
+                          "CM · "
+                      ),
+                      Switch(
+                          Index(
+                              Split(
+                                  'Team Name',
+                                  " · "
+                              ),
+                              2
+                          ).Value,
+                          "Backoffice",
+                          "BackOffice",
+                          "Solicitantes",
+                          "Solicitante",
+                          "Supervisores",
+                          "Supervisor",
+                          "Admin y Carga",
+                          "Admin",
+                          ""
+                      )
+                  ),
+                  "|"
+              )
+          },
+          // Multi-rol => "BackOffice|Admin". El `in` de los guards/nav es case-insensitive.
+          // Sin ningún rol CM => gblRol vacío => estado "sin acceso" de scrInicio.
+          Concat(
+              Distinct(
+                  Filter(
+                      Split(
+                          rolesDirectos & "|" & rolesTeam,
+                          "|"
+                      ),
+                      !IsBlank(Value)
+                  ),
+                  Value
+              ),
+              Value,
+              "|"
+          )
+      );
+
       // Navegación por rol: catálogo estático que alimenta cmpNavLateral (galNavCmp.Items).
       // Fórmula con nombre y no colección: nunca muta (App Checker: "initialized but never updated").
       nfNav = Table(
@@ -176,92 +259,6 @@ App:
               AltoBoton: 44,
               AnchoMax: 1160
           }
-      );
-      // 3) Identidad: gblRol derivado de la seguridad REAL (00 §3.1 — sin tabla extra).
-      // a) Roles DIRECTOS del usuario: "SR | CM | Admin" -> "Admin".
-      // b) Roles por TEAM: en este proyecto el rol se asigna por membresía al team
-      //    "CM · <perfil> · <ENV>". Canvas no deja navegar Team -> Security Roles dentro de un
-      //    ForAll ("not accessible in this context", verificado en Studio), así que el perfil
-      //    sale del segmento del medio del nombre del team (el sufijo DEV/PRD se ignora).
-      //    ⚠ Renombrar un team CM rompe este mapeo (mismo acople que el prefijo "SR | CM | ").
-      // Conjuntos de UN usuario (puñados de filas): sin delegación en juego, corre una vez.
-      Set(
-          gblUsuarioDV,
-          LookUp(
-              Users,
-              'Primary Email' = Lower(User().Email)
-          )
-      );
-      // Sin colección intermedia: dos Concat (texto "|"-separado) → Split → Distinct.
-      // Ni Collect dentro de ForAll ni colección "inicializada y nunca actualizada" (App Checker).
-      Set(
-          gblRol,
-          With(
-              {
-                  // a) roles directos "SR | CM | Admin" -> "Admin"
-                  rolesDirectos: Concat(
-                      Filter(
-                          gblUsuarioDV.'Security Roles (systemuserroles_association)',
-                          StartsWith(
-                              Name,
-                              "SR | CM | "
-                          )
-                      ),
-                      Substitute(
-                          Name,
-                          "SR | CM | ",
-                          ""
-                      ),
-                      "|"
-                  ),
-                  // b) roles por team "CM · <perfil> · <ENV>" -> perfil (segmento del medio)
-                  //    (mismo recorrido que el ForAll original: If por fila, sin Filter sobre la relación)
-                  rolesTeam: Concat(
-                      gblUsuarioDV.'Teams (teammembership_association)',
-                      If(
-                          StartsWith(
-                              'Team Name',
-                              "CM · "
-                          ),
-                          Switch(
-                              Index(
-                                  Split(
-                                      'Team Name',
-                                      " · "
-                                  ),
-                                  2
-                              ).Value,
-                              "Backoffice",
-                              "BackOffice",
-                              "Solicitantes",
-                              "Solicitante",
-                              "Supervisores",
-                              "Supervisor",
-                              "Admin y Carga",
-                              "Admin",
-                              ""
-                          )
-                      ),
-                      "|"
-                  )
-              },
-              // Multi-rol => "BackOffice|Admin". El `in` de los guards/nav es case-insensitive.
-              // Sin ningún rol CM => gblRol vacío => estado "sin acceso" de scrInicio.
-              Concat(
-                  Distinct(
-                      Filter(
-                          Split(
-                              rolesDirectos & "|" & rolesTeam,
-                              "|"
-                          ),
-                          !IsBlank(Value)
-                      ),
-                      Value
-                  ),
-                  Value,
-                  "|"
-              )
-          )
       );
       // 4) La navegación por rol es la fórmula con nombre nfNav (App.Formulas).
       Set(

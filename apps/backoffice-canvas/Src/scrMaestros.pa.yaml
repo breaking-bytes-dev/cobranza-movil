@@ -45,6 +45,7 @@ Screens:
                   AccessibleLabel: ="Buscar cliente por CIF o nombre"
                   BorderColor: =gblC.borde
                   Default: =""
+                  DelayOutput: =true
                   Fill: =gblC.card
                   FocusedBorderColor: =gblC.teal
                   FocusedBorderThickness: =2
@@ -802,19 +803,24 @@ Screens:
                   HoverFill: =ColorFade(gblC.teal, 10%)
                   OnSelect: |-
                     =// LookUp delegable por texto exacto (00 §4.2).
-                    Patch('CM | TBL | Clientes',
-                        LookUp('CM | TBL | Clientes', '[CL] CIF' = varCliMae.'[CL] CIF'),
-                        {
-                            '[CL] Nombre': Trim(txtNombreMae.Text),
-                            '[CL] Departamento': Trim(txtDeptoMae.Text),
-                            '[CL] Distrito': Trim(txtDistritoMae.Text),
-                            '[CL] Trabajo': Trim(txtTrabajoMae.Text)
-                        }
-                    );
-                    // Refresca la referencia local para que el modo ver muestre lo recién guardado.
-                    Set(varCliMae, LookUp('CM | TBL | Clientes', '[CL] CIF' = varCliMae.'[CL] CIF'));
-                    Notify("✓ Cliente actualizado", NotificationType.Success, 2500);
-                    Set(varModoMae, "ver")
+                    // IfError (B-03): si el Patch falla, detalle y se queda en modo editar.
+                    IfError(
+                        Patch('CM | TBL | Clientes',
+                            LookUp('CM | TBL | Clientes', '[CL] CIF' = varCliMae.'[CL] CIF'),
+                            {
+                                '[CL] Nombre': Trim(txtNombreMae.Text),
+                                '[CL] Departamento': Trim(txtDeptoMae.Text),
+                                '[CL] Distrito': Trim(txtDistritoMae.Text),
+                                '[CL] Trabajo': Trim(txtTrabajoMae.Text)
+                            }
+                        ),
+                        Notify("No se pudo guardar el cliente " & varCliMae.'[CL] CIF' & ": " & FirstError.Message,
+                            NotificationType.Error),
+                        // Refresca la referencia local para que el modo ver muestre lo recién guardado.
+                        Set(varCliMae, LookUp('CM | TBL | Clientes', '[CL] CIF' = varCliMae.'[CL] CIF'));
+                        Notify("✓ Cliente actualizado", NotificationType.Success, 2500);
+                        Set(varModoMae, "ver")
+                    )
                   Size: =10
                   Text: ="Guardar cambios"
                   Visible: =varModoMae = "editar"
@@ -897,17 +903,22 @@ Screens:
                     =// '[TL] Tipo' es TEXTO libre en el esquema; los valores "Celular"/"Casa" calcan lo
                     // que escribe el import. El lookup '[TL] Cliente' se resuelve con el registro fresco
                     // del datasource (LookUp por CIF), no con la copia en memoria.
-                    Patch('CM | TBL | Telefonos', Defaults('CM | TBL | Telefonos'),
-                        {
-                            '[TL] Cliente': LookUp('CM | TBL | Clientes', '[CL] CIF' = varCliMae.'[CL] CIF'),
-                            '[TL] CIF': varCliMae.'[CL] CIF',
-                            '[TL] Numero': Trim(txtNuevoTelMae.Text),
-                            '[TL] Tipo': cmbTipoTelMae.Selected.Value
-                        }
-                    );
-                    ClearCollect(colTelMae, Filter('CM | TBL | Telefonos', '[TL] CIF' = varCliMae.'[CL] CIF'));
-                    Reset(txtNuevoTelMae); Reset(cmbTipoTelMae);
-                    Notify("✓ Teléfono agregado", NotificationType.Success, 2500)
+                    // IfError (B-03): si el Patch falla, detalle y el input conserva lo tipeado.
+                    IfError(
+                        Patch('CM | TBL | Telefonos', Defaults('CM | TBL | Telefonos'),
+                            {
+                                '[TL] Cliente': LookUp('CM | TBL | Clientes', '[CL] CIF' = varCliMae.'[CL] CIF'),
+                                '[TL] CIF': varCliMae.'[CL] CIF',
+                                '[TL] Numero': Trim(txtNuevoTelMae.Text),
+                                '[TL] Tipo': cmbTipoTelMae.Selected.Value
+                            }
+                        ),
+                        Notify("No se pudo agregar el teléfono " & Trim(txtNuevoTelMae.Text) & ": " & FirstError.Message,
+                            NotificationType.Error),
+                        ClearCollect(colTelMae, Filter('CM | TBL | Telefonos', '[TL] CIF' = varCliMae.'[CL] CIF'));
+                        Reset(txtNuevoTelMae); Reset(cmbTipoTelMae);
+                        Notify("✓ Teléfono agregado", NotificationType.Success, 2500)
+                    )
                   Size: =10
                   Text: ="＋"
                   Visible: =varModoMae = "editar"
@@ -988,17 +999,21 @@ Screens:
                   HoverFill: =ColorFade(gblC.tealSuave, 10%)
                   OnSelect: |-
                     =// '[DR] Tipo' TEXTO: "Casa" / "EC" / "Trabajo" (esquema verificado).
-                    Patch('CM | TBL | Direccions', Defaults('CM | TBL | Direccions'),
-                        {
-                            '[DR] Cliente': LookUp('CM | TBL | Clientes', '[CL] CIF' = varCliMae.'[CL] CIF'),
-                            '[DR] CIF': varCliMae.'[CL] CIF',
-                            '[DR] Direccion': Trim(txtNuevaDirMae.Text),
-                            '[DR] Tipo': cmbTipoDirMae.Selected.Value
-                        }
-                    );
-                    ClearCollect(colDirMae, Filter('CM | TBL | Direccions', '[DR] CIF' = varCliMae.'[CL] CIF'));
-                    Reset(txtNuevaDirMae); Reset(cmbTipoDirMae);
-                    Notify("✓ Dirección agregada", NotificationType.Success, 2500)
+                    // IfError (B-03): si el Patch falla, detalle y el input conserva lo tipeado.
+                    IfError(
+                        Patch('CM | TBL | Direccions', Defaults('CM | TBL | Direccions'),
+                            {
+                                '[DR] Cliente': LookUp('CM | TBL | Clientes', '[CL] CIF' = varCliMae.'[CL] CIF'),
+                                '[DR] CIF': varCliMae.'[CL] CIF',
+                                '[DR] Direccion': Trim(txtNuevaDirMae.Text),
+                                '[DR] Tipo': cmbTipoDirMae.Selected.Value
+                            }
+                        ),
+                        Notify("No se pudo agregar la dirección: " & FirstError.Message, NotificationType.Error),
+                        ClearCollect(colDirMae, Filter('CM | TBL | Direccions', '[DR] CIF' = varCliMae.'[CL] CIF'));
+                        Reset(txtNuevaDirMae); Reset(cmbTipoDirMae);
+                        Notify("✓ Dirección agregada", NotificationType.Success, 2500)
+                    )
                   Size: =10
                   Text: ="＋"
                   Visible: =varModoMae = "editar"
@@ -1407,39 +1422,56 @@ Screens:
                         Notify("Ya existe un cliente con CIF " & Trim(txtCifNvoMae.Text) &
                                " — buscalo y editalo, no lo dupliques.", NotificationType.Warning),
 
-                        // Crear el cliente y quedarse con el registro creado (para los lookups hijos).
-                        Set(varNuevoCliMae, Patch('CM | TBL | Clientes', Defaults('CM | TBL | Clientes'),
-                            {
-                                '[CL] CIF': Trim(txtCifNvoMae.Text),
-                                '[CL] Nombre': Trim(txtNombreNvoMae.Text),
-                                '[CL] Departamento': Trim(txtDeptoNvoMae.Text),
-                                '[CL] Distrito': Trim(txtDistritoNvoMae.Text),
-                                '[CL] Trabajo': Trim(txtTrabajoNvoMae.Text)
-                            }
-                        ));
-                        // Hijos opcionales: un Patch por cada tel/dir NO vacío, con lookup + CIF denormalizado.
-                        If(!IsBlank(Trim(txtTelCelNvoMae.Text)),
-                            Patch('CM | TBL | Telefonos', Defaults('CM | TBL | Telefonos'),
-                                {'[TL] Cliente': varNuevoCliMae, '[TL] CIF': varNuevoCliMae.'[CL] CIF',
-                                 '[TL] Numero': Trim(txtTelCelNvoMae.Text), '[TL] Tipo': "Celular"}));
-                        If(!IsBlank(Trim(txtTelCasNvoMae.Text)),
-                            Patch('CM | TBL | Telefonos', Defaults('CM | TBL | Telefonos'),
-                                {'[TL] Cliente': varNuevoCliMae, '[TL] CIF': varNuevoCliMae.'[CL] CIF',
-                                 '[TL] Numero': Trim(txtTelCasNvoMae.Text), '[TL] Tipo': "Casa"}));
-                        If(!IsBlank(Trim(txtDirCasaNvoMae.Text)),
-                            Patch('CM | TBL | Direccions', Defaults('CM | TBL | Direccions'),
-                                {'[DR] Cliente': varNuevoCliMae, '[DR] CIF': varNuevoCliMae.'[CL] CIF',
-                                 '[DR] Direccion': Trim(txtDirCasaNvoMae.Text), '[DR] Tipo': "Casa"}));
-                        If(!IsBlank(Trim(txtDirTrabNvoMae.Text)),
-                            Patch('CM | TBL | Direccions', Defaults('CM | TBL | Direccions'),
-                                {'[DR] Cliente': varNuevoCliMae, '[DR] CIF': varNuevoCliMae.'[CL] CIF',
-                                 '[DR] Direccion': Trim(txtDirTrabNvoMae.Text), '[DR] Tipo': "Trabajo"}));
-                        // Cerrar limpio.
-                        Notify("✓ Cliente " & varNuevoCliMae.'[CL] Nombre' & " creado", NotificationType.Success, 2500);
-                        Reset(txtCifNvoMae); Reset(txtNombreNvoMae); Reset(txtDeptoNvoMae); Reset(txtDistritoNvoMae);
-                        Reset(txtTrabajoNvoMae); Reset(txtTelCelNvoMae); Reset(txtTelCasNvoMae);
-                        Reset(txtDirCasaNvoMae); Reset(txtDirTrabNvoMae);
-                        Set(varPanelMae, false)
+                        // IfError (B-03): si el cliente no se crea, detalle y el formulario NO se limpia.
+                        IfError(
+                            Patch('CM | TBL | Clientes', Defaults('CM | TBL | Clientes'),
+                                {
+                                    '[CL] CIF': Trim(txtCifNvoMae.Text),
+                                    '[CL] Nombre': Trim(txtNombreNvoMae.Text),
+                                    '[CL] Departamento': Trim(txtDeptoNvoMae.Text),
+                                    '[CL] Distrito': Trim(txtDistritoNvoMae.Text),
+                                    '[CL] Trabajo': Trim(txtTrabajoNvoMae.Text)
+                                }
+                            ),
+                            Notify("No se pudo crear el cliente " & Trim(txtCifNvoMae.Text) & ": " & FirstError.Message,
+                                NotificationType.Error),
+                            // Registro creado (para los lookups hijos): LookUp delegable por CIF.
+                            Set(varNuevoCliMae, LookUp('CM | TBL | Clientes', '[CL] CIF' = Trim(txtCifNvoMae.Text)));
+                            // Hijos opcionales: un Patch por cada tel/dir NO vacío, con lookup + CIF denormalizado.
+                            // IfError por pares: se corta en el primer hijo que falle y avisa (el cliente YA existe).
+                            IfError(
+                                If(!IsBlank(Trim(txtTelCelNvoMae.Text)),
+                                    Patch('CM | TBL | Telefonos', Defaults('CM | TBL | Telefonos'),
+                                        {'[TL] Cliente': varNuevoCliMae, '[TL] CIF': varNuevoCliMae.'[CL] CIF',
+                                         '[TL] Numero': Trim(txtTelCelNvoMae.Text), '[TL] Tipo': "Celular"})),
+                                Notify("Cliente creado, pero no se pudo grabar el celular " & Trim(txtTelCelNvoMae.Text) & ": " & FirstError.Message,
+                                    NotificationType.Error),
+                                If(!IsBlank(Trim(txtTelCasNvoMae.Text)),
+                                    Patch('CM | TBL | Telefonos', Defaults('CM | TBL | Telefonos'),
+                                        {'[TL] Cliente': varNuevoCliMae, '[TL] CIF': varNuevoCliMae.'[CL] CIF',
+                                         '[TL] Numero': Trim(txtTelCasNvoMae.Text), '[TL] Tipo': "Casa"})),
+                                Notify("Cliente creado, pero no se pudo grabar el teléfono de casa " & Trim(txtTelCasNvoMae.Text) & ": " & FirstError.Message,
+                                    NotificationType.Error),
+                                If(!IsBlank(Trim(txtDirCasaNvoMae.Text)),
+                                    Patch('CM | TBL | Direccions', Defaults('CM | TBL | Direccions'),
+                                        {'[DR] Cliente': varNuevoCliMae, '[DR] CIF': varNuevoCliMae.'[CL] CIF',
+                                         '[DR] Direccion': Trim(txtDirCasaNvoMae.Text), '[DR] Tipo': "Casa"})),
+                                Notify("Cliente creado, pero no se pudo grabar la dirección de casa: " & FirstError.Message,
+                                    NotificationType.Error),
+                                If(!IsBlank(Trim(txtDirTrabNvoMae.Text)),
+                                    Patch('CM | TBL | Direccions', Defaults('CM | TBL | Direccions'),
+                                        {'[DR] Cliente': varNuevoCliMae, '[DR] CIF': varNuevoCliMae.'[CL] CIF',
+                                         '[DR] Direccion': Trim(txtDirTrabNvoMae.Text), '[DR] Tipo': "Trabajo"})),
+                                Notify("Cliente creado, pero no se pudo grabar la dirección de trabajo: " & FirstError.Message,
+                                    NotificationType.Error),
+                                Notify("✓ Cliente " & varNuevoCliMae.'[CL] Nombre' & " creado", NotificationType.Success, 2500)
+                            );
+                            // Cerrar limpio (el cliente existe; si falló un hijo, se agrega desde editar).
+                            Reset(txtCifNvoMae); Reset(txtNombreNvoMae); Reset(txtDeptoNvoMae); Reset(txtDistritoNvoMae);
+                            Reset(txtTrabajoNvoMae); Reset(txtTelCelNvoMae); Reset(txtTelCasNvoMae);
+                            Reset(txtDirCasaNvoMae); Reset(txtDirTrabNvoMae);
+                            Set(varPanelMae, false)
+                        )
                     )
                   Size: =10
                   Text: ="＋ Crear cliente"

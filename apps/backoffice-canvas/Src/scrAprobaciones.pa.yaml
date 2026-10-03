@@ -11,11 +11,8 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =// Catálogo de agentes
-        // Agentes ACTIVOS — filtro delegable. OJO: acá NO se filtra 'Email Usuario'
-        // (IsBlank sobre columna no delega); ese filtro lo hace el combo EN MEMORIA.
-        ClearCollect(colAgentesAprb,
-            Filter('CM | TBL | Agentes', '[AG] Activo' = true));
+        =// Catálogo de agentes: lo resuelve cmbAgenteAprb.Items DIRECTO contra la tabla (B-04, ronda 6:
+        // un combo con Items desde colección/AddColumns mostraba opciones en blanco).
         // La cola + datos de la cuenta horneados navegando el lookup '[AS] Cuenta' (lo resuelve el
         // servidor, sin catálogo de cuentas truncable al Data row limit).
         ClearCollect(colAprobAprb,
@@ -70,9 +67,7 @@ Screens:
                   Font: =Font.'Segoe UI'
                   Height: =36
                   OnSelect: |-
-                    =ClearCollect(colAgentesAprb,
-                        Filter('CM | TBL | Agentes', '[AG] Activo' = true));
-                    ClearCollect(colAprobAprb,
+                    =ClearCollect(colAprobAprb,
                         AddColumns(
                             Filter('CM | TBL | Asignacions',
                                 '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial &&
@@ -575,14 +570,16 @@ Screens:
                 Properties:
                   AccessibleLabel: ="Agente asignado"
                   BorderColor: =gblC.borde
-                  DefaultSelectedItems: =Blank()
                   DisplayFields: =["sanic_cm_ag_nombre"]
                   Fill: =gblC.card
                   FocusedBorderColor: =gblC.teal
                   FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
-                  Items: =Filter(colAgentesAprb, !IsBlank('Email Usuario'))
+                  Items: |-
+                    =// DIRECTO a la tabla Dataverse (B-04): con colección o AddColumns el combo mostraba
+                    // opciones en blanco. Agentes activos con usuario vinculado (<> Blank() delega).
+                    Filter('CM | TBL | Agentes', '[AG] Activo' = true && 'Email Usuario' <> Blank())
                   SearchFields: =["sanic_cm_ag_nombre"]
                   SelectMultiple: =false
                   Size: =10
@@ -640,19 +637,24 @@ Screens:
                   Height: =gblE.AltoBoton
                   HoverFill: =ColorFade(gblC.redBg, 10%)
                   OnSelect: |-
-                    =Patch('CM | TBL | Asignacions',
-                        LookUp('CM | TBL | Asignacions', '[AS] Numero' = varSelAprb.'[AS] Numero'),
-                        {
-                            '[AS] Estado de aprobacion': 'Choice | CM | Estado aprobacion especial'.Rechazada,
-                            'Motivo de rechazo': Trim(txtMotRechAprb.Text),
-                            '[AS] Resolutor': gblUsuarioDV
-                        }
-                    );
-                    Remove(colAprobAprb,
-                        LookUp(colAprobAprb, '[AS] Numero' = varSelAprb.'[AS] Numero'));
-                    Set(varPanelAprb, false);
-                    Set(varSelAprb, Blank());
-                    Notify("Solicitud rechazada", NotificationType.Warning)
+                    =// IfError (B-03): si el Patch falla se muestra el detalle y NO se saca de la cola.
+                    IfError(
+                        Patch('CM | TBL | Asignacions',
+                            LookUp('CM | TBL | Asignacions', '[AS] Numero' = varSelAprb.'[AS] Numero'),
+                            {
+                                '[AS] Estado de aprobacion': 'Choice | CM | Estado aprobacion especial'.Rechazada,
+                                'Motivo de rechazo': Trim(txtMotRechAprb.Text),
+                                '[AS] Resolutor': gblUsuarioDV
+                            }
+                        ),
+                        Notify("No se pudo rechazar " & varSelAprb.'[AS] Numero' & ": " & FirstError.Message,
+                            NotificationType.Error),
+                        Remove(colAprobAprb,
+                            LookUp(colAprobAprb, '[AS] Numero' = varSelAprb.'[AS] Numero'));
+                        Set(varPanelAprb, false);
+                        Set(varSelAprb, Blank());
+                        Notify("Solicitud rechazada", NotificationType.Warning)
+                    )
                   Size: =10
                   Text: ="Rechazar"
                   Width: =(Parent.Width - 3*gblE.Pad)/2
@@ -678,21 +680,26 @@ Screens:
                     // offline: la asignación aparece en el celular del localizador sin que esta app haga
                     // nada más. Por eso la notificación lo anuncia — la app solo aprueba; el reparto es
                     // del backend.
-                    Patch('CM | TBL | Asignacions',
-                        LookUp('CM | TBL | Asignacions', '[AS] Numero' = varSelAprb.'[AS] Numero'),
-                        {
-                            '[AS] Estado de aprobacion': 'Choice | CM | Estado aprobacion especial'.Aprobado,
-                            '[AS] Agente': cmbAgenteAprb.Selected,
-                            '[AS] Resolutor': gblUsuarioDV
-                        }
-                    );
-                    Remove(colAprobAprb,
-                        LookUp(colAprobAprb, '[AS] Numero' = varSelAprb.'[AS] Numero'));
-                    Set(varPanelAprb, false);
-                    Set(varSelAprb, Blank());
-                    Notify("✓ Aprobada — asignada a " & cmbAgenteAprb.Selected.'[AG] Nombre' &
-                        ". El flujo de owner la baja al celular del localizador.",
-                        NotificationType.Success, 2500)
+                    // IfError (B-03): si el Patch falla se muestra el detalle y NO se saca de la cola.
+                    IfError(
+                        Patch('CM | TBL | Asignacions',
+                            LookUp('CM | TBL | Asignacions', '[AS] Numero' = varSelAprb.'[AS] Numero'),
+                            {
+                                '[AS] Estado de aprobacion': 'Choice | CM | Estado aprobacion especial'.Aprobado,
+                                '[AS] Agente': cmbAgenteAprb.Selected,
+                                '[AS] Resolutor': gblUsuarioDV
+                            }
+                        ),
+                        Notify("No se pudo aprobar " & varSelAprb.'[AS] Numero' & ": " & FirstError.Message,
+                            NotificationType.Error),
+                        Remove(colAprobAprb,
+                            LookUp(colAprobAprb, '[AS] Numero' = varSelAprb.'[AS] Numero'));
+                        Set(varPanelAprb, false);
+                        Set(varSelAprb, Blank());
+                        Notify("✓ Aprobada — asignada a " & cmbAgenteAprb.Selected.'[AG] Nombre' &
+                            ". El flujo de owner la baja al celular del localizador.",
+                            NotificationType.Success, 2500)
+                    )
                   Size: =10
                   Text: ="✓ Aprobar y asignar"
                   Width: =btnRechazarAprb.Width

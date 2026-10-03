@@ -171,6 +171,8 @@ Screens:
                                 =If(nfMovil,
                                     Parent.TemplateWidth - 2*gblE.Pad,
                                     Parent.TemplateWidth*32% - gblE.Pad)
+                                    // deja lugar a btnDesvincularAge (extremo derecho de la columna del nombre)
+                                    - If(btnDesvincularAge.Visible, btnDesvincularAge.Width + gblE.PadSm, 0)
                               Wrap: =false
                               X: =gblE.Pad
                               Y: =If(nfMovil, 8, 12)
@@ -201,7 +203,10 @@ Screens:
                                 =// Preselección por email (texto plano, siempre presente; delegable). Si el ComboBox clásico no
                                 // la pinta (verificado en Studio: no siempre lo hace dentro de galerías), el placeholder
                                 // de abajo igual muestra el vínculo actual — el combo es para CAMBIARLO.
-                                If(!IsBlank(ThisItem.'Email Usuario'), Filter(Users, 'Primary Email' = ThisItem.'Email Usuario'))
+                                // SIN If: un If sin rama falsa devuelve Blank y la propiedad espera TABLA (B-06).
+                                // Coalesce con centinela (no es un email): con email vacío la comparación contra Blank
+                                // traería los usuarios de sistema sin correo; así devuelve tabla vacía.
+                                Filter(Users, 'Primary Email' = Coalesce(ThisItem.'Email Usuario', "sin-email"))
                               DisplayFields: =["fullname", "internalemailaddress"]
                               Fill: =gblC.card
                               FocusedBorderColor: =gblC.teal
@@ -216,26 +221,25 @@ Screens:
                                 // lo usa Comp-14 para el owner) y 'Email Usuario' (texto en minúsculas,
                                 // lo usa la canvas del localizador para el login). Patchear una sola deja
                                 // al agente inconsistente. Si tocás esta fórmula, mantené las dos.
-                                If(!IsBlank(Self.Selected),
-                                    Patch('CM | TBL | Agentes',
-                                        LookUp('CM | TBL | Agentes', '[AG] Nombre' = ThisItem.'[AG] Nombre'),
-                                        {
-                                            '[AG] Usuario': Self.Selected,
-                                            'Email Usuario': Lower(Self.Selected.'Primary Email')
-                                        }
-                                    );
-                                    Notify("✓ " & ThisItem.'[AG] Nombre' & " vinculado", NotificationType.Success, 2500),
-
-                                    Patch('CM | TBL | Agentes',
-                                        LookUp('CM | TBL | Agentes', '[AG] Nombre' = ThisItem.'[AG] Nombre'),
-                                        {
-                                            '[AG] Usuario': Blank(),
-                                            'Email Usuario': Blank()
-                                        }
-                                    );
-                                    Notify("Vínculo quitado", NotificationType.Warning)
-                                );
-                                ClearCollect(colAgentesAge, Sort('CM | TBL | Agentes', '[AG] Nombre'))
+                                // B-08 (ronda 6): OnChange se dispara al inicializar la preselección → SOLO vincula
+                                // y SOLO si el usuario elegido es distinto del vínculo actual. Desvincular es
+                                // btnDesvincularAge. IfError (B-03): si falla, detalle y sin éxito.
+                                If(!IsBlank(Self.Selected)
+                                    && Lower(Self.Selected.'Primary Email') <> Lower(Coalesce(ThisItem.'Email Usuario', "")),
+                                    IfError(
+                                        Patch('CM | TBL | Agentes',
+                                            LookUp('CM | TBL | Agentes', '[AG] Nombre' = ThisItem.'[AG] Nombre'),
+                                            {
+                                                '[AG] Usuario': Self.Selected,
+                                                'Email Usuario': Lower(Self.Selected.'Primary Email')
+                                            }
+                                        ),
+                                        Notify("No se pudo vincular " & ThisItem.'[AG] Nombre' & ": " & FirstError.Message,
+                                            NotificationType.Error),
+                                        Notify("✓ " & ThisItem.'[AG] Nombre' & " vinculado", NotificationType.Success, 2500);
+                                        ClearCollect(colAgentesAge, Sort('CM | TBL | Agentes', '[AG] Nombre'))
+                                    )
+                                )
                               SearchFields: =["fullname", "internalemailaddress"]
                               SelectMultiple: =false
                               Size: =10
@@ -245,6 +249,44 @@ Screens:
                                     Parent.TemplateWidth*30%)
                               X: =If(nfMovil, gblE.Pad, Parent.TemplateWidth*32%)
                               Y: =If(nfMovil, 54, (Parent.TemplateHeight - gblE.AltoInput)/2)
+                        - btnDesvincularAge:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderColor: =gblC.borde
+                              BorderThickness: =1
+                              Color: =gblC.ink2
+                              Fill: =gblC.card
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              Height: =28
+                              HoverFill: =ColorFade(gblC.card, 10%)
+                              OnSelect: |-
+                                =// B-08: la desvinculación salió del OnChange del combo (se disparaba al abrir la
+                                // pantalla). Limpia las DOS columnas juntas. IfError (B-03).
+                                IfError(
+                                    Patch('CM | TBL | Agentes',
+                                        LookUp('CM | TBL | Agentes', '[AG] Nombre' = ThisItem.'[AG] Nombre'),
+                                        {
+                                            '[AG] Usuario': Blank(),
+                                            'Email Usuario': Blank()
+                                        }
+                                    ),
+                                    Notify("No se pudo desvincular " & ThisItem.'[AG] Nombre' & ": " & FirstError.Message,
+                                        NotificationType.Error),
+                                    Notify("Vínculo quitado — " & ThisItem.'[AG] Nombre', NotificationType.Warning);
+                                    ClearCollect(colAgentesAge, Sort('CM | TBL | Agentes', '[AG] Nombre'))
+                                )
+                              Size: =9
+                              TabIndex: =0
+                              Text: ="Desvincular"
+                              Visible: =!IsBlank(ThisItem.'Email Usuario')
+                              Width: =92
+                              X: |-
+                                =If(nfMovil,
+                                    Parent.TemplateWidth - Self.Width - gblE.Pad,
+                                    Parent.TemplateWidth*32% - Self.Width - gblE.PadSm)
+                              Y: =If(nfMovil, 8, (Parent.TemplateHeight - Self.Height)/2)
                         - chpVinculoAge:
                             Control: Classic/Button@2.2.0
                             Properties:
@@ -302,13 +344,18 @@ Screens:
                                 =// El If del Notify lee el valor VIEJO de ThisItem (el Patch ya lo invirtió
                                 // en Dataverse pero la colección aún no se refrescó) — "activo → desactivado"
                                 // queda correcto tal cual.
-                                Patch('CM | TBL | Agentes',
-                                    LookUp('CM | TBL | Agentes', '[AG] Nombre' = ThisItem.'[AG] Nombre'),
-                                    { '[AG] Activo': !ThisItem.'[AG] Activo' }
-                                );
-                                Notify(ThisItem.'[AG] Nombre' & If(ThisItem.'[AG] Activo', " desactivado", " activado"),
-                                    NotificationType.Success, 2500);
-                                ClearCollect(colAgentesAge, Sort('CM | TBL | Agentes', '[AG] Nombre'))
+                                // IfError (B-03): si el Patch falla, detalle y sin aviso de éxito.
+                                IfError(
+                                    Patch('CM | TBL | Agentes',
+                                        LookUp('CM | TBL | Agentes', '[AG] Nombre' = ThisItem.'[AG] Nombre'),
+                                        { '[AG] Activo': !ThisItem.'[AG] Activo' }
+                                    ),
+                                    Notify("No se pudo cambiar el estado de " & ThisItem.'[AG] Nombre' & ": " & FirstError.Message,
+                                        NotificationType.Error),
+                                    Notify(ThisItem.'[AG] Nombre' & If(ThisItem.'[AG] Activo', " desactivado", " activado"),
+                                        NotificationType.Success, 2500);
+                                    ClearCollect(colAgentesAge, Sort('CM | TBL | Agentes', '[AG] Nombre'))
+                                )
                               Size: =10
                               Text: =If(ThisItem.'[AG] Activo', "Desactivar", "Activar")
                               Width: =110
