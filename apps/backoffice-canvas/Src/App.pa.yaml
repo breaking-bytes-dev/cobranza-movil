@@ -122,88 +122,6 @@ App:
               "|"
           )
       ));
-
-      // Navegación por rol: catálogo estático que alimenta cmpNavLateral (galNavCmp.Items).
-      // Fórmula con nombre y no colección: nunca muta (App Checker: "initialized but never updated").
-      nfNav = Table(
-          {
-              Orden: 1,
-              Icono: "🏠",
-              Titulo: "Inicio",
-              Ruta: "ini",
-              Roles: "Backoffice|Solicitante|Supervisor|Admin"
-          },
-          {
-              Orden: 2,
-              Icono: "📥",
-              Titulo: "Por transcribir",
-              Ruta: "trx",
-              Roles: "Backoffice"
-          },
-          {
-              Orden: 3,
-              Icono: "✅",
-              Titulo: "Transcritas hoy",
-              Ruta: "tsc",
-              Roles: "Backoffice"
-          },
-          {
-              Orden: 4,
-              Icono: "✨",
-              Titulo: "Nueva solicitud",
-              Ruta: "nva",
-              Roles: "Solicitante"
-          },
-          {
-              Orden: 5,
-              Icono: "🗂️",
-              Titulo: "Mis solicitudes",
-              Ruta: "sol",
-              Roles: "Solicitante"
-          },
-          {
-              Orden: 6,
-              Icono: "⚖️",
-              Titulo: "Aprobaciones",
-              Ruta: "aprb",
-              Roles: "Supervisor"
-          },
-          {
-              Orden: 7,
-              Icono: "📡",
-              Titulo: "Monitoreo de carga",
-              Ruta: "mon",
-              Roles: "Admin"
-          },
-          {
-              Orden: 8,
-              Icono: "🧹",
-              Titulo: "Reconciliación",
-              Ruta: "rec",
-              Roles: "Admin"
-          },
-          {
-              Orden: 9,
-              Icono: "🔒",
-              Titulo: "Cierres",
-              Ruta: "cie",
-              Roles: "Admin"
-          },
-          {
-              Orden: 10,
-              Icono: "🏍️",
-              Titulo: "Agentes y usuarios",
-              Ruta: "age",
-              Roles: "Admin"
-          },
-          {
-              Orden: 11,
-              Icono: "👥",
-              Titulo: "Datos maestros",
-              Ruta: "mae",
-              Roles: "Admin"
-          }
-      );
     OnStart: |-
       =// ===== App.OnStart =====
       // 1) Tokens de color (identidad de la familia, modo día)
@@ -263,7 +181,7 @@ App:
               AnchoMax: 1160
           }
       );
-      // 4) La navegación por rol es la fórmula con nombre nfNav (App.Formulas).
+      // 4) La navegación por rol vive en cmpNavLateral (galNavCmp.Items, catálogo local — B-06).
       Set(
           gblNavMovilAbierta,
           false

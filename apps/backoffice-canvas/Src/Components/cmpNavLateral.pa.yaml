@@ -110,8 +110,93 @@ ComponentDefinitions:
                   FocusedBorderThickness: =2
                   Height: =Parent.Height - (gblE.AltoBarra + gblE.Pad) - (gblE.AltoFila + gblE.PadSm)
                   Items: |-
-                    =Sort(
-                        Filter(nfNav, CountRows(Filter(Split(Roles, "|"), Value in gblRol)) > 0),
+                    =// B-06 (verificado por telemetría del player: Filter · galNavCmp.Items · "expected a table"):
+                    // leer la fórmula con nombre de la APP (nfNav) desde el componente fallaba en la 1.ª
+                    // evaluación al abrir. El catálogo es local al componente: una tabla literal siempre es tabla.
+                    // Un rol solo VE su navegación (Roles ∩ gblRol). Todo en memoria, cero delegación.
+                    Sort(
+                        Filter(
+                            Table(
+                            {
+                                Orden: 1,
+                                Icono: "🏠",
+                                Titulo: "Inicio",
+                                Ruta: "ini",
+                                Roles: "Backoffice|Solicitante|Supervisor|Admin"
+                            },
+                            {
+                                Orden: 2,
+                                Icono: "📥",
+                                Titulo: "Por transcribir",
+                                Ruta: "trx",
+                                Roles: "Backoffice"
+                            },
+                            {
+                                Orden: 3,
+                                Icono: "✅",
+                                Titulo: "Transcritas hoy",
+                                Ruta: "tsc",
+                                Roles: "Backoffice"
+                            },
+                            {
+                                Orden: 4,
+                                Icono: "✨",
+                                Titulo: "Nueva solicitud",
+                                Ruta: "nva",
+                                Roles: "Solicitante"
+                            },
+                            {
+                                Orden: 5,
+                                Icono: "🗂️",
+                                Titulo: "Mis solicitudes",
+                                Ruta: "sol",
+                                Roles: "Solicitante"
+                            },
+                            {
+                                Orden: 6,
+                                Icono: "⚖️",
+                                Titulo: "Aprobaciones",
+                                Ruta: "aprb",
+                                Roles: "Supervisor"
+                            },
+                            {
+                                Orden: 7,
+                                Icono: "📡",
+                                Titulo: "Monitoreo de carga",
+                                Ruta: "mon",
+                                Roles: "Admin"
+                            },
+                            {
+                                Orden: 8,
+                                Icono: "🧹",
+                                Titulo: "Reconciliación",
+                                Ruta: "rec",
+                                Roles: "Admin"
+                            },
+                            {
+                                Orden: 9,
+                                Icono: "🔒",
+                                Titulo: "Cierres",
+                                Ruta: "cie",
+                                Roles: "Admin"
+                            },
+                            {
+                                Orden: 10,
+                                Icono: "🏍️",
+                                Titulo: "Agentes y usuarios",
+                                Ruta: "age",
+                                Roles: "Admin"
+                            },
+                            {
+                                Orden: 11,
+                                Icono: "👥",
+                                Titulo: "Datos maestros",
+                                Ruta: "mae",
+                                Roles: "Admin"
+                            }
+                        ),
+                            CountRows(Filter(Split(Roles, "|"), Value in gblRol)) > 0
+                        ),
                         Orden
                     )
                   OnSelect: |-
