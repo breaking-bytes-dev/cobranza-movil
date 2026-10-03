@@ -1,5 +1,12 @@
 # Guía 08 — scrMonitoreo (Admin)
 
+> ⚠ **Esta guía es el diseño original; el código vigente (validado en Studio) está en `apps/backoffice-canvas/Src/scrMonitoreo.pa.yaml`.** Diferencias principales (ver 00 §2/§4 y 01 §7/§11):
+> - Sin guard de rol (LED-20).
+> - Sin colecciones: `varNCargaHoyMon/varNCtasMon/varNCliMon` con `CountIf` en `Concurrent` — `CountIf(t, true)` para totales (no `CountRows`, valor cacheado) (00 §4.2, receta 7.16).
+> - `cmpKpiFilasMon.Detalle = "desde las 00:00"`; se quitó el aviso de "cota 2000 alcanzada" (el conteo ya es exacto).
+> - `btnActualizarMon` recalcula los tres `CountIf`; ya no re-colecta.
+> - Renombres: `cmpEncMon`, `cmpNavMon`.
+
 **Propósito**: el Admin verifica en un vistazo que la carga diaria del core LLEGÓ y que el volumen
 cuadra. v1 acotada por **LED-07** (los errores de fila viven en Smelter — se menciona, no se duplica)
 y **LED-12** (sin mini-tabla de últimas cargas: solo la carga de HOY; el historial por día exige

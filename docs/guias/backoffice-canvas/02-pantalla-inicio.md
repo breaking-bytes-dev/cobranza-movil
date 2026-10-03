@@ -1,5 +1,13 @@
 # Guía 02 — scrInicio
 
+> ⚠ **Esta guía es el diseño original; el código vigente (validado en Studio) está en `apps/backoffice-canvas/Src/scrInicio.pa.yaml`.** Diferencias principales (ver 00 §2/§4 y 01 §7/§11):
+> - KPIs sin colecciones: `CountIf` directo al datasource (`varNPendIni`, `varNPagoIni`, `varNTscIni`…); ya no existen `colPendIni/colTscIni/colSolIni/colAprobIni/colDesapIni/colAgIni` (00 §4.2, receta 7.16).
+> - "Cobrado hoy": `Sum` delegable directo sobre `'CM | TBL | Pagos'` por moneda (`varCobNioIni/varCobUsdIni`), sin `colPagosHoyIni`.
+> - Agentes sin usuario: `'Email Usuario' = Blank()` (texto) en vez de `IsBlank('[AG] Usuario')` (lookup, no delega).
+> - Lookups comparados por PK (`'[IN] Grabado por'.User = gblUsuarioDV.User`, `'[AS] Solicitado por'.User = …`).
+> - Desaparecidas con corte UTC `varCorteIni` (receta 7.15), no `'Última carga' < nfUltimaCarga`.
+> - Accesos de las cards: overlay `btnAcc<Tag>Ini` (último hijo, `TabIndex 0`, foco visible, `Text = lblAcc<Tag>TitIni.Text`) — receta 7.3. Mensaje de "sin acceso" menciona rol `SR | CM | …` / team.
+
 Pantalla de inicio de **todos los roles**: saludo + total cobrado hoy, fila de KPIs del rol y
 cards de acceso rápido a las pantallas del rol. Es el `App.StartScreen` (guía 01 §4) y la única
 pantalla **sin guard de navegación**: acá el control de acceso es visual (grupos por `gblRol`) y

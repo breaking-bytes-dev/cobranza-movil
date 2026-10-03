@@ -1,5 +1,11 @@
 # Guía 05 — scrMisSolicitudes
 
+> ⚠ **Esta guía es el diseño original; el código vigente (validado en Studio) está en `apps/backoffice-canvas/Src/scrMisSolicitudes.pa.yaml`.** Diferencias principales (ver 00 §2/§4 y 01 §7/§11):
+> - Sin guard de rol (LED-20); filtro por PK: `'[AS] Solicitado por'.User = gblUsuarioDV.User`.
+> - Sin `colCtasSol`: `clienteSol/prodSol/saldoNioSol/saldoUsdSol/moraSol` por navegación `ThisRecord.'[AS] Cuenta'.…` (receta 7.7); `btnActualizarSol` simplificado.
+> - Overlay `btnFilaSol` reemplaza a `recFilaSol` (receta 7.3); scrim/cerrar con `TabIndex 0` y foco visible.
+> - `btnNuevaSol.Y` suma `If(nfMovil, gblE.AltoBarra, 0)`.
+
 Seguimiento de las asignaciones **Especiales** creadas por el Solicitante: lista con estado de
 aprobación + panel de detalle en **solo lectura** (la resolución es del Supervisor, guía 07).
 Mockup: `backoffice-canvas.html` → `scrMisSolicitudes()` y `openSol(id, ro=true)`.

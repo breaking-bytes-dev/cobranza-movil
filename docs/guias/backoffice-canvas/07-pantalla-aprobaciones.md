@@ -1,5 +1,12 @@
 # Guía 07 — scrAprobaciones (Supervisor)
 
+> ⚠ **Esta guía es el diseño original; el código vigente (validado en Studio) está en `apps/backoffice-canvas/Src/scrAprobaciones.pa.yaml`.** Diferencias principales (ver 00 §2/§4 y 01 §7/§11):
+> - Sin guard de rol (LED-20); sin `Concurrent` ni `colCtasAprb`.
+> - Cola horneada por navegación `ThisRecord.'[AS] Cuenta'.…` (`clienteAprb`, `prodAprb`, `nioAprb`, `usdAprb`); el panel lee esas columnas en vez de `LookUp(colCtasAprb…)` (receta 7.7).
+> - Overlay `btnFilaAprb` (último hijo, `TabIndex 0`, hover translúcido) reemplaza a `recFilaAprb`; etiquetas sin `OnSelect` (receta 7.3).
+> - `cmbAgenteAprb` con `DisplayFields/SearchFields` lógicos (`sanic_cm_ag_nombre`); `AccessibleLabel` + foco visible en galería, scrim, cerrar, combo y motivo.
+> - `lblFilaNotasAprb` sin `Wrap`, `VerticalAlign.Top`.
+
 Cola FIFO de solicitudes **Especiales pendientes de aprobación**. El Supervisor abre una,
 la revisa (cuenta + retiro pedido + motivo) y resuelve: **aprueba asignando localizador**
 o **rechaza con motivo**. Una llamada de red por resolución; la cola vive en memoria (00 §4.1).

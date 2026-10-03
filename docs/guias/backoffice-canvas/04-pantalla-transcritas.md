@@ -1,5 +1,12 @@
 # Guía 04 — scrTranscritas
 
+> ⚠ **Esta guía es el diseño original; el código vigente (validado en Studio) está en `apps/backoffice-canvas/Src/scrTranscritas.pa.yaml`.** Diferencias principales (ver 00 §2/§4 y 01 §7/§11):
+> - Sin guard de rol (LED-20); filtro por PK: `'[IN] Grabado por'.User = gblUsuarioDV.User`.
+> - Sin `colCtasTsc`: `clienteTsc/cifTsc/prodTsc` por navegación `ThisRecord.'[IN] Cuenta'.…` (receta 7.7).
+> - KPI "TRANSCRITAS" = `varNTscTsc` con `CountIf` directo (receta 7.16), no `CountRows(colTscTsc)`.
+> - Horneado único `colTscTmpTsc` → `AddColumns` → `colTscTsc`; se quitó el paso puente que daba "column already exists" (01 §11.1 #7).
+> - `galPagosPanelTsc.AllItemsCount`; overlay `btnFilaTsc` reemplaza a `recFilaTsc` (receta 7.3); scrim/cerrar con foco visible.
+
 **Propósito:** el arqueo del día del transcriptor (rol Backoffice): qué interacciones grabó HOY en el
 core, con su código, y cuánto dinero transcribió. Todo es **LECTURA** — la evidencia de campo es
 inmutable después de la grabación (mockup: `scrTranscritas()` + `rowInt()` + `openTrans()` rama `grab=true`).

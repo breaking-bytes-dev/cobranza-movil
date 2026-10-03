@@ -1,5 +1,11 @@
 # Guía 06 — scrNuevaSolicitud
 
+> ⚠ **Esta guía es el diseño original; el código vigente (validado en Studio) está en `apps/backoffice-canvas/Src/scrNuevaSolicitud.pa.yaml`.** Diferencias principales (ver 00 §2/§4 y 01 §7/§11):
+> - Sin guard de rol en `OnVisible` (LED-20).
+> - `cmbCuentaNva.DisplayFields` con nombres LÓGICOS (`["sanic_cm_ct_numerodecuenta","lineaNva"]`); sin `IsSearchable` (01 §11.1 #10).
+> - `AccessibleLabel` en combos/inputs y `FocusedBorderThickness 2` en todo lo interactivo (LED-19).
+> - `cmpEncabezadoNva`: sin `Y`, `Height = If(nfMovil, gblE.AltoBarra + 84, 84)` (receta 7.5). Patch, anti-duplicado y `Moneda()` iguales a la guía.
+
 **Rol:** Solicitante. El Solicitante pide una asignación **Especial** sobre una cuenta existente:
 elige cuenta, tipo de especial, montos de retiro y motivo. La solicitud nace `Pendiente aprobacion`
 y **sin localizador** (lo asigna el Supervisor en scrAprobaciones). Mockup: función `scrNueva()`

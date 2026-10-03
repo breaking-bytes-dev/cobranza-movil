@@ -1,5 +1,12 @@
 # Guía 12 — scrMaestros
 
+> ⚠ **Esta guía es el diseño original; el código vigente (validado en Studio) está en `apps/backoffice-canvas/Src/scrMaestros.pa.yaml`.** Diferencias principales (ver 00 §2/§4 y 01 §7/§11):
+> - Sin guard de rol (LED-20).
+> - Sin `colCtasMae`: `galCtasMae.Items = Filter('CM | TBL | Cuentas', '[CT] Cliente'.'CM | TBL | Cliente' = varCliMae.'CM | TBL | Cliente')` — por PK, directo al datasource; el `Concurrent` solo carga `colTelMae/colDirMae`.
+> - `AllItemsCount` en `lblSecCtasMae`, `lblCtasVacioMae` y `cmpVacioMae`.
+> - Overlay `btnFilaMae` reemplaza a `recFilaMae`; etiquetas sin `OnSelect` (receta 7.3); `AccessibleLabel` en búsqueda y foco en scrim/cerrar.
+> - Patch de guardar/agregar tel-dir/crear cliente: iguales a la guía.
+
 Datos maestros (solo **Admin**): buscar clientes contra Dataverse, ver su ficha completa
 (teléfonos, direcciones, cuentas en mora), crear clientes nuevos y agregar teléfonos/direcciones.
 Alcance acotado por **LED-08** y **LED-13** (00 §2): se crea cliente, se editan sus datos básicos y

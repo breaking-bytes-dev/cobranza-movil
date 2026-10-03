@@ -1,5 +1,11 @@
 # Guía 10 — scrCierres
 
+> ⚠ **Esta guía es el diseño original; el código vigente (validado en Studio) está en `apps/backoffice-canvas/Src/scrCierres.pa.yaml`.** Diferencias principales (ver 00 §2/§4 y 01 §7/§11):
+> - Sin guard de rol (LED-20); sin `colCtasCie`: `clienteCie/diasCie/nioCie/usdCie/montoCie` por navegación `ThisRecord.'[AS] Cuenta'.…` (receta 7.7).
+> - Contadores de `btnTabIncobCie`/`btnTabEspCie` con `CountIf` directo al datasource (receta 7.16).
+> - `cmpVacioCie.Visible = galCierresCie.AllItemsCount = 0`.
+> - Overlay `btnFilaCie` reemplaza a `recFilaCie`; etiquetas y `chpTipoCie` sin `OnSelect` (receta 7.3); `AccessibleLabel` + foco en galería, scrim, cerrar, combo y detalle.
+
 Cierres manuales del Admin: las asignaciones **Incobrables** y **Especiales** activas se cierran
 a mano, con motivo obligatorio (DEC-020 / DEC-022). **Nunca las cierra el localizador** — las
 Diarias las cierra la reconciliación (guía 09); esta pantalla no las toca.

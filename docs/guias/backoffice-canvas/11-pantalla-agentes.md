@@ -1,5 +1,12 @@
 # Guía 11 — scrAgentes (Agentes y usuarios · Admin)
 
+> ⚠ **Esta guía es el diseño original; el código vigente (validado en Studio) está en `apps/backoffice-canvas/Src/scrAgentes.pa.yaml`.** Diferencias principales (ver 00 §2/§4 y 01 §7/§11):
+> - Sin guard de rol (LED-20).
+> - Alerta de agentes sin usuario: `CountIf('CM | TBL | Agentes', '[AG] Activo' && 'Email Usuario' = Blank())` (no `IsBlank('[AG] Usuario')`, lookup no delega). ⚠ `lblAlertaDetalleAge` aún lista desde `colAgentesAge` con `IsBlank('[AG] Usuario')` — puede no cuadrar con el conteo.
+> - `cmbUsuarioAge`: `DefaultSelectedItems = Filter(Users, 'Primary Email' = ThisItem.'Email Usuario')` y el vínculo actual se MUESTRA en `InputTextPlaceholder` (01 §11.1 #9); `DisplayFields/SearchFields` lógicos.
+> - `Parent.TemplateHeight` en vez de `Parent.TemplateSize` en los Y del template.
+> - `AccessibleLabel` en galería y combo, foco visible; `ShowScrollbar = false`. Sin overlay (filas no clicables).
+
 > **Por qué esta pantalla importa (leelo antes de construir):** la app del localizador identifica
 > al agente que entra por **`'Email Usuario'`** (`LookUp` contra `User().Email`) y el Cloud Flow
 > **Comp-14** asigna el *owner* de cada asignación por **`'[AG] Usuario'`**. Un agente activo SIN

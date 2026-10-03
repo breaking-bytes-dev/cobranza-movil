@@ -1,5 +1,13 @@
 # Guía 09 — scrReconciliacion
 
+> ⚠ **Esta guía es el diseño original; el código vigente (validado en Studio) está en `apps/backoffice-canvas/Src/scrReconciliacion.pa.yaml`.** Diferencias principales (ver 00 §2/§4 y 01 §7/§11):
+> - Sin guard de rol (LED-20); sin `colCtasRec` ni `colDiariasRec`: cliente por `ThisRecord.'[AS] Cuenta'.'Nombre Cliente'`.
+> - **Zona horaria**: corte `varCorteRec` = 00:00 UTC (receta 7.15) en el filtro y los conteos — con `'Última carga' < nfUltimaCarga` el 100% salía desaparecido (00 §4.4).
+> - Conteos `varNDesapRec/varNDiariasRec` con `CountIf` (denominador del umbral 30% exacto); control NUEVO `lblTopeRec` ("Mostrando las primeras N…") y `conResumenRec.Height` variable.
+> - Fecha de la fila con `DateAdd(…, TimeZoneOffset(…))` guardada por `IsBlank` (template vacío).
+> - `btnCerrarRec`: UN `Patch` masivo con tabla de registros con PK (receta 7.17), sin `LookUp` por fila.
+> - `chkConfirmarRec` sin `Wrap` (PA2108) y texto nuevo; `galDesapRec` en `DisplayMode.View`, sin overlay.
+
 Reconciliación de Diarias (DEC-018): lista las asignaciones **Diaria activas** cuya `'Última carga'`
 quedó atrás de la última carga registrada (= dejaron de venir en el CSV) y permite al **Admin**
 cerrarlas **en lote** con motivo `"fuera de cartera"` — con umbral de cordura del 30 % y checkbox

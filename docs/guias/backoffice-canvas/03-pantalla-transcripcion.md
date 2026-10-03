@@ -1,5 +1,13 @@
 # Guía 03 — scrTranscripcion (estación de transcripción)
 
+> ⚠ **Esta guía es el diseño original; el código vigente (validado en Studio) está en `apps/backoffice-canvas/Src/scrTranscripcion.pa.yaml`.** Diferencias principales (ver 00 §2/§4 y 01 §7/§11):
+> - Sin guard de rol en `OnVisible` (LED-20); los ⟨BLOQUE L/S/R⟩ quedan inlineados en cada `OnSelect`.
+> - Sin `colCtasTrx`: `clienteTrx/cifTrx/productoTrx` por navegación `ThisRecord.'[IN] Cuenta'.…` (receta 7.7); `btnActualizarTrx` ya no recarga cuentas.
+> - Fila "Todos" de `colLocsTrx`: `CountIf` directo al datasource, no `CountRows(colPendTrx)`.
+> - Power Fx moderno: identificadores en `GroupBy/ShowColumns/RenameColumns`, `Sort` en vez de `SortByColumns`, LookUp de AD por PK (01 §11.1).
+> - `galColaTrx.AllItemsCount` en contadores/vacío; `Index(colVistaTrx, n)` en vez de `Last(FirstN(…))` en grabar/saltar.
+> - Accesibilidad: overlays `btnFilaLocsTrx`, `btnFilaLocsMovTrx`, `btnFilaColaTrx`; la card de localizador pasa a `conLocCardTrx`/`conLocCardMovTrx` (solo visual); hijos sin `OnSelect` (LED-19).
+
 LA pantalla estrella del Backoffice: 3 columnas (localizadores → cola FIFO → detalle de trabajo)
 para grabar en el core y seguir de corrido. Rol: **Backoffice** (guard en OnVisible).
 
