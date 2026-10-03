@@ -19,7 +19,6 @@ EditorState:
     - scrCierres
     - scrAgentes
     - scrMaestros
-    - scrMuestrario
   ComponentDefinitionsOrder:
     - cmpNavLateral
     - cmpEncabezado
