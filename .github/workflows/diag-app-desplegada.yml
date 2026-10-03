@@ -1,0 +1,63 @@
+name: diag-app-desplegada
+
+# READ-ONLY: exporta la canvas backoffice tal como está en el entorno, la desempaqueta y verifica
+# si contiene los arreglos esperados (sin commitear nada). Compara también el paquete que arma
+# `pac canvas pack` desde el repo.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: deploy/rediseno-tokens
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: pac
+        run: |
+          dotnet tool install --global Microsoft.PowerApps.CLI.Tool
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+      - name: Auth
+        run: |
+          pac auth create --applicationId "${{ secrets.PP_CLIENT_ID }}" --clientSecret "${{ secrets.PP_CLIENT_SECRET }}" \
+            --tenant "${{ secrets.PP_TENANT_ID }}" --environment "${{ secrets.DATAVERSE_URL }}" --accept-cleartext-caching
+      - name: Exportar y desempaquetar lo DESPLEGADO
+        run: |
+          set -e
+          pac solution export --name cm_core_cobranzamovil --path /tmp/sol.zip --managed false --overwrite
+          unzip -o -q /tmp/sol.zip 'CanvasApps/*' -d /tmp/sol
+          ls -la /tmp/sol/CanvasApps/ | grep -i backoffice
+          pac canvas unpack --msapp /tmp/sol/CanvasApps/sanic_appcmbackofficecanvas_d0162_DocumentUri.msapp --sources /tmp/desplegado --layout SourceCode
+      - name: Empaquetar lo del REPO (como hace import-backoffice)
+        run: |
+          set -e
+          pac canvas pack --sources apps/backoffice-canvas --msapp /tmp/repo.msapp
+          pac canvas unpack --msapp /tmp/repo.msapp --sources /tmp/repo-roundtrip --layout SourceCode
+      - name: Comparar
+        run: |
+          for d in desplegado repo-roundtrip; do
+            echo "==================== $d ===================="
+            echo -n "  btnDesvincularAge: "; grep -rl "btnDesvincularAge" /tmp/$d/Src | wc -l
+            echo -n "  lineaNva (debe ser 0): "; grep -r "lineaNva" /tmp/$d/Src | wc -l
+            echo -n "  scrMuestrario (debe ser 0): "; ls /tmp/$d/Src | grep -c scrMuestrario || true
+            echo -n "  Set(gblRol (debe ser 0): "; grep -r "Set(gblRol" /tmp/$d/Src | wc -l
+            python3 - "$d" <<'PY'
+          import zipfile, json, sys, glob, re
+          d=sys.argv[1]
+          m=glob.glob(f'/tmp/{d}/*.msapr')
+          if not m: print('  (sin msapr)'); sys.exit()
+          z=zipfile.ZipFile(m[0])
+          p=json.loads(z.read('msapp/Properties.json'))
+          ds=z.read('msapp/References/DataSources.json').decode()
+          print('  ScaleToFit =', p.get('DocumentLayoutScaleToFit'), '| default rows =', p.get('DefaultConnectedDataSourceMaxGetRowsCount'), '| MaxGetRowsCount por fuente =', sorted(set(re.findall(r'"MaxGetRowsCount":\s*(\d+)', ds))))
+          PY
+          done
+          echo "==================== diff Src (desplegado vs repo) ===================="
+          diff -rq /tmp/desplegado/Src /tmp/repo-roundtrip/Src | head -30 || true
