@@ -46,6 +46,8 @@ Screens:
       - muestraEtiqueta:
           Control: Label@2.5.1
           Properties:
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
             X: =60
             Y: =60
       - muestraBoton:
@@ -75,6 +77,10 @@ Screens:
       - muestraRectangulo:
           Control: Rectangle@2.3.0
           Properties:
+            AccessibleLabel: =""
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
+            TabIndex: =-1
             X: =140
             Y: =140
       - muestraEntradaTexto:
@@ -103,6 +109,8 @@ Screens:
       - muestraAlternar:
           Control: Classic/Toggle@2.1.0
           Properties:
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
             X: =220
             Y: =220
       - muestraGaleriaV:
@@ -126,5 +134,7 @@ Screens:
       - muestraTemporizador:
           Control: Timer@2.1.0
           Properties:
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
             X: =280
             Y: =280

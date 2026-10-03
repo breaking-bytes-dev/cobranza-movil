@@ -55,6 +55,8 @@ ComponentDefinitions:
                 Control: Label@2.5.1
                 Properties:
                   Color: =If(cmpKpi.EsHero, RGBA(255,255,255,0.75), gblC.muted)
+                  FocusedBorderColor: =If(cmpKpi.EsHero, Color.White, gblC.teal)
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   FontWeight: =FontWeight.Bold
                   Height: =16
@@ -69,6 +71,8 @@ ComponentDefinitions:
                 Control: Label@2.5.1
                 Properties:
                   Color: =If(cmpKpi.EsHero, Color.White, gblC.ink)
+                  FocusedBorderColor: =If(cmpKpi.EsHero, Color.White, gblC.teal)
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   FontWeight: =FontWeight.Bold
                   Height: =28
@@ -83,6 +87,8 @@ ComponentDefinitions:
                 Control: Label@2.5.1
                 Properties:
                   Color: =If(cmpKpi.EsHero, RGBA(255,255,255,0.75), gblC.muted)
+                  FocusedBorderColor: =If(cmpKpi.EsHero, Color.White, gblC.teal)
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =18
                   PaddingLeft: =0

@@ -97,6 +97,8 @@ Screens:
                       Control: Label@2.5.1
                       Properties:
                         Color: =gblC.redInk
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         FontWeight: =FontWeight.Semibold
                         Height: =Parent.Height
@@ -126,6 +128,8 @@ Screens:
                       Control: Label@2.5.1
                       Properties:
                         Color: =gblC.ink
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         FontWeight: =FontWeight.Bold
                         Height: =24
@@ -154,13 +158,19 @@ Screens:
                         - recMeterRec:
                             Control: Rectangle@2.3.0
                             Properties:
+                              AccessibleLabel: =""
                               Fill: =If(varRojoRec, gblC.redInk, gblC.teal)
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
                               Height: =8
+                              TabIndex: =-1
                               Width: =Parent.Width * Min(varPctRec, 100) / 100
                   - lblUmbralRec:
                       Control: Label@2.5.1
                       Properties:
                         Color: =If(varRojoRec, gblC.redInk, gblC.muted)
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         Height: =34
                         PaddingLeft: =0
@@ -177,6 +187,8 @@ Screens:
                       Control: Label@2.5.1
                       Properties:
                         Color: =gblC.muted
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         Height: =22
                         PaddingLeft: =0
@@ -223,6 +235,8 @@ Screens:
                             Control: Label@2.5.1
                             Properties:
                               Color: =gblC.ink
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
                               Font: =Font.'Segoe UI'
                               FontWeight: =FontWeight.Semibold
                               Height: =22
@@ -237,6 +251,8 @@ Screens:
                             Control: Label@2.5.1
                             Properties:
                               Color: =gblC.muted
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
                               Font: =Font.'Segoe UI'
                               Height: =20
                               PaddingLeft: =0
@@ -250,6 +266,8 @@ Screens:
                             Control: Label@2.5.1
                             Properties:
                               Color: =gblC.ink2
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
                               Font: =Font.'Segoe UI'
                               Height: =44
                               PaddingLeft: =0
@@ -287,8 +305,12 @@ Screens:
                         - recSepRec:
                             Control: Rectangle@2.3.0
                             Properties:
+                              AccessibleLabel: =""
                               Fill: =gblC.hairline
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
                               Height: =1
+                              TabIndex: =-1
                               Width: =Parent.TemplateWidth
                               Y: =Parent.TemplateHeight - 1
                   - cmpVacioRec:

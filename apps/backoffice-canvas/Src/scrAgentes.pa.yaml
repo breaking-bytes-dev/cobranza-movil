@@ -74,13 +74,19 @@ Screens:
                   - recBordeAlertaAge:
                       Control: Rectangle@2.3.0
                       Properties:
+                        AccessibleLabel: =""
                         Fill: =gblC.pendInk
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
                         Height: =Parent.Height
+                        TabIndex: =-1
                         Width: =4
                   - lblAlertaTituloAge:
                       Control: Label@2.5.1
                       Properties:
                         Color: =gblC.pendInk
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         FontWeight: =FontWeight.Bold
                         Height: =22
@@ -99,6 +105,8 @@ Screens:
                       Control: Label@2.5.1
                       Properties:
                         Color: =gblC.pendInk
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         Height: =Parent.Height - Self.Y - gblE.PadSm
                         PaddingLeft: =0
@@ -152,6 +160,8 @@ Screens:
                             Control: Label@2.5.1
                             Properties:
                               Color: =gblC.ink
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
                               Font: =Font.'Segoe UI'
                               FontWeight: =FontWeight.Bold
                               Height: =22
@@ -169,6 +179,8 @@ Screens:
                             Control: Label@2.5.1
                             Properties:
                               Color: =gblC.muted
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
                               Font: =Font.'Segoe UI'
                               Height: =18
                               PaddingLeft: =0
@@ -306,8 +318,12 @@ Screens:
                         - recSepAge:
                             Control: Rectangle@2.3.0
                             Properties:
+                              AccessibleLabel: =""
                               Fill: =gblC.hairline
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
                               Height: =1
+                              TabIndex: =-1
                               Width: =Parent.TemplateWidth
                               Y: =Parent.TemplateHeight - 1
                   - cmpVacioAge:
@@ -327,6 +343,8 @@ Screens:
                 Control: Label@2.5.1
                 Properties:
                   Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =28
                   PaddingLeft: =0

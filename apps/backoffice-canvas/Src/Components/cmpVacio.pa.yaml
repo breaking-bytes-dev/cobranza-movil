@@ -43,6 +43,8 @@ ComponentDefinitions:
                 Control: Label@2.5.1
                 Properties:
                   Align: =Align.Center
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   PaddingLeft: =0
                   PaddingRight: =0
@@ -56,6 +58,8 @@ ComponentDefinitions:
                 Properties:
                   Align: =Align.Center
                   Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   FontWeight: =FontWeight.Bold
                   Height: =22
@@ -71,6 +75,8 @@ ComponentDefinitions:
                 Properties:
                   Align: =Align.Center
                   Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =Max(36, Parent.Height - (gblE.Pad + 70) - gblE.Pad)
                   PaddingLeft: =0
