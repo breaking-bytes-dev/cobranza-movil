@@ -73,7 +73,10 @@ Screens:
         //    Fuera de cartera se compara por FECHA (corte 00:00 del día de la última carga), igual que
         //    Reconciliación — fecha+hora marcaba como desaparecidas las cargadas segundos antes del máximo.
         If("Admin" in gblRol,
-            Set(varCorteIni, DateTime(Year(nfUltimaCarga), Month(nfUltimaCarga), Day(nfUltimaCarga), 0, 0, 0));
+            // Corte = 00:00 UTC del día de la última carga. 'Última carga' es UserLocal y el import la graba
+            // a medianoche UTC; [CD] FechaCarga es DateOnly. Sin este ajuste, en UTC-6 todo parece "desaparecido".
+            Set(varCorteIni, With({d0: DateTime(Year(nfUltimaCarga), Month(nfUltimaCarga), Day(nfUltimaCarga), 0, 0, 0)},
+                DateAdd(d0, -TimeZoneOffset(d0), TimeUnit.Minutes)));
             Concurrent(
                 Set(varNDesapIni,
                     CountIf('CM | TBL | Asignacions',
@@ -81,7 +84,7 @@ Screens:
                         && '[AS] Estado' = true
                         && 'Última carga' < varCorteIni)),
                 Set(varNAgSinUsrIni,
-                    CountIf('CM | TBL | Agentes', '[AG] Activo' && IsBlank('[AG] Usuario')))
+                    CountIf('CM | TBL | Agentes', '[AG] Activo' && 'Email Usuario' = Blank()))
             )
         )
     Children:

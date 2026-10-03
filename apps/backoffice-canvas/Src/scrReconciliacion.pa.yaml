@@ -13,7 +13,10 @@ Screens:
       OnVisible: |-
         =// Corte del DÍA de la última carga (se compara por fecha, no fecha+hora): una Diaria cargada
         // segundos antes del máximo NO es "desaparecida". Lado derecho constante → la comparación delega.
-        Set(varCorteRec, DateTime(Year(nfUltimaCarga), Month(nfUltimaCarga), Day(nfUltimaCarga), 0, 0, 0));
+        // Corte = 00:00 UTC del día de la última carga. 'Última carga' es UserLocal y el import la graba
+        // a medianoche UTC; [CD] FechaCarga es DateOnly. Sin este ajuste, en UTC-6 todo parece "desaparecido".
+        Set(varCorteRec, With({d0: DateTime(Year(nfUltimaCarga), Month(nfUltimaCarga), Day(nfUltimaCarga), 0, 0, 0)},
+            DateAdd(d0, -TimeZoneOffset(d0), TimeUnit.Minutes)));
         // Lista de desaparecidas + conteos EXACTOS, en paralelo. Filtros delegables (choice por
         // valor + booleano + comparación de fecha — 00 §4.2). El nombre del cliente sale navegando
         // el lookup '[AS] Cuenta' (lo resuelve el servidor, sin catálogo de cuentas truncable).
@@ -249,7 +252,7 @@ Screens:
                               PaddingLeft: =0
                               Size: =9
                               Text: |-
-                                ="🏍️ " & Coalesce(ThisItem.'[AS] Agente'.'[AG] Nombre', "sin localizador") & " · última carga " & Text(ThisItem.'Última carga', "dd/mm")
+                                ="🏍️ " & Coalesce(ThisItem.'[AS] Agente'.'[AG] Nombre', "sin localizador") & " · última carga " & Text(DateAdd(ThisItem.'Última carga', TimeZoneOffset(ThisItem.'Última carga'), TimeUnit.Minutes), "dd/mm")
                               Width: =Parent.TemplateWidth * 0.4
                               X: =gblE.Pad + Parent.TemplateWidth * 0.4
                               Y: =10
@@ -353,7 +356,10 @@ Screens:
                           Notify("🧹 " & CountRows(colDesapRec) & " Diarias cerradas — motivo: fuera de cartera",
                               NotificationType.Success, 2500);
                           // Recarga — mismo bloque del OnVisible (corte del día recalculado)
-                          Set(varCorteRec, DateTime(Year(nfUltimaCarga), Month(nfUltimaCarga), Day(nfUltimaCarga), 0, 0, 0));
+                          // Corte = 00:00 UTC del día de la última carga. 'Última carga' es UserLocal y el import la graba
+                          // a medianoche UTC; [CD] FechaCarga es DateOnly. Sin este ajuste, en UTC-6 todo parece "desaparecido".
+                          Set(varCorteRec, With({d0: DateTime(Year(nfUltimaCarga), Month(nfUltimaCarga), Day(nfUltimaCarga), 0, 0, 0)},
+                              DateAdd(d0, -TimeZoneOffset(d0), TimeUnit.Minutes)));
                           // Lista acotada a 2000; el conteo es exacto (CountIf).
                           Concurrent(
                               ClearCollect(colDesapRec,
