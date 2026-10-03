@@ -805,6 +805,6 @@ Observación menor (no es bug): al buscar, la primera fila de `galCtaNva` / `gal
 4. Con los 41 escenarios en verde y delegación limpia, la suite queda como **regresión previa a cada despliegue**: `BO_RESULTADOS_DIR=$PWD/resultados/corrida-N node run.js` y revisar "Versión de la app probada" contra el último *Published*.
 
 
-### 11.x Corrección de B-20 (después de la corrida 4)
+### 11.10 Corrección de B-20 (después de la corrida 4)
 
 `scrNuevaSolicitud`: el tipo de solicitud pasa a ser **obligatorio**. El aviso agrega "tipo" a "Falta: …" cuando `cmbTipoNva.Selected.Value` está vacío, y `btnEnviarNva.DisplayMode` exige `!IsBlank(cmbTipoNva.Selected.Value)`. Así `Notas` nunca se graba como `" — motivo"`. Se mantiene el combo estático porque funciona; lo que se cerró es el hueco de validación.
