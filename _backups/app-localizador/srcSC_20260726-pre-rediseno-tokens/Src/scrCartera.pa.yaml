@@ -1,0 +1,788 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+Screens:
+  scrCartera:
+    Properties:
+      Fill: =gblC.screen
+      OnHidden: |-
+        =ForAll(Filter(colClientes, dirty) As C,
+             ForAll(Filter(colAsig, cid = C.cid) As A,
+                UpdateIf('CM | TBL | Asignacions',
+                   '[AS] NumeroCuenta' = A.'[AS] NumeroCuenta',
+                   { '[AS] Orden': C.orden })));
+          UpdateIf(colClientes, dirty, { dirty: false })
+      OnVisible: |-
+        =  If(!varCarteraLista || varRecargarCartera,
+          UpdateContext({varshowLoader: true});
+         ClearCollect(colAsigRaw, Filter('CM | TBL | Asignacions', '[AS] Estado' = true));
+         ClearCollect(colAsig,
+             AddColumns(
+                AddColumns(colAsigRaw,
+                   cta, LookUp(colCuentas, '[CT] Numero de cuenta' = '[AS] NumeroCuenta')),
+                cid,      cta.'CIF Cliente',
+                cliNom,   cta.'Nombre Cliente',
+                saldoNio, cta.'[CT] Saldo Vencido NIO',
+                saldoUsd, cta.'[CT] Saldo Vencido USD',
+                diasMora, cta.'[CT] Dias Mora',
+                ord,      '[AS] Orden'));
+
+          ClearCollect(colClientes,
+             AddColumns(
+                GroupBy(colAsig, cid, cliNom, Asigs),
+                orden,    Min(Asigs, ord),
+                totNio,   Sum(Asigs, saldoNio),
+                totUsd,   Sum(Asigs, saldoUsd),
+                maxDias,  Max(Asigs, diasMora),
+                nCuentas, CountRows(Asigs),
+                dirCasa,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'="Casa").'[DR] Direccion',
+                dirTrab,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'="Trabajo").'[DR] Direccion',
+                dirty,   false));
+            Set(varCarteraLista, true);
+             Set(varRecargarCartera, false);
+             Set(varFechaUltimaActualizacion, Now());
+             UpdateContext({varshowLoader: false});
+          )
+    Children:
+      - cmpNav_2:
+          Control: CanvasComponent
+          ComponentName: cmpNav
+          Properties:
+            Height: =64
+            Y: =Parent.Height - Self.Height
+      - conMaster:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            DropShadow: =DropShadow.None
+            Height: =Parent.Height - cmpNav_1.Height
+            LayoutAlignItems: =LayoutAlignItems.Center
+            LayoutDirection: =LayoutDirection.Vertical
+            LayoutGap: =12
+            PaddingBottom: =8
+            PaddingLeft: =8
+            PaddingRight: =8
+            PaddingTop: =8
+            Width: =Parent.Width
+          Children:
+            - conHeader_2:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  Fill: =gblC.teal
+                  FillPortions: =0
+                  Height: =Container12.Height + conTotal.Height + 40
+                  LayoutAlignItems: =LayoutAlignItems.Center
+                  LayoutDirection: =LayoutDirection.Vertical
+                  LayoutGap: =12
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  PaddingBottom: =9
+                  PaddingLeft: =10
+                  PaddingRight: =10
+                  PaddingTop: =6
+                Children:
+                  - Container12:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        DropShadow: =DropShadow.ExtraBold
+                        FillPortions: =0
+                        Height: =Max(lblTitulo_3.Height + lblSub_6.Height + lblSub_7.Height,Button1_2.Height + Button1_2.Y)  + 20
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                        Width: =conTotal.Width
+                        X: =40
+                        Y: =40
+                      Children:
+                        - lblSub_7:
+                            Control: Label@2.5.1
+                            Properties:
+                              AutoHeight: =true
+                              Color: =gblC.tealSub
+                              Height: =10
+                              Size: =gblT.f2xs
+                              Text: =varFechaUltimaActualizacion
+                              Y: =lblSub_6.Y + lblSub_6.Height
+                        - lblSub_6:
+                            Control: Label@2.5.1
+                            Properties:
+                              AutoHeight: =true
+                              Color: =gblC.tealSub
+                              Height: =10
+                              Size: =gblT.fsm
+                              Text: =CountRows(Distinct(colAsig, cid)) & " clientes · " & CountRows(colAsig) & " cuentas"
+                              Y: =lblTitulo_3.Height + lblTitulo_3.Y
+                        - lblTitulo_3:
+                            Control: Label@2.5.1
+                            Properties:
+                              AutoHeight: =true
+                              Color: =gblC.white
+                              Font: =gblFont
+                              FontWeight: =FontWeight.Bold
+                              Height: =10
+                              PaddingBottom: =0
+                              PaddingTop: =0
+                              Size: =gblT.fxl
+                              Text: ="Hola, "&User().FullName
+                        - Button1_2:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderStyle: =BorderStyle.None
+                              Color: =gblC.white
+                              Fill: =RGBA(255,255,255,0.18)
+                              Font: =
+                              FontWeight: =FontWeight.Normal
+                              Height: =30
+                              OnSelect: "=UpdateContext({varshowLoader: true});\r\n\r\nForAll(colClientes As C,\r\n     ForAll(Filter(colAsig, cid = C.cid) As A,\r\n        UpdateIf('CM | TBL | Asignacions',\r\n           '[AS] NumeroCuenta' = A.'[AS] NumeroCuenta',\r\n           { '[AS] Orden': C.orden })));\r\n\r\nClearCollect(colAsigRaw, Filter('CM | TBL | Asignacions', '[AS] Estado' = true));\r\nClearCollect(colAsig,\r\n     AddColumns(\r\n        AddColumns(colAsigRaw,\r\n           cta, LookUp(colCuentas, '[CT] Numero de cuenta' = '[AS] NumeroCuenta')),\r\n        cid,      cta.'CIF Cliente',\r\n        cliNom,   cta.'Nombre Cliente',\r\n        saldoNio, cta.'[CT] Saldo Vencido NIO',\r\n        saldoUsd, cta.'[CT] Saldo Vencido USD',\r\n        diasMora, cta.'[CT] Dias Mora',\r\n        ord,      '[AS] Orden'));\r\n\r\n  ClearCollect(colClientes,\r\n     AddColumns(\r\n        GroupBy(colAsig, cid, cliNom, Asigs),\r\n        orden,    Min(Asigs, ord),\r\n        totNio,   Sum(Asigs, saldoNio),\r\n        totUsd,   Sum(Asigs, saldoUsd),\r\n        maxDias,  Max(Asigs, diasMora),\r\n        nCuentas, CountRows(Asigs),\r\n        dirCasa,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'=\"Casa\").'[DR] Direccion',\r\n        dirTrab,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'=\"Trabajo\").'[DR] Direccion',\r\n        dirty,   false));\r\n    Set(varCarteraLista, true);\r\n     Set(varRecargarCartera, false);\r\n     Set(varFechaUltimaActualizacion, Now());\r\n     UpdateContext({varshowLoader: false});\r\n        "
+                              PaddingBottom: =7
+                              PaddingLeft: =11
+                              PaddingRight: =11
+                              PaddingTop: =7
+                              RadiusBottomLeft: =9
+                              RadiusBottomRight: =9
+                              RadiusTopLeft: =9
+                              RadiusTopRight: =9
+                              Size: =gblT.fxs
+                              Text: ="Actualizar"
+                              Width: =If(gblScale = 1, 110,gblScale = 1.2,120,gblScale = 1.45,130,140)
+                              X: =App.ActiveScreen.Width - Self.Width - 50
+                              Y: =Button1_1.Height + Button1_1.Y + 10
+                        - Button1_1:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderStyle: =BorderStyle.None
+                              Color: =gblC.white
+                              Fill: =RGBA(255,255,255,0.18)
+                              FontWeight: =FontWeight.Bold
+                              Height: =30
+                              OnSelect: =Set(varSheetEscala, true)
+                              PaddingBottom: =7
+                              PaddingLeft: =11
+                              PaddingRight: =11
+                              PaddingTop: =7
+                              RadiusBottomLeft: =9
+                              RadiusBottomRight: =9
+                              RadiusTopLeft: =9
+                              RadiusTopRight: =9
+                              Size: =gblT.fmd
+                              Text: ="Aa"
+                              Width: =If(gblScale = 1, 50,gblScale = 1.2,60,gblScale = 1.45,70,80)
+                              X: =App.ActiveScreen.Width - Self.Width - 50
+                              Y: =cmpSyncPill_2.Y + cmpSyncPill_2.Height + 10
+                        - cmpSyncPill_2:
+                            Control: CanvasComponent
+                            ComponentName: cmpSyncPill
+                            Properties:
+                              Height: =30
+                              Width: =If(gblScale = 1, 120,gblScale = 1.2,140,gblScale = 1.45,160,180)
+                              X: =App.ActiveScreen.Width - Self.Width - 50
+                              Y: =20
+                  - conTotal:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        Fill: =RGBA(255,255,255,0.12)
+                        FillPortions: =0
+                        Height: =lblTotalL.Height + lblTotalANIO.Height + lblTotalAUSD.Height + 20
+                        LayoutAlignItems: =LayoutAlignItems.Stretch
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutGap: =3
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingBottom: =10
+                        PaddingLeft: =14
+                        PaddingRight: =14
+                        PaddingTop: =10
+                        RadiusBottomLeft: =12
+                        RadiusBottomRight: =12
+                        RadiusTopLeft: =12
+                        RadiusTopRight: =12
+                      Children:
+                        - lblTotalL:
+                            Control: Label@2.5.1
+                            Properties:
+                              AutoHeight: =true
+                              Color: =gblC.tealSub
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =0
+                              Size: =gblT.fxs
+                              Text: ="A cobrar hoy"
+                        - lblTotalANIO:
+                            Control: Label@2.5.1
+                            Properties:
+                              AutoHeight: =true
+                              Color: =gblC.white
+                              FontWeight: =FontWeight.Bold
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =0
+                              PaddingTop: =0
+                              Size: =gblT.flg
+                              Text: ="C$   "&Text(Sum(colAsig, saldoNio),"#,###.00")
+                        - lblTotalAUSD:
+                            Control: Label@2.5.1
+                            Properties:
+                              AutoHeight: =true
+                              Color: =gblC.white
+                              FontWeight: =FontWeight.Bold
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =0
+                              Size: =gblT.flg
+                              Text: ="US$ "&Text(Sum(colAsig, saldoUsd),"#,###.00")
+            - conFiltros:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.screen
+                  FillPortions: =0
+                  Height: =120
+                  LayoutAlignItems: =LayoutAlignItems.Center
+                  LayoutDirection: =LayoutDirection.Vertical
+                  LayoutGap: =14
+                  LayoutMinWidth: =0
+                  PaddingLeft: =16
+                  PaddingRight: =16
+                  PaddingTop: =14
+                  X: =40
+                  Y: =40
+                Children:
+                  - Container10:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        Fill: =gblC.borderSoft
+                        FillPortions: =0
+                        Height: =40
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Horizontal
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingBottom: =8
+                        PaddingTop: =8
+                      Children:
+                        - lblOpt_1:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =Align.Center
+                              Color: =If(varFiltro=Self.Text, gblC.teal, gblC.ink3)
+                              Fill: =If(varFiltro=Self.Text, gblC.white, Color.Transparent)
+                              FillPortions: =1
+                              FontWeight: =If(varFiltro=Self.Text, FontWeight.Bold, FontWeight.Normal)
+                              Height: =Parent.Height
+                              LayoutMinWidth: =0
+                              OnSelect: =Set(varFiltro, Self.Text)
+                              Size: =gblT.fxs
+                              Text: ="Todos"
+                              Width: =
+                        - lblOpt_2:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =Align.Center
+                              Color: =If(varFiltro=Self.Text, gblC.teal, gblC.ink3)
+                              Fill: =If(varFiltro=Self.Text, gblC.white, Color.Transparent)
+                              FillPortions: =1
+                              FontWeight: =If(varFiltro=Self.Text, FontWeight.Bold, FontWeight.Normal)
+                              Height: =Parent.Height
+                              LayoutMinWidth: =0
+                              OnSelect: =Set(varFiltro, Self.Text)
+                              Size: =gblT.fxs
+                              Text: ="Diaria"
+                              Width: =
+                        - lblOpt_3:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =Align.Center
+                              Color: =If(varFiltro=Self.Text, gblC.teal, gblC.ink3)
+                              Fill: =If(varFiltro=Self.Text, gblC.white, Color.Transparent)
+                              FillPortions: =1
+                              FontWeight: =If(varFiltro=Self.Text, FontWeight.Bold, FontWeight.Normal)
+                              Height: =Parent.Height
+                              LayoutMinWidth: =0
+                              OnSelect: =Set(varFiltro, Self.Text)
+                              Size: =gblT.fxs
+                              Text: ="Incobrable"
+                              Width: =
+                        - lblOpt_4:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =Align.Center
+                              Color: =If(varFiltro="Especial", gblC.teal, gblC.ink3)
+                              Fill: =If(varFiltro="Especial", gblC.white, Color.Transparent)
+                              FillPortions: =1
+                              FontWeight: =If(varFiltro="Especial", FontWeight.Bold, FontWeight.Normal)
+                              Height: =Parent.Height
+                              LayoutMinWidth: =0
+                              OnSelect: =Set(varFiltro, Self.Text)
+                              Size: =gblT.fxs
+                              Text: ="Especial"
+                              Width: =
+                  - conSearch:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        BorderColor: =gblC.borderSoft
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.white
+                        FillPortions: =0
+                        Height: =If(gblScale = 1, 40,gblScale = 1.2,40,gblScale = 1.45,45,50)
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Horizontal
+                        LayoutGap: =9
+                        LayoutJustifyContent: =LayoutJustifyContent.Center
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingLeft: =12
+                        PaddingRight: =10
+                        RadiusBottomLeft: =12
+                        RadiusBottomRight: =12
+                        RadiusTopLeft: =12
+                        RadiusTopRight: =12
+                      Children:
+                        - icoBuscar:
+                            Control: Classic/Icon@2.5.0
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Stretch
+                              Color: =gblC.muted2
+                              Icon: =Icon.Search
+                              LayoutMinHeight: =18
+                              LayoutMinWidth: =16
+                              Width: =24
+                        - txtBuscar:
+                            Control: Classic/TextInput@2.3.2
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Stretch
+                              BorderThickness: =0
+                              Color: =gblC.muted2
+                              Default: ="Buscar cliente o cuenta…"
+                              Fill: =Color.Transparent
+                              FillPortions: =1
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              OnChange: =Set(varBuscar, Self.Text)
+                              Size: =gblT.fsm
+            - conResult_2:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  FillPortions: =0
+                  Height: =60
+                  LayoutAlignItems: =LayoutAlignItems.Center
+                  LayoutDirection: =LayoutDirection.Horizontal
+                  LayoutJustifyContent: =LayoutJustifyContent.SpaceBetween
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  LayoutWrap: =true
+                  PaddingBottom: =8
+                  PaddingLeft: =8
+                  PaddingRight: =8
+                  PaddingTop: =8
+                  X: =40
+                  Y: =40
+                Children:
+                  - lblResL_1:
+                      Control: Label@2.5.1
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Center
+                        AutoHeight: =true
+                        Color: =gblC.muted
+                        FillPortions: =1
+                        FontWeight: =FontWeight.Semibold
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Size: =gblT.fsm
+                        Text: =CountRows(galCartera_clientes.AllItems) & If(varModo="cliente"," clientes"," cuentas")
+                  - Container9_1:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Start
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.borderSoft
+                        Height: =If(gblScale = 1, 34,gblScale = 1.2,40,gblScale = 1.45,40,44)
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Horizontal
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingBottom: =2
+                        PaddingLeft: =2
+                        PaddingRight: =2
+                        PaddingTop: =2
+                        RadiusBottomLeft: =10
+                        RadiusBottomRight: =10
+                        RadiusTopLeft: =10
+                        RadiusTopRight: =10
+                        Visible: =false
+                      Children:
+                        - btnModoCli_1:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Stretch
+                              BorderStyle: =BorderStyle.None
+                              Color: =If(varModo="cliente", gblC.teal, gblC.ink3)
+                              Fill: =If(varModo="cliente", gblC.white, Color.Transparent)
+                              FillPortions: =1
+                              FontWeight: =If(varModo="cliente", FontWeight.Bold, FontWeight.Normal)
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              OnSelect: =Set(varModo, "cliente")
+                              RadiusBottomRight: =0
+                              RadiusTopRight: =0
+                              Size: =gblT.fxs
+                              Text: |-
+                                =" 👤 Cliente"
+                        - btnModoCta_1:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Stretch
+                              BorderStyle: =BorderStyle.None
+                              Color: =If(varModo="cuenta", gblC.teal, gblC.ink3)
+                              Fill: =If(varModo="cuenta", gblC.white, Color.Transparent)
+                              FillPortions: =1
+                              FontWeight: =If(varModo="cuenta", FontWeight.Bold, FontWeight.Normal)
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              OnSelect: =Set(varModo, "cuenta")
+                              RadiusBottomLeft: =0
+                              RadiusTopLeft: =0
+                              Size: =gblT.fxs
+                              Text: =" ▤ Cuenta"
+            - galCartera_clientes:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  AlignInContainer: =AlignInContainer.Start
+                  Fill: =gblC.screen
+                  Items: |-
+                    =SortByColumns(
+                            Filter(colClientes,
+                               (varFiltro = "Todos" || CountRows(Filter(Asigs, Text('[AS] Tipo')  = varFiltro)) > 0)
+                               && (varBuscar = "" || varBuscar in cliNom
+                                                  || CountRows(Filter(Asigs, varBuscar in '[AS] NumeroCuenta')) > 0)),
+                            "orden", SortOrder.Ascending)
+
+                      /*If(varModo = "cuenta",
+                         SortByColumns(
+                            Filter(colAsig,
+                               (varFiltro = "Todos" || Text('[AS] Tipo') = varFiltro)
+                               && (varBuscar = "" || varBuscar in cliNom || varBuscar in '[AS] NumeroCuenta')),
+                            "ord", SortOrder.Ascending, "sanic_cm_as_numerocuenta", SortOrder.Ascending),
+                         SortByColumns(
+                            Filter(colClientes,
+                               (varFiltro = "Todos" || CountRows(Filter(Asigs, Text('[AS] Tipo')  = varFiltro)) > 0)
+                               && (varBuscar = "" || varBuscar in cliNom
+                                                  || CountRows(Filter(Asigs, varBuscar in '[AS] NumeroCuenta')) > 0)),
+                            "orden", SortOrder.Ascending))*/
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  ShowScrollbar: =false
+                  TemplatePadding: =12
+                  TemplateSize: '=If(gblScale = 1, 170,gblScale = 1.2,200,gblScale = 1.45,260,300) '
+                  Visible: =varModo = "cliente"
+                  Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                Children:
+                  - conCard:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        BorderColor: =gblC.cardBorder
+                        BorderThickness: =1
+                        Fill: =gblC.white
+                        Height: =Parent.TemplateHeight
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Horizontal
+                        LayoutGap: =6
+                        PaddingBottom: =14
+                        PaddingLeft: =16
+                        PaddingRight: =12
+                        PaddingTop: =14
+                        RadiusBottomLeft: =14
+                        RadiusBottomRight: =14
+                        RadiusTopLeft: =14
+                        RadiusTopRight: =14
+                        Width: =Parent.TemplateWidth
+                      Children:
+                        - conCardMain:
+                            Control: GroupContainer@1.5.0
+                            Variant: AutoLayout
+                            Properties:
+                              DropShadow: =DropShadow.None
+                              LayoutAlignItems: =LayoutAlignItems.Center
+                              LayoutDirection: =LayoutDirection.Vertical
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              Width: =Parent.Width
+                            Children:
+                              - conR1:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: AutoLayout
+                                  Properties:
+                                    DropShadow: =DropShadow.None
+                                    FillPortions: =0
+                                    Height: =If(gblScale = 1, 50,gblScale = 1.2,60,gblScale = 1.45,90,100)
+                                    LayoutAlignItems: =LayoutAlignItems.Center
+                                    LayoutDirection: =LayoutDirection.Horizontal
+                                    LayoutGap: =8
+                                    LayoutJustifyContent: =LayoutJustifyContent.SpaceBetween
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    LayoutWrap: =true
+                                    PaddingBottom: =8
+                                    PaddingLeft: =8
+                                    PaddingRight: =8
+                                    PaddingTop: =8
+                                  Children:
+                                    - lblNombre:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          AutoHeight: =true
+                                          Color: =gblC.ink
+                                          FillPortions: =1
+                                          FontWeight: =FontWeight.Bold
+                                          LayoutMinHeight: =16
+                                          LayoutMinWidth: =16
+                                          Size: =gblT.fmd
+                                          Text: =ThisItem.cliNom
+                                    - Container15:
+                                        Control: GroupContainer@1.5.0
+                                        Variant: ManualLayout
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Center
+                                          DropShadow: =DropShadow.None
+                                          FillPortions: =0
+                                          Height: =If(gblScale = 1, 28,gblScale = 1.2,28,gblScale = 1.45,30,35)
+                                          LayoutMinHeight: =16
+                                          LayoutMinWidth: =16
+                                          RadiusBottomLeft: =10
+                                          RadiusBottomRight: =10
+                                          RadiusTopLeft: =10
+                                          RadiusTopRight: =10
+                                          Width: =If(gblScale = 1, 100,gblScale = 1.2,120,gblScale = 1.45,140,160)
+                                        Children:
+                                          - lblCnt:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                Align: =Align.Center
+                                                AutoHeight: =true
+                                                Color: =gblC.muted
+                                                Fill: =gblC.screen
+                                                Height: =30
+                                                PaddingBottom: =0
+                                                PaddingLeft: =9
+                                                PaddingRight: =9
+                                                PaddingTop: =3
+                                                Size: =gblT.fxs
+                                                Text: =ThisItem.nCuentas & " cuenta(s)"
+                                                Width: =Parent.Width
+                              - lblDiv:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    Fill: =gblC.screen
+                                    Height: =1
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    Text: =
+                              - conR2:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: AutoLayout
+                                  Properties:
+                                    DropShadow: =DropShadow.None
+                                    LayoutAlignItems: =LayoutAlignItems.Center
+                                    LayoutDirection: =LayoutDirection.Horizontal
+                                    LayoutGap: =10
+                                    LayoutJustifyContent: =LayoutJustifyContent.SpaceBetween
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    LayoutWrap: =true
+                                    PaddingBottom: =8
+                                    PaddingLeft: =8
+                                    PaddingRight: =8
+                                    PaddingTop: =8
+                                  Children:
+                                    - conCobrar:
+                                        Control: GroupContainer@1.5.0
+                                        Variant: AutoLayout
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Start
+                                          DropShadow: =DropShadow.None
+                                          Height: =conR2.Height
+                                          LayoutAlignItems: =LayoutAlignItems.Center
+                                          LayoutDirection: =LayoutDirection.Vertical
+                                          LayoutGap: =1
+                                          LayoutJustifyContent: =LayoutJustifyContent.Center
+                                          LayoutMinHeight: =16
+                                          LayoutMinWidth: =16
+                                          PaddingBottom: =8
+                                          PaddingLeft: =8
+                                          PaddingRight: =8
+                                          PaddingTop: =8
+                                        Children:
+                                          - lblDireccionCasa:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                AutoHeight: =true
+                                                Color: =gblC.teal
+                                                FillPortions: =1
+                                                FontWeight: =FontWeight.Bold
+                                                LayoutMinHeight: =16
+                                                LayoutMinWidth: =16
+                                                PaddingBottom: =0
+                                                PaddingTop: =0
+                                                Size: =gblT.fxs
+                                                Text: |-
+                                                  ="🏠 "& Coalesce(ThisItem.dirCasa, "—")
+                                                Width: =150
+                                          - lblDireccionTrabajo:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                AutoHeight: =true
+                                                Color: =gblC.teal
+                                                FillPortions: =1
+                                                FontWeight: =FontWeight.Bold
+                                                LayoutMinHeight: =16
+                                                LayoutMinWidth: =16
+                                                PaddingBottom: =0
+                                                PaddingTop: =0
+                                                Size: =gblT.fxs
+                                                Text: |-
+                                                  ="💼 "& Coalesce(ThisItem.dirTrab, "—")
+                                                Width: =150
+                        - conArr:
+                            Control: GroupContainer@1.5.0
+                            Variant: AutoLayout
+                            Properties:
+                              DropShadow: =DropShadow.None
+                              FillPortions: =0
+                              LayoutAlignItems: =LayoutAlignItems.Center
+                              LayoutDirection: =LayoutDirection.Vertical
+                              LayoutGap: =14
+                              LayoutJustifyContent: =LayoutJustifyContent.SpaceBetween
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =10
+                              PaddingTop: =10
+                              Width: =30
+                            Children:
+                              - icoUp:
+                                  Control: Classic/Icon@2.5.0
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    Color: =gblC.muted2
+                                    Fill: =gblC.screen
+                                    Height: =Self.Width
+                                    Icon: =Icon.ChevronUp
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    OnSelect: |-
+                                      =With(
+                                          { miCid: ThisItem.cid, mio: ThisItem.orden,
+                                            obj:   Max(Filter(colClientes, orden < ThisItem.orden), orden) },
+                                          If(!IsBlank(obj),
+                                             UpdateIf(colClientes, orden = obj, { orden: mio, dirty: true });
+                                             UpdateIf(colClientes, cid = miCid, { orden: obj, dirty: true })))
+                              - Label1:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    Align: =Align.Center
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    AutoHeight: =true
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    Size: =10
+                                    Text: =ThisItem.orden
+                              - icoDown:
+                                  Control: Classic/Icon@2.5.0
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    Color: =gblC.muted2
+                                    Fill: =gblC.screen
+                                    Height: =Self.Width
+                                    Icon: =Icon.ChevronDown
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    OnSelect: |-
+                                      =With(
+                                          { miCid: ThisItem.cid, mio: ThisItem.orden,
+                                            obj:   Min(Filter(colClientes, orden > ThisItem.orden), orden) },
+                                          If(!IsBlank(obj),
+                                             UpdateIf(colClientes, orden = obj, { orden: mio, dirty: true });
+                                             UpdateIf(colClientes, cid = miCid, { orden: obj, dirty: true })))
+                  - Button5:
+                      Control: ModernButton@1.0.0
+                      Properties:
+                        Appearance: =ButtonAppearance.Transparent
+                        Height: =Parent.TemplateHeight - Self.Y - 16
+                        OnSelect: |-
+                          =Set(varCliente, ThisItem.cid);
+                          Set(varCliTab,"cuentas"); Navigate(scrCliente, ScreenTransition.Cover)
+                        Text: =
+                        Width: =Parent.TemplateWidth - Self.X - 12 - conArr.Width - 20
+                        X: =14
+                        Y: =14
+            - galCartera_cuenta:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  AlignInContainer: =AlignInContainer.Start
+                  Fill: =gblC.screen
+                  Items: |-
+                    =SortByColumns(
+                            Filter(colAsig,
+                               (varFiltro = "Todos" || Text('[AS] Tipo') = varFiltro)
+                               && (varBuscar = "" || varBuscar in cliNom || varBuscar in '[AS] NumeroCuenta')),
+                            "ord", SortOrder.Ascending, "sanic_cm_as_numerocuenta", SortOrder.Ascending)
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  TemplatePadding: =12
+                  Visible: =varModo = "cuenta"
+                  Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                Children:
+                  - Container10_1:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        Height: =14
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Horizontal
+                        PaddingBottom: =8
+                        PaddingLeft: =8
+                        PaddingRight: =8
+                        PaddingTop: =8
+                        Width: =Parent.TemplateWidth
+      - cmpSheet_2:
+          Control: CanvasComponent
+          ComponentName: cmpSheet
+          Properties:
+            Height: =Parent.Height
+            Visible: =varSheetEscala
+            Width: =Parent.Width
+      - contLoadingSpinner:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            Fill: =RGBA(0, 0, 0, .80)
+            Height: =Parent.Height
+            Visible: =varshowLoader
+            Width: =Parent.Width
+          Children:
+            - Spinner1:
+                Control: Spinner@1.4.6
+                Properties:
+                  FontColor: =RGBA(255, 255, 255, 1)
+                  Height: =Parent.Height
+                  Label: ="Cargando datos..."
+                  LabelPosition: ='Spinner.LabelPosition'.Below
+                  SpinnerSize: ='Spinner.SpinnerSize'.Huge
+                  Width: =Parent.Width

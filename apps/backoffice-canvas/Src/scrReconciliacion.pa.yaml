@@ -1,0 +1,444 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+Screens:
+  scrReconciliacion:
+    Properties:
+      Fill: =gblC.pantalla
+      OnVisible: |-
+        =// Corte del DÍA de la última carga (se compara por fecha, no fecha+hora): una Diaria cargada
+        // segundos antes del máximo NO es "desaparecida". Lado derecho constante → la comparación delega.
+        // Corte = 00:00 UTC del día de la última carga. 'Última carga' es UserLocal y el import la graba
+        // a medianoche UTC; [CD] FechaCarga es DateOnly. Sin este ajuste, en UTC-6 todo parece "desaparecido".
+        Set(varCorteRec, With({d0: DateTime(Year(nfUltimaCarga), Month(nfUltimaCarga), Day(nfUltimaCarga), 0, 0, 0)},
+            DateAdd(d0, -TimeZoneOffset(d0), TimeUnit.Minutes)));
+        // Lista de desaparecidas + conteos EXACTOS, en paralelo. Filtros delegables (choice por
+        // valor + booleano + comparación de fecha — 00 §4.2). El nombre del cliente sale navegando
+        // el lookup '[AS] Cuenta' (lo resuelve el servidor, sin catálogo de cuentas truncable).
+        // Lista acotada a 2000; el conteo es exacto (CountIf).
+        Concurrent(
+            ClearCollect(colDesapRec,
+                AddColumns(
+                    Filter('CM | TBL | Asignacions',
+                        '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
+                        && '[AS] Estado' = true
+                        && 'Última carga' < varCorteRec
+                    ),
+                    clienteRec,
+                    Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—"))
+                )
+            ),
+            Set(varNDesapRec,
+                CountIf('CM | TBL | Asignacions',
+                    '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
+                    && '[AS] Estado' = true
+                    && 'Última carga' < varCorteRec
+                )
+            ),
+            Set(varNDiariasRec,
+                CountIf('CM | TBL | Asignacions',
+                    '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
+                    && '[AS] Estado' = true
+                )
+            )
+        );
+        // Estado de pantalla. El Reset es obligatorio: el valor de la casilla PERSISTE entre
+        // visitas (gotcha 01) — sin él, un cierre confirmado ayer deja el botón armado hoy.
+        Set(varPctRec, Round(100 * varNDesapRec / Max(1, varNDiariasRec), 0));
+        Set(varRojoRec, varPctRec > 30);
+        Reset(chkConfirmarRec)
+    Children:
+      - cmpEncabezadoRec:
+          Control: CanvasComponent
+          ComponentName: cmpEncabezado
+          Properties:
+            Height: =If(nfMovil, gblE.AltoBarra + 84, 84)
+            Subtitulo: ="Cuentas Diarias activas que NO vinieron en la última carga."
+            Titulo: ="Reconciliación de Diarias"
+            Width: =Parent.Width - Self.X
+            X: =If(nfMovil, 0, gblE.AnchoNav)
+      - conContenidoRec:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            DropShadow: =DropShadow.None
+            Fill: =Color.Transparent
+            Height: =Parent.Height - Self.Y
+            Width: =Min(gblE.AnchoMax, Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - 2*gblE.Pad)
+            X: |-
+              =If(nfMovil, 0, gblE.AnchoNav)
+                  + Max(gblE.Pad, (Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - gblE.AnchoMax) / 2)
+            Y: =cmpEncabezadoRec.Y + cmpEncabezadoRec.Height
+          Children:
+            - conBloqueoRec:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderColor: =gblC.redInk
+                  BorderThickness: =1
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.redBg
+                  Height: =64
+                  RadiusBottomLeft: =gblE.Radio
+                  RadiusBottomRight: =gblE.Radio
+                  RadiusTopLeft: =gblE.Radio
+                  RadiusTopRight: =gblE.Radio
+                  Visible: =nfUltimaCarga < Today()
+                  Width: =Min(gblE.AnchoMax, Parent.Width - 2*gblE.Pad)
+                  X: =gblE.Pad
+                  Y: =gblE.PadSm
+                Children:
+                  - lblBloqueoRec:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.redInk
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =Parent.Height
+                        PaddingLeft: =0
+                        Size: =10
+                        Text: ="⛔ Todavía no llegó la carga de HOY — la reconciliación se corre DESPUÉS del import."
+                        Width: =Parent.Width - 2*gblE.Pad
+                        X: =gblE.Pad
+            - conResumenRec:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderColor: =If(varRojoRec, gblC.redInk, gblC.borde)
+                  BorderThickness: =1
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.card
+                  Height: =116 + If(varNDesapRec > CountRows(colDesapRec), 22, 0)
+                  RadiusBottomLeft: =gblE.Radio
+                  RadiusBottomRight: =gblE.Radio
+                  RadiusTopLeft: =gblE.Radio
+                  RadiusTopRight: =gblE.Radio
+                  Width: =Min(gblE.AnchoMax, Parent.Width - 2*gblE.Pad)
+                  X: =gblE.Pad
+                  Y: =conBloqueoRec.Y + If(conBloqueoRec.Visible, conBloqueoRec.Height + gblE.PadSm, 0)
+                Children:
+                  - lblResumenRec:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =24
+                        PaddingLeft: =0
+                        Size: =11
+                        Text: =varNDesapRec & " de " & varNDiariasRec & " Diarias activas (" & varPctRec & "%) quedaron fuera de la cartera"
+                        Width: =Parent.Width - 2*gblE.Pad
+                        Wrap: =false
+                        X: =gblE.Pad
+                        Y: =gblE.PadSm
+                  - conMeterRec:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.hairline
+                        Height: =8
+                        RadiusBottomLeft: =99
+                        RadiusBottomRight: =99
+                        RadiusTopLeft: =99
+                        RadiusTopRight: =99
+                        Width: =Parent.Width - 2*gblE.Pad
+                        X: =gblE.Pad
+                        Y: =lblResumenRec.Y + lblResumenRec.Height + gblE.PadSm
+                      Children:
+                        - recMeterRec:
+                            Control: GroupContainer@1.5.0
+                            Variant: ManualLayout
+                            Properties:
+                              BorderThickness: =0
+                              DropShadow: =DropShadow.None
+                              Fill: =If(varRojoRec, gblC.redInk, gblC.teal)
+                              Height: =8
+                              Width: =Parent.Width * Min(varPctRec, 100) / 100
+                  - lblUmbralRec:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =If(varRojoRec, gblC.redInk, gblC.muted)
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =34
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: |-
+                          =If(varRojoRec,
+                              "⛔ Umbral superado (>30%). Esto huele a archivo truncado — NO cierres en lote. Verificá la carga primero.",
+                              "Umbral de cordura: si superara el 30%, se bloquea el cierre en lote.")
+                        VerticalAlign: =VerticalAlign.Top
+                        Width: =Parent.Width - 2*gblE.Pad
+                        X: =gblE.Pad
+                        Y: =conMeterRec.Y + conMeterRec.Height + gblE.PadSm
+                  - lblTopeRec:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.muted
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =22
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: ="Mostrando las primeras " & CountRows(colDesapRec) & " — el cierre en lote procesa lo listado; repetí hasta vaciar"
+                        Visible: =varNDesapRec > CountRows(colDesapRec)
+                        Width: =Parent.Width - 2*gblE.Pad
+                        Wrap: =false
+                        X: =gblE.Pad
+                        Y: =lblUmbralRec.Y + lblUmbralRec.Height
+            - conListaRec:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.card
+                  Height: =Parent.Height - Self.Y - If(CountRows(colDesapRec) > 0, 156 + gblE.PadSm, 0) - gblE.Pad
+                  RadiusBottomLeft: =gblE.Radio
+                  RadiusBottomRight: =gblE.Radio
+                  RadiusTopLeft: =gblE.Radio
+                  RadiusTopRight: =gblE.Radio
+                  Width: =Min(gblE.AnchoMax, Parent.Width - 2*gblE.Pad)
+                  X: =gblE.Pad
+                  Y: =conResumenRec.Y + conResumenRec.Height + gblE.PadSm
+                Children:
+                  - galDesapRec:
+                      Control: Gallery@2.15.0
+                      Variant: Vertical
+                      Properties:
+                        AccessibleLabel: ="Diarias activas fuera de cartera"
+                        DisplayMode: =DisplayMode.View
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Height: =Parent.Height
+                        Items: =colDesapRec
+                        ShowScrollbar: =false
+                        TemplatePadding: =0
+                        TemplateSize: =gblE.AltoFila
+                        Width: =Parent.Width
+                      Children:
+                        - lblClienteRec:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.ink
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Semibold
+                              Height: =22
+                              PaddingLeft: =0
+                              Size: =10
+                              Text: =ThisItem.clienteRec
+                              Width: =Parent.TemplateWidth * 0.4
+                              Wrap: =false
+                              X: =gblE.Pad
+                              Y: =10
+                        - lblCuentaRec:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.muted
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              Height: =20
+                              PaddingLeft: =0
+                              Size: =9
+                              Text: =ThisItem.'[AS] NumeroCuenta'
+                              Width: =Parent.TemplateWidth * 0.4
+                              Wrap: =false
+                              X: =gblE.Pad
+                              Y: =32
+                        - lblAgenteRec:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.ink2
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              Height: =44
+                              PaddingLeft: =0
+                              Size: =9
+                              Text: |-
+                                =// If corta antes de TimeZoneOffset: en el template vacío de la galería ThisItem es Blank
+                                // y TimeZoneOffset(Blank) es error de runtime ("expected a valid date value").
+                                "🏍️ " & Coalesce(ThisItem.'[AS] Agente'.'[AG] Nombre', "sin localizador") & " · última carga " &
+                                    If(IsBlank(ThisItem.'Última carga'), "—",
+                                        Text(DateAdd(ThisItem.'Última carga', TimeZoneOffset(ThisItem.'Última carga'), TimeUnit.Minutes), "dd/mm"))
+                              Width: =Parent.TemplateWidth * 0.4
+                              X: =gblE.Pad + Parent.TemplateWidth * 0.4
+                              Y: =10
+                        - chpDiariaRec:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderThickness: =0
+                              Color: =gblC.diariaInk
+                              DisplayMode: =DisplayMode.View
+                              Fill: =gblC.diariaBg
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =26
+                              RadiusBottomLeft: =8
+                              RadiusBottomRight: =8
+                              RadiusTopLeft: =8
+                              RadiusTopRight: =8
+                              Size: =8
+                              Text: ="Diaria"
+                              Width: =14 + 7*Len(Self.Text)
+                              X: =Parent.TemplateWidth - Self.Width - gblE.Pad
+                              Y: =(Parent.TemplateHeight - Self.Height) / 2
+                        - recSepRec:
+                            Control: GroupContainer@1.5.0
+                            Variant: ManualLayout
+                            Properties:
+                              BorderThickness: =0
+                              DropShadow: =DropShadow.None
+                              Fill: =gblC.hairline
+                              Height: =1
+                              Width: =Parent.TemplateWidth
+                              Y: =Parent.TemplateHeight - 1
+                  - cmpVacioRec:
+                      Control: CanvasComponent
+                      ComponentName: cmpVacio
+                      Properties:
+                        Height: =200
+                        Icono: ="✨"
+                        Mensaje: ="Todas las Diarias activas vinieron en la carga."
+                        Titulo: ="Cartera cuadrada"
+                        Visible: =CountRows(colDesapRec) = 0
+                        Width: =Min(420, Parent.Width - 2*gblE.Pad)
+                        X: =(Parent.Width - Self.Width) / 2
+                        Y: =(Parent.Height - Self.Height) / 2
+            - conAccionRec:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.card
+                  Height: =156
+                  RadiusBottomLeft: =gblE.Radio
+                  RadiusBottomRight: =gblE.Radio
+                  RadiusTopLeft: =gblE.Radio
+                  RadiusTopRight: =gblE.Radio
+                  Visible: =CountRows(colDesapRec) > 0
+                  Width: =Min(gblE.AnchoMax, Parent.Width - 2*gblE.Pad)
+                  X: =gblE.Pad
+                  Y: =conListaRec.Y + conListaRec.Height + gblE.PadSm
+                Children:
+                  - chkConfirmarRec:
+                      Control: Classic/CheckBox@2.1.0
+                      Properties:
+                        Color: =gblC.ink
+                        DisplayMode: =If(varRojoRec || nfUltimaCarga < Today(), DisplayMode.Disabled, DisplayMode.Edit)
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =48
+                        Size: =9
+                        Text: |-
+                          ="Confirmo: revisé la lista y la carga de hoy es correcta (cierre con motivo ""fuera de cartera"")"
+                        Width: =Parent.Width - 2*gblE.Pad
+                        X: =gblE.Pad
+                        Y: =gblE.PadSm
+                  - btnCerrarRec:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =gblC.redInk
+                        DisabledColor: =Color.White
+                        DisabledFill: =ColorFade(gblC.redBg, 60%)
+                        DisplayMode: =If(chkConfirmarRec.Value && !varRojoRec && nfUltimaCarga >= Today(), DisplayMode.Edit, DisplayMode.Disabled)
+                        Fill: =gblC.redBg
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoBoton
+                        HoverFill: =ColorFade(gblC.redBg, 10%)
+                        OnSelect: |-
+                          =// UN solo Patch masivo: ForAll DEVUELVE la tabla de cambios (no muta adentro) y
+                          // cada registro lleva la PK ('CM | TBL | Asignacion') → Patch actualiza esas filas.
+                          // Sin LookUp por fila: colDesapRec ya trae la PK desde el Filter del OnVisible.
+                          // Si algún día el lote legítimo fuera de CIENTOS, esto se muda a un flow/acción
+                          // server-side que cierre en una transacción.
+                          // IfError (B-03): si el Patch masivo falla, detalle y sin aviso de éxito ni recarga.
+                          IfError(
+                              Patch('CM | TBL | Asignacions',
+                                  ForAll(colDesapRec As D,
+                                      {
+                                          'CM | TBL | Asignacion': D.'CM | TBL | Asignacion',
+                                          '[AS] Estado': false,
+                                          '[AS] Motivo': "fuera de cartera",
+                                          'Fecha de cierre': Now()
+                                      }
+                                  )
+                              ),
+                              Notify("No se pudo cerrar el lote de " & CountRows(colDesapRec) & " Diarias: " & FirstError.Message,
+                                  NotificationType.Error),
+                              Notify("🧹 " & CountRows(colDesapRec) & " Diarias cerradas — motivo: fuera de cartera",
+                                  NotificationType.Success, 2500);
+                              // Recarga — mismo bloque del OnVisible (corte del día recalculado)
+                              // Corte = 00:00 UTC del día de la última carga. 'Última carga' es UserLocal y el import la graba
+                              // a medianoche UTC; [CD] FechaCarga es DateOnly. Sin este ajuste, en UTC-6 todo parece "desaparecido".
+                              Set(varCorteRec, With({d0: DateTime(Year(nfUltimaCarga), Month(nfUltimaCarga), Day(nfUltimaCarga), 0, 0, 0)},
+                                  DateAdd(d0, -TimeZoneOffset(d0), TimeUnit.Minutes)));
+                              // Lista acotada a 2000; el conteo es exacto (CountIf).
+                              Concurrent(
+                                  ClearCollect(colDesapRec,
+                                      AddColumns(
+                                          Filter('CM | TBL | Asignacions',
+                                              '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
+                                              && '[AS] Estado' = true
+                                              && 'Última carga' < varCorteRec
+                                          ),
+                                          clienteRec,
+                                          Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—"))
+                                      )
+                                  ),
+                                  Set(varNDesapRec,
+                                      CountIf('CM | TBL | Asignacions',
+                                          '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
+                                          && '[AS] Estado' = true
+                                          && 'Última carga' < varCorteRec
+                                      )
+                                  ),
+                                  Set(varNDiariasRec,
+                                      CountIf('CM | TBL | Asignacions',
+                                          '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
+                                          && '[AS] Estado' = true
+                                      )
+                                  )
+                              );
+                              Set(varPctRec, Round(100 * varNDesapRec / Max(1, varNDiariasRec), 0));
+                              Set(varRojoRec, varPctRec > 30);
+                              Reset(chkConfirmarRec)
+                          )
+                        Size: =10
+                        Text: |-
+                          ="🧹 Cerrar " & CountRows(colDesapRec) & " asignaciones en lote"
+                        Width: =Parent.Width - 2*gblE.Pad
+                        X: =gblE.Pad
+                        Y: =chkConfirmarRec.Y + chkConfirmarRec.Height + gblE.PadSm
+      - cmpNavRec:
+          Control: CanvasComponent
+          ComponentName: cmpNavLateral
+          Properties:
+            Height: =Parent.Height
+            RutaActiva: ="rec"
+            Visible: =!nfMovil || gblNavMovilAbierta
+            Width: =gblE.AnchoNav

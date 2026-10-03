@@ -1,0 +1,858 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+Screens:
+  scrTranscritas:
+    Properties:
+      Fill: =gblC.pantalla
+      OnVisible: |-
+        =// 2) Fuentes independientes en paralelo (delegables). El KPI TRANSCRITAS es conteo EXACTO
+        //    directo al datasource (CountIf delega) con la MISMA condición del Filter del paso 3.
+        Concurrent(
+            ClearCollect(colPagosHoyTsc,
+                Filter('CM | TBL | Pagos', 'Fecha del pago' >= Today())),
+            Set(varNTscTsc,
+                CountIf('CM | TBL | Interaccions',
+                    '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Grabado
+                    && '[IN] Fecha grabacion' >= Today()
+                    && '[IN] Grabado por'.User = gblUsuarioDV.User))
+        );
+        // 3) Arqueo del día (base en colTscTmpTsc): SOLO lo grabado HOY por MÍ.
+        //    choice por valor + comparación de fecha + lookup por registro = delegable (00 §4.2).
+        //    Datos de la cuenta navegando el lookup '[IN] Cuenta' (lo resuelve el servidor, sin
+        //    catálogo de cuentas truncable al Data row limit).
+        ClearCollect(colTscTmpTsc,
+            AddColumns(
+                Filter('CM | TBL | Interaccions',
+                    '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Grabado
+                    && '[IN] Fecha grabacion' >= Today()
+                    && '[IN] Grabado por'.User = gblUsuarioDV.User),
+                clienteTsc, Upper(Coalesce(ThisRecord.'[IN] Cuenta'.'Nombre Cliente', "—")),   // LED-01
+                cifTsc, Coalesce(ThisRecord.'[IN] Cuenta'.'CIF Cliente', "—"),
+                prodTsc, Coalesce(ThisRecord.'[IN] Cuenta'.'Tipo Producto', "—")
+            )
+        );
+        // 4) Pagos del arqueo = pagos de HOY (ya en memoria) ∩ mis transcritas.
+        //    Filter sobre COLECCIÓN → cero delegación involucrada: permitido (00 §4.1).
+        ClearCollect(colPagosTsc,
+            Filter(colPagosHoyTsc,
+                !IsBlank(LookUp(colTscTmpTsc, '[IN] Numero de Interaccion' = '[PG] Numero Interaccion'))));
+        // 5) Chip 💵 de la fila: montos por interacción HORNEADOS una vez (todo sobre colecciones,
+        //    en memoria — R1-02). La base vive en colTscTmpTsc (SIN pagos*) y colTscTsc se escribe
+        //    UNA sola vez ya con pagos*: si AddColumns leyera colTscTsc, su esquema ya trae
+        //    pagosNioTsc → "A column named 'pagosNioTsc' already exists".
+        ClearCollect(colTscTsc,
+            AddColumns(colTscTmpTsc,
+                pagosNioTsc, Sum(Filter(colPagosTsc,
+                    '[PG] Numero Interaccion' = '[IN] Numero de Interaccion'
+                    && '[PG] Moneda' = 'Choice | CM | Monedas en Pago'.NIO), '[PG] Monto'),
+                pagosUsdTsc, Sum(Filter(colPagosTsc,
+                    '[PG] Numero Interaccion' = '[IN] Numero de Interaccion'
+                    && '[PG] Moneda' = 'Choice | CM | Monedas en Pago'.USD), '[PG] Monto')
+            )
+        );
+        // 6) Estado del panel
+        Set(varSelTsc, Blank());
+        Set(varPanelTsc, false)
+    Children:
+      - cmpEncTsc:
+          Control: CanvasComponent
+          ComponentName: cmpEncabezado
+          Properties:
+            Height: =If(nfMovil, gblE.AltoBarra + 84, 84)
+            Subtitulo: ="Tu arqueo del día — código grabado y auditoría sellada."
+            Titulo: ="Transcritas hoy"
+            Width: =Parent.Width - Self.X
+            X: =If(nfMovil, 0, gblE.AnchoNav)
+      - btnActualizarTsc:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =gblC.borde
+            BorderThickness: =1
+            Color: =gblC.ink2
+            Fill: =gblC.card
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
+            Font: =Font.'Segoe UI'
+            Height: =gblE.AltoInput
+            OnSelect: |-
+              =Concurrent(
+                  ClearCollect(colPagosHoyTsc,
+                      Filter('CM | TBL | Pagos', 'Fecha del pago' >= Today())),
+                  Set(varNTscTsc,
+                      CountIf('CM | TBL | Interaccions',
+                          '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Grabado
+                          && '[IN] Fecha grabacion' >= Today()
+                          && '[IN] Grabado por'.User = gblUsuarioDV.User))
+              );
+              ClearCollect(colTscTmpTsc,
+                  AddColumns(
+                      Filter('CM | TBL | Interaccions',
+                          '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Grabado
+                          && '[IN] Fecha grabacion' >= Today()
+                          && '[IN] Grabado por'.User = gblUsuarioDV.User),
+                      clienteTsc, Upper(Coalesce(ThisRecord.'[IN] Cuenta'.'Nombre Cliente', "—")),
+                      cifTsc, Coalesce(ThisRecord.'[IN] Cuenta'.'CIF Cliente', "—"),
+                      prodTsc, Coalesce(ThisRecord.'[IN] Cuenta'.'Tipo Producto', "—")
+                  )
+              );
+              ClearCollect(colPagosTsc,
+                  Filter(colPagosHoyTsc,
+                      !IsBlank(LookUp(colTscTmpTsc, '[IN] Numero de Interaccion' = '[PG] Numero Interaccion'))));
+              ClearCollect(colTscTsc,
+                  AddColumns(colTscTmpTsc,
+                      pagosNioTsc, Sum(Filter(colPagosTsc,
+                          '[PG] Numero Interaccion' = '[IN] Numero de Interaccion'
+                          && '[PG] Moneda' = 'Choice | CM | Monedas en Pago'.NIO), '[PG] Monto'),
+                      pagosUsdTsc, Sum(Filter(colPagosTsc,
+                          '[PG] Numero Interaccion' = '[IN] Numero de Interaccion'
+                          && '[PG] Moneda' = 'Choice | CM | Monedas en Pago'.USD), '[PG] Monto')
+                  )
+              );
+              Notify("✓ Arqueo actualizado", NotificationType.Success, 2500)   // LED-05
+            Size: =10
+            Text: ="↻ Actualizar"
+            Width: =140
+            X: =conKpisTsc.X + conKpisTsc.Width - Self.Width
+            Y: =cmpEncTsc.Y + (cmpEncTsc.Height - Self.Height)/2
+      - conKpisTsc:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            DropShadow: =DropShadow.None
+            Fill: =Color.Transparent
+            Height: =If(nfMovil, 2*96 + gblE.PadSm, 96)
+            Width: =Min(gblE.AnchoMax, Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - 2*gblE.Pad)
+            X: |-
+              =If(nfMovil, 0, gblE.AnchoNav)
+                  + Max(gblE.Pad, (Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - gblE.AnchoMax) / 2)
+            Y: =cmpEncTsc.Y + cmpEncTsc.Height
+          Children:
+            - cmpKpiTransTsc:
+                Control: CanvasComponent
+                ComponentName: cmpKpi
+                Properties:
+                  Detalle: =""
+                  EsHero: =false
+                  Etiqueta: ="TRANSCRITAS"
+                  Height: =96
+                  Valor: =Text(varNTscTsc)
+                  Width: =If(nfMovil, Parent.Width, (Parent.Width - gblE.PadSm)/2)
+            - cmpKpiPagosTsc:
+                Control: CanvasComponent
+                ComponentName: cmpKpi
+                Properties:
+                  Detalle: =""
+                  EsHero: =false
+                  Etiqueta: ="PAGOS TRANSCRITOS"
+                  Height: =96
+                  Valor: |-
+                    =Moneda(
+                        Sum(Filter(colPagosTsc, '[PG] Moneda' = 'Choice | CM | Monedas en Pago'.NIO), '[PG] Monto'),
+                        Sum(Filter(colPagosTsc, '[PG] Moneda' = 'Choice | CM | Monedas en Pago'.USD), '[PG] Monto'))
+                  Width: =If(nfMovil, Parent.Width, (Parent.Width - gblE.PadSm)/2)
+                  X: =If(nfMovil, 0, cmpKpiTransTsc.Width + gblE.PadSm)
+                  Y: =If(nfMovil, 96 + gblE.PadSm, 0)
+      - conListaTsc:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            BorderColor: =gblC.borde
+            BorderThickness: =1
+            DropShadow: =DropShadow.None
+            Fill: =gblC.card
+            Height: =Parent.Height - Self.Y - gblE.Pad
+            RadiusBottomLeft: =gblE.Radio
+            RadiusBottomRight: =gblE.Radio
+            RadiusTopLeft: =gblE.Radio
+            RadiusTopRight: =gblE.Radio
+            Width: =conKpisTsc.Width
+            X: =conKpisTsc.X
+            Y: =conKpisTsc.Y + conKpisTsc.Height + gblE.Pad
+          Children:
+            - galTscTsc:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  AccessibleLabel: ="Interacciones transcritas hoy"
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: =Parent.Height - 2*gblE.PadSm
+                  Items: =Sort(colTscTsc, '[IN] Fecha grabacion', SortOrder.Descending)
+                  OnSelect: =Set(varSelTsc, ThisItem); Set(varPanelTsc, true)
+                  ShowScrollbar: =false
+                  TemplateFill: =If(ThisItem.IsSelected, gblC.tealSuave, gblC.card)
+                  TemplatePadding: =0
+                  TemplateSize: =gblE.AltoFila
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =gblE.PadSm
+                Children:
+                  - lblClienteTsc:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =20
+                        PaddingLeft: =0
+                        Size: =10
+                        Text: =ThisItem.clienteTsc
+                        Width: =If(nfMovil, Parent.TemplateWidth*0.55, Parent.TemplateWidth*0.32)
+                        Wrap: =false
+                        X: =gblE.PadSm
+                        Y: =6
+                  - lblCuentaTsc:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.muted
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =18
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: =ThisItem.'[IN] Numerocuenta' & " · " & ThisItem.prodTsc
+                        Width: =lblClienteTsc.Width
+                        Wrap: =false
+                        X: =gblE.PadSm
+                        Y: =26
+                  - lblAgenteTsc:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.muted2
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =16
+                        PaddingLeft: =0
+                        Size: =8
+                        Text: |-
+                          ="🏍️ " & ThisItem.'[IN] NombreAgente' & " · " & Text(ThisItem.'Fecha de captura', "HH:mm")
+                        Width: =lblClienteTsc.Width
+                        Wrap: =false
+                        X: =gblE.PadSm
+                        Y: =44
+                  - lblComentTsc:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink2
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =Parent.TemplateHeight
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: =ThisItem.'[IN] Comentario'
+                        Visible: =!nfMovil
+                        Width: =Parent.TemplateWidth*0.32
+                        Wrap: =false
+                        X: =Parent.TemplateWidth*0.34
+                  - chpDatosTsc:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =gblC.espInk
+                        Fill: =gblC.espBg
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =26
+                        RadiusBottomLeft: =8
+                        RadiusBottomRight: =8
+                        RadiusTopLeft: =8
+                        RadiusTopRight: =8
+                        Size: =8
+                        Text: ="✏️ Datos nuevos"
+                        Visible: =ThisItem.'[IN] Actualiza info'
+                        Width: =14 + 7*Len(Self.Text)
+                        X: =chpGrabTsc.X - If(chpPagoTsc.Visible, chpPagoTsc.Width + 6, 0) - Self.Width - 6
+                        Y: =chpGrabTsc.Y
+                  - chpPagoTsc:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =gblC.okInk
+                        Fill: =gblC.okBg
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =26
+                        RadiusBottomLeft: =8
+                        RadiusBottomRight: =8
+                        RadiusTopLeft: =8
+                        RadiusTopRight: =8
+                        Size: =8
+                        Text: |-
+                          ="💵 " & Moneda(ThisItem.pagosNioTsc, ThisItem.pagosUsdTsc)
+                        Visible: =ThisItem.'[IN] Aplica pago'
+                        Width: =14 + 7*Len(Self.Text)
+                        X: =chpGrabTsc.X - Self.Width - 6
+                        Y: =chpGrabTsc.Y
+                  - chpGrabTsc:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =gblC.okInk
+                        Fill: =gblC.okBg
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =26
+                        RadiusBottomLeft: =8
+                        RadiusBottomRight: =8
+                        RadiusTopLeft: =8
+                        RadiusTopRight: =8
+                        Size: =8
+                        Text: ="✓ Grabada · " & ThisItem.'[IN] Codigo Grabacion'
+                        Width: =14 + 7*Len(Self.Text)
+                        X: =Parent.TemplateWidth - Self.Width - gblE.PadSm
+                        Y: =(Parent.TemplateHeight - Self.Height)/2
+                  - recSepTsc:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.hairline
+                        Height: =1
+                        Width: =Parent.TemplateWidth
+                        Y: =Parent.TemplateHeight - 1
+                  - btnFilaTsc:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =Color.Transparent
+                        Fill: =Color.Transparent
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Height: =Parent.TemplateHeight
+                        HoverFill: =RGBA(15, 107, 107, 0.06)
+                        OnSelect: =Select(Parent)
+                        PressedFill: =RGBA(15, 107, 107, 0.12)
+                        TabIndex: =0
+                        Text: ="Ver interacción transcrita de " & ThisItem.clienteTsc
+                        Width: =Parent.TemplateWidth
+                        X: =0
+                        Y: =0
+            - cmpVacioTsc:
+                Control: CanvasComponent
+                ComponentName: cmpVacio
+                Properties:
+                  Height: =140
+                  Icono: |-
+                    ="🗒️"
+                  Mensaje: ="Lo que transcribas hoy aparece acá — tu arqueo del día."
+                  Titulo: ="Nada todavía."
+                  Visible: =CountRows(colTscTsc) = 0
+                  Width: =Parent.Width
+                  Y: =(Parent.Height - Self.Height)/2
+      - recScrimTsc:
+          Control: Rectangle@2.3.0
+          Properties:
+            AccessibleLabel: ="Cerrar panel"
+            Fill: =gblC.scrim
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
+            Height: =Parent.Height
+            OnSelect: =Set(varPanelTsc, false)
+            TabIndex: =0
+            Visible: =varPanelTsc
+            Width: =Parent.Width
+      - conPanelTsc:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            BorderColor: =gblC.borde
+            BorderThickness: =1
+            DropShadow: =DropShadow.None
+            Fill: =gblC.card
+            Height: =Parent.Height
+            RadiusBottomLeft: =0
+            RadiusBottomRight: =0
+            RadiusTopLeft: =0
+            RadiusTopRight: =0
+            Visible: =varPanelTsc
+            Width: =If(nfMovil, Parent.Width, Min(480, Parent.Width*0.45))
+            X: =Parent.Width - Self.Width
+          Children:
+            - lblTituloPanelTsc:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =24
+                  PaddingLeft: =0
+                  Text: =varSelTsc.'[IN] Numero de Interaccion'
+                  Width: =Parent.Width - 2*gblE.Pad - 32
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =16
+            - icoCerrarTsc:
+                Control: Classic/Icon@2.5.0
+                Properties:
+                  AccessibleLabel: ="Cerrar panel"
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: =24
+                  Icon: =Icon.Cancel
+                  OnSelect: =Set(varPanelTsc, false)
+                  TabIndex: =0
+                  Width: =24
+                  X: =Parent.Width - 40
+                  Y: =16
+            - chpRoTsc:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderThickness: =0
+                  Color: =gblC.ink2
+                  DisplayMode: =DisplayMode.View
+                  Fill: =gblC.hairline
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =26
+                  RadiusBottomLeft: =8
+                  RadiusBottomRight: =8
+                  RadiusTopLeft: =8
+                  RadiusTopRight: =8
+                  Size: =8
+                  Text: ="solo lectura"
+                  Width: =14 + 7*Len(Self.Text)
+                  X: =gblE.Pad
+                  Y: =48
+            - lblSecCampoTsc:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =18
+                  PaddingLeft: =0
+                  Size: =8
+                  Text: ="GESTIÓN DE CAMPO"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =84
+            - lblKClienteTsc:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =24
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Cliente"
+                  Width: =110
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =104
+            - lblVClienteTsc:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =24
+                  PaddingLeft: =0
+                  Size: =10
+                  Text: =varSelTsc.clienteTsc
+                  Width: =Parent.Width - gblE.Pad - Self.X
+                  Wrap: =false
+                  X: =gblE.Pad + 110
+                  Y: =104
+            - lblKCifTsc:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =24
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="CIF"
+                  Width: =110
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =128
+            - lblVCifTsc:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =24
+                  PaddingLeft: =0
+                  Size: =10
+                  Text: =varSelTsc.cifTsc
+                  Width: =Parent.Width - gblE.Pad - Self.X
+                  Wrap: =false
+                  X: =gblE.Pad + 110
+                  Y: =128
+            - lblKCuentaTsc:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =24
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Cuenta"
+                  Width: =110
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =152
+            - lblVCuentaTsc:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =24
+                  PaddingLeft: =0
+                  Size: =10
+                  Text: =varSelTsc.'[IN] Numerocuenta' & " · " & varSelTsc.prodTsc
+                  Width: =Parent.Width - gblE.Pad - Self.X
+                  Wrap: =false
+                  X: =gblE.Pad + 110
+                  Y: =152
+            - lblKLocTsc:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =24
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Localizador"
+                  Width: =110
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =176
+            - lblVLocTsc:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =24
+                  PaddingLeft: =0
+                  Size: =10
+                  Text: |-
+                    ="🏍️ " & varSelTsc.'[IN] NombreAgente'
+                  Width: =Parent.Width - gblE.Pad - Self.X
+                  Wrap: =false
+                  X: =gblE.Pad + 110
+                  Y: =176
+            - lblKCapTsc:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =24
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Capturada"
+                  Width: =110
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =200
+            - lblVCapTsc:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =24
+                  PaddingLeft: =0
+                  Size: =10
+                  Text: =Text(varSelTsc.'Fecha de captura', "dd/mm HH:mm")
+                  Width: =Parent.Width - gblE.Pad - Self.X
+                  Wrap: =false
+                  X: =gblE.Pad + 110
+                  Y: =200
+            - lblSecComentTsc:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =18
+                  PaddingLeft: =0
+                  Size: =8
+                  Text: ="COMENTARIO"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =236
+            - lblComentPanelTsc:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.ink
+                  Fill: =gblC.pantalla
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =76
+                  PaddingLeft: =gblE.PadSm
+                  PaddingTop: =gblE.PadSm
+                  Size: =10
+                  Text: =varSelTsc.'[IN] Comentario'
+                  VerticalAlign: =VerticalAlign.Top
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =256
+            - chpDatosPanelTsc:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderThickness: =0
+                  Color: =gblC.espInk
+                  DisplayMode: =DisplayMode.View
+                  Fill: =gblC.espBg
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =26
+                  RadiusBottomLeft: =8
+                  RadiusBottomRight: =8
+                  RadiusTopLeft: =8
+                  RadiusTopRight: =8
+                  Size: =8
+                  Text: ="✏️ Trae datos nuevos del cliente — revisalos en el core"
+                  Visible: =varSelTsc.'[IN] Actualiza info'
+                  Width: =14 + 7*Len(Self.Text)
+                  X: =gblE.Pad
+                  Y: =344
+            - lblSecPagosTsc:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =18
+                  PaddingLeft: =0
+                  Size: =8
+                  Text: ="PAGOS (" & galPagosPanelTsc.AllItemsCount & ")"
+                  Visible: =varSelTsc.'[IN] Aplica pago'
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =384
+            - galPagosPanelTsc:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  AccessibleLabel: ="Pagos de la interacción transcrita"
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: =108
+                  Items: |-
+                    =Filter('CM | TBL | Pagos',
+                        '[PG] Numero Interaccion' = varSelTsc.'[IN] Numero de Interaccion')
+                  ShowScrollbar: =false
+                  TemplatePadding: =0
+                  TemplateSize: =36
+                  Visible: =varSelTsc.'[IN] Aplica pago'
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =404
+                Children:
+                  - lblMontoPagoTsc:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.okInk
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =20
+                        PaddingLeft: =0
+                        Size: =10
+                        Text: |-
+                          =If(varSelTsc.'[IN] Aplica pago',
+                              If(ThisItem.'[PG] Moneda' = 'Choice | CM | Monedas en Pago'.USD, "US$ ", "C$ ")
+                                  & Text(ThisItem.'[PG] Monto', "#,##0.00"))
+                        Width: =Parent.TemplateWidth*0.55
+                        Wrap: =false
+                        Y: =8
+                  - lblReciboPagoTsc:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =Align.Right
+                        Color: =gblC.muted
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =20
+                        PaddingRight: =0
+                        Size: =9
+                        Text: ="Recibo " & ThisItem.'[PG] Numero recibo'
+                        Width: =Parent.TemplateWidth*0.45
+                        Wrap: =false
+                        X: =Parent.TemplateWidth*0.55
+                        Y: =8
+                  - recSepPagoTsc:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.hairline
+                        Height: =1
+                        Width: =Parent.TemplateWidth
+                        Y: =Parent.TemplateHeight - 1
+            - lblSecTransTsc:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =18
+                  PaddingLeft: =0
+                  Size: =8
+                  Text: ="TRANSCRIPCIÓN AL CORE"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =528
+            - lblKCodigoTsc:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =24
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Código"
+                  Width: =110
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =548
+            - lblVCodigoTsc:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =24
+                  PaddingLeft: =0
+                  Size: =10
+                  Text: |-
+                    =varSelTsc.'[IN] Codigo Grabacion' & " 🔒"
+                  Width: =Parent.Width - gblE.Pad - Self.X
+                  Wrap: =false
+                  X: =gblE.Pad + 110
+                  Y: =548
+            - lblKGrabTsc:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =24
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Grabada"
+                  Width: =110
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =572
+            - lblVGrabTsc:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =24
+                  PaddingLeft: =0
+                  Size: =10
+                  Text: =Text(varSelTsc.'[IN] Fecha grabacion', "dd/mm HH:mm") & " · por vos"
+                  Width: =Parent.Width - gblE.Pad - Self.X
+                  Wrap: =false
+                  X: =gblE.Pad + 110
+                  Y: =572
+            - lblNotaInmutableTsc:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =36
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Bloqueada tras la grabación — la evidencia de campo es inmutable."
+                  VerticalAlign: =VerticalAlign.Top
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =600
+            - btnCerrarPanelTsc:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  Color: =gblC.ink2
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoBoton
+                  OnSelect: =Set(varPanelTsc, false)
+                  Size: =10
+                  Text: ="Cerrar"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =Parent.Height - gblE.AltoBoton - gblE.Pad
+      - cmpNavTsc:
+          Control: CanvasComponent
+          ComponentName: cmpNavLateral
+          Properties:
+            Height: =Parent.Height
+            RutaActiva: ="tsc"
+            Visible: =!nfMovil || gblNavMovilAbierta
+            Width: =gblE.AnchoNav

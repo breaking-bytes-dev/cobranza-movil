@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rediseño — Tarjeta de Cuenta (scrCliente)</title>
+<style>
+  /* ===== tokens REALES de la app (modo noche) ===== */
+  :root{
+    --screen:#0C1516; --surface:#132022; --surface2:#182A2C; --cardBorder:#26383A;
+    --ink:#EAF4F3; --ink2:#C5D6D5; --muted:#7F9998; --muted2:#5E7877;
+    --accent:#33B7B4; --accentBg:#123027; --accentInk:#7DE9B8;
+    --diariaBg:#14263F; --diariaInk:#7FB2F0;
+    --incobBg:#3A2E12; --incobInk:#E6B45E;
+    --espBg:#2A2140; --espInk:#B79CF0;
+    --redBg:#3A1E1E; --redInk:#F08A8A;
+    --okBg:#123027; --okInk:#4FD6A0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
+  body{background:#05201f;font-family:'Segoe UI',system-ui,sans-serif;display:flex;flex-wrap:wrap;gap:30px;justify-content:center;padding:30px 16px 50px;color:var(--ink)}
+  .col{display:flex;flex-direction:column;gap:14px;align-items:center}
+  .tag{font-size:11px;font-weight:800;letter-spacing:1.5px;color:#5f8f8c}
+  .phone{width:390px;background:var(--screen);border-radius:26px;padding:16px 14px 22px;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+  .sec{font-size:11px;font-weight:800;letter-spacing:.8px;color:var(--muted2);text-transform:uppercase;margin:6px 4px 12px}
+
+  /* ===== ANTES (actual) ===== */
+  .old{background:var(--surface);border:1px solid var(--cardBorder);border-radius:12px;padding:14px}
+  .old-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .old-name{font-size:15px;font-weight:800;flex:1}
+  .old-chip{background:var(--diariaBg);color:var(--diariaInk);font-size:12px;font-weight:800;padding:5px 12px;border-radius:8px}
+  .old-saldo{color:var(--accent);font-size:16px;font-weight:800}
+  .old-num{color:var(--muted);font-size:13px;margin-top:8px}
+  .old-dias{color:var(--muted);font-size:12px;text-align:right;margin-top:-16px}
+
+  /* ===== PROPUESTA ===== */
+  .cc{background:var(--surface);border:1px solid var(--cardBorder);border-radius:16px;overflow:hidden;position:relative}
+  .cc::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px}
+  .cc.diaria::before{background:var(--diariaInk)}
+  .cc.incob::before{background:var(--incobInk)}
+  .cc-body{padding:14px 15px 13px 17px}
+  .cc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .cc-prod{font-size:15.5px;font-weight:800;letter-spacing:-.2px;line-height:1.2}
+  .cc-num{font-size:12px;color:var(--muted);font-weight:600;margin-top:3px;letter-spacing:.3px;font-variant-numeric:tabular-nums}
+  .chip{font-size:10.5px;font-weight:800;padding:4px 10px;border-radius:20px;white-space:nowrap;letter-spacing:.3px}
+  .chip.diaria{background:var(--diariaBg);color:var(--diariaInk)}
+  .chip.incob{background:var(--incobBg);color:var(--incobInk)}
+  .cc-foot{display:flex;justify-content:space-between;align-items:center;background:var(--surface2);border-top:1px solid var(--cardBorder);padding:10px 15px 10px 17px}
+  .saldo .s-lbl{font-size:9.5px;color:var(--muted2);font-weight:800;letter-spacing:.5px}
+  .saldo .s-val{font-size:17px;font-weight:800;color:var(--ink);margin-top:1px;font-variant-numeric:tabular-nums}
+  .mora{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:800;padding:6px 11px;border-radius:20px}
+  .mora .dot{width:7px;height:7px;border-radius:50%}
+  .mora.ok{background:var(--okBg);color:var(--okInk)} .mora.ok .dot{background:var(--okInk)}
+  .mora.warn{background:var(--incobBg);color:var(--incobInk)} .mora.warn .dot{background:var(--incobInk)}
+  .mora.bad{background:var(--redBg);color:var(--redInk)} .mora.bad .dot{background:var(--redInk)}
+  .arrowhint{position:absolute;right:14px;top:16px;color:var(--muted2);font-size:16px}
+</style>
+</head>
+<body>
+
+  <!-- ANTES -->
+  <div class="col">
+    <div class="tag">ANTES (actual)</div>
+    <div class="phone">
+      <div class="sec">Cuentas a cobrar (1)</div>
+      <div class="old">
+        <div class="old-top">
+          <div class="old-name">Tarjeta Platino</div>
+          <div class="old-chip">Diaria</div>
+          <div class="old-saldo">C$ 48,925.09</div>
+        </div>
+        <div class="old-num">8030936620668</div>
+        <div class="old-dias">99 días</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROPUESTA -->
+  <div class="col">
+    <div class="tag">✦ PROPUESTA</div>
+    <div class="phone">
+      <div class="sec">Cuentas a cobrar (2)</div>
+
+      <!-- card 1: mora alta -->
+      <div class="cc diaria" style="margin-bottom:12px">
+        <div class="arrowhint">›</div>
+        <div class="cc-body">
+          <div class="cc-top">
+            <div>
+              <div class="cc-prod">Tarjeta Platino</div>
+              <div class="cc-num">8030 9366 2066 8</div>
+            </div>
+            <span class="chip diaria">Diaria</span>
+          </div>
+        </div>
+        <div class="cc-foot">
+          <div class="saldo">
+            <div class="s-lbl">SALDO VENCIDO</div>
+            <div class="s-val">C$ 48,925.09</div>
+          </div>
+          <span class="mora bad"><span class="dot"></span>99 días</span>
+        </div>
+      </div>
+
+      <!-- card 2: mora media, otro tipo -->
+      <div class="cc incob">
+        <div class="arrowhint">›</div>
+        <div class="cc-body">
+          <div class="cc-top">
+            <div>
+              <div class="cc-prod">Tarjeta Oro</div>
+              <div class="cc-num">4556 9335 8938 4</div>
+            </div>
+            <span class="chip incob">Incobrable</span>
+          </div>
+        </div>
+        <div class="cc-foot">
+          <div class="saldo">
+            <div class="s-lbl">SALDO VENCIDO</div>
+            <div class="s-val">US$ 1,439.31</div>
+          </div>
+          <span class="mora warn"><span class="dot"></span>30 días</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>

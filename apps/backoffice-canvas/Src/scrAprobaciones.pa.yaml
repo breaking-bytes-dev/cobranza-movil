@@ -1,0 +1,914 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+Screens:
+  scrAprobaciones:
+    Properties:
+      Fill: =gblC.pantalla
+      OnVisible: |-
+        =// Localizador: buscador + galería (galAgeAprb, Filter directo delegado, B-04) — sin catálogo.
+        // La cola + datos de la cuenta horneados navegando el lookup '[AS] Cuenta' (lo resuelve el
+        // servidor, sin catálogo de cuentas truncable al Data row limit).
+        ClearCollect(colAprobAprb,
+            AddColumns(
+                Filter('CM | TBL | Asignacions',
+                    '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial &&
+                    '[AS] Estado' = true &&  // B-18: una Especial cerrada estando pendiente no se aprueba
+                    '[AS] Estado de aprobacion' =
+                        'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion'),
+                clienteAprb,
+                Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
+                prodAprb, Coalesce(ThisRecord.'[AS] Cuenta'.'Tipo Producto', "—"),
+                nioAprb, ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO',
+                usdAprb, ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD',
+                pideAprb, Coalesce('[AS] Solicitado por'.'Full Name', "—")
+            )
+        );
+        // Estado de pantalla
+        Set(varSelAprb, Blank());
+        Set(varAgeAprb, Blank());
+        Set(varPanelAprb, false)
+    Children:
+      - cmpEncAprb:
+          Control: CanvasComponent
+          ComponentName: cmpEncabezado
+          Properties:
+            Height: =If(nfMovil, gblE.AltoBarra + 84, 84)
+            Subtitulo: ="FIFO — asigná localizador y aprobá, o rechazá con motivo."
+            Titulo: ="Aprobaciones pendientes"
+            Width: =Parent.Width - Self.X
+            X: =If(nfMovil, 0, gblE.AnchoNav)
+      - conContenidoAprb:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            DropShadow: =DropShadow.None
+            Fill: =Color.Transparent
+            Height: =Parent.Height - Self.Y
+            Width: =Min(gblE.AnchoMax, Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - 2*gblE.Pad)
+            X: |-
+              =If(nfMovil, 0, gblE.AnchoNav)
+                  + Max(gblE.Pad, (Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - gblE.AnchoMax) / 2)
+            Y: =cmpEncAprb.Y + cmpEncAprb.Height
+          Children:
+            - btnActualizarAprb:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  Color: =gblC.ink2
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =36
+                  OnSelect: |-
+                    =ClearCollect(colAprobAprb,
+                        AddColumns(
+                            Filter('CM | TBL | Asignacions',
+                                '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial &&
+                                '[AS] Estado' = true &&  // B-18: una Especial cerrada estando pendiente no se aprueba
+                                '[AS] Estado de aprobacion' =
+                                    'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion'),
+                            clienteAprb,
+                            Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
+                            prodAprb, Coalesce(ThisRecord.'[AS] Cuenta'.'Tipo Producto', "—"),
+                            nioAprb, ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO',
+                            usdAprb, ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD',
+                            pideAprb, Coalesce('[AS] Solicitado por'.'Full Name', "—")
+                        )
+                    );
+                    Set(varSelAprb, Blank());
+                    Set(varAgeAprb, Blank());
+                    Set(varPanelAprb, false)
+                  Size: =9
+                  Text: ="↻ Actualizar"
+                  Width: =140
+                  X: =Parent.Width - Self.Width - gblE.Pad
+            - galAprobAprb:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  AccessibleLabel: ="Solicitudes pendientes de aprobación"
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: =Parent.Height - Self.Y - gblE.Pad
+                  Items: =Sort(colAprobAprb, '[AS] Fecha de Asignacion', SortOrder.Ascending)
+                  OnSelect: |-
+                    =// Cada apertura del panel arranca sin localizador elegido y con el buscador vacío.
+                    Set(varSelAprb, ThisItem);
+                    Set(varAgeAprb, Blank());
+                    Reset(txtBuscarAgeAprb);
+                    Reset(txtMotRechAprb);
+                    Set(varPanelAprb, true)
+                  ShowScrollbar: =false
+                  TemplateFill: =If(ThisItem.IsSelected, gblC.tealSuave, gblC.card)
+                  TemplatePadding: =0
+                  TemplateSize: =84
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =btnActualizarAprb.Y + btnActualizarAprb.Height + gblE.PadSm
+                Children:
+                  - lblFilaClienteAprb:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =20
+                        PaddingLeft: =0
+                        Size: =10
+                        Text: =ThisItem.clienteAprb
+                        Width: =If(nfMovil, Parent.TemplateWidth - 2*gblE.Pad - 170, Parent.TemplateWidth*0.32)
+                        Wrap: =false
+                        X: =gblE.Pad
+                        Y: =8
+                  - lblFilaCuentaAprb:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.muted
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =16
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: =ThisItem.'[AS] NumeroCuenta'
+                        Width: =lblFilaClienteAprb.Width
+                        Wrap: =false
+                        X: =gblE.Pad
+                        Y: =28
+                  - lblFilaPideAprb:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.muted2
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =16
+                        PaddingLeft: =0
+                        Size: =8
+                        Text: |-
+                          ="Pide: " & ThisItem.pideAprb & " · " & Text(ThisItem.'[AS] Fecha de Asignacion', "dd/mm HH:mm")
+                        Width: =lblFilaClienteAprb.Width
+                        Wrap: =false
+                        X: =gblE.Pad
+                        Y: =46
+                  - lblFilaNotasAprb:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink2
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =60
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: =ThisItem.Notas
+                        VerticalAlign: =VerticalAlign.Top
+                        Visible: =!nfMovil
+                        Width: =Parent.TemplateWidth*0.36
+                        X: =Parent.TemplateWidth*0.34
+                        Y: =12
+                  - lblFilaMontoAprb:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =Align.Right
+                        Color: =gblC.ink
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =20
+                        PaddingLeft: =0
+                        PaddingRight: =0
+                        Size: =10
+                        Text: =Moneda(ThisItem.'Retiro NIO', ThisItem.'Retiro USD')
+                        Wrap: =false
+                        X: =Parent.TemplateWidth - 150 - gblE.Pad
+                        Y: =14
+                  - chpFilaPendAprb:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =gblC.pendInk
+                        Fill: =gblC.pendBg
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =26
+                        RadiusBottomLeft: =8
+                        RadiusBottomRight: =8
+                        RadiusTopLeft: =8
+                        RadiusTopRight: =8
+                        Size: =8
+                        Text: ="Pendiente"
+                        Width: =14 + 7*Len(Self.Text)
+                        X: =Parent.TemplateWidth - Self.Width - gblE.Pad
+                        Y: =44
+                  - recSepAprb:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.hairline
+                        Height: =1
+                        Width: =Parent.TemplateWidth
+                        Y: =Parent.TemplateHeight - 1
+                  - btnFilaAprb:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =Color.Transparent
+                        Fill: =Color.Transparent
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Height: =Parent.TemplateHeight
+                        HoverFill: =RGBA(15, 107, 107, 0.06)
+                        OnSelect: =Select(Parent)
+                        PressedFill: =RGBA(15, 107, 107, 0.12)
+                        TabIndex: =0
+                        Text: ="Revisar solicitud de " & ThisItem.clienteAprb
+                        Width: =Parent.TemplateWidth
+                        X: =0
+                        Y: =0
+            - cmpVacioAprb:
+                Control: CanvasComponent
+                ComponentName: cmpVacio
+                Properties:
+                  Height: =200
+                  Icono: |-
+                    ="🎉"
+                  Mensaje: ="Las solicitudes Especiales nuevas aparecen acá apenas el Solicitante las envía."
+                  Titulo: ="Nada por aprobar"
+                  Visible: =CountRows(colAprobAprb) = 0
+                  Width: =Min(420, Parent.Width - 2*gblE.Pad)
+                  X: =(Parent.Width - Self.Width) / 2
+                  Y: =galAprobAprb.Y + 80
+      - recScrimAprb:
+          Control: Rectangle@2.3.0
+          Properties:
+            AccessibleLabel: ="Cerrar panel"
+            Fill: =gblC.scrim
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
+            Height: =Parent.Height
+            OnSelect: |-
+              =Set(varPanelAprb, false);
+              Set(varAgeAprb, Blank());
+              Reset(txtBuscarAgeAprb)
+            TabIndex: =0
+            Visible: =varPanelAprb
+            Width: =Parent.Width
+      - conPanelAprb:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            BorderColor: =gblC.borde
+            BorderThickness: =1
+            DropShadow: =DropShadow.None
+            Fill: =gblC.card
+            Height: =Parent.Height
+            RadiusBottomLeft: =0
+            RadiusBottomRight: =0
+            RadiusTopLeft: =0
+            RadiusTopRight: =0
+            Visible: =varPanelAprb
+            Width: =If(nfMovil, Parent.Width, Min(480, Parent.Width * 0.45))
+            X: =Parent.Width - Self.Width
+          Children:
+            - lblPanelTituloAprb:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =28
+                  PaddingLeft: =0
+                  Text: ="Solicitud " & varSelAprb.'[AS] Numero'
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =gblE.Pad
+            - icoCerrarAprb:
+                Control: Classic/Icon@2.5.0
+                Properties:
+                  AccessibleLabel: ="Cerrar panel"
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: =28
+                  Icon: =Icon.Cancel
+                  OnSelect: |-
+                    =Set(varPanelAprb, false);
+                    Set(varAgeAprb, Blank());
+                    Reset(txtBuscarAgeAprb)
+                  TabIndex: =0
+                  Width: =28
+                  X: =Parent.Width - 40
+                  Y: =gblE.Pad
+            - lblSecCtaAprb:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =18
+                  PaddingLeft: =0
+                  Size: =8
+                  Text: ="CUENTA"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =64
+            - lblCtaK1Aprb:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =24
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Cliente"
+                  Width: =130
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =86
+            - lblCtaV1Aprb:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Right
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =24
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =10
+                  Text: =varSelAprb.clienteAprb
+                  Width: =Parent.Width - 2*gblE.Pad - 130
+                  Wrap: =false
+                  X: =gblE.Pad + 130
+                  Y: =86
+            - lblCtaK2Aprb:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =24
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Cuenta"
+                  Width: =130
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =110
+            - lblCtaV2Aprb:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Right
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =24
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =10
+                  Text: |-
+                    =varSelAprb.'[AS] NumeroCuenta' & " · " & varSelAprb.prodAprb
+                  Width: =Parent.Width - 2*gblE.Pad - 130
+                  Wrap: =false
+                  X: =gblE.Pad + 130
+                  Y: =110
+            - lblCtaK3Aprb:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =24
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Saldo vencido"
+                  Width: =130
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =134
+            - lblCtaV3Aprb:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Right
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =24
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =10
+                  Text: |-
+                    =Moneda(varSelAprb.nioAprb, varSelAprb.usdAprb)
+                  Width: =Parent.Width - 2*gblE.Pad - 130
+                  Wrap: =false
+                  X: =gblE.Pad + 130
+                  Y: =134
+            - lblSecSolAprb:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =18
+                  PaddingLeft: =0
+                  Size: =8
+                  Text: ="SOLICITUD"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =166
+            - lblSolK1Aprb:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =24
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Retiro pedido"
+                  Width: =130
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =188
+            - lblSolV1Aprb:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Right
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =24
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =10
+                  Text: =Moneda(varSelAprb.'Retiro NIO', varSelAprb.'Retiro USD')
+                  Width: =Parent.Width - 2*gblE.Pad - 130
+                  Wrap: =false
+                  X: =gblE.Pad + 130
+                  Y: =188
+            - lblSolK2Aprb:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =24
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Solicitante"
+                  Width: =130
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =212
+            - lblSolV2Aprb:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Right
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =24
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =10
+                  Text: =varSelAprb.pideAprb & " · " & Text(varSelAprb.'[AS] Fecha de Asignacion', "dd/mm HH:mm")
+                  Width: =Parent.Width - 2*gblE.Pad - 130
+                  Wrap: =false
+                  X: =gblE.Pad + 130
+                  Y: =212
+            - conNotasAprb:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.pantalla
+                  Height: =lblNotasAprb.Height + 2*gblE.PadSm
+                  RadiusBottomLeft: =gblE.RadioSm
+                  RadiusBottomRight: =gblE.RadioSm
+                  RadiusTopLeft: =gblE.RadioSm
+                  RadiusTopRight: =gblE.RadioSm
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =244
+                Children:
+                  - lblNotasAprb:
+                      Control: Label@2.5.1
+                      Properties:
+                        AutoHeight: =true
+                        Color: =gblC.ink
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: =varSelAprb.Notas
+                        VerticalAlign: =VerticalAlign.Top
+                        Width: =Parent.Width - 2*gblE.PadSm
+                        X: =gblE.PadSm
+                        Y: =gblE.PadSm
+            - lblSecResAprb:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =18
+                  PaddingLeft: =0
+                  Size: =8
+                  Text: ="RESOLUCIÓN"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =conNotasAprb.Y + conNotasAprb.Height + gblE.Pad
+            - lblLocKAprb:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =18
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Localizador * (requerido para aprobar)"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =lblSecResAprb.Y + 24
+            - txtBuscarAgeAprb:
+                Control: Classic/TextInput@2.3.2
+                Properties:
+                  AccessibleLabel: ="Buscar localizador por nombre"
+                  BorderColor: =gblC.borde
+                  Default: =""
+                  DelayOutput: =true
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  HintText: ="Buscar localizador por nombre (mín. 2)"
+                  PaddingLeft: =34
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Size: =10
+                  Visible: =IsBlank(varAgeAprb)
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =lblLocKAprb.Y + 20
+            - icoBuscarAgeAprb:
+                Control: Classic/Icon@2.5.0
+                Properties:
+                  AccessibleLabel: ="Buscar localizador"
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: =20
+                  Icon: =Icon.Search
+                  Visible: =txtBuscarAgeAprb.Visible
+                  Width: =20
+                  X: =txtBuscarAgeAprb.X + 8
+                  Y: =txtBuscarAgeAprb.Y + (txtBuscarAgeAprb.Height - Self.Height) / 2
+            - galAgeAprb:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  AccessibleLabel: ="Localizadores que coinciden con la búsqueda"
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: |-
+                    =// Alto acotado: hasta 3 filas (mín. 1 para el aviso "sin coincidencias").
+                    Min(Max(Self.AllItemsCount, 1), 3) * Self.TemplateHeight
+                  Items: |-
+                    =// B-04: el ComboBox clásico no pinta registros de Dataverse en esta app → buscador +
+                    // galería (ver galCtaNva). Filter directo, todo delegable: igualdad booleana,
+                    // <> Blank() y StartsWith. Solo agentes activos con usuario vinculado (sin usuario
+                    // Comp-14 no puede pasarle el owner). Con menos de 2 caracteres, centinela "§§":
+                    // no se consulta la tabla entera (B-19) y siempre hay tabla (B-06).
+                    // SIN With (cortaba la delegación — ver scrNuevaSolicitud.galCtaNva). En línea sí delega.
+                    Filter('CM | TBL | Agentes',
+                        '[AG] Activo' = true
+                        && 'Email Usuario' <> Blank()
+                        && StartsWith('[AG] Nombre', If(Len(Trim(txtBuscarAgeAprb.Text)) < 2, "§§", Trim(txtBuscarAgeAprb.Text))))
+                  OnSelect: =Set(varAgeAprb, ThisItem)
+                  ShowScrollbar: =false
+                  TemplateFill: =gblC.card
+                  TemplatePadding: =0
+                  TemplateSize: =48
+                  Visible: =IsBlank(varAgeAprb) && Len(Trim(txtBuscarAgeAprb.Text)) >= 2
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =txtBuscarAgeAprb.Y + txtBuscarAgeAprb.Height + 4
+                Children:
+                  - lblNomFilaAgeAprb:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =20
+                        PaddingLeft: =0
+                        Size: =10
+                        Text: =ThisItem.'[AG] Nombre'
+                        Width: =Parent.TemplateWidth - 2*gblE.PadSm
+                        Wrap: =false
+                        X: =gblE.PadSm
+                        Y: =5
+                  - lblMailFilaAgeAprb:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.muted
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =18
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: =ThisItem.'Email Usuario'
+                        Width: =lblNomFilaAgeAprb.Width
+                        Wrap: =false
+                        X: =gblE.PadSm
+                        Y: =lblNomFilaAgeAprb.Y + lblNomFilaAgeAprb.Height + 2
+                  - recSepAgeAprb:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.hairline
+                        Height: =1
+                        Width: =Parent.TemplateWidth
+                        Y: =Parent.TemplateHeight - 1
+                  - btnFilaAgeAprb:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =Color.Transparent
+                        Fill: =Color.Transparent
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Height: =Parent.TemplateHeight
+                        HoverFill: =RGBA(15, 107, 107, 0.06)
+                        OnSelect: =Select(Parent)
+                        PressedFill: =RGBA(15, 107, 107, 0.12)
+                        TabIndex: =0
+                        Text: ="Asignar a " & ThisItem.'[AG] Nombre'
+                        Width: =Parent.TemplateWidth
+                        X: =0
+                        Y: =0
+            - lblSinAgeAprb:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =galAgeAprb.Height
+                  PaddingLeft: =gblE.PadSm
+                  Size: =9
+                  Text: ="Ningún localizador activo con usuario empieza con «" & Trim(txtBuscarAgeAprb.Text) & "»."
+                  Visible: =galAgeAprb.Visible && galAgeAprb.AllItemsCount = 0
+                  Width: =galAgeAprb.Width
+                  Wrap: =false
+                  X: =galAgeAprb.X
+                  Y: =galAgeAprb.Y
+            - conAgeSelAprb:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderColor: =gblC.teal
+                  BorderThickness: =1
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.tealSuave
+                  Height: =gblE.AltoInput
+                  RadiusBottomLeft: =gblE.RadioSm
+                  RadiusBottomRight: =gblE.RadioSm
+                  RadiusTopLeft: =gblE.RadioSm
+                  RadiusTopRight: =gblE.RadioSm
+                  Visible: =!IsBlank(varAgeAprb)
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =txtBuscarAgeAprb.Y
+                Children:
+                  - lblAgeSelAprb:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =Parent.Height
+                        PaddingLeft: =0
+                        Size: =10
+                        Text: =varAgeAprb.'[AG] Nombre' & "  ·  " & varAgeAprb.'Email Usuario'
+                        Width: =Parent.Width - 3*gblE.PadSm - btnCambiarAgeAprb.Width
+                        Wrap: =false
+                        X: =gblE.PadSm
+                        Y: =0
+                  - btnCambiarAgeAprb:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderColor: =gblC.borde
+                        BorderThickness: =1
+                        Color: =gblC.ink2
+                        Fill: =gblC.card
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =28
+                        HoverFill: =ColorFade(gblC.card, 10%)
+                        OnSelect: |-
+                          =Set(varAgeAprb, Blank());
+                          Reset(txtBuscarAgeAprb)
+                        Size: =9
+                        TabIndex: =0
+                        Text: ="Cambiar"
+                        Width: =92
+                        X: =Parent.Width - Self.Width - gblE.PadSm
+                        Y: =(Parent.Height - Self.Height) / 2
+            - lblMotKAprb:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =18
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Motivo de rechazo (requerido para rechazar)"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: |-
+                    =// Debajo de los resultados si están abiertos; si no, del buscador o la tarjeta
+                    // (mismo Y y mismo alto).
+                    If(galAgeAprb.Visible, galAgeAprb.Y + galAgeAprb.Height,
+                        txtBuscarAgeAprb.Y + txtBuscarAgeAprb.Height)
+                    + gblE.PadSm
+            - txtMotRechAprb:
+                Control: Classic/TextInput@2.3.2
+                Properties:
+                  AccessibleLabel: ="Motivo del rechazo"
+                  BorderColor: =gblC.borde
+                  Default: =""
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  HintText: ="¿Por qué se rechaza?"
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Size: =10
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =lblMotKAprb.Y + 20
+            - btnRechazarAprb:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderThickness: =0
+                  Color: =gblC.redInk
+                  DisabledColor: =Color.White
+                  DisabledFill: =ColorFade(gblC.redBg, 60%)
+                  DisplayMode: =If(!IsBlank(Trim(txtMotRechAprb.Text)), DisplayMode.Edit, DisplayMode.Disabled)
+                  Fill: =gblC.redBg
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoBoton
+                  HoverFill: =ColorFade(gblC.redBg, 10%)
+                  OnSelect: |-
+                    =// IfError (B-03): si el Patch falla se muestra el detalle y NO se saca de la cola.
+                    IfError(
+                        Patch('CM | TBL | Asignacions',
+                            LookUp('CM | TBL | Asignacions', '[AS] Numero' = varSelAprb.'[AS] Numero'),
+                            {
+                                '[AS] Estado de aprobacion': 'Choice | CM | Estado aprobacion especial'.Rechazada,
+                                'Motivo de rechazo': Trim(txtMotRechAprb.Text),
+                                '[AS] Resolutor': gblUsuarioDV
+                            }
+                        ),
+                        Notify("No se pudo rechazar " & varSelAprb.'[AS] Numero' & ": " & FirstError.Message,
+                            NotificationType.Error),
+                        Remove(colAprobAprb,
+                            LookUp(colAprobAprb, '[AS] Numero' = varSelAprb.'[AS] Numero'));
+                        Set(varPanelAprb, false);
+                        Set(varSelAprb, Blank());
+                        Set(varAgeAprb, Blank());
+                        Reset(txtBuscarAgeAprb);
+                        Notify("Solicitud rechazada", NotificationType.Warning)
+                    )
+                  Size: =10
+                  Text: ="Rechazar"
+                  Width: =(Parent.Width - 3*gblE.Pad)/2
+                  X: =gblE.Pad
+                  Y: =Parent.Height - gblE.AltoBoton - gblE.Pad
+            - btnAprobarAprb:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderThickness: =0
+                  Color: =Color.White
+                  DisabledColor: =Color.White
+                  DisabledFill: =ColorFade(gblC.teal, 60%)
+                  DisplayMode: =If(!IsBlank(varAgeAprb), DisplayMode.Edit, DisplayMode.Disabled)
+                  Fill: =gblC.teal
+                  FocusedBorderColor: =gblC.ink
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoBoton
+                  HoverFill: =ColorFade(gblC.teal, 10%)
+                  OnSelect: |-
+                    =// Al setear '[AS] Agente', el Cloud Flow Comp-14 cambia el OWNER del registro al
+                    // usuario del agente → eso dispara el aislamiento por propietario y la sincronización
+                    // offline: la asignación aparece en el celular del localizador sin que esta app haga
+                    // nada más. Por eso la notificación lo anuncia — la app solo aprueba; el reparto es
+                    // del backend.
+                    // IfError (B-03): si el Patch falla se muestra el detalle y NO se saca de la cola.
+                    IfError(
+                        Patch('CM | TBL | Asignacions',
+                            LookUp('CM | TBL | Asignacions', '[AS] Numero' = varSelAprb.'[AS] Numero'),
+                            {
+                                '[AS] Estado de aprobacion': 'Choice | CM | Estado aprobacion especial'.Aprobado,
+                                '[AS] Agente': varAgeAprb,
+                                '[AS] Resolutor': gblUsuarioDV
+                            }
+                        ),
+                        Notify("No se pudo aprobar " & varSelAprb.'[AS] Numero' & ": " & FirstError.Message,
+                            NotificationType.Error),
+                        // El Notify va ANTES de limpiar varAgeAprb (lee el nombre del localizador).
+                        Notify("✓ Aprobada — asignada a " & varAgeAprb.'[AG] Nombre' &
+                            ". El flujo de owner la baja al celular del localizador.",
+                            NotificationType.Success, 2500);
+                        Remove(colAprobAprb,
+                            LookUp(colAprobAprb, '[AS] Numero' = varSelAprb.'[AS] Numero'));
+                        Set(varPanelAprb, false);
+                        Set(varSelAprb, Blank());
+                        Set(varAgeAprb, Blank());
+                        Reset(txtBuscarAgeAprb)
+                    )
+                  Size: =10
+                  Text: ="✓ Aprobar y asignar"
+                  Width: =btnRechazarAprb.Width
+                  X: =btnRechazarAprb.X + btnRechazarAprb.Width + gblE.Pad
+                  Y: =btnRechazarAprb.Y
+      - cmpNavAprb:
+          Control: CanvasComponent
+          ComponentName: cmpNavLateral
+          Properties:
+            Height: =Parent.Height
+            RutaActiva: ="aprb"
+            Visible: =!nfMovil || gblNavMovilAbierta
+            Width: =gblE.AnchoNav

@@ -3,6 +3,11 @@
 *.local.json
 *.pfx
 *.snk
+pp_secrets.env
+
+# ── Sesiones de navegador (Playwright storageState) — cookies de login ──
+# Equivalen a credenciales: quien tenga el JSON entra como ese usuario.
+local/
 
 # ── Artefactos de solución Dataverse ────────────────────────────────────
 # Los zips exportados (managed/unmanaged) van como assets de GitHub

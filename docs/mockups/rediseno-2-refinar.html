@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rediseño 2 — Refinar lo actual</title>
+<style>
+  :root{
+    --teal:#0E7C7B; --tealD:#0A5E5D; --tealL:#128C8B; --tealSoft:#DCEFEF;
+    --bg:#F4F6F7; --card:#FFFFFF; --ink:#12303A; --ink2:#5A6B71; --muted:#9AA9AE;
+    --line:#E7ECEE; --green:#22B07D; --nio:#0E7C7B; --usd:#1F6FB2;
+    --shadow:0 2px 4px rgba(14,60,58,.05),0 8px 24px rgba(14,60,58,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
+  body{background:#DEE5E7;font-family:'Segoe UI',system-ui,sans-serif;display:flex;justify-content:center;padding:26px;color:var(--ink)}
+  .phone{width:390px;background:var(--bg);border-radius:34px;overflow:hidden;box-shadow:0 30px 60px rgba(6,40,40,.28);min-height:800px;position:relative}
+  .tag{position:absolute;top:12px;left:0;right:0;text-align:center;font-size:10px;color:#B9C6C9;font-weight:700;letter-spacing:1px;z-index:5}
+  /* header: teal band, refined */
+  .hero{background:linear-gradient(160deg,var(--tealL),var(--tealD));padding:44px 20px 26px;color:#fff;position:relative}
+  .hero .row{display:flex;justify-content:space-between;align-items:flex-start}
+  .hero .hi{font-size:12px;opacity:.8;font-weight:600;letter-spacing:.4px}
+  .hero .name{font-size:22px;font-weight:800;letter-spacing:-.4px;margin-top:3px}
+  .sync{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.16);color:#EAFBF3;font-size:11px;font-weight:700;padding:6px 11px;border-radius:20px;backdrop-filter:blur(6px)}
+  .dot{width:7px;height:7px;border-radius:50%;background:#7DF3C4;box-shadow:0 0 0 3px rgba(125,243,196,.25)}
+  /* floating total card overlapping hero */
+  .total{background:var(--card);border-radius:20px;padding:17px 18px;box-shadow:var(--shadow);margin:-22px 16px 0;position:relative;z-index:2}
+  .total .lbl{font-size:11.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:11px}
+  .amts{display:flex;gap:14px}
+  .amt{flex:1;background:#F7FAFA;border:1px solid var(--line);border-radius:13px;padding:11px 12px}
+  .amt .cur{font-size:10.5px;color:var(--muted);font-weight:800;letter-spacing:.3px}
+  .amt .val{font-size:20px;font-weight:800;letter-spacing:-.5px;margin-top:3px}
+  .amt.nio .val{color:var(--nio)} .amt.usd .val{color:var(--usd)}
+  .meta{margin-top:12px;font-size:11.5px;color:var(--ink2);font-weight:600;display:flex;gap:16px}
+  .meta b{color:var(--ink);font-weight:800}
+  .wrap{padding:16px 16px 92px}
+  /* tabs */
+  .tabs{display:flex;gap:8px;overflow:auto;padding:2px 0 4px;margin-bottom:6px}
+  .tab{font-size:12.5px;font-weight:700;color:var(--ink2);padding:8px 15px;border-radius:22px;background:var(--card);border:1px solid var(--line);white-space:nowrap}
+  .tab.on{background:var(--teal);color:#fff;border-color:var(--teal);box-shadow:0 4px 12px rgba(14,124,123,.28)}
+  /* search */
+  .search{display:flex;align-items:center;gap:9px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 13px;margin:12px 0 8px;color:var(--muted);font-size:13px}
+  .count{font-size:11px;color:var(--muted);font-weight:800;letter-spacing:.5px;margin:6px 2px 12px;text-transform:uppercase}
+  /* client card */
+  .cc{background:var(--card);border-radius:18px;padding:0;box-shadow:var(--shadow);margin-bottom:13px;overflow:hidden}
+  .cc-body{padding:15px 15px 13px}
+  .cc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .avatar{width:38px;height:38px;border-radius:12px;background:var(--tealSoft);color:var(--tealD);display:grid;place-items:center;font-weight:800;font-size:14px;flex:none}
+  .cc-id{display:flex;gap:11px;align-items:center}
+  .cc-name{font-size:15px;font-weight:800;letter-spacing:-.3px;line-height:1.2}
+  .cc-sub{font-size:11.5px;color:var(--muted);font-weight:600;margin-top:2px}
+  .chip{background:var(--tealSoft);color:var(--tealD);font-size:10.5px;font-weight:800;padding:4px 9px;border-radius:20px;white-space:nowrap}
+  .addr{display:flex;align-items:center;gap:9px;margin-top:11px;font-size:12px;color:var(--ink2)}
+  .addr .ic{width:22px;height:22px;border-radius:8px;background:#F1F5F5;display:grid;place-items:center;font-size:11px;flex:none}
+  .cc-foot{display:flex;justify-content:space-between;align-items:center;background:#F7FAFA;border-top:1px solid var(--line);padding:11px 15px}
+  .saldo .s-lbl{font-size:9.5px;color:var(--muted);font-weight:800;letter-spacing:.4px}
+  .saldo .s-val{font-size:15px;font-weight:800;color:var(--ink);margin-top:1px}
+  .arrows{display:flex;gap:7px}
+  .arr{width:32px;height:32px;border-radius:10px;background:var(--card);border:1px solid var(--line);display:grid;place-items:center;color:var(--teal);font-size:12px;font-weight:700}
+  /* nav */
+  .nav{position:absolute;left:0;right:0;bottom:0;height:70px;background:#fff;border-top:1px solid var(--line);display:flex}
+  .nav a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10.5px;font-weight:700;color:var(--muted)}
+  .nav a.on{color:var(--teal)} .nav .ni{font-size:18px}
+  .nav a.on .ni{transform:translateY(-1px)}
+</style>
+</head>
+<body>
+  <div class="phone">
+    <div class="tag">2 · REFINAR LO ACTUAL</div>
+    <div class="hero">
+      <div class="row">
+        <div>
+          <div class="hi">DOMINGO 26 JUL</div>
+          <div class="name">Hola, User&nbsp;1</div>
+        </div>
+        <span class="sync"><span class="dot"></span>Sincronizado</span>
+      </div>
+    </div>
+
+    <div class="total">
+      <div class="lbl">A cobrar hoy</div>
+      <div class="amts">
+        <div class="amt nio"><div class="cur">C$ CÓRDOBAS</div><div class="val">1,284,530</div></div>
+        <div class="amt usd"><div class="cur">US$ DÓLARES</div><div class="val">32,410</div></div>
+      </div>
+      <div class="meta"><span><b>66</b> cuentas</span><span><b>40</b> clientes</span></div>
+    </div>
+
+    <div class="wrap">
+      <div class="tabs">
+        <div class="tab on">Todos</div><div class="tab">Diaria</div>
+        <div class="tab">Incobrable</div><div class="tab">Especial</div>
+      </div>
+      <div class="search">🔍 Buscar cliente o cuenta…</div>
+      <div class="count">40 clientes en tu cartera</div>
+
+      <div class="cc">
+        <div class="cc-body">
+          <div class="cc-top">
+            <div class="cc-id">
+              <div class="avatar">YR</div>
+              <div>
+                <div class="cc-name">Yelba Mario Ramírez Téllez</div>
+                <div class="cc-sub">CIF 0012845 · León</div>
+              </div>
+            </div>
+            <span class="chip">3 cuentas</span>
+          </div>
+          <div class="addr"><span class="ic">🏠</span> De la escuela pública 8c al lago #4884</div>
+          <div class="addr"><span class="ic">💼</span> De la farmacia Cosep 6c arriba #7788</div>
+        </div>
+        <div class="cc-foot">
+          <div class="saldo"><div class="s-lbl">SALDO VENCIDO</div><div class="s-val">C$ 84,200</div></div>
+          <div class="arrows"><div class="arr">▲</div><div class="arr">▼</div></div>
+        </div>
+      </div>
+
+      <div class="cc">
+        <div class="cc-body">
+          <div class="cc-top">
+            <div class="cc-id">
+              <div class="avatar">MG</div>
+              <div>
+                <div class="cc-name">Martha Sandra Gómez Mendoza</div>
+                <div class="cc-sub">CIF 0034120 · León</div>
+              </div>
+            </div>
+            <span class="chip">1 cuenta</span>
+          </div>
+          <div class="addr"><span class="ic">🏠</span> Del parque central 6c arriba #5270</div>
+        </div>
+        <div class="cc-foot">
+          <div class="saldo"><div class="s-lbl">SALDO VENCIDO</div><div class="s-val">C$ 21,050</div></div>
+          <div class="arrows"><div class="arr">▲</div><div class="arr">▼</div></div>
+        </div>
+      </div>
+
+      <div class="cc">
+        <div class="cc-body">
+          <div class="cc-top">
+            <div class="cc-id">
+              <div class="avatar">FS</div>
+              <div>
+                <div class="cc-name">Francisco María Sánchez Castro</div>
+                <div class="cc-sub">CIF 0028871 · Chinandega</div>
+              </div>
+            </div>
+            <span class="chip">3 cuentas</span>
+          </div>
+          <div class="addr"><span class="ic">🏠</span> De la gasolinera Uno 8c abajo #1968</div>
+        </div>
+        <div class="cc-foot">
+          <div class="saldo"><div class="s-lbl">SALDO VENCIDO</div><div class="s-val">US$ 4,120</div></div>
+          <div class="arrows"><div class="arr">▲</div><div class="arr">▼</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav">
+      <a><span class="ni">⌂</span>Inicio</a>
+      <a class="on"><span class="ni">≣</span>Cartera</a>
+    </div>
+  </div>
+</body>
+</html>

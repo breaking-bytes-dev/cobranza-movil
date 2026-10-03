@@ -1,7 +1,10 @@
 name: import-app
 
-# Importa la solución con la app localizador rediseñada al Dev vía Service Principal.
-# Baja el asset app-offline-fixed.zip del release sol-v1.0.0.0. Manual. Se mantiene mientras iteramos.
+# Deploya la app localizador rediseñada al Dev vía Service Principal.
+# Estrategia: EXPORTAR la solución actual del ambiente (customizations.xml con los GUIDs
+# vigentes, incl. el perfil offline autogenProfile) y swapear DENTRO mi .msapp rediseñado
+# (que viaja en app-offline-fixed.zip del release). Así el envoltorio siempre matchea el
+# ambiente y no falla por dependencias (perfil offline) desincronizadas. Manual, mientras iteramos.
 
 on:
   workflow_dispatch:
@@ -21,17 +24,46 @@ jobs:
         run: |
           dotnet tool install --global Microsoft.PowerApps.CLI.Tool
           echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
-      - name: Bajar el zip de la app
+      - name: Bajar el zip con el .msapp rediseñado
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p _dl
           gh release download sol-v1.0.0.0 --repo ${{ github.repository }} --dir _dl --pattern "app-offline-fixed.zip"
-      - name: Autenticar + importar solución
+      - name: Autenticar
         run: |
           pac auth create \
             --applicationId "${{ secrets.PP_CLIENT_ID }}" \
             --clientSecret "${{ secrets.PP_CLIENT_SECRET }}" \
             --tenant "${{ secrets.PP_TENANT_ID }}" \
             --environment "${{ secrets.DATAVERSE_URL }}"
-          pac solution import --path _dl/app-offline-fixed.zip --force-overwrite --publish-changes --activate-plugins
+      - name: Exportar solución ACTUAL (GUIDs vigentes del ambiente)
+        run: |
+          pac solution export --name cm_core_cobranzamovil --path _dl/fresh.zip --managed false --overwrite
+      - name: Swapear el .msapp rediseñado dentro del export fresco
+        run: |
+          python3 - <<'PY'
+          import zipfile, sys
+          target = "CanvasApps/sanic_appcobranzamovil_c4e67_DocumentUri.msapp"
+          my = zipfile.ZipFile("_dl/app-offline-fixed.zip").read(target)
+          fresh = zipfile.ZipFile("_dl/fresh.zip")
+          if target not in fresh.namelist():
+              print("ERROR: el export fresco no contiene", target)
+              print("Entradas msapp presentes:", [n for n in fresh.namelist() if n.endswith(".msapp")])
+              sys.exit(1)
+          with zipfile.ZipFile("_dl/deploy.zip", "w") as zout:
+              for it in fresh.infolist():
+                  data = fresh.read(it.filename)
+                  if it.filename == target:
+                      data = my
+                      print("swapped:", it.filename, "->", len(my), "bytes")
+                  zi = zipfile.ZipInfo(it.filename, date_time=it.date_time)
+                  zi.compress_type = it.compress_type
+                  zi.external_attr = it.external_attr
+                  zi.create_system = it.create_system
+                  zout.writestr(zi, data)
+          print("deploy.zip listo")
+          PY
+      - name: Importar deploy.zip (envoltorio vigente + msapp rediseñado)
+        run: |
+          pac solution import --path _dl/deploy.zip --force-overwrite --publish-changes --activate-plugins

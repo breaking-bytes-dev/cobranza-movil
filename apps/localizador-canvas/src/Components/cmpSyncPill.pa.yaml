@@ -1,0 +1,74 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+ComponentDefinitions:
+  cmpSyncPill:
+    DefinitionType: CanvasComponent
+    AccessAppScope: true
+    Properties:
+      Height: =30
+    Children:
+      - Container2:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            Fill: =RGBA(255,255,255,0.16)
+            Height: =28
+            LayoutAlignItems: =LayoutAlignItems.Center
+            LayoutDirection: =LayoutDirection.Horizontal
+            LayoutGap: =6
+            LayoutJustifyContent: =LayoutJustifyContent.Center
+            PaddingBottom: =4
+            PaddingLeft: =10
+            PaddingRight: =10
+            PaddingTop: =4
+            RadiusBottomLeft: =12
+            RadiusBottomRight: =12
+            RadiusTopLeft: =12
+            RadiusTopRight: =12
+            Width: =Parent.Width - 2
+            X: =1
+            Y: =1
+          Children:
+            - icoDot:
+                Control: Circle@2.3.0
+                Properties:
+                  AlignInContainer: =AlignInContainer.Center
+                  Fill: =If(Connection.Connected, gblC.green, gblC.amberOff)
+                  Height: =8
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  OnSelect: =Set(varSyncBack, App.ActiveScreen); Navigate(scrSincronizacion)
+                  Width: =8
+            - lblSync:
+                Control: Label@2.5.1
+                Properties:
+                  AlignInContainer: =AlignInContainer.Stretch
+                  Color: =gblC.white
+                  FillPortions: =1
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  PaddingBottom: =0
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  PaddingTop: =0
+                  Size: =gblT.fxs
+                  Text: =If(Connection.Connected,"Sincronizado","Sin conexión")
+                  Width: =180
+      - Button9:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderStyle: =BorderStyle.None
+            Fill: =Color.Transparent
+            Height: =Container2.Height
+            HoverFill: =Self.Fill
+            OnSelect: =Set(varSyncBack, App.ActiveScreen); Navigate(scrSincronizacion)
+            Text: =
+            Width: =Container2.Width
+            X: =Container2.X
+            Y: =Container2.Y

@@ -1,0 +1,700 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+Screens:
+  scrAgentes:
+    Properties:
+      Fill: =gblC.pantalla
+      OnVisible: |-
+        =// Tabla chica y organizacional: la cota no delegable de 2000 filas es trivial acá.
+        // Sort sobre columna escalar delega — una sola llamada a Dataverse por visita.
+        ClearCollect(colAgentesAge, Sort('CM | TBL | Agentes', '[AG] Nombre'));
+        // Panel de vínculo cerrado y sin agente objetivo (se elige al tocar Vincular/Cambiar).
+        Set(varPanelAge, false);
+        Set(varAgenteAge, Blank());
+        Reset(txtBuscarUsrAge)
+    Children:
+      - cmpEncabezadoAge:
+          Control: CanvasComponent
+          ComponentName: cmpEncabezado
+          Properties:
+            Height: =If(nfMovil, gblE.AltoBarra + 84, 84)
+            Subtitulo: ="Ligá cada localizador a su usuario. Sin usuario = no entra a la app del celular."
+            Titulo: ="Agentes y usuarios"
+            Width: =Parent.Width - Self.X
+            X: =If(nfMovil, 0, gblE.AnchoNav)
+      - conContenidoAge:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            DropShadow: =DropShadow.None
+            Fill: =Color.Transparent
+            Height: =Parent.Height - Self.Y - gblE.Pad
+            Width: =Min(gblE.AnchoMax, Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - 2*gblE.Pad)
+            X: |-
+              =If(nfMovil, 0, gblE.AnchoNav)
+                  + Max(gblE.Pad, (Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - gblE.AnchoMax) / 2)
+            Y: =cmpEncabezadoAge.Y + cmpEncabezadoAge.Height
+          Children:
+            - btnActualizarAge:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  Color: =gblC.ink2
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoBoton
+                  HoverFill: =ColorFade(gblC.card, 10%)
+                  OnSelect: |-
+                    =ClearCollect(colAgentesAge, Sort('CM | TBL | Agentes', '[AG] Nombre'));
+                    Notify("Lista actualizada", NotificationType.Success, 2000)
+                  Size: =10
+                  Text: ="↻ Actualizar"
+                  Width: =150
+                  X: =Parent.Width - Self.Width
+            - conAlertaAge:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.pendBg
+                  Height: =96
+                  RadiusBottomLeft: =gblE.Radio
+                  RadiusBottomRight: =gblE.Radio
+                  RadiusTopLeft: =gblE.Radio
+                  RadiusTopRight: =gblE.Radio
+                  Visible: =CountIf('CM | TBL | Agentes', '[AG] Activo' && 'Email Usuario' = Blank()) > 0
+                  Width: =Parent.Width
+                  Y: =btnActualizarAge.Y + btnActualizarAge.Height + gblE.PadSm
+                Children:
+                  - recBordeAlertaAge:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.pendInk
+                        Height: =Parent.Height
+                        Width: =4
+                  - lblAlertaTituloAge:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.pendInk
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =22
+                        PaddingLeft: =0
+                        Size: =11
+                        Text: |-
+                          ="⚠ " &
+                              CountIf('CM | TBL | Agentes',
+                                  '[AG] Activo' && 'Email Usuario' = Blank()) &
+                              " agente(s) activo(s) sin usuario vinculado"
+                        Width: =Parent.Width - 2*gblE.Pad
+                        Wrap: =false
+                        X: =gblE.Pad
+                        Y: =gblE.PadSm
+                  - lblAlertaDetalleAge:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.pendInk
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =Parent.Height - Self.Y - gblE.PadSm
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: |-
+                          =Concat(
+                              Filter(colAgentesAge, '[AG] Activo' && IsBlank('Email Usuario')),
+                              '[AG] Nombre', ", ") &
+                              ". Esta lista debe estar VACÍA antes de operar: sin usuario no entran a la app del celular y Comp-14 no aísla sus asignaciones."
+                        VerticalAlign: =VerticalAlign.Top
+                        Width: =Parent.Width - 2*gblE.Pad
+                        X: =gblE.Pad
+                        Y: =lblAlertaTituloAge.Y + lblAlertaTituloAge.Height + 4
+            - conListaAge:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.card
+                  Height: =Parent.Height - Self.Y - 28 - gblE.PadSm
+                  RadiusBottomLeft: =gblE.Radio
+                  RadiusBottomRight: =gblE.Radio
+                  RadiusTopLeft: =gblE.Radio
+                  RadiusTopRight: =gblE.Radio
+                  Width: =Parent.Width
+                  Y: |-
+                    =If(conAlertaAge.Visible,
+                        conAlertaAge.Y + conAlertaAge.Height + gblE.Pad,
+                        conAlertaAge.Y)
+                Children:
+                  - galAgentesAge:
+                      Control: Gallery@2.15.0
+                      Variant: Vertical
+                      Properties:
+                        AccessibleLabel: ="Lista de agentes"
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Height: =Parent.Height - 2*gblE.PadSm
+                        Items: =colAgentesAge
+                        ShowScrollbar: =false
+                        TemplateFill: =gblC.card
+                        TemplatePadding: =0
+                        TemplateSize: =If(nfMovil, 148, 72)
+                        Width: =Parent.Width - 2*gblE.PadSm
+                        X: =gblE.PadSm
+                        Y: =gblE.PadSm
+                      Children:
+                        - lblNombreAge:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.ink
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =22
+                              PaddingLeft: =0
+                              Size: =11
+                              Text: =ThisItem.'[AG] Nombre'
+                              Width: |-
+                                =If(nfMovil,
+                                    Parent.TemplateWidth - 2*gblE.Pad,
+                                    Parent.TemplateWidth*32% - gblE.Pad)
+                                    // deja lugar a btnDesvincularAge (extremo derecho de la columna del nombre)
+                                    - If(btnDesvincularAge.Visible, btnDesvincularAge.Width + gblE.PadSm, 0)
+                              Wrap: =false
+                              X: =gblE.Pad
+                              Y: =If(nfMovil, 8, 12)
+                        - lblEmailAge:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.muted
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              Height: =18
+                              PaddingLeft: =0
+                              Size: =9
+                              Text: |-
+                                =If(IsBlank(ThisItem.'Email Usuario'),
+                                    "sin correo",
+                                    ThisItem.'Email Usuario')
+                              Width: =lblNombreAge.Width
+                              Wrap: =false
+                              X: =gblE.Pad
+                              Y: =lblNombreAge.Y + lblNombreAge.Height
+                        - lblUsrAge:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =If(IsBlank(ThisItem.'Email Usuario'), gblC.muted2, gblC.ink2)
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              Height: =gblE.AltoInput
+                              PaddingLeft: =0
+                              Size: =10
+                              Text: |-
+                                =// Vínculo actual en texto (el selector vive en el panel conPanelAge, B-04).
+                                // Nombre del usuario por el lookup; si no resuelve, el email (texto plano).
+                                If(IsBlank(ThisItem.'Email Usuario'),
+                                    "— Sin usuario —",
+                                    Coalesce(ThisItem.'[AG] Usuario'.'Full Name', ThisItem.'Email Usuario'))
+                              Width: |-
+                                =If(nfMovil,
+                                    Parent.TemplateWidth - 2*gblE.Pad,
+                                    Parent.TemplateWidth*30%)
+                                    - btnVincularAge.Width - gblE.PadSm
+                              Wrap: =false
+                              X: =If(nfMovil, gblE.Pad, Parent.TemplateWidth*32%)
+                              Y: =If(nfMovil, 54, (Parent.TemplateHeight - Self.Height)/2)
+                        - btnVincularAge:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderColor: =gblC.borde
+                              BorderThickness: =If(IsBlank(ThisItem.'Email Usuario'), 0, 1)
+                              Color: =If(IsBlank(ThisItem.'Email Usuario'), Color.White, gblC.ink2)
+                              Fill: =If(IsBlank(ThisItem.'Email Usuario'), gblC.teal, gblC.card)
+                              FocusedBorderColor: =If(IsBlank(ThisItem.'Email Usuario'), gblC.ink, gblC.teal)
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              Height: =34
+                              HoverFill: =ColorFade(Self.Fill, 10%)
+                              OnSelect: |-
+                                =// Abre el panel de vínculo para ESTE agente (agente objetivo en varAgenteAge).
+                                // No escribe nada: la escritura ocurre solo al tocar un usuario en galUsrAge.
+                                Set(varAgenteAge, ThisItem);
+                                Reset(txtBuscarUsrAge);
+                                Set(varPanelAge, true)
+                              Size: =9
+                              TabIndex: =0
+                              Text: =If(IsBlank(ThisItem.'Email Usuario'), "Vincular", "Cambiar")
+                              Width: =96
+                              X: |-
+                                =If(nfMovil,
+                                    Parent.TemplateWidth - Self.Width - gblE.Pad,
+                                    Parent.TemplateWidth*62% - Self.Width)
+                              Y: =lblUsrAge.Y + (lblUsrAge.Height - Self.Height)/2
+                        - btnDesvincularAge:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderColor: =gblC.borde
+                              BorderThickness: =1
+                              Color: =gblC.ink2
+                              Fill: =gblC.card
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              Height: =28
+                              HoverFill: =ColorFade(gblC.card, 10%)
+                              OnSelect: |-
+                                =// B-08: la desvinculación salió del OnChange del combo (se disparaba al abrir la
+                                // pantalla). Limpia las DOS columnas juntas. IfError (B-03).
+                                IfError(
+                                    Patch('CM | TBL | Agentes',
+                                        LookUp('CM | TBL | Agentes', '[AG] Nombre' = ThisItem.'[AG] Nombre'),
+                                        {
+                                            '[AG] Usuario': Blank(),
+                                            'Email Usuario': Blank()
+                                        }
+                                    ),
+                                    Notify("No se pudo desvincular " & ThisItem.'[AG] Nombre' & ": " & FirstError.Message,
+                                        NotificationType.Error),
+                                    Notify("Vínculo quitado — " & ThisItem.'[AG] Nombre', NotificationType.Warning);
+                                    ClearCollect(colAgentesAge, Sort('CM | TBL | Agentes', '[AG] Nombre'))
+                                )
+                              Size: =9
+                              TabIndex: =0
+                              Text: ="Desvincular"
+                              Visible: =!IsBlank(ThisItem.'Email Usuario')
+                              Width: =92
+                              X: |-
+                                =If(nfMovil,
+                                    Parent.TemplateWidth - Self.Width - gblE.Pad,
+                                    Parent.TemplateWidth*32% - Self.Width - gblE.PadSm)
+                              Y: =If(nfMovil, 8, (Parent.TemplateHeight - Self.Height)/2)
+                        - chpVinculoAge:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderThickness: =0
+                              Color: =If(IsBlank(ThisItem.'[AG] Usuario'), gblC.redInk, gblC.okInk)
+                              DisplayMode: =DisplayMode.View
+                              Fill: =If(IsBlank(ThisItem.'[AG] Usuario'), gblC.redBg, gblC.okBg)
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =26
+                              RadiusBottomLeft: =8
+                              RadiusBottomRight: =8
+                              RadiusTopLeft: =8
+                              RadiusTopRight: =8
+                              Size: =8
+                              Text: =If(IsBlank(ThisItem.'[AG] Usuario'), "Sin usuario", "✓ Vinculado")
+                              Width: =14 + 7*Len(Self.Text)
+                              X: =If(nfMovil, gblE.Pad, Parent.TemplateWidth*64% + gblE.PadSm)
+                              Y: =If(nfMovil, 106, (Parent.TemplateHeight - Self.Height)/2)
+                        - chpEstadoAge:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderThickness: =0
+                              Color: =If(ThisItem.'[AG] Activo', gblC.ink2, gblC.redInk)
+                              DisplayMode: =DisplayMode.View
+                              Fill: =If(ThisItem.'[AG] Activo', gblC.hairline, gblC.redBg)
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =26
+                              RadiusBottomLeft: =8
+                              RadiusBottomRight: =8
+                              RadiusTopLeft: =8
+                              RadiusTopRight: =8
+                              Size: =8
+                              Text: =If(ThisItem.'[AG] Activo', "Activo", "Inactivo")
+                              Width: =14 + 7*Len(Self.Text)
+                              X: =chpVinculoAge.X + chpVinculoAge.Width + gblE.PadSm
+                              Y: =chpVinculoAge.Y
+                        - btnToggleAge:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderColor: =gblC.borde
+                              BorderThickness: =If(ThisItem.'[AG] Activo', 1, 0)
+                              Color: =If(ThisItem.'[AG] Activo', gblC.ink2, gblC.teal)
+                              Fill: =If(ThisItem.'[AG] Activo', gblC.card, gblC.tealSuave)
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              Height: =34
+                              OnSelect: |-
+                                =// El If del Notify lee el valor VIEJO de ThisItem (el Patch ya lo invirtió
+                                // en Dataverse pero la colección aún no se refrescó) — "activo → desactivado"
+                                // queda correcto tal cual.
+                                // IfError (B-03): si el Patch falla, detalle y sin aviso de éxito.
+                                IfError(
+                                    Patch('CM | TBL | Agentes',
+                                        LookUp('CM | TBL | Agentes', '[AG] Nombre' = ThisItem.'[AG] Nombre'),
+                                        { '[AG] Activo': !ThisItem.'[AG] Activo' }
+                                    ),
+                                    Notify("No se pudo cambiar el estado de " & ThisItem.'[AG] Nombre' & ": " & FirstError.Message,
+                                        NotificationType.Error),
+                                    Notify(ThisItem.'[AG] Nombre' & If(ThisItem.'[AG] Activo', " desactivado", " activado"),
+                                        NotificationType.Success, 2500);
+                                    ClearCollect(colAgentesAge, Sort('CM | TBL | Agentes', '[AG] Nombre'))
+                                )
+                              Size: =10
+                              Text: =If(ThisItem.'[AG] Activo', "Desactivar", "Activar")
+                              Width: =110
+                              X: =Parent.TemplateWidth - Self.Width - gblE.Pad
+                              Y: =If(nfMovil, 102, (Parent.TemplateHeight - Self.Height)/2)
+                        - recSepAge:
+                            Control: GroupContainer@1.5.0
+                            Variant: ManualLayout
+                            Properties:
+                              BorderThickness: =0
+                              DropShadow: =DropShadow.None
+                              Fill: =gblC.hairline
+                              Height: =1
+                              Width: =Parent.TemplateWidth
+                              Y: =Parent.TemplateHeight - 1
+                  - cmpVacioAge:
+                      Control: CanvasComponent
+                      ComponentName: cmpVacio
+                      Properties:
+                        Height: =200
+                        Icono: |-
+                          ="🏍️"
+                        Mensaje: ="El import diario todavía no creó localizadores."
+                        Titulo: ="Sin agentes"
+                        Visible: =CountRows(colAgentesAge) = 0
+                        Width: =Min(420, Parent.Width - 2*gblE.Pad)
+                        X: =(Parent.Width - Self.Width) / 2
+                        Y: =(Parent.Height - Self.Height) / 2
+            - lblAdvertenciaAge:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =28
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Desactivar un agente NO cierra sus asignaciones — eso se hace en Cierres/Reconciliación."
+                  Width: =Parent.Width
+                  Y: =conListaAge.Y + conListaAge.Height + gblE.PadSm
+      - recScrimAge:
+          Control: Rectangle@2.3.0
+          Properties:
+            AccessibleLabel: ="Cerrar panel"
+            Fill: =gblC.scrim
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
+            Height: =Parent.Height
+            OnSelect: |-
+              =Set(varPanelAge, false);
+              Set(varAgenteAge, Blank());
+              Reset(txtBuscarUsrAge)
+            TabIndex: =0
+            Visible: =varPanelAge
+            Width: =Parent.Width
+      - conPanelAge:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            BorderColor: =gblC.borde
+            BorderThickness: =1
+            DropShadow: =DropShadow.None
+            Fill: =gblC.card
+            Height: =Parent.Height
+            RadiusBottomLeft: =0
+            RadiusBottomRight: =0
+            RadiusTopLeft: =0
+            RadiusTopRight: =0
+            Visible: =varPanelAge
+            Width: =If(nfMovil, Parent.Width, Min(480, Parent.Width * 0.45))
+            X: =Parent.Width - Self.Width
+          Children:
+            - lblTituloPanelAge:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =28
+                  PaddingLeft: =0
+                  Text: ="Vincular usuario — " & varAgenteAge.'[AG] Nombre'
+                  Width: =Parent.Width - 2*gblE.Pad - 32
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =gblE.Pad
+            - icoCerrarPanelAge:
+                Control: Classic/Icon@2.5.0
+                Properties:
+                  AccessibleLabel: ="Cerrar panel"
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: =24
+                  Icon: =Icon.Cancel
+                  OnSelect: |-
+                    =Set(varPanelAge, false);
+                    Set(varAgenteAge, Blank());
+                    Reset(txtBuscarUsrAge)
+                  TabIndex: =0
+                  Width: =24
+                  X: =Parent.Width - gblE.Pad - 24
+                  Y: =gblE.Pad + 2
+            - lblActualPanelAge:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =20
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: |-
+                    ="Vínculo actual: " &
+                        If(IsBlank(varAgenteAge.'Email Usuario'), "sin usuario", varAgenteAge.'Email Usuario')
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =lblTituloPanelAge.Y + lblTituloPanelAge.Height + 4
+            - lblBuscarKAge:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =18
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Usuario de Entra (tocá uno para vincularlo)"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =lblActualPanelAge.Y + lblActualPanelAge.Height + gblE.Pad
+            - txtBuscarUsrAge:
+                Control: Classic/TextInput@2.3.2
+                Properties:
+                  AccessibleLabel: ="Buscar usuario por nombre o correo"
+                  BorderColor: =gblC.borde
+                  Default: =""
+                  DelayOutput: =true
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  HintText: ="Buscar por nombre o correo (mín. 2)"
+                  PaddingLeft: =34
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Size: =10
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =lblBuscarKAge.Y + lblBuscarKAge.Height + 4
+            - icoBuscarUsrAge:
+                Control: Classic/Icon@2.5.0
+                Properties:
+                  AccessibleLabel: ="Buscar usuario"
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: =20
+                  Icon: =Icon.Search
+                  Width: =20
+                  X: =txtBuscarUsrAge.X + 8
+                  Y: =txtBuscarUsrAge.Y + (txtBuscarUsrAge.Height - Self.Height) / 2
+            - galUsrAge:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  AccessibleLabel: ="Usuarios que coinciden con la búsqueda"
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: |-
+                    =// Crece con los resultados (mín. 1 fila para el aviso) hasta el espacio libre sobre Cancelar.
+                    Min(
+                        Max(Self.AllItemsCount, 1) * Self.TemplateHeight,
+                        btnCancelarPanelAge.Y - gblE.PadSm - Self.Y)
+                  Items: |-
+                    =// B-04: el ComboBox clásico no pinta registros de Dataverse en esta app (Users incluido)
+                    // → buscador + galería. Filter directo sobre Users, delegable (StartsWith en ambas
+                    // columnas). Con menos de 2 caracteres, centinela "§§": no se consulta la tabla entera
+                    // (B-19) y siempre hay tabla (B-06).
+                    // SIN With (cortaba la delegación — ver scrNuevaSolicitud.galCtaNva). En línea sí delega.
+                    Filter(Users,
+                        StartsWith('Full Name', If(Len(Trim(txtBuscarUsrAge.Text)) < 2, "§§", Trim(txtBuscarUsrAge.Text)))
+                        || StartsWith('Primary Email', If(Len(Trim(txtBuscarUsrAge.Text)) < 2, "§§", Trim(txtBuscarUsrAge.Text))))
+                  OnSelect: |-
+                    =// Tocar un usuario CONFIRMA el vínculo del agente objetivo (varAgenteAge).
+                    // Se escriben las DOS columnas SIEMPRE juntas: '[AG] Usuario' (lookup, lo usa
+                    // Comp-14 para el owner) y 'Email Usuario' (texto en minúsculas, lo usa la canvas del
+                    // localizador para el login). Patchear una sola deja al agente inconsistente.
+                    // Igual que el viejo OnChange (B-08): SOLO vincula y SOLO si el usuario elegido es
+                    // distinto del vínculo actual. Desvincular sigue siendo btnDesvincularAge.
+                    // Sin correo principal no hay login en el celular → no se vincula.
+                    // IfError (B-03): si falla, detalle y el panel queda abierto (sin éxito).
+                    If(
+                        IsBlank(ThisItem.'Primary Email'),
+                        Notify("El usuario " & ThisItem.'Full Name' & " no tiene correo principal: no podría entrar a la app del celular. Elegí otro.",
+                            NotificationType.Warning),
+                        Lower(ThisItem.'Primary Email') = Lower(Coalesce(varAgenteAge.'Email Usuario', "")),
+                        Notify(varAgenteAge.'[AG] Nombre' & " ya está vinculado a " & Lower(ThisItem.'Primary Email'),
+                            NotificationType.Information, 2500),
+                        IfError(
+                            Patch('CM | TBL | Agentes',
+                                LookUp('CM | TBL | Agentes', '[AG] Nombre' = varAgenteAge.'[AG] Nombre'),
+                                {
+                                    '[AG] Usuario': ThisItem,
+                                    'Email Usuario': Lower(ThisItem.'Primary Email')
+                                }
+                            ),
+                            Notify("No se pudo vincular " & varAgenteAge.'[AG] Nombre' & ": " & FirstError.Message,
+                                NotificationType.Error),
+                            Notify("✓ " & varAgenteAge.'[AG] Nombre' & " vinculado a " & Lower(ThisItem.'Primary Email'),
+                                NotificationType.Success, 2500);
+                            Set(varPanelAge, false);
+                            Set(varAgenteAge, Blank());
+                            Reset(txtBuscarUsrAge);
+                            ClearCollect(colAgentesAge, Sort('CM | TBL | Agentes', '[AG] Nombre'))
+                        )
+                    )
+                  ShowScrollbar: =false
+                  TemplateFill: =gblC.card
+                  TemplatePadding: =0
+                  TemplateSize: =48
+                  Visible: =Len(Trim(txtBuscarUsrAge.Text)) >= 2
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =txtBuscarUsrAge.Y + txtBuscarUsrAge.Height + 4
+                Children:
+                  - lblNomFilaUsrAge:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =20
+                        PaddingLeft: =0
+                        Size: =10
+                        Text: =ThisItem.'Full Name'
+                        Width: =Parent.TemplateWidth - 2*gblE.PadSm
+                        Wrap: =false
+                        X: =gblE.PadSm
+                        Y: =5
+                  - lblMailFilaUsrAge:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.muted
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =18
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: =If(IsBlank(ThisItem.'Primary Email'), "sin correo principal", ThisItem.'Primary Email')
+                        Width: =lblNomFilaUsrAge.Width
+                        Wrap: =false
+                        X: =gblE.PadSm
+                        Y: =lblNomFilaUsrAge.Y + lblNomFilaUsrAge.Height + 2
+                  - recSepUsrAge:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.hairline
+                        Height: =1
+                        Width: =Parent.TemplateWidth
+                        Y: =Parent.TemplateHeight - 1
+                  - btnFilaUsrAge:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =Color.Transparent
+                        Fill: =Color.Transparent
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Height: =Parent.TemplateHeight
+                        HoverFill: =RGBA(15, 107, 107, 0.06)
+                        OnSelect: =Select(Parent)
+                        PressedFill: =RGBA(15, 107, 107, 0.12)
+                        TabIndex: =0
+                        Text: ="Vincular a " & ThisItem.'Full Name' & " · " & ThisItem.'Primary Email'
+                        Width: =Parent.TemplateWidth
+                        X: =0
+                        Y: =0
+            - lblSinUsrAge:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =galUsrAge.Height
+                  PaddingLeft: =gblE.PadSm
+                  Size: =9
+                  Text: ="Ningún usuario empieza con «" & Trim(txtBuscarUsrAge.Text) & "»."
+                  Visible: =galUsrAge.Visible && galUsrAge.AllItemsCount = 0
+                  Width: =galUsrAge.Width
+                  Wrap: =false
+                  X: =galUsrAge.X
+                  Y: =galUsrAge.Y
+            - btnCancelarPanelAge:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  Color: =gblC.ink2
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoBoton
+                  OnSelect: |-
+                    =// Cierra sin escribir nada.
+                    Set(varPanelAge, false);
+                    Set(varAgenteAge, Blank());
+                    Reset(txtBuscarUsrAge)
+                  Size: =10
+                  Text: ="Cancelar"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =Parent.Height - gblE.AltoBoton - gblE.Pad
+      - cmpNavAge:
+          Control: CanvasComponent
+          ComponentName: cmpNavLateral
+          Properties:
+            Height: =Parent.Height
+            RutaActiva: ="age"
+            Visible: =!nfMovil || gblNavMovilAbierta
+            Width: =gblE.AnchoNav

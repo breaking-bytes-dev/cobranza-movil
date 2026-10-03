@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cartera — Refinada + Accesibilidad + Night mode</title>
+<style>
+  /* ============================================================
+     DESIGN TOKENS  →  esto es exactamente gblTheme en Power Fx.
+     Cada nombre de variable = un campo del registro de tema.
+     ============================================================ */
+  .phone.light{
+    --bg:#EEF2F3; --surface:#FFFFFF; --surface2:#F5F8F8; --inset:#F0F4F4;
+    --line:#E2E9EA; --ink:#0E2A2E; --ink2:#4A5C60; --muted:#7C8D91;
+    --accent:#0C6E6D; --accentInk:#FFFFFF; --accentSoft:#D8ECEC; --accentText:#095857;
+    --nio:#0C6E6D; --usd:#1F6FB2; --ok:#1B9E6B; --okBg:#E3F6EC;
+    --shadow:0 2px 4px rgba(14,60,58,.05),0 10px 26px rgba(14,60,58,.09);
+    --heroTop:#128C8B; --heroBot:#0A5E5D; --heroInk:#FFFFFF; --heroInk2:rgba(255,255,255,.82);
+    --navBg:#FFFFFF;
+  }
+  .phone.dark{
+    --bg:#0C1516; --surface:#132022; --surface2:#182A2C; --inset:#0F1B1D;
+    --line:#26383A; --ink:#EAF4F3; --ink2:#A9C0BF; --muted:#7492902; --muted:#6F8888;
+    --accent:#33B7B4; --accentInk:#04211F; --accentSoft:#173A39; --accentText:#4FD6D2;
+    --nio:#54CFCB; --usd:#78BEF0; --ok:#3FD08B; --okBg:#123027;
+    --shadow:0 2px 6px rgba(0,0,0,.4),0 12px 30px rgba(0,0,0,.5);
+    --heroTop:#12474A; --heroBot:#0A2E30; --heroInk:#EAF4F3; --heroInk2:rgba(234,244,243,.72);
+    --navBg:#0F1B1D;
+  }
+  /* ============================================================
+     SCALE  →  esto es gblScale en Power Fx.
+     Todo texto y padding usa em, así escala TODO junto (no solo la letra).
+     ============================================================ */
+  .phone.s1{ --base:15px; }   /* Normal */
+  .phone.s2{ --base:17.5px; } /* Grande */
+  .phone.s3{ --base:20px; }   /* Extra grande */
+
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
+  body{background:#20302f;font-family:'Segoe UI',system-ui,sans-serif;display:flex;flex-wrap:wrap;gap:22px;justify-content:center;padding:26px 16px 40px}
+  .col{display:flex;flex-direction:column;align-items:center;gap:10px}
+  .col h4{color:#9fb3b1;font-size:12px;font-weight:700;letter-spacing:1px}
+  .phone{width:390px;border-radius:34px;overflow:hidden;box-shadow:0 30px 60px rgba(0,0,0,.4);min-height:820px;position:relative;background:var(--bg);color:var(--ink);font-size:var(--base)}
+
+  /* accessibility bar (preview del Ajustes rápido) */
+  .abar{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--line)}
+  .abar .grp{display:flex;gap:5px;align-items:center}
+  .abar .lab{font-size:.62em;font-weight:800;color:var(--muted);letter-spacing:.4px;text-transform:uppercase}
+  .seg{display:flex;background:var(--inset);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .seg button{border:0;background:transparent;color:var(--ink2);font-weight:800;padding:7px 11px;cursor:pointer;font-family:inherit;line-height:1}
+  .seg button.on{background:var(--accent);color:var(--accentInk)}
+  .seg.size button:nth-child(1){font-size:11px}
+  .seg.size button:nth-child(2){font-size:14px}
+  .seg.size button:nth-child(3){font-size:17px}
+
+  /* hero */
+  .hero{background:linear-gradient(160deg,var(--heroTop),var(--heroBot));padding:1.5em 1.25em 1.15em;color:var(--heroInk)}
+  .hero .row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .hero .hi{font-size:.78em;color:var(--heroInk2);font-weight:600;letter-spacing:.3px}
+  .hero .name{font-size:1.4em;font-weight:800;letter-spacing:-.4px;margin-top:.15em}
+  .sync{display:inline-flex;align-items:center;gap:.4em;background:rgba(255,255,255,.16);color:var(--heroInk);font-size:.72em;font-weight:800;padding:.45em .75em;border-radius:20px}
+  .dot{width:.55em;height:.55em;border-radius:50%;background:var(--ok)}
+
+  .total{background:var(--surface);border-radius:18px;padding:1.05em 1.1em;box-shadow:var(--shadow);margin:-1.1em .95em 0;position:relative;z-index:2}
+  .total .lbl{font-size:.72em;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.6px;margin-bottom:.75em}
+  .amts{display:flex;gap:.8em}
+  .amt{flex:1;background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:.65em .7em}
+  .amt .cur{font-size:.66em;color:var(--muted);font-weight:800;letter-spacing:.3px}
+  .amt .val{font-size:1.3em;font-weight:800;letter-spacing:-.5px;margin-top:.15em;font-variant-numeric:tabular-nums}
+  .amt.nio .val{color:var(--nio)} .amt.usd .val{color:var(--usd)}
+  .meta{margin-top:.8em;font-size:.76em;color:var(--ink2);font-weight:600;display:flex;gap:1.1em}
+  .meta b{color:var(--ink);font-weight:800}
+
+  .wrap{padding:.95em .95em 5.5em}
+  .tabs{display:flex;gap:.5em;overflow:auto;padding:.15em 0 .3em;margin-bottom:.4em}
+  .tab{font-size:.8em;font-weight:800;color:var(--ink2);padding:.55em 1em;border-radius:22px;background:var(--surface);border:1px solid var(--line);white-space:nowrap}
+  .tab.on{background:var(--accent);color:var(--accentInk);border-color:var(--accent)}
+  .search{display:flex;align-items:center;gap:.6em;background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:.8em .85em;margin:.8em 0 .5em;color:var(--muted);font-size:.85em}
+  .count{font-size:.7em;color:var(--muted);font-weight:800;letter-spacing:.5px;margin:.4em .15em .8em;text-transform:uppercase}
+
+  .cc{background:var(--surface);border:1px solid var(--line);border-radius:17px;margin-bottom:.8em;overflow:hidden;box-shadow:var(--shadow)}
+  .cc-body{padding:.95em .95em .85em}
+  .cc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:.6em}
+  .cc-id{display:flex;gap:.7em;align-items:center}
+  .avatar{width:2.7em;height:2.7em;border-radius:12px;background:var(--accentSoft);color:var(--accentText);display:grid;place-items:center;font-weight:800;font-size:.9em;flex:none}
+  .cc-name{font-size:.95em;font-weight:800;letter-spacing:-.3px;line-height:1.2}
+  .cc-sub{font-size:.72em;color:var(--muted);font-weight:700;margin-top:.15em}
+  .chip{background:var(--accentSoft);color:var(--accentText);font-size:.68em;font-weight:800;padding:.35em .7em;border-radius:20px;white-space:nowrap}
+  .addr{display:flex;align-items:center;gap:.6em;margin-top:.7em;font-size:.8em;color:var(--ink2);font-weight:500}
+  .addr .ic{width:1.6em;height:1.6em;border-radius:8px;background:var(--inset);display:grid;place-items:center;font-size:.85em;flex:none}
+  .cc-foot{display:flex;justify-content:space-between;align-items:center;background:var(--surface2);border-top:1px solid var(--line);padding:.7em .95em}
+  .saldo .s-lbl{font-size:.62em;color:var(--muted);font-weight:800;letter-spacing:.4px}
+  .saldo .s-val{font-size:1em;font-weight:800;color:var(--ink);margin-top:.1em;font-variant-numeric:tabular-nums}
+  .arrows{display:flex;gap:.45em}
+  .arr{width:2.75em;height:2.75em;border-radius:11px;background:var(--surface);border:1px solid var(--line);display:grid;place-items:center;color:var(--accent);font-size:.85em;font-weight:800}
+
+  .nav{position:absolute;left:0;right:0;bottom:0;height:4.6em;background:var(--navBg);border-top:1px solid var(--line);display:flex}
+  .nav a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.2em;font-size:.7em;font-weight:800;color:var(--muted)}
+  .nav a.on{color:var(--accent)} .nav .ni{font-size:1.6em}
+</style>
+</head>
+<body>
+  <div class="col">
+    <h4>TOCÁ LOS SWITCHES ↓</h4>
+    <div class="phone light s1" id="ph">
+      <div class="abar">
+        <div class="grp">
+          <span class="lab">Tema</span>
+          <div class="seg" id="theme">
+            <button data-t="light" class="on">☀ Día</button>
+            <button data-t="dark">🌙 Noche</button>
+          </div>
+        </div>
+        <div class="grp">
+          <span class="lab">Texto</span>
+          <div class="seg size" id="size">
+            <button data-s="s1" class="on">A</button>
+            <button data-s="s2">A</button>
+            <button data-s="s3">A</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero">
+        <div class="row">
+          <div>
+            <div class="hi">DOMINGO 26 JUL</div>
+            <div class="name">Hola, User&nbsp;1</div>
+          </div>
+          <span class="sync"><span class="dot"></span>Sincronizado</span>
+        </div>
+      </div>
+
+      <div class="total">
+        <div class="lbl">A cobrar hoy</div>
+        <div class="amts">
+          <div class="amt nio"><div class="cur">C$ CÓRDOBAS</div><div class="val">1,284,530</div></div>
+          <div class="amt usd"><div class="cur">US$ DÓLARES</div><div class="val">32,410</div></div>
+        </div>
+        <div class="meta"><span><b>66</b> cuentas</span><span><b>40</b> clientes</span></div>
+      </div>
+
+      <div class="wrap">
+        <div class="tabs">
+          <div class="tab on">Todos</div><div class="tab">Diaria</div>
+          <div class="tab">Incobrable</div><div class="tab">Especial</div>
+        </div>
+        <div class="search">🔍 Buscar cliente o cuenta…</div>
+        <div class="count">40 clientes en tu cartera</div>
+
+        <div class="cc">
+          <div class="cc-body">
+            <div class="cc-top">
+              <div class="cc-id">
+                <div class="avatar">YR</div>
+                <div>
+                  <div class="cc-name">Yelba Mario Ramírez Téllez</div>
+                  <div class="cc-sub">CIF 0012845 · León</div>
+                </div>
+              </div>
+              <span class="chip">3 cuentas</span>
+            </div>
+            <div class="addr"><span class="ic">🏠</span> De la escuela pública 8c al lago #4884</div>
+            <div class="addr"><span class="ic">💼</span> De la farmacia Cosep 6c arriba #7788</div>
+          </div>
+          <div class="cc-foot">
+            <div class="saldo"><div class="s-lbl">SALDO VENCIDO</div><div class="s-val">C$ 84,200</div></div>
+            <div class="arrows"><div class="arr">▲</div><div class="arr">▼</div></div>
+          </div>
+        </div>
+
+        <div class="cc">
+          <div class="cc-body">
+            <div class="cc-top">
+              <div class="cc-id">
+                <div class="avatar">MG</div>
+                <div>
+                  <div class="cc-name">Martha Sandra Gómez Mendoza</div>
+                  <div class="cc-sub">CIF 0034120 · León</div>
+                </div>
+              </div>
+              <span class="chip">1 cuenta</span>
+            </div>
+            <div class="addr"><span class="ic">🏠</span> Del parque central 6c arriba #5270</div>
+          </div>
+          <div class="cc-foot">
+            <div class="saldo"><div class="s-lbl">SALDO VENCIDO</div><div class="s-val">C$ 21,050</div></div>
+            <div class="arrows"><div class="arr">▲</div><div class="arr">▼</div></div>
+          </div>
+        </div>
+
+        <div class="cc">
+          <div class="cc-body">
+            <div class="cc-top">
+              <div class="cc-id">
+                <div class="avatar">FS</div>
+                <div>
+                  <div class="cc-name">Francisco María Sánchez Castro</div>
+                  <div class="cc-sub">CIF 0028871 · Chinandega</div>
+                </div>
+              </div>
+              <span class="chip">3 cuentas</span>
+            </div>
+            <div class="addr"><span class="ic">🏠</span> De la gasolinera Uno 8c abajo #1968</div>
+          </div>
+          <div class="cc-foot">
+            <div class="saldo"><div class="s-lbl">SALDO VENCIDO</div><div class="s-val">US$ 4,120</div></div>
+            <div class="arrows"><div class="arr">▲</div><div class="arr">▼</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav">
+        <a><span class="ni">⌂</span>Inicio</a>
+        <a class="on"><span class="ni">≣</span>Cartera</a>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const ph = document.getElementById('ph');
+  document.getElementById('theme').addEventListener('click', e=>{
+    const b = e.target.closest('button'); if(!b) return;
+    ph.classList.remove('light','dark'); ph.classList.add(b.dataset.t);
+    [...e.currentTarget.children].forEach(x=>x.classList.remove('on')); b.classList.add('on');
+  });
+  document.getElementById('size').addEventListener('click', e=>{
+    const b = e.target.closest('button'); if(!b) return;
+    ph.classList.remove('s1','s2','s3'); ph.classList.add(b.dataset.s);
+    [...e.currentTarget.children].forEach(x=>x.classList.remove('on')); b.classList.add('on');
+  });
+</script>
+</body>
+</html>

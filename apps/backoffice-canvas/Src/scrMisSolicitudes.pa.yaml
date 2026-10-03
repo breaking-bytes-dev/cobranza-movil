@@ -1,0 +1,742 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+Screens:
+  scrMisSolicitudes:
+    Properties:
+      Fill: =gblC.pantalla
+      OnVisible: |-
+        =// Mis Especiales — Filter delegable (choice por valor + lookup por registro, 00 §4.2);
+        // AddColumns y Sort corren EN MEMORIA sobre el resultado (cota 2000, 00 §4.1).
+        // Datos de la cuenta navegando el lookup '[AS] Cuenta' (lo resuelve el servidor, sin
+        // catálogo de cuentas truncable al Data row limit).
+        ClearCollect(colSolSol,
+            Sort(
+                AddColumns(
+                    Filter('CM | TBL | Asignacions',
+                        '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                        && '[AS] Solicitado por'.User = gblUsuarioDV.User),
+                    clienteSol, Upper(Coalesce(
+                        ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
+                    prodSol, Coalesce(
+                        ThisRecord.'[AS] Cuenta'.'Tipo Producto', "—"),
+                    saldoNioSol, Coalesce(
+                        ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO', 0),
+                    saldoUsdSol, Coalesce(
+                        ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD', 0),
+                    moraSol, Coalesce(
+                        ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
+                    agenteSol, '[AS] Agente'.'[AG] Nombre'
+                ),
+                '[AS] Fecha de Asignacion', SortOrder.Descending
+            )
+        );
+        Set(varPanelSol, false)
+    Children:
+      - cmpEncSol:
+          Control: CanvasComponent
+          ComponentName: cmpEncabezado
+          Properties:
+            Height: =If(nfMovil, gblE.AltoBarra + 84, 84)
+            Subtitulo: ="Estado de tus asignaciones Especiales."
+            Titulo: ="Mis solicitudes"
+            Width: =Parent.Width - Self.X
+            X: =If(nfMovil, 0, gblE.AnchoNav)
+      - btnActualizarSol:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =gblC.borde
+            BorderThickness: =1
+            Color: =gblC.ink2
+            Fill: =gblC.card
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
+            Font: =Font.'Segoe UI'
+            Height: =gblE.AltoBoton
+            OnSelect: |-
+              =ClearCollect(colSolSol,
+                  Sort(
+                      AddColumns(
+                          Filter('CM | TBL | Asignacions',
+                              '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                              && '[AS] Solicitado por'.User = gblUsuarioDV.User),
+                          clienteSol, Upper(Coalesce(
+                              ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
+                          prodSol, Coalesce(
+                              ThisRecord.'[AS] Cuenta'.'Tipo Producto', "—"),
+                          saldoNioSol, Coalesce(
+                              ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO', 0),
+                          saldoUsdSol, Coalesce(
+                              ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD', 0),
+                          moraSol, Coalesce(
+                              ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
+                          agenteSol, '[AS] Agente'.'[AG] Nombre'
+                      ),
+                      '[AS] Fecha de Asignacion', SortOrder.Descending
+                  )
+              );
+              Notify("✓ Lista actualizada", NotificationType.Success, 2500)
+            Size: =9
+            Text: ="↻ Actualizar"
+            Width: =130
+            X: =btnNuevaSol.X - Self.Width - gblE.PadSm
+            Y: =btnNuevaSol.Y
+      - btnNuevaSol:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderThickness: =0
+            Color: =Color.White
+            DisabledColor: =Color.White
+            DisabledFill: =ColorFade(gblC.teal, 60%)
+            Fill: =gblC.teal
+            FocusedBorderColor: =gblC.ink
+            FocusedBorderThickness: =2
+            Font: =Font.'Segoe UI'
+            Height: =gblE.AltoBoton
+            HoverFill: =ColorFade(gblC.teal, 10%)
+            OnSelect: =Navigate(scrNuevaSolicitud)
+            Size: =9
+            Text: ="✨ Nueva solicitud"
+            Width: =170
+            X: =Parent.Width - Self.Width - gblE.Pad
+            Y: =cmpEncSol.Y + If(nfMovil, gblE.AltoBarra, 0) + (84 - Self.Height) / 2
+      - conContenidoSol:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            DropShadow: =DropShadow.None
+            Fill: =Color.Transparent
+            Height: =Parent.Height - Self.Y
+            Width: =Min(gblE.AnchoMax, Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - 2*gblE.Pad)
+            X: |-
+              =If(nfMovil, 0, gblE.AnchoNav)
+                  + Max(gblE.Pad, (Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - gblE.AnchoMax) / 2)
+            Y: =cmpEncSol.Y + cmpEncSol.Height
+          Children:
+            - conListaSol:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.card
+                  Height: =Parent.Height - 2*gblE.Pad
+                  RadiusBottomLeft: =gblE.Radio
+                  RadiusBottomRight: =gblE.Radio
+                  RadiusTopLeft: =gblE.Radio
+                  RadiusTopRight: =gblE.Radio
+                  Width: =Min(Parent.Width - 2*gblE.Pad, gblE.AnchoMax)
+                  X: =gblE.Pad
+                  Y: =gblE.Pad
+                Children:
+                  - galSolSol:
+                      Control: Gallery@2.15.0
+                      Variant: Vertical
+                      Properties:
+                        AccessibleLabel: ="Mis solicitudes"
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Height: =Parent.Height - 2*gblE.PadSm
+                        Items: =colSolSol
+                        OnSelect: =Set(varPanelSol, true)
+                        ShowScrollbar: =false
+                        TemplateFill: =If(ThisItem.IsSelected, gblC.tealSuave, gblC.card)
+                        TemplatePadding: =0
+                        TemplateSize: =If(nfMovil, 132, 84)
+                        Visible: =CountRows(colSolSol) > 0
+                        Width: =Parent.Width - 2*gblE.PadSm
+                        X: =gblE.PadSm
+                        Y: =gblE.PadSm
+                      Children:
+                        - lblClienteFilaSol:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.ink
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Semibold
+                              Height: =18
+                              PaddingLeft: =0
+                              Size: =10
+                              Text: =ThisItem.clienteSol
+                              Width: =If(nfMovil, Parent.TemplateWidth - 2*gblE.PadSm, (Parent.TemplateWidth - 2*gblE.PadSm) * 0.34)
+                              Wrap: =false
+                              X: =gblE.PadSm
+                              Y: =6
+                        - lblCuentaFilaSol:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.muted
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              Height: =16
+                              PaddingLeft: =0
+                              Size: =9
+                              Text: =ThisItem.'[AS] NumeroCuenta'
+                              Width: =lblClienteFilaSol.Width
+                              Wrap: =false
+                              X: =gblE.PadSm
+                              Y: =26
+                        - lblMetaFilaSol:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.muted2
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              Height: =16
+                              PaddingLeft: =0
+                              Size: =8
+                              Text: =ThisItem.'[AS] Numero' & " · " & Text(ThisItem.'[AS] Fecha de Asignacion', "dd/mm HH:mm")
+                              Width: =lblClienteFilaSol.Width
+                              Wrap: =false
+                              X: =gblE.PadSm
+                              Y: =44
+                        - lblNotasFilaSol:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.ink2
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              Height: =If(nfMovil, 34, Parent.TemplateHeight - 14)
+                              PaddingLeft: =0
+                              Size: =9
+                              Text: =If(Len(ThisItem.Notas) > 90, Left(ThisItem.Notas, 90) & "…", ThisItem.Notas)
+                              VerticalAlign: =VerticalAlign.Top
+                              Width: =(Parent.TemplateWidth - 2*gblE.PadSm) * If(nfMovil, 1, 0.32)
+                              X: =If(nfMovil, gblE.PadSm, gblE.PadSm + (Parent.TemplateWidth - 2*gblE.PadSm) * 0.36)
+                              Y: =If(nfMovil, 64, 6)
+                        - lblMontoFilaSol:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =If(nfMovil, Align.Left, Align.Right)
+                              Color: =gblC.ink
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Semibold
+                              Height: =18
+                              PaddingLeft: =0
+                              PaddingRight: =0
+                              Size: =10
+                              Text: =Moneda(ThisItem.'Retiro NIO', ThisItem.'Retiro USD')
+                              Width: =220
+                              Wrap: =false
+                              X: =If(nfMovil, gblE.PadSm, Parent.TemplateWidth - Self.Width - gblE.PadSm)
+                              Y: =If(nfMovil, 100, 8)
+                        - chpEstadoFilaSol:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderThickness: =0
+                              Color: |-
+                                =If(ThisItem.'[AS] Estado' = false, gblC.ink2,
+                                    Switch(ThisItem.'[AS] Estado de aprobacion',
+                                        'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion', gblC.pendInk,
+                                        'Choice | CM | Estado aprobacion especial'.Aprobado, gblC.okInk,
+                                        'Choice | CM | Estado aprobacion especial'.Rechazada, gblC.redInk,
+                                        gblC.ink2))
+                              Fill: |-
+                                =If(ThisItem.'[AS] Estado' = false, gblC.hairline,
+                                    Switch(ThisItem.'[AS] Estado de aprobacion',
+                                        'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion', gblC.pendBg,
+                                        'Choice | CM | Estado aprobacion especial'.Aprobado, gblC.okBg,
+                                        'Choice | CM | Estado aprobacion especial'.Rechazada, gblC.redBg,
+                                        gblC.hairline))
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =26
+                              RadiusBottomLeft: =8
+                              RadiusBottomRight: =8
+                              RadiusTopLeft: =8
+                              RadiusTopRight: =8
+                              Size: =8
+                              Text: |-
+                                =If(ThisItem.'[AS] Estado' = false, "Cerrada",
+                                    Switch(ThisItem.'[AS] Estado de aprobacion',
+                                        'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion', "Pendiente aprobación",
+                                        'Choice | CM | Estado aprobacion especial'.Aprobado, "Aprobada",
+                                        'Choice | CM | Estado aprobacion especial'.Rechazada, "Rechazada",
+                                        'Choice | CM | Estado aprobacion especial'.Borrador, "Borrador",
+                                        "—"))
+                              Width: =14 + 7*Len(Self.Text)
+                              X: =Parent.TemplateWidth - Self.Width - gblE.PadSm
+                              Y: =If(nfMovil, 98, 32)
+                        - chpAgenteFilaSol:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderThickness: =0
+                              Color: =gblC.ink2
+                              Fill: =gblC.hairline
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =26
+                              RadiusBottomLeft: =8
+                              RadiusBottomRight: =8
+                              RadiusTopLeft: =8
+                              RadiusTopRight: =8
+                              Size: =8
+                              Text: |-
+                                ="🏍️ " & ThisItem.agenteSol
+                              Visible: =!IsBlank(ThisItem.agenteSol)
+                              Width: =14 + 7*Len(Self.Text)
+                              X: =chpEstadoFilaSol.X - Self.Width - gblE.PadSm
+                              Y: =chpEstadoFilaSol.Y
+                        - recSepSol:
+                            Control: GroupContainer@1.5.0
+                            Variant: ManualLayout
+                            Properties:
+                              BorderThickness: =0
+                              DropShadow: =DropShadow.None
+                              Fill: =gblC.hairline
+                              Height: =1
+                              Width: =Parent.TemplateWidth
+                              Y: =Parent.TemplateHeight - 1
+                        - btnFilaSol:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderThickness: =0
+                              Color: =Color.Transparent
+                              Fill: =Color.Transparent
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Height: =Parent.TemplateHeight
+                              HoverFill: =RGBA(15, 107, 107, 0.06)
+                              OnSelect: =Select(Parent)
+                              PressedFill: =RGBA(15, 107, 107, 0.12)
+                              TabIndex: =0
+                              Text: ="Ver solicitud de " & ThisItem.clienteSol
+                              Width: =Parent.TemplateWidth
+                              X: =0
+                              Y: =0
+            - cmpVacioSol:
+                Control: CanvasComponent
+                ComponentName: cmpVacio
+                Properties:
+                  Height: =200
+                  Icono: |-
+                    ="🗂️"
+                  Mensaje: ="Creá la primera con el botón «✨ Nueva solicitud», arriba a la derecha."
+                  Titulo: ="Sin solicitudes todavía"
+                  Visible: =CountRows(colSolSol) = 0
+                  Width: =Min(420, Parent.Width - 2*gblE.Pad)
+                  X: =(Parent.Width - Self.Width) / 2
+                  Y: =(Parent.Height - Self.Height) / 2
+      - recScrimSol:
+          Control: Rectangle@2.3.0
+          Properties:
+            AccessibleLabel: ="Cerrar panel"
+            Fill: =gblC.scrim
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
+            Height: =Parent.Height
+            OnSelect: =Set(varPanelSol, false)
+            TabIndex: =0
+            Visible: =varPanelSol
+            Width: =Parent.Width
+      - conPanelSol:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            BorderColor: =gblC.borde
+            BorderThickness: =1
+            DropShadow: =DropShadow.None
+            Fill: =gblC.card
+            Height: =Parent.Height
+            RadiusBottomLeft: =0
+            RadiusBottomRight: =0
+            RadiusTopLeft: =0
+            RadiusTopRight: =0
+            Visible: =varPanelSol
+            Width: =If(nfMovil, Parent.Width, Min(480, Parent.Width * 0.45))
+            X: =Parent.Width - Self.Width
+          Children:
+            - lblTituloPanSol:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =22
+                  PaddingLeft: =0
+                  Text: ="Solicitud " & galSolSol.Selected.'[AS] Numero'
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =16
+            - icoCerrarSol:
+                Control: Classic/Icon@2.5.0
+                Properties:
+                  AccessibleLabel: ="Cerrar panel"
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: =22
+                  Icon: =Icon.Cancel
+                  OnSelect: =Set(varPanelSol, false)
+                  TabIndex: =0
+                  Width: =22
+                  X: =Parent.Width - Self.Width - gblE.Pad
+                  Y: =16
+            - lblSecCtaSol:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =22
+                  PaddingLeft: =0
+                  Size: =8
+                  Text: ="CUENTA"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =58
+            - lblKCliSol:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =22
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Cliente"
+                  Width: =110
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =80
+            - lblVCliSol:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Right
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =22
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =10
+                  Text: =galSolSol.Selected.clienteSol
+                  Width: =Parent.Width - 2*gblE.Pad - 110
+                  Wrap: =false
+                  X: =gblE.Pad + 110
+                  Y: =80
+            - lblKCtaSol:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =22
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Cuenta"
+                  Width: =110
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =104
+            - lblVCtaSol:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Right
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =22
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =10
+                  Text: =galSolSol.Selected.'[AS] NumeroCuenta' & " · " & galSolSol.Selected.prodSol
+                  Width: =Parent.Width - 2*gblE.Pad - 110
+                  Wrap: =false
+                  X: =gblE.Pad + 110
+                  Y: =104
+            - lblKSaldoSol:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =22
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Saldo vencido"
+                  Width: =110
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =128
+            - lblVSaldoSol:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Right
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =22
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =10
+                  Text: =Moneda(galSolSol.Selected.saldoNioSol, galSolSol.Selected.saldoUsdSol)
+                  Width: =Parent.Width - 2*gblE.Pad - 110
+                  Wrap: =false
+                  X: =gblE.Pad + 110
+                  Y: =128
+            - lblKMoraSol:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =22
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Mora"
+                  Width: =110
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =152
+            - lblVMoraSol:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Right
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =22
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =10
+                  Text: =galSolSol.Selected.moraSol & " días"
+                  Width: =Parent.Width - 2*gblE.Pad - 110
+                  Wrap: =false
+                  X: =gblE.Pad + 110
+                  Y: =152
+            - lblSecSolSol:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =22
+                  PaddingLeft: =0
+                  Size: =8
+                  Text: ="SOLICITUD"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =190
+            - lblKRetiroSol:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =22
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Retiro pedido"
+                  Width: =110
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =212
+            - lblVRetiroSol:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Right
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =22
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =10
+                  Text: =Moneda(galSolSol.Selected.'Retiro NIO', galSolSol.Selected.'Retiro USD')
+                  Width: =Parent.Width - 2*gblE.Pad - 110
+                  Wrap: =false
+                  X: =gblE.Pad + 110
+                  Y: =212
+            - lblKFechaSol:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =22
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Solicitada"
+                  Width: =110
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =236
+            - lblVFechaSol:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Right
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =22
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =10
+                  Text: =Text(galSolSol.Selected.'[AS] Fecha de Asignacion', "dd/mm HH:mm")
+                  Width: =Parent.Width - 2*gblE.Pad - 110
+                  Wrap: =false
+                  X: =gblE.Pad + 110
+                  Y: =236
+            - conNotasPanSol:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.pantalla
+                  Height: =96
+                  RadiusBottomLeft: =gblE.RadioSm
+                  RadiusBottomRight: =gblE.RadioSm
+                  RadiusTopLeft: =gblE.RadioSm
+                  RadiusTopRight: =gblE.RadioSm
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =266
+                Children:
+                  - lblNotasPanSol:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =Parent.Height - 2*gblE.PadSm
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: =galSolSol.Selected.Notas
+                        VerticalAlign: =VerticalAlign.Top
+                        Width: =Parent.Width - 2*gblE.PadSm
+                        X: =gblE.PadSm
+                        Y: =gblE.PadSm
+            - conRechSol:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.redBg
+                  Height: =72
+                  RadiusBottomLeft: =gblE.RadioSm
+                  RadiusBottomRight: =gblE.RadioSm
+                  RadiusTopLeft: =gblE.RadioSm
+                  RadiusTopRight: =gblE.RadioSm
+                  Visible: =galSolSol.Selected.'[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Rechazada
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =374
+                Children:
+                  - lblRechSol:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.redInk
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =Parent.Height - 2*gblE.PadSm
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: |-
+                          ="Motivo de rechazo: " & Coalesce(galSolSol.Selected.'Motivo de rechazo', "—")
+                        VerticalAlign: =VerticalAlign.Top
+                        Width: =Parent.Width - 2*gblE.PadSm
+                        X: =gblE.PadSm
+                        Y: =gblE.PadSm
+            - lblKAgenteSol:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =22
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Localizador"
+                  Visible: =galSolSol.Selected.'[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado
+                  Width: =110
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =374
+            - lblVAgenteSol:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Right
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =22
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =10
+                  Text: |-
+                    ="🏍️ " & Coalesce(galSolSol.Selected.agenteSol, "—")
+                  Visible: =galSolSol.Selected.'[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado
+                  Width: =Parent.Width - 2*gblE.Pad - 110
+                  Wrap: =false
+                  X: =gblE.Pad + 110
+                  Y: =374
+            - btnCerrarPanSol:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  Color: =gblC.ink2
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoBoton
+                  OnSelect: =Set(varPanelSol, false)
+                  Size: =9
+                  Text: ="Cerrar"
+                  Width: =120
+                  X: =gblE.Pad
+                  Y: =Parent.Height - gblE.AltoBoton - gblE.Pad
+      - cmpNavSol:
+          Control: CanvasComponent
+          ComponentName: cmpNavLateral
+          Properties:
+            Height: =Parent.Height
+            RutaActiva: ="sol"
+            Visible: =!nfMovil || gblNavMovilAbierta
+            Width: =gblE.AnchoNav

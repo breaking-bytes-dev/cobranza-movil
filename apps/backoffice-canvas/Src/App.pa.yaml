@@ -1,0 +1,190 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+App:
+  Properties:
+    Formulas: |-
+      =// ===== App.Formulas (fórmulas con nombre — guía 01 §3) =====
+      // Bimoneda: "C$ X · US$ Y", omite la moneda en cero. Igual que la app del localizador.
+      Moneda(nio:Number, usd:Number): Text =
+          Coalesce(
+              // Filter saca las entradas en blanco: sin él, Concat(0,0) devuelve " · " (no vacío)
+              // y el Coalesce nunca dispara.
+              Concat(
+                  Filter(
+                      Table(
+                          {t: If(Coalesce(nio,0) > 0, "C$ " & Text(nio, "#,##0.00"))},
+                          {t: If(Coalesce(usd,0) > 0, "US$ " & Text(usd, "#,##0.00"))}
+                      ),
+                      !IsBlank(t)
+                  ),
+                  t, " · "
+              ),
+              "C$ 0.00"
+          );
+
+      // Breakpoint responsive único del proyecto (00 §7).
+      // Si Studio rechaza App.ActiveScreen acá, mover nfMovil a cada pantalla como Parent.Width < 920.
+      nfMovil = App.ActiveScreen.Width < 920;
+
+      // Última carga registrada (delegable: Sort + First). La usan Monitoreo y Reconciliación.
+      nfUltimaCarga = First(
+          Sort('CM | TBL | Carga diarias', '[CD] FechaCarga', SortOrder.Descending)
+      ).'[CD] FechaCarga';
+
+      // Identidad (B-01, ronda 6): fórmulas con nombre y NO Set en OnStart — el OnVisible de
+      // scrInicio corría antes de que OnStart terminara y los KPIs salían vacíos la 1ª vez.
+      // Se evalúan a demanda y siempre están disponibles. Nombres gbl* conservados (referencias).
+      // gblRol derivado de la seguridad REAL (00 §3.1 — sin tabla extra).
+      // a) Roles DIRECTOS del usuario: "SR | CM | Admin" -> "Admin".
+      // b) Roles por TEAM: en este proyecto el rol se asigna por membresía al team
+      //    "CM · <perfil> · <ENV>". Canvas no deja navegar Team -> Security Roles dentro de un
+      //    ForAll ("not accessible in this context", verificado en Studio), así que el perfil
+      //    sale del segmento del medio del nombre del team (el sufijo DEV/PRD se ignora).
+      //    ⚠ Renombrar un team CM rompe este mapeo (mismo acople que el prefijo "SR | CM | ").
+      gblUsuarioDV = LookUp(
+          Users,
+          'Primary Email' = Lower(User().Email)
+      );
+
+      // Expresión pura (Concat/Split/Distinct, sin Collect/Set): válida en fórmula con nombre.
+      // B-06: guarda de Blank. Si el LookUp de gblUsuarioDV todavía no resolvió (carrera al abrir) o el
+      // usuario no existe en Users, sus relaciones son Blank y Filter/Concat fallaban con
+      // "expected a table" (banner en Inicio). Sin usuario => "" => estado "sin acceso".
+      gblRol = If(IsBlank(gblUsuarioDV), "", With(
+          {
+              // a) roles directos "SR | CM | Admin" -> "Admin"
+              rolesDirectos: Concat(
+                  Filter(
+                      gblUsuarioDV.'Security Roles (systemuserroles_association)',
+                      StartsWith(
+                          Name,
+                          "SR | CM | "
+                      )
+                  ),
+                  Substitute(
+                      Name,
+                      "SR | CM | ",
+                      ""
+                  ),
+                  "|"
+              ),
+              // b) roles por team "CM · <perfil> · <ENV>" -> perfil (segmento del medio)
+              //    (mismo recorrido que el ForAll original: If por fila, sin Filter sobre la relación)
+              rolesTeam: Concat(
+                  gblUsuarioDV.'Teams (teammembership_association)',
+                  If(
+                      StartsWith(
+                          'Team Name',
+                          "CM · "
+                      ),
+                      Switch(
+                          Index(
+                              Split(
+                                  'Team Name',
+                                  " · "
+                              ),
+                              2
+                          ).Value,
+                          "Backoffice",
+                          "BackOffice",
+                          "Solicitantes",
+                          "Solicitante",
+                          "Supervisores",
+                          "Supervisor",
+                          "Admin y Carga",
+                          "Admin",
+                          ""
+                      )
+                  ),
+                  "|"
+              )
+          },
+          // Multi-rol => "BackOffice|Admin". El `in` de los guards/nav es case-insensitive.
+          // Sin ningún rol CM => gblRol vacío => estado "sin acceso" de scrInicio.
+          Concat(
+              Distinct(
+                  Filter(
+                      Split(
+                          rolesDirectos & "|" & rolesTeam,
+                          "|"
+                      ),
+                      !IsBlank(Value)
+                  ),
+                  Value
+              ),
+              Value,
+              "|"
+          )
+      ));
+    OnStart: |-
+      =// ===== App.OnStart =====
+      // 1) Tokens de color (identidad de la familia, modo día)
+      Set(
+          gblC,
+          {
+              teal: ColorValue("#0F6B6B"),
+              tealOscuro: ColorValue("#0B5252"),
+              tealSuave: ColorValue("#E0EEEE"),
+              pantalla: ColorValue("#F2F4F7"),
+              card: ColorValue("#FFFFFF"),
+              borde: ColorValue("#E4E7EC"),
+              hairline: ColorValue("#F0F2F5"),
+              ink: ColorValue("#101828"),
+              ink2: ColorValue("#475467"),
+              muted: ColorValue("#667085"),
+              muted2: ColorValue("#98A2B3"),
+              okBg: ColorValue("#ECFDF5"),
+              okInk: ColorValue("#067647"),
+              pendBg: ColorValue("#FEF3C7"),
+              pendInk: ColorValue("#B45309"),
+              redBg: ColorValue("#FEE2E2"),
+              redInk: ColorValue("#DC2626"),
+              diariaBg: ColorValue("#DBEAFE"),
+              diariaInk: ColorValue("#2563EB"),
+              incobBg: ColorValue("#FEF3C7"),
+              incobInk: ColorValue("#B45309"),
+              espBg: ColorValue("#EDE9FE"),
+              espInk: ColorValue("#7C3AED"),
+              blancoTr: RGBA(
+                  255,
+                  255,
+                  255,
+                  0.18
+              ),
+              scrim: RGBA(
+                  16,
+                  24,
+                  40,
+                  0.45
+              )
+          }
+      );
+      // 2) Tokens de medida (los ÚNICOS números "absolutos" permitidos en las guías)
+      Set(
+          gblE,
+          {
+              Pad: 16,
+              PadSm: 10,
+              AnchoNav: 240,
+              Radio: 12,
+              RadioSm: 9,
+              AltoBarra: 56,
+              AltoFila: 64,
+              AltoInput: 40,
+              AltoBoton: 44,
+              AnchoMax: 1160
+          }
+      );
+      // 4) La navegación por rol vive en cmpNavLateral (galNavCmp.Items, catálogo local — B-06).
+      Set(
+          gblNavMovilAbierta,
+          false
+      )
+    StartScreen: =scrInicio
+    Theme: =PowerAppsTheme

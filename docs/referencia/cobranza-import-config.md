@@ -3,6 +3,26 @@
 > Modelo totalmente normalizado. Cada fila del CSV alimenta 7 entidades. Decisiones: Cliente 1:N Cuenta;
 > direcciones/teléfonos normalizados; Producto/Agente/Fiador como catálogos; Cliente = tabla custom.
 
+> **Estado (verificado + corregido en Dev, 2026-07-28):** el template **`Cobranza movil` YA existe** en
+> Smelter `smlt_core_smelter` **v1.1.0.0** con **12 table mappings** (incluye una `Asignacion` que este doc no
+> tenía documentada — ver §2). Config: delimiter `,`, header sí, status Active, **chunk size = 50**
+> (conservador; se puede subir a ~500).
+>
+> ⚠️ **Corrección importante:** una auditoría **columna por columna** encontró que faltaban **19 column
+> mappings** — se agregaron todos (verificado):
+> - **Cuenta (denormalizadas para el offline):** `cifcliente ← CIF`, `nombrecliente ← Cliente`,
+>   `tipoproducto ← TipoProducto`, `nombrefiador ← NombreFianza`, `direccionfiador ← DireccionFianza`,
+>   `nota ← Nota`, y el **lookup `fiador ← NombreFianza`**. Sin estas, la **canvas app offline se rompía**
+>   (usa los campos denormalizados, no navega relaciones).
+> - **Carga Diaria (snapshot):** los **10 montos/mora** (`saldovencidonio/usd`, `totalsaldovencido`,
+>   `contagiadousd`, `pagominimo nio/usd`, `retiro nio/usd`, `diasmora`, `nivelmora`) + el **lookup
+>   `cuenta ← NumeroCuenta`**. Sin estos el snapshot no tenía montos.
+> - **Asignacion:** `ultimacarga ← FechaCarga` (**clave para la reconciliación DEC-018**). `estado` ya
+>   defaultea `true` (Activa), no necesita mapping.
+>
+> **Ahora los mappings SÍ están completos.** El ajuste que queda es de **seguridad/team** (§5) — hoy el
+> template es de un **usuario**, no de un team. Ver también §6 (disparar el import desde nuestras apps).
+
 ## 1. Estructura de tablas en Dataverse
 
 > Prefijo `sanic_`. `Tipo` de Dirección/Teléfono va como **texto simple** (no Choice) para que el alt key
@@ -81,6 +101,14 @@
 | 8 | `sanic_cm_tbl_telefono` (Celular) | 2 | `sanic_cm_tl_cif,sanic_cm_tl_tipo` |
 | 9 | `sanic_cm_tbl_telefono` (Casa) | 2 | `sanic_cm_tl_cif,sanic_cm_tl_tipo` |
 | 10 | `sanic_cm_tbl_cuenta` | 3 | `sanic_cm_ct_numerodecuenta` |
+| 11 | `sanic_cm_tbl_asignacion` | 4 | `sanic_cm_as_numerocuenta,sanic_cm_as_tipo` |
+
+> **La `Asignacion` (mapping #11, orden 4) — la bisagra.** Crea la asignación que liga **cuenta + agente +
+> tipo** (Diaria/Incobrable/Especial). Es lo que le arma la **cartera al localizador** (y sobre lo que la
+> **comp 14** setea el owner). Dedup por `numerocuenta+tipo` → una asignación por cuenta y tipo. Column
+> mappings: `NumeroCuenta→sanic_cm_as_numerocuenta`, `TipoAsignacion→sanic_cm_as_tipo`; Relationship Mappings:
+> `Cuenta → Asignacion` (`sanic_cm_as_cuentaid`, por NumeroCuenta) y `Agente → Asignacion`
+> (`sanic_cm_as_agenteid`, por Agente).
 
 > 💡 **La sutileza clave:** Smelter genera **1 registro por Table Mapping por fila**. Como cada fila trae
 > 3 direcciones y 2 teléfonos, creás **un Table Mapping por cada una**, todos apuntando a la misma tabla,
@@ -169,3 +197,61 @@ lógica custom en el plugin) que Smelter no tiene. Snapshot completo diario = si
 - *"¿Cuántas veces se cargó la cuenta X?"* → `count` de `cargadiaria` por `sanic_cm_cd_cuenta`.
 - *"¿Qué agente la tenía el día X?"* → `cargadiaria` filtrada por cuenta + `sanic_cm_cd_fechacarga` = X.
 - *"Evolución de la mora"* → serie de `sanic_cm_cd_diasmora` / saldos por `sanic_cm_cd_fechacarga`.
+
+---
+
+## 5. Seguridad y Team (Smelter v1.1) — **el ajuste pendiente**
+
+Desde `smelter-security` v2, **el acceso a un template va por Team**. Dos roles (los provisiona
+`Smelter.Deploy`, ya están en Dev):
+- **`Smelter Configurador`** — crea/edita templates y mappings, **ve TODO** (Org-level). Los que arman la config.
+- **`Smelter Operador`** — solo **corre imports** y ve logs, y **ve solo los templates de sus teams**
+  (Read User/Basic). Los que suben el CSV cada día.
+
+**El cascade Template→Import Job** (Share=Cascade, ya provisionado) hace que los jobs creados bajo el
+template **hereden el acceso del team** — el operador ve los jobs de su team sin compartir cada uno.
+
+### Estado actual (DEV, 2026-07-28) — ✅ hecho por API
+Se crearon los **5 teams de DEV** (uno por rol), cada uno con su rol de seguridad. El template
+`Cobranza movil` **ya es owner del team `CM · Admin y Carga · DEV`** (antes era de un usuario):
+
+| Team DEV | Rol(es) |
+|----------|---------|
+| `CM · Localizadores · DEV` | `SR \| CM \| Localizador` |
+| `CM · Backoffice · DEV` | `SR \| CM \| Backoffice` |
+| `CM · Solicitantes · DEV` | `SR \| CM \| Solicitante` |
+| `CM · Supervisores · DEV` | `SR \| CM \| Supervisor` |
+| **`CM · Admin y Carga · DEV`** | `SR \| CM \| Admin` + **`Smelter Operador`** · **owner del template** |
+
+**Falta (manual, depende de vos):**
+1. **Agregar los usuarios** (operadores/localizadores/etc.) como **miembros** de cada team.
+2. **Compartir la app** con los teams.
+3. Cuando exista PRD, **replicar los 5 teams** con sufijo `· PRD`.
+4. Si Admin y Carga va a **editar** la estructura del template (no solo correrlo), sumarle también
+   **`Smelter Configurador`** (hoy tiene solo Operador, que alcanza para correr la carga).
+
+> Los **Configuradores** (Org-level) ven todos los templates sin depender del team.
+
+> ⚠️ **Rename de Custom API (v1.1):** si algo invoca la API por nombre, es `sanic_capi_smelter_processchunk`
+> (se corrigió el typo `anic_...` histórico). `prepareimport` no cambió.
+
+---
+
+## 6. Disparar el import desde NUESTRAS apps (Smelter v1.1)
+
+Smelter v1.1 permite **correr el import desde cualquier canvas o model-driven app** (no solo la MDA de
+Smelter), porque el motor son **Custom APIs**. El flujo mínimo:
+
+1. Crear un **Import Job** con `Import Template = Cobranza movil` y el **CSV adjunto**.
+2. Invocar **`sanic_capi_smelter_prepareimport`** (valida headers, cuenta filas) → el Cloud Flow orquesta
+   **`sanic_capi_smelter_processchunk`** en lote hasta terminar.
+
+**Opciones para Cobranza:**
+- **Simple:** el Admin usa la **MDA de Smelter** (botón ▶ Ejecutar) — cero desarrollo.
+- **Integrado:** un botón en NUESTRO backoffice (área "Monitoreo de carga") que dispare un **Power Automate**
+  que crea el Job + llama `prepareimport`. Requiere que quien dispara tenga **Create en Import Job**
+  (rol Operador) + **Read en el template** (por el team) — el `ExecutePrivilegeName` y el check de runtime
+  lo validan.
+
+> Para el flujo diario típico (un CSV por día), la opción **simple** (MDA de Smelter) alcanza. El botón
+> integrado se justifica solo si querés que el oficinista dispare la carga sin salir del backoffice.

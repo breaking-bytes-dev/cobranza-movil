@@ -1,0 +1,699 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+Screens:
+  scrCierres:
+    Properties:
+      Fill: =gblC.pantalla
+      OnVisible: |-
+        =// Asignaciones activas Incobrable/Especial + joins horneados una vez (receta 7.7).
+        // Datos de la cuenta navegando el lookup '[AS] Cuenta' (lo resuelve el servidor, sin
+        // catálogo de cuentas truncable al Data row limit).
+        // Filtro DELEGABLE: OR de igualdades de choice por valor + booleano (00 §4.2)
+        ClearCollect(colCierresCie,
+            AddColumns(
+                Filter('CM | TBL | Asignacions',
+                    ('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable
+                      || '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial)
+                    && '[AS] Estado' = true),
+                clienteCie, Upper(Coalesce(
+                    ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
+                diasCie, Coalesce(
+                    ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
+                nioCie, Coalesce(
+                    ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO', 0),
+                usdCie, Coalesce(
+                    ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD', 0),
+                montoCie, If('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                        && (Coalesce('Retiro NIO', 0) > 0 || Coalesce('Retiro USD', 0) > 0),
+                    Moneda('Retiro NIO', 'Retiro USD'),
+                    Moneda(
+                        Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO', 0),
+                        Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD', 0)))
+            )
+        );
+        // Estado de pantalla (resetea tab/panel entre visitas — gotcha de persistencia)
+        Set(varTabCie, "incob");
+        Set(varSelCie, Blank());
+        Set(varPanelCie, false)
+    Children:
+      - cmpEncabezadoCie:
+          Control: CanvasComponent
+          ComponentName: cmpEncabezado
+          Properties:
+            Height: =If(nfMovil, gblE.AltoBarra + 84, 84)
+            Subtitulo: ="Incobrables y Especiales se cierran a mano, con motivo. Nunca el localizador."
+            Titulo: ="Cierres"
+            Width: =Parent.Width - Self.X
+            X: =If(nfMovil, 0, gblE.AnchoNav)
+      - conContenidoCie:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            DropShadow: =DropShadow.None
+            Fill: =Color.Transparent
+            Height: =Parent.Height - Self.Y
+            Width: =Min(gblE.AnchoMax, Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - 2*gblE.Pad)
+            X: |-
+              =If(nfMovil, 0, gblE.AnchoNav)
+                  + Max(gblE.Pad, (Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - gblE.AnchoMax) / 2)
+            Y: =cmpEncabezadoCie.Y + cmpEncabezadoCie.Height
+          Children:
+            - conTabsCie:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.hairline
+                  Height: =44
+                  RadiusBottomLeft: =11
+                  RadiusBottomRight: =11
+                  RadiusTopLeft: =11
+                  RadiusTopRight: =11
+                  Width: =356
+                  X: =gblE.Pad
+                  Y: =gblE.PadSm
+                Children:
+                  - btnTabIncobCie:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =If(varTabCie = "incob", gblC.teal, gblC.muted)
+                        Fill: =If(varTabCie = "incob", gblC.card, Color.Transparent)
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =36
+                        HoverFill: =Self.Fill
+                        OnSelect: =Set(varTabCie, "incob")
+                        RadiusBottomLeft: =8
+                        RadiusBottomRight: =8
+                        RadiusTopLeft: =8
+                        RadiusTopRight: =8
+                        Size: =9
+                        Text: |-
+                          ="🟠 Incobrables (" &
+                              CountIf('CM | TBL | Asignacions',
+                                  '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable
+                                  && '[AS] Estado' = true) & ")"
+                        Width: =170
+                        X: =4
+                        Y: =4
+                  - btnTabEspCie:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =If(varTabCie = "esp", gblC.teal, gblC.muted)
+                        Fill: =If(varTabCie = "esp", gblC.card, Color.Transparent)
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =36
+                        HoverFill: =Self.Fill
+                        OnSelect: =Set(varTabCie, "esp")
+                        RadiusBottomLeft: =8
+                        RadiusBottomRight: =8
+                        RadiusTopLeft: =8
+                        RadiusTopRight: =8
+                        Size: =9
+                        Text: |-
+                          ="🟣 Especiales (" &
+                              CountIf('CM | TBL | Asignacions',
+                                  '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                                  && '[AS] Estado' = true) & ")"
+                        Width: =170
+                        X: =178
+                        Y: =4
+            - btnActualizarCie:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  Color: =gblC.ink2
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =44
+                  OnSelect: |-
+                    =// Re-colecta y cierra el panel (mismo bloque del OnVisible)
+                    ClearCollect(colCierresCie,
+                        AddColumns(
+                            Filter('CM | TBL | Asignacions',
+                                ('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable
+                                  || '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial)
+                                && '[AS] Estado' = true),
+                            clienteCie, Upper(Coalesce(
+                                ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
+                            diasCie, Coalesce(
+                                ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
+                            nioCie, Coalesce(
+                                ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO', 0),
+                            usdCie, Coalesce(
+                                ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD', 0),
+                            montoCie, If('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                                    && (Coalesce('Retiro NIO', 0) > 0 || Coalesce('Retiro USD', 0) > 0),
+                                Moneda('Retiro NIO', 'Retiro USD'),
+                                Moneda(
+                                    Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO', 0),
+                                    Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD', 0)))
+                        )
+                    );
+                    Set(varSelCie, Blank());
+                    Set(varPanelCie, false)
+                  Size: =9
+                  Text: ="↻ Actualizar"
+                  Width: =140
+                  X: =Parent.Width - Self.Width - gblE.Pad
+                  Y: =gblE.PadSm
+            - galCierresCie:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  AccessibleLabel: ="Asignaciones activas para cerrar"
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: =Parent.Height - Self.Y - gblE.Pad
+                  Items: |-
+                    =Filter(colCierresCie,
+                        If(varTabCie = "incob",
+                            '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable,
+                            '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial))
+                  OnSelect: |-
+                    =Set(varSelCie, ThisItem);
+                    Set(varPanelCie, true);
+                    Reset(cmbMotivoCie);
+                    Reset(txtDetalleCie)
+                  ShowScrollbar: =false
+                  TemplateFill: =If(ThisItem.IsSelected && varPanelCie, gblC.tealSuave, gblC.card)
+                  TemplatePadding: =0
+                  TemplateSize: =gblE.AltoFila
+                  Width: =Min(gblE.AnchoMax, Parent.Width - 2*gblE.Pad)
+                  X: =gblE.Pad
+                  Y: =conTabsCie.Y + conTabsCie.Height + gblE.PadSm
+                Children:
+                  - lblNombreCie:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =22
+                        PaddingLeft: =0
+                        Size: =11
+                        Text: =ThisItem.clienteCie
+                        Width: =Parent.TemplateWidth * 0.38
+                        Wrap: =false
+                        X: =gblE.Pad
+                        Y: =8
+                  - lblMetaCie:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.muted
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =20
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: |-
+                          =ThisItem.'[AS] NumeroCuenta' & " · 🏍️ " &
+                              Coalesce(ThisItem.'[AS] Agente'.'[AG] Nombre', "—")
+                        Width: =Parent.TemplateWidth * 0.38
+                        Wrap: =false
+                        X: =gblE.Pad
+                        Y: =32
+                  - lblMoraCie:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink2
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =24
+                        PaddingLeft: =0
+                        Size: =10
+                        Text: =Text(ThisItem.diasCie) & " días de mora"
+                        Width: =Parent.TemplateWidth * 0.22
+                        Wrap: =false
+                        X: =Parent.TemplateWidth * 0.40
+                        Y: =20
+                  - lblMontoCie:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =Align.Right
+                        Color: =gblC.teal
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =22
+                        PaddingLeft: =0
+                        PaddingRight: =0
+                        Size: =10
+                        Text: =ThisItem.montoCie
+                        Width: =260
+                        Wrap: =false
+                        X: =Parent.TemplateWidth - 260 - gblE.Pad
+                        Y: =8
+                  - chpTipoCie:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: |-
+                          =If(ThisItem.'[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable,
+                              gblC.incobInk, gblC.espInk)
+                        Fill: |-
+                          =If(ThisItem.'[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable,
+                              gblC.incobBg, gblC.espBg)
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =26
+                        RadiusBottomLeft: =8
+                        RadiusBottomRight: =8
+                        RadiusTopLeft: =8
+                        RadiusTopRight: =8
+                        Size: =8
+                        Text: |-
+                          =If(ThisItem.'[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable,
+                              "Incobrable", "Especial")
+                        Width: =14 + 7*Len(Self.Text)
+                        X: =Parent.TemplateWidth - Self.Width - gblE.Pad
+                        Y: =32
+                  - recSepCie:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.hairline
+                        Height: =1
+                        Width: =Parent.TemplateWidth
+                        Y: =Parent.TemplateHeight - 1
+                  - btnFilaCie:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =Color.Transparent
+                        Fill: =Color.Transparent
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Height: =Parent.TemplateHeight
+                        HoverFill: =RGBA(15, 107, 107, 0.06)
+                        OnSelect: =Select(Parent)
+                        PressedFill: =RGBA(15, 107, 107, 0.12)
+                        TabIndex: =0
+                        Text: ="Cerrar asignación de " & ThisItem.clienteCie
+                        Width: =Parent.TemplateWidth
+                        X: =0
+                        Y: =0
+            - cmpVacioCie:
+                Control: CanvasComponent
+                ComponentName: cmpVacio
+                Properties:
+                  Height: =200
+                  Icono: ="✨"
+                  Mensaje: ="No hay " & If(varTabCie = "incob", "Incobrables", "Especiales") & " activas para cerrar."
+                  Titulo: ="Nada activo"
+                  Visible: =galCierresCie.AllItemsCount = 0
+                  Width: =Min(420, Parent.Width - 2*gblE.Pad)
+                  X: =(Parent.Width - Self.Width) / 2
+                  Y: =galCierresCie.Y + 80
+      - recScrimCie:
+          Control: Rectangle@2.3.0
+          Properties:
+            AccessibleLabel: ="Cerrar panel"
+            Fill: =gblC.scrim
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
+            Height: =Parent.Height
+            OnSelect: =Set(varPanelCie, false)
+            TabIndex: =0
+            Visible: =varPanelCie
+            Width: =Parent.Width
+      - conPanelCie:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            BorderColor: =gblC.borde
+            BorderThickness: =1
+            DropShadow: =DropShadow.None
+            Fill: =gblC.card
+            Height: =Parent.Height
+            RadiusBottomLeft: =0
+            RadiusBottomRight: =0
+            RadiusTopLeft: =0
+            RadiusTopRight: =0
+            Visible: =varPanelCie
+            Width: =If(nfMovil, Parent.Width, Min(480, Parent.Width * 0.45))
+            X: =Parent.Width - Self.Width
+          Children:
+            - lblTituloPanCie:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =28
+                  PaddingLeft: =0
+                  Text: ="Cerrar asignación"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =gblE.Pad
+            - icoCerrarCie:
+                Control: Classic/Icon@2.5.0
+                Properties:
+                  AccessibleLabel: ="Cerrar panel"
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: =28
+                  Icon: =Icon.Cancel
+                  OnSelect: =Set(varPanelCie, false)
+                  TabIndex: =0
+                  Width: =40
+                  X: =Parent.Width - 40 - gblE.PadSm
+                  Y: =gblE.Pad
+            - lblK1Cie:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =36
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Cliente"
+                  Width: =120
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =56
+            - lblV1Cie:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Right
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =36
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =10
+                  Text: =varSelCie.clienteCie
+                  Width: =Parent.Width - 3*gblE.Pad - 120
+                  Wrap: =false
+                  X: =gblE.Pad + 120
+                  Y: =56
+            - recKvSep1Cie:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderThickness: =0
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.hairline
+                  Height: =1
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =91
+            - lblK2Cie:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =36
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Cuenta"
+                  Width: =120
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =92
+            - lblV2Cie:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Right
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =36
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =10
+                  Text: =varSelCie.'[AS] NumeroCuenta'
+                  Width: =Parent.Width - 3*gblE.Pad - 120
+                  Wrap: =false
+                  X: =gblE.Pad + 120
+                  Y: =92
+            - recKvSep2Cie:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderThickness: =0
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.hairline
+                  Height: =1
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =127
+            - lblK3Cie:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =36
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Tipo"
+                  Width: =120
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =128
+            - lblV3Cie:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Right
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =36
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =10
+                  Text: |-
+                    =If(varSelCie.'[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable,
+                        "Incobrable", "Especial")
+                  Width: =Parent.Width - 3*gblE.Pad - 120
+                  Wrap: =false
+                  X: =gblE.Pad + 120
+                  Y: =128
+            - recKvSep3Cie:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderThickness: =0
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.hairline
+                  Height: =1
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =163
+            - lblK4Cie:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =36
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Saldo vencido"
+                  Width: =120
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =164
+            - lblV4Cie:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Right
+                  Color: =gblC.teal
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =36
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =10
+                  Text: =Moneda(varSelCie.nioCie, varSelCie.usdCie)
+                  Width: =Parent.Width - 3*gblE.Pad - 120
+                  Wrap: =false
+                  X: =gblE.Pad + 120
+                  Y: =164
+            - lblSecMotivoCie:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =20
+                  PaddingLeft: =0
+                  Size: =8
+                  Text: ="MOTIVO DE CIERRE *"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =212
+            - cmbMotivoCie:
+                Control: Classic/ComboBox@2.4.0
+                Properties:
+                  AccessibleLabel: ="Motivo del cierre"
+                  BorderColor: =gblC.borde
+                  DisplayFields: =["Value"]
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  InputTextPlaceholder: ="— Elegir —"
+                  IsSearchable: =false
+                  Items: |-
+                    =If(varSelCie.'[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable,
+                        ["Recuperada", "Baja / castigada", "Fuera de cartera"],
+                        ["Gestión completada", "Ya no aplica", "Solicitud errónea"])
+                  SelectMultiple: =false
+                  Size: =10
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =236
+            - lblSecDetalleCie:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =20
+                  PaddingLeft: =0
+                  Size: =8
+                  Text: ="DETALLE"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =292
+            - txtDetalleCie:
+                Control: Classic/TextInput@2.3.2
+                Properties:
+                  AccessibleLabel: ="Detalle del cierre"
+                  BorderColor: =gblC.borde
+                  Default: =""
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =84
+                  HintText: ="Contexto del cierre (opcional)"
+                  Mode: =TextMode.MultiLine
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Size: =10
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =316
+            - btnCancelarCie:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  Color: =gblC.ink2
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoBoton
+                  OnSelect: =Set(varPanelCie, false)
+                  Size: =10
+                  Text: ="Cancelar"
+                  Width: =(Parent.Width - 3*gblE.Pad) / 2
+                  X: =gblE.Pad
+                  Y: =Parent.Height - gblE.AltoBoton - gblE.Pad
+            - btnCerrarCie:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderThickness: =0
+                  Color: =gblC.redInk
+                  DisabledColor: =Color.White
+                  DisabledFill: =ColorFade(gblC.redBg, 60%)
+                  DisplayMode: =If(!IsBlank(cmbMotivoCie.Selected), DisplayMode.Edit, DisplayMode.Disabled)
+                  Fill: =gblC.redBg
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoBoton
+                  HoverFill: =ColorFade(gblC.redBg, 10%)
+                  OnSelect: |-
+                    =// Un solo Patch delegable (LookUp por '[AS] Numero', texto exacto — 00 §4.2)
+                    // más limpieza local: cero recargas. IfError (B-03): si falla, detalle y sin limpieza.
+                    IfError(
+                        Patch('CM | TBL | Asignacions',
+                            LookUp('CM | TBL | Asignacions', '[AS] Numero' = varSelCie.'[AS] Numero'),
+                            {
+                                '[AS] Estado': false,
+                                '[AS] Motivo': cmbMotivoCie.Selected.Value &
+                                    If(!IsBlank(Trim(txtDetalleCie.Text)), " — " & Trim(txtDetalleCie.Text), ""),
+                                'Fecha de cierre': Now()
+                            }
+                        ),
+                        Notify("No se pudo cerrar " & varSelCie.'[AS] Numero' & ": " & FirstError.Message,
+                            NotificationType.Error),
+                        Remove(colCierresCie,
+                            LookUp(colCierresCie, '[AS] Numero' = varSelCie.'[AS] Numero'));
+                        Set(varPanelCie, false);
+                        Set(varSelCie, Blank());
+                        Notify("🔒 Asignación cerrada — " & cmbMotivoCie.Selected.Value,
+                            NotificationType.Success, 2500)
+                    )
+                  Size: =10
+                  Text: |-
+                    ="🔒 Cerrar asignación"
+                  Width: =btnCancelarCie.Width
+                  X: =btnCancelarCie.X + btnCancelarCie.Width + gblE.Pad
+                  Y: =btnCancelarCie.Y
+      - cmpNavCie:
+          Control: CanvasComponent
+          ComponentName: cmpNavLateral
+          Properties:
+            Height: =Parent.Height
+            RutaActiva: ="cie"
+            Visible: =!nfMovil || gblNavMovilAbierta
+            Width: =gblE.AnchoNav

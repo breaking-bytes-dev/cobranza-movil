@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rediseño 1 — Moderno Minimalista</title>
+<style>
+  :root{
+    --bg:#F6F8FB; --card:#FFFFFF; --ink:#0F172A; --ink2:#475569; --muted:#94A3B8;
+    --line:#EEF1F6; --teal:#0E7C7B; --tealSoft:#E6F4F4; --green:#10B981;
+    --nio:#0F766E; --usd:#2563EB; --shadow:0 1px 2px rgba(16,24,40,.04),0 6px 20px rgba(16,24,40,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
+  body{background:#E9EDF3;font-family:'Segoe UI',system-ui,sans-serif;display:flex;justify-content:center;padding:26px;color:var(--ink)}
+  .phone{width:390px;background:var(--bg);border-radius:34px;overflow:hidden;box-shadow:0 30px 60px rgba(2,6,23,.25);min-height:800px;position:relative}
+  .status{height:14px}
+  .wrap{padding:18px 16px 90px}
+  /* header */
+  .top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px}
+  .hi{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.3px}
+  .name{font-size:23px;font-weight:800;letter-spacing:-.5px;margin-top:2px}
+  .sync{display:inline-flex;align-items:center;gap:6px;background:#ECFDF5;color:#047857;font-size:11px;font-weight:700;padding:6px 11px;border-radius:20px}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--green)}
+  .icons{display:flex;gap:8px;margin-top:8px;justify-content:flex-end}
+  .icon{width:34px;height:34px;border-radius:11px;background:var(--card);box-shadow:var(--shadow);display:grid;place-items:center;font-size:13px;color:var(--ink2);font-weight:700}
+  /* total */
+  .total{background:var(--card);border-radius:20px;padding:18px;box-shadow:var(--shadow);margin-bottom:18px;position:relative;overflow:hidden}
+  .total::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--teal)}
+  .total .lbl{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:10px}
+  .amts{display:flex;gap:22px}
+  .amt .cur{font-size:11px;color:var(--muted);font-weight:700}
+  .amt .val{font-size:22px;font-weight:800;letter-spacing:-.5px;line-height:1.1}
+  .amt.nio .val{color:var(--nio)} .amt.usd .val{color:var(--usd)}
+  .meta{margin-top:12px;font-size:11.5px;color:var(--muted);font-weight:600;border-top:1px solid var(--line);padding-top:10px}
+  /* tabs */
+  .tabs{display:flex;background:#EEF1F6;border-radius:13px;padding:4px;margin-bottom:14px}
+  .tab{flex:1;text-align:center;font-size:12.5px;font-weight:700;color:var(--muted);padding:8px 0;border-radius:10px}
+  .tab.on{background:var(--card);color:var(--teal);box-shadow:0 1px 3px rgba(16,24,40,.08)}
+  /* search */
+  .search{display:flex;align-items:center;gap:9px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:11px 13px;margin-bottom:16px;color:var(--muted);font-size:13px}
+  .count{font-size:12px;color:var(--muted);font-weight:700;margin:2px 2px 10px}
+  /* client card */
+  .cc{background:var(--card);border-radius:18px;padding:15px;box-shadow:var(--shadow);margin-bottom:12px}
+  .cc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .cc-name{font-size:15px;font-weight:800;letter-spacing:-.3px;line-height:1.25}
+  .chip{background:var(--tealSoft);color:var(--teal);font-size:10.5px;font-weight:800;padding:4px 9px;border-radius:20px;white-space:nowrap}
+  .addr{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;color:var(--ink2)}
+  .addr .ic{width:20px;height:20px;border-radius:7px;background:#F1F5F9;display:grid;place-items:center;font-size:11px;flex:none}
+  .cc-foot{display:flex;justify-content:space-between;align-items:center;margin-top:13px;padding-top:12px;border-top:1px solid var(--line)}
+  .saldo .s-lbl{font-size:10px;color:var(--muted);font-weight:700}
+  .saldo .s-val{font-size:14px;font-weight:800;color:var(--ink);margin-top:1px}
+  .arrows{display:flex;gap:6px}
+  .arr{width:30px;height:30px;border-radius:9px;background:#F6F8FB;border:1px solid var(--line);display:grid;place-items:center;color:var(--muted);font-size:12px}
+  /* nav */
+  .nav{position:absolute;left:0;right:0;bottom:0;height:70px;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border-top:1px solid var(--line);display:flex}
+  .nav a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10.5px;font-weight:700;color:var(--muted)}
+  .nav a.on{color:var(--teal)} .nav .ni{font-size:18px}
+  .tag{position:absolute;top:12px;left:0;right:0;text-align:center;font-size:10px;color:#B6C0CE;font-weight:700;letter-spacing:1px}
+</style>
+</head>
+<body>
+  <div class="phone">
+    <div class="tag">1 · MODERNO MINIMALISTA</div>
+    <div class="status"></div>
+    <div class="wrap">
+      <div class="top">
+        <div>
+          <div class="hi">DOMINGO 26 JUL</div>
+          <div class="name">Hola, User&nbsp;1</div>
+        </div>
+        <div style="text-align:right">
+          <span class="sync"><span class="dot"></span>Sincronizado</span>
+          <div class="icons"><div class="icon">Aa</div><div class="icon">↻</div></div>
+        </div>
+      </div>
+
+      <div class="total">
+        <div class="lbl">A cobrar hoy</div>
+        <div class="amts">
+          <div class="amt nio"><div class="cur">C$ CÓRDOBAS</div><div class="val">1,284,530</div></div>
+          <div class="amt usd"><div class="cur">US$ DÓLARES</div><div class="val">32,410</div></div>
+        </div>
+        <div class="meta">66 cuentas · 40 clientes en tu cartera</div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab on">Todos</div><div class="tab">Diaria</div>
+        <div class="tab">Incobrable</div><div class="tab">Especial</div>
+      </div>
+      <div class="search">🔍 Buscar cliente o cuenta…</div>
+      <div class="count">40 CLIENTES</div>
+
+      <div class="cc">
+        <div class="cc-top">
+          <div class="cc-name">Yelba Mario Ramírez Téllez</div>
+          <span class="chip">3 cuentas</span>
+        </div>
+        <div class="addr"><span class="ic">🏠</span> De la escuela pública 8c al lago #4884</div>
+        <div class="addr"><span class="ic">💼</span> De la farmacia Cosep 6c arriba #7788</div>
+        <div class="cc-foot">
+          <div class="saldo"><div class="s-lbl">SALDO VENCIDO</div><div class="s-val">C$ 84,200</div></div>
+          <div class="arrows"><div class="arr">▲</div><div class="arr">▼</div></div>
+        </div>
+      </div>
+
+      <div class="cc">
+        <div class="cc-top">
+          <div class="cc-name">Martha Sandra Gómez Mendoza</div>
+          <span class="chip">1 cuenta</span>
+        </div>
+        <div class="addr"><span class="ic">🏠</span> Del parque central 6c arriba #5270</div>
+        <div class="cc-foot">
+          <div class="saldo"><div class="s-lbl">SALDO VENCIDO</div><div class="s-val">C$ 21,050</div></div>
+          <div class="arrows"><div class="arr">▲</div><div class="arr">▼</div></div>
+        </div>
+      </div>
+
+      <div class="cc">
+        <div class="cc-top">
+          <div class="cc-name">Francisco María Sánchez Castro</div>
+          <span class="chip">3 cuentas</span>
+        </div>
+        <div class="addr"><span class="ic">🏠</span> De la gasolinera Uno 8c abajo #1968</div>
+        <div class="cc-foot">
+          <div class="saldo"><div class="s-lbl">SALDO VENCIDO</div><div class="s-val">US$ 4,120</div></div>
+          <div class="arrows"><div class="arr">▲</div><div class="arr">▼</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav">
+      <a><span class="ni">⌂</span>Inicio</a>
+      <a class="on"><span class="ni">≣</span>Cartera</a>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,1489 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+Screens:
+  scrMaestros:
+    Properties:
+      Fill: =gblC.pantalla
+      OnVisible: |-
+        =// Estado limpio de la pantalla. NO se colecciona nada acá: la búsqueda va directa
+        // al datasource (receta 01 §7.9) y las colecciones del cliente nacen al clic en la fila.
+        Set(varPanelMae, false);
+        Set(varModoMae, "ver");
+        Reset(txtBuscarMae)
+    Children:
+      - cmpEncMae:
+          Control: CanvasComponent
+          ComponentName: cmpEncabezado
+          Properties:
+            Height: =If(nfMovil, gblE.AltoBarra + 84, 84)
+            Subtitulo: ="Clientes y cuentas. Solo el Admin crea y edita; el Solicitante los referencia."
+            Titulo: ="Datos maestros"
+            Width: =Parent.Width - Self.X
+            X: =If(nfMovil, 0, gblE.AnchoNav)
+      - conToolbarMae:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            DropShadow: =DropShadow.None
+            Fill: =Color.Transparent
+            Height: =gblE.AltoInput
+            Width: =Min(gblE.AnchoMax, Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - 2*gblE.Pad)
+            X: |-
+              =If(nfMovil, 0, gblE.AnchoNav)
+                  + Max(gblE.Pad, (Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - gblE.AnchoMax) / 2)
+            Y: =cmpEncMae.Y + cmpEncMae.Height
+          Children:
+            - txtBuscarMae:
+                Control: Classic/TextInput@2.3.2
+                Properties:
+                  AccessibleLabel: ="Buscar cliente por CIF o nombre"
+                  BorderColor: =gblC.borde
+                  Default: =""
+                  DelayOutput: =true
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  HintText: ="CIF o nombre…"
+                  PaddingLeft: =34
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Size: =10
+                  Width: =Parent.Width - 170 - gblE.PadSm
+            - icoBuscarMae:
+                Control: Classic/Icon@2.5.0
+                Properties:
+                  AccessibleLabel: ="Buscar cliente"
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: =20
+                  Icon: =Icon.Search
+                  Width: =20
+                  X: =8
+                  Y: =10
+            - btnNuevoMae:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderThickness: =0
+                  Color: =Color.White
+                  DisabledColor: =Color.White
+                  DisabledFill: =ColorFade(gblC.teal, 60%)
+                  Fill: =gblC.teal
+                  FocusedBorderColor: =gblC.ink
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  HoverFill: =ColorFade(gblC.teal, 10%)
+                  OnSelect: |-
+                    =// Abre el panel en modo crear, con el form limpio.
+                    Set(varCliMae, Blank());
+                    Set(varModoMae, "crear");
+                    Reset(txtCifNvoMae); Reset(txtNombreNvoMae); Reset(txtDeptoNvoMae); Reset(txtDistritoNvoMae);
+                    Reset(txtTrabajoNvoMae); Reset(txtTelCelNvoMae); Reset(txtTelCasNvoMae);
+                    Reset(txtDirCasaNvoMae); Reset(txtDirTrabNvoMae);
+                    Set(varPanelMae, true)
+                  Size: =10
+                  Text: ="＋ Nuevo cliente"
+                  Width: =170
+                  X: =Parent.Width - 170
+      - galClientesMae:
+          Control: Gallery@2.15.0
+          Variant: Vertical
+          Properties:
+            AccessibleLabel: ="Lista de clientes"
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
+            Height: =Parent.Height - Self.Y - gblE.Pad
+            Items: |-
+              =// Ambas ramas delegables: Sort por columna escalar y StartsWith (00 §4.2).
+              // La galería pagina sola contra Dataverse; por eso NO hay colección de clientes.
+              If(
+                  IsBlank(Trim(txtBuscarMae.Text)),
+                  Sort('CM | TBL | Clientes', '[CL] Nombre'),
+                  Filter('CM | TBL | Clientes',
+                      StartsWith('[CL] CIF', Trim(txtBuscarMae.Text)) ||
+                      StartsWith('[CL] Nombre', Trim(txtBuscarMae.Text)))
+              )
+            OnSelect: |-
+              =// Carga las colecciones del cliente elegido (los filtros delegables: texto exacto
+              // por CIF y lookup por registro — 00 §4.2) y abre el panel en modo ver.
+              Set(varCliMae, ThisItem);
+              Set(varModoMae, "ver");
+              Concurrent(
+                  ClearCollect(colTelMae, Filter('CM | TBL | Telefonos', '[TL] CIF' = ThisItem.'[CL] CIF')),
+                  ClearCollect(colDirMae, Filter('CM | TBL | Direccions', '[DR] CIF' = ThisItem.'[CL] CIF'))
+              );
+              // Las cuentas NO se coleccionan: galCtasMae lee el datasource directo (mismo filtro
+              // delegable, por varCliMae). Sin colección "inicializada y nunca actualizada".
+              Set(varPanelMae, true)
+            ShowScrollbar: =false
+            TemplateFill: =If(ThisItem.IsSelected && varPanelMae, gblC.tealSuave, gblC.card)
+            TemplatePadding: =0
+            TemplateSize: =gblE.AltoFila
+            Width: =conToolbarMae.Width
+            X: =conToolbarMae.X
+            Y: =conToolbarMae.Y + conToolbarMae.Height + gblE.PadSm
+          Children:
+            - lblNomFilaMae:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =22
+                  PaddingLeft: =0
+                  Size: =10
+                  Text: =ThisItem.'[CL] Nombre'
+                  Width: =Parent.TemplateWidth * 0.45
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =8
+            - lblSubFilaMae:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =20
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: =ThisItem.'[CL] CIF' & " · " & Coalesce(ThisItem.'[CL] Departamento', "—")
+                  Width: =Parent.TemplateWidth * 0.45
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =32
+            - lblTrabFilaMae:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.ink2
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =22
+                  PaddingLeft: =0
+                  Size: =10
+                  Text: |-
+                    =// Una línea; si excede el ancho, se trunca (divergencia aceptada, guía 12 §3).
+                    If(IsBlank(ThisItem.'[CL] Trabajo'), "sin trabajo registrado", ThisItem.'[CL] Trabajo')
+                  Width: =Parent.TemplateWidth * 0.5 - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad + Parent.TemplateWidth * 0.45
+                  Y: =20
+            - recSepMae:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderThickness: =0
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.hairline
+                  Height: =1
+                  Width: =Parent.TemplateWidth
+                  Y: =Parent.TemplateHeight - 1
+            - btnFilaMae:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderThickness: =0
+                  Color: =Color.Transparent
+                  Fill: =Color.Transparent
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: =Parent.TemplateHeight
+                  HoverFill: =RGBA(15, 107, 107, 0.06)
+                  OnSelect: =Select(Parent)
+                  PressedFill: =RGBA(15, 107, 107, 0.12)
+                  TabIndex: =0
+                  Text: ="Ver cliente " & ThisItem.'[CL] Nombre'
+                  Width: =Parent.TemplateWidth
+                  X: =0
+                  Y: =0
+      - cmpVacioMae:
+          Control: CanvasComponent
+          ComponentName: cmpVacio
+          Properties:
+            Height: =140
+            Icono: |-
+              ="🔎"
+            Mensaje: |-
+              =If(IsBlank(Trim(txtBuscarMae.Text)),
+                  "Todavía no hay clientes cargados.",
+                  "Ningún CIF ni nombre empieza con «" & Trim(txtBuscarMae.Text) & "».")
+            Titulo: ="Sin resultados"
+            Visible: |-
+              =// AllItemsCount es client-side: cuenta la página cargada — para "¿hay cero resultados?"
+              // alcanza y no delega nada.
+              galClientesMae.AllItemsCount = 0
+            Width: =320
+            X: =galClientesMae.X + (galClientesMae.Width - 320) / 2
+            Y: =galClientesMae.Y + 60
+      - recScrimMae:
+          Control: Rectangle@2.3.0
+          Properties:
+            AccessibleLabel: ="Cerrar panel"
+            Fill: =gblC.scrim
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
+            Height: =Parent.Height
+            OnSelect: =Set(varPanelMae, false)
+            TabIndex: =0
+            Visible: =varPanelMae
+            Width: =Parent.Width
+      - conPanelMae:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            BorderColor: =gblC.borde
+            BorderThickness: =1
+            DropShadow: =DropShadow.None
+            Fill: =gblC.card
+            Height: =Parent.Height
+            RadiusBottomLeft: =0
+            RadiusBottomRight: =0
+            RadiusTopLeft: =0
+            RadiusTopRight: =0
+            Visible: =varPanelMae
+            Width: =If(nfMovil, Parent.Width, Min(480, Parent.Width * 0.45))
+            X: =Parent.Width - Self.Width
+          Children:
+            - lblTituloPanelMae:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =28
+                  PaddingLeft: =0
+                  Text: |-
+                    =Switch(varModoMae,
+                        "crear", "Nuevo cliente",
+                        "editar", "✏️ " & varCliMae.'[CL] Nombre',
+                        varCliMae.'[CL] Nombre')
+                  Width: =Parent.Width - 2*gblE.Pad - 32
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =gblE.Pad
+            - icoCerrarPanelMae:
+                Control: Classic/Icon@2.5.0
+                Properties:
+                  AccessibleLabel: ="Cerrar panel"
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: =24
+                  Icon: =Icon.Cancel
+                  OnSelect: =Set(varPanelMae, false)
+                  TabIndex: =0
+                  Width: =24
+                  X: =Parent.Width - gblE.Pad - 24
+                  Y: =gblE.Pad + 2
+            - lblKCifMae:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =26
+                  PaddingLeft: =0
+                  Size: =8
+                  Text: ="CIF"
+                  Visible: =varModoMae = "ver"
+                  Width: =120
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =60
+            - lblVCifMae:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Right
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =26
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =10
+                  Text: =varCliMae.'[CL] CIF'
+                  Visible: =varModoMae = "ver"
+                  Width: =Parent.Width - 2*gblE.Pad - 120
+                  Wrap: =false
+                  X: =gblE.Pad + 120
+                  Y: =60
+            - lblKDeptoMae:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =26
+                  PaddingLeft: =0
+                  Size: =8
+                  Text: ="DEPARTAMENTO"
+                  Visible: =varModoMae = "ver"
+                  Width: =120
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =86
+            - lblVDeptoMae:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Right
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =26
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =10
+                  Text: =Coalesce(varCliMae.'[CL] Departamento', "—") & " · " & Coalesce(varCliMae.'[CL] Distrito', "—")
+                  Visible: =varModoMae = "ver"
+                  Width: =Parent.Width - 2*gblE.Pad - 120
+                  Wrap: =false
+                  X: =gblE.Pad + 120
+                  Y: =86
+            - lblKTrabMae:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =26
+                  PaddingLeft: =0
+                  Size: =8
+                  Text: ="TRABAJO"
+                  Visible: =varModoMae = "ver"
+                  Width: =120
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =112
+            - lblVTrabMae:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Right
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =26
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =10
+                  Text: =Coalesce(varCliMae.'[CL] Trabajo', "—")
+                  Visible: =varModoMae = "ver"
+                  Width: =Parent.Width - 2*gblE.Pad - 120
+                  Wrap: =false
+                  X: =gblE.Pad + 120
+                  Y: =112
+            - lblSecTelMae:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =18
+                  PaddingLeft: =0
+                  Size: =8
+                  Text: ="TELÉFONOS"
+                  Visible: =varModoMae = "ver"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =148
+            - galTelMae:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  AccessibleLabel: ="Teléfonos del cliente"
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: =84
+                  Items: =colTelMae
+                  ShowScrollbar: =false
+                  TemplateFill: =Color.Transparent
+                  TemplatePadding: =0
+                  TemplateSize: =28
+                  Visible: =varModoMae = "ver"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =170
+                Children:
+                  - lblTelFilaMae:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =20
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: |-
+                          ="📞 " & ThisItem.'[TL] Numero' &
+                              If(IsBlank(ThisItem.'[TL] Tipo'), "", " (" & ThisItem.'[TL] Tipo' & ")")
+                        Width: =Parent.TemplateWidth
+                        Wrap: =false
+                        Y: =4
+            - lblTelVacioMae:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted2
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =24
+                  PaddingLeft: =0
+                  Size: =10
+                  Text: ="—"
+                  Visible: =varModoMae = "ver" && CountRows(colTelMae) = 0
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =170
+            - lblSecDirMae:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =18
+                  PaddingLeft: =0
+                  Size: =8
+                  Text: ="DIRECCIONES"
+                  Visible: =varModoMae = "ver"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =266
+            - galDirMae:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  AccessibleLabel: ="Direcciones del cliente"
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: =84
+                  Items: =colDirMae
+                  ShowScrollbar: =false
+                  TemplateFill: =Color.Transparent
+                  TemplatePadding: =0
+                  TemplateSize: =28
+                  Visible: =varModoMae = "ver"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =288
+                Children:
+                  - lblDirFilaMae:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =20
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: |-
+                          ="📍 " & ThisItem.'[DR] Direccion' &
+                              If(IsBlank(ThisItem.'[DR] Tipo'), "", " (" & ThisItem.'[DR] Tipo' & ")")
+                        Width: =Parent.TemplateWidth
+                        Wrap: =false
+                        Y: =4
+            - lblDirVacioMae:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted2
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =24
+                  PaddingLeft: =0
+                  Size: =10
+                  Text: ="—"
+                  Visible: =varModoMae = "ver" && CountRows(colDirMae) = 0
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =288
+            - lblSecCtasMae:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =18
+                  PaddingLeft: =0
+                  Size: =8
+                  Text: ="CUENTAS (" & galCtasMae.AllItemsCount & ")"
+                  Visible: =varModoMae = "ver"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =384
+            - galCtasMae:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  AccessibleLabel: ="Cuentas del cliente"
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: =112
+                  Items: |-
+                    =// Directo al datasource (delegable: lookup por PK del cliente elegido).
+                    Filter('CM | TBL | Cuentas', '[CT] Cliente'.'CM | TBL | Cliente' = varCliMae.'CM | TBL | Cliente')
+                  ShowScrollbar: =false
+                  TemplateFill: =Color.Transparent
+                  TemplatePadding: =0
+                  TemplateSize: =28
+                  Visible: =varModoMae = "ver"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =406
+                Children:
+                  - lblCtaFilaMae:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =20
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: |-
+                          =// Si IntelliSense marca 'Tipo Producto' como choice, envolvelo en
+                          // Text(ThisItem.'Tipo Producto') dentro del concatenado.
+                          ThisItem.'[CT] Numero de cuenta' & " · " & ThisItem.'Tipo Producto' & " · " &
+                              Moneda(ThisItem.'[CT] Saldo Vencido NIO', ThisItem.'[CT] Saldo Vencido USD')
+                        Width: =Parent.TemplateWidth
+                        Wrap: =false
+                        Y: =4
+            - lblCtasVacioMae:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted2
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =24
+                  PaddingLeft: =0
+                  Size: =10
+                  Text: ="Sin cuentas en mora."
+                  Visible: =varModoMae = "ver" && galCtasMae.AllItemsCount = 0
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =406
+            - btnCerrarPanelMae:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  Color: =gblC.ink2
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoBoton
+                  OnSelect: =Set(varPanelMae, false)
+                  Size: =10
+                  Text: ="Cerrar"
+                  Visible: =varModoMae = "ver"
+                  Width: =(Parent.Width - 3*gblE.Pad) / 2
+                  X: =gblE.Pad
+                  Y: =Parent.Height - gblE.AltoBoton - gblE.Pad
+            - btnEditarMae:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderThickness: =0
+                  Color: =gblC.teal
+                  DisabledColor: =Color.White
+                  DisabledFill: =ColorFade(gblC.teal, 60%)
+                  Fill: =gblC.tealSuave
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoBoton
+                  HoverFill: =ColorFade(gblC.tealSuave, 10%)
+                  OnSelect: |-
+                    =// Los inputs de edición tienen Default = varCliMae.*; el Reset los re-evalúa.
+                    // Sin estos Reset, el panel reusado entre clientes muestra el texto viejo.
+                    Set(varModoMae, "editar");
+                    Reset(txtNombreMae); Reset(txtDeptoMae); Reset(txtDistritoMae); Reset(txtTrabajoMae);
+                    Reset(txtNuevoTelMae); Reset(cmbTipoTelMae); Reset(txtNuevaDirMae); Reset(cmbTipoDirMae)
+                  Size: =10
+                  Text: ="✏️ Editar"
+                  Visible: =varModoMae = "ver"
+                  Width: =(Parent.Width - 3*gblE.Pad) / 2
+                  X: =2*gblE.Pad + Self.Width
+                  Y: =Parent.Height - gblE.AltoBoton - gblE.Pad
+            - lblEdNombreMae:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =16
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Nombre completo"
+                  Visible: =varModoMae = "editar"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =60
+            - txtNombreMae:
+                Control: Classic/TextInput@2.3.2
+                Properties:
+                  AccessibleLabel: ="Nombre del cliente"
+                  BorderColor: =gblC.borde
+                  Default: =varCliMae.'[CL] Nombre'
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Size: =10
+                  Visible: =varModoMae = "editar"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =78
+            - lblEdDeptoMae:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =16
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Departamento"
+                  Visible: =varModoMae = "editar"
+                  Width: =(Parent.Width - 3*gblE.Pad) / 2
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =126
+            - txtDeptoMae:
+                Control: Classic/TextInput@2.3.2
+                Properties:
+                  AccessibleLabel: ="Departamento del cliente"
+                  BorderColor: =gblC.borde
+                  Default: =varCliMae.'[CL] Departamento'
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Size: =10
+                  Visible: =varModoMae = "editar"
+                  Width: =(Parent.Width - 3*gblE.Pad) / 2
+                  X: =gblE.Pad
+                  Y: =144
+            - lblEdDistritoMae:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =16
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Distrito"
+                  Visible: =varModoMae = "editar"
+                  Width: =(Parent.Width - 3*gblE.Pad) / 2
+                  Wrap: =false
+                  X: =2*gblE.Pad + (Parent.Width - 3*gblE.Pad) / 2
+                  Y: =126
+            - txtDistritoMae:
+                Control: Classic/TextInput@2.3.2
+                Properties:
+                  AccessibleLabel: ="Distrito del cliente"
+                  BorderColor: =gblC.borde
+                  Default: =varCliMae.'[CL] Distrito'
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Size: =10
+                  Visible: =varModoMae = "editar"
+                  Width: =(Parent.Width - 3*gblE.Pad) / 2
+                  X: =2*gblE.Pad + (Parent.Width - 3*gblE.Pad) / 2
+                  Y: =144
+            - lblEdTrabajoMae:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =16
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Trabajo"
+                  Visible: =varModoMae = "editar"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =192
+            - txtTrabajoMae:
+                Control: Classic/TextInput@2.3.2
+                Properties:
+                  AccessibleLabel: ="Lugar de trabajo del cliente"
+                  BorderColor: =gblC.borde
+                  Default: =varCliMae.'[CL] Trabajo'
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Size: =10
+                  Visible: =varModoMae = "editar"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =210
+            - btnGuardarEdMae:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderThickness: =0
+                  Color: =Color.White
+                  DisabledColor: =Color.White
+                  DisabledFill: =ColorFade(gblC.teal, 60%)
+                  DisplayMode: =If(IsBlank(Trim(txtNombreMae.Text)), DisplayMode.Disabled, DisplayMode.Edit)
+                  Fill: =gblC.teal
+                  FocusedBorderColor: =gblC.ink
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoBoton
+                  HoverFill: =ColorFade(gblC.teal, 10%)
+                  OnSelect: |-
+                    =// LookUp delegable por texto exacto (00 §4.2).
+                    // IfError (B-03): si el Patch falla, detalle y se queda en modo editar.
+                    IfError(
+                        Patch('CM | TBL | Clientes',
+                            LookUp('CM | TBL | Clientes', '[CL] CIF' = varCliMae.'[CL] CIF'),
+                            {
+                                '[CL] Nombre': Trim(txtNombreMae.Text),
+                                '[CL] Departamento': Trim(txtDeptoMae.Text),
+                                '[CL] Distrito': Trim(txtDistritoMae.Text),
+                                '[CL] Trabajo': Trim(txtTrabajoMae.Text)
+                            }
+                        ),
+                        Notify("No se pudo guardar el cliente " & varCliMae.'[CL] CIF' & ": " & FirstError.Message,
+                            NotificationType.Error),
+                        // Refresca la referencia local para que el modo ver muestre lo recién guardado.
+                        Set(varCliMae, LookUp('CM | TBL | Clientes', '[CL] CIF' = varCliMae.'[CL] CIF'));
+                        Notify("✓ Cliente actualizado", NotificationType.Success, 2500);
+                        Set(varModoMae, "ver")
+                    )
+                  Size: =10
+                  Text: ="Guardar cambios"
+                  Visible: =varModoMae = "editar"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =262
+            - lblSecAddTelMae:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =18
+                  PaddingLeft: =0
+                  Size: =8
+                  Text: ="AGREGAR TELÉFONO"
+                  Visible: =varModoMae = "editar"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =322
+            - txtNuevoTelMae:
+                Control: Classic/TextInput@2.3.2
+                Properties:
+                  AccessibleLabel: ="Nuevo teléfono"
+                  BorderColor: =gblC.borde
+                  Default: =""
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  HintText: ="8888-8888"
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Size: =10
+                  Visible: =varModoMae = "editar"
+                  Width: =Parent.Width - 2*gblE.Pad - 210 - 2*gblE.PadSm
+                  X: =gblE.Pad
+                  Y: =344
+            - cmbTipoTelMae:
+                Control: Classic/ComboBox@2.4.0
+                Properties:
+                  AccessibleLabel: ="Tipo de teléfono"
+                  BorderColor: =gblC.borde
+                  DefaultSelectedItems: =["Celular"]
+                  DisplayFields: =["Value"]
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  IsSearchable: =false
+                  Items: =["Celular", "Casa"]
+                  SelectMultiple: =false
+                  Size: =10
+                  Visible: =varModoMae = "editar"
+                  Width: =120
+                  X: =txtNuevoTelMae.X + txtNuevoTelMae.Width + gblE.PadSm
+                  Y: =344
+            - btnAddTelMae:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderThickness: =0
+                  Color: =gblC.teal
+                  DisabledColor: =Color.White
+                  DisabledFill: =ColorFade(gblC.teal, 60%)
+                  DisplayMode: =If(IsBlank(Trim(txtNuevoTelMae.Text)), DisplayMode.Disabled, DisplayMode.Edit)
+                  Fill: =gblC.tealSuave
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  HoverFill: =ColorFade(gblC.tealSuave, 10%)
+                  OnSelect: |-
+                    =// '[TL] Tipo' es TEXTO libre en el esquema; los valores "Celular"/"Casa" calcan lo
+                    // que escribe el import. El lookup '[TL] Cliente' se resuelve con el registro fresco
+                    // del datasource (LookUp por CIF), no con la copia en memoria.
+                    // IfError (B-03): si el Patch falla, detalle y el input conserva lo tipeado.
+                    IfError(
+                        Patch('CM | TBL | Telefonos', Defaults('CM | TBL | Telefonos'),
+                            {
+                                '[TL] Cliente': LookUp('CM | TBL | Clientes', '[CL] CIF' = varCliMae.'[CL] CIF'),
+                                '[TL] CIF': varCliMae.'[CL] CIF',
+                                '[TL] Numero': Trim(txtNuevoTelMae.Text),
+                                '[TL] Tipo': cmbTipoTelMae.Selected.Value
+                            }
+                        ),
+                        Notify("No se pudo agregar el teléfono " & Trim(txtNuevoTelMae.Text) & ": " & FirstError.Message,
+                            NotificationType.Error),
+                        ClearCollect(colTelMae, Filter('CM | TBL | Telefonos', '[TL] CIF' = varCliMae.'[CL] CIF'));
+                        Reset(txtNuevoTelMae); Reset(cmbTipoTelMae);
+                        Notify("✓ Teléfono agregado", NotificationType.Success, 2500)
+                    )
+                  Size: =10
+                  Text: ="＋"
+                  Visible: =varModoMae = "editar"
+                  Width: =90
+                  X: =cmbTipoTelMae.X + cmbTipoTelMae.Width + gblE.PadSm
+                  Y: =344
+            - lblSecAddDirMae:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =18
+                  PaddingLeft: =0
+                  Size: =8
+                  Text: ="AGREGAR DIRECCIÓN"
+                  Visible: =varModoMae = "editar"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =400
+            - txtNuevaDirMae:
+                Control: Classic/TextInput@2.3.2
+                Properties:
+                  AccessibleLabel: ="Nueva dirección"
+                  BorderColor: =gblC.borde
+                  Default: =""
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  HintText: ="Del parque 2c al lago…"
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Size: =10
+                  Visible: =varModoMae = "editar"
+                  Width: =Parent.Width - 2*gblE.Pad - 210 - 2*gblE.PadSm
+                  X: =gblE.Pad
+                  Y: =422
+            - cmbTipoDirMae:
+                Control: Classic/ComboBox@2.4.0
+                Properties:
+                  AccessibleLabel: ="Tipo de dirección"
+                  BorderColor: =gblC.borde
+                  DefaultSelectedItems: =["Casa"]
+                  DisplayFields: =["Value"]
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  IsSearchable: =false
+                  Items: =["Casa", "EC", "Trabajo"]
+                  SelectMultiple: =false
+                  Size: =10
+                  Visible: =varModoMae = "editar"
+                  Width: =120
+                  X: =txtNuevaDirMae.X + txtNuevaDirMae.Width + gblE.PadSm
+                  Y: =422
+            - btnAddDirMae:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderThickness: =0
+                  Color: =gblC.teal
+                  DisabledColor: =Color.White
+                  DisabledFill: =ColorFade(gblC.teal, 60%)
+                  DisplayMode: =If(IsBlank(Trim(txtNuevaDirMae.Text)), DisplayMode.Disabled, DisplayMode.Edit)
+                  Fill: =gblC.tealSuave
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  HoverFill: =ColorFade(gblC.tealSuave, 10%)
+                  OnSelect: |-
+                    =// '[DR] Tipo' TEXTO: "Casa" / "EC" / "Trabajo" (esquema verificado).
+                    // IfError (B-03): si el Patch falla, detalle y el input conserva lo tipeado.
+                    IfError(
+                        Patch('CM | TBL | Direccions', Defaults('CM | TBL | Direccions'),
+                            {
+                                '[DR] Cliente': LookUp('CM | TBL | Clientes', '[CL] CIF' = varCliMae.'[CL] CIF'),
+                                '[DR] CIF': varCliMae.'[CL] CIF',
+                                '[DR] Direccion': Trim(txtNuevaDirMae.Text),
+                                '[DR] Tipo': cmbTipoDirMae.Selected.Value
+                            }
+                        ),
+                        Notify("No se pudo agregar la dirección: " & FirstError.Message, NotificationType.Error),
+                        ClearCollect(colDirMae, Filter('CM | TBL | Direccions', '[DR] CIF' = varCliMae.'[CL] CIF'));
+                        Reset(txtNuevaDirMae); Reset(cmbTipoDirMae);
+                        Notify("✓ Dirección agregada", NotificationType.Success, 2500)
+                    )
+                  Size: =10
+                  Text: ="＋"
+                  Visible: =varModoMae = "editar"
+                  Width: =90
+                  X: =cmbTipoDirMae.X + cmbTipoDirMae.Width + gblE.PadSm
+                  Y: =422
+            - btnVolverEdMae:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  Color: =gblC.ink2
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoBoton
+                  OnSelect: =Set(varModoMae, "ver")
+                  Size: =10
+                  Text: ="Volver a la ficha"
+                  Visible: =varModoMae = "editar"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =Parent.Height - gblE.AltoBoton - gblE.Pad
+            - lblNvCifMae:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =16
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="CIF *"
+                  Visible: =varModoMae = "crear"
+                  Width: =(Parent.Width - 3*gblE.Pad) / 2
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =60
+            - txtCifNvoMae:
+                Control: Classic/TextInput@2.3.2
+                Properties:
+                  AccessibleLabel: ="CIF del cliente nuevo"
+                  BorderColor: =gblC.borde
+                  Default: =""
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  HintText: ="C-00000"
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Size: =10
+                  Visible: =varModoMae = "crear"
+                  Width: =(Parent.Width - 3*gblE.Pad) / 2
+                  X: =gblE.Pad
+                  Y: =78
+            - lblNvNombreMae:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =16
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Nombre completo *"
+                  Visible: =varModoMae = "crear"
+                  Width: =(Parent.Width - 3*gblE.Pad) / 2
+                  Wrap: =false
+                  X: =2*gblE.Pad + (Parent.Width - 3*gblE.Pad) / 2
+                  Y: =60
+            - txtNombreNvoMae:
+                Control: Classic/TextInput@2.3.2
+                Properties:
+                  AccessibleLabel: ="Nombre del cliente nuevo"
+                  BorderColor: =gblC.borde
+                  Default: =""
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Size: =10
+                  Visible: =varModoMae = "crear"
+                  Width: =(Parent.Width - 3*gblE.Pad) / 2
+                  X: =2*gblE.Pad + (Parent.Width - 3*gblE.Pad) / 2
+                  Y: =78
+            - lblNvDeptoMae:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =16
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Departamento"
+                  Visible: =varModoMae = "crear"
+                  Width: =(Parent.Width - 3*gblE.Pad) / 2
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =126
+            - txtDeptoNvoMae:
+                Control: Classic/TextInput@2.3.2
+                Properties:
+                  AccessibleLabel: ="Departamento del cliente nuevo"
+                  BorderColor: =gblC.borde
+                  Default: =""
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Size: =10
+                  Visible: =varModoMae = "crear"
+                  Width: =(Parent.Width - 3*gblE.Pad) / 2
+                  X: =gblE.Pad
+                  Y: =144
+            - lblNvDistritoMae:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =16
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Distrito"
+                  Visible: =varModoMae = "crear"
+                  Width: =(Parent.Width - 3*gblE.Pad) / 2
+                  Wrap: =false
+                  X: =2*gblE.Pad + (Parent.Width - 3*gblE.Pad) / 2
+                  Y: =126
+            - txtDistritoNvoMae:
+                Control: Classic/TextInput@2.3.2
+                Properties:
+                  AccessibleLabel: ="Distrito del cliente nuevo"
+                  BorderColor: =gblC.borde
+                  Default: =""
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Size: =10
+                  Visible: =varModoMae = "crear"
+                  Width: =(Parent.Width - 3*gblE.Pad) / 2
+                  X: =2*gblE.Pad + (Parent.Width - 3*gblE.Pad) / 2
+                  Y: =144
+            - lblNvTrabajoMae:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =16
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Trabajo"
+                  Visible: =varModoMae = "crear"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =192
+            - txtTrabajoNvoMae:
+                Control: Classic/TextInput@2.3.2
+                Properties:
+                  AccessibleLabel: ="Lugar de trabajo del cliente nuevo"
+                  BorderColor: =gblC.borde
+                  Default: =""
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Size: =10
+                  Visible: =varModoMae = "crear"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =210
+            - lblNvTelCelMae:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =16
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Teléfono celular"
+                  Visible: =varModoMae = "crear"
+                  Width: =(Parent.Width - 3*gblE.Pad) / 2
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =258
+            - txtTelCelNvoMae:
+                Control: Classic/TextInput@2.3.2
+                Properties:
+                  AccessibleLabel: ="Teléfono celular"
+                  BorderColor: =gblC.borde
+                  Default: =""
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  HintText: ="8888-8888"
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Size: =10
+                  Visible: =varModoMae = "crear"
+                  Width: =(Parent.Width - 3*gblE.Pad) / 2
+                  X: =gblE.Pad
+                  Y: =276
+            - lblNvTelCasMae:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =16
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Teléfono casa"
+                  Visible: =varModoMae = "crear"
+                  Width: =(Parent.Width - 3*gblE.Pad) / 2
+                  Wrap: =false
+                  X: =2*gblE.Pad + (Parent.Width - 3*gblE.Pad) / 2
+                  Y: =258
+            - txtTelCasNvoMae:
+                Control: Classic/TextInput@2.3.2
+                Properties:
+                  AccessibleLabel: ="Teléfono de casa"
+                  BorderColor: =gblC.borde
+                  Default: =""
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Size: =10
+                  Visible: =varModoMae = "crear"
+                  Width: =(Parent.Width - 3*gblE.Pad) / 2
+                  X: =2*gblE.Pad + (Parent.Width - 3*gblE.Pad) / 2
+                  Y: =276
+            - lblNvDirCasaMae:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =16
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Dirección casa"
+                  Visible: =varModoMae = "crear"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =324
+            - txtDirCasaNvoMae:
+                Control: Classic/TextInput@2.3.2
+                Properties:
+                  AccessibleLabel: ="Dirección de casa"
+                  BorderColor: =gblC.borde
+                  Default: =""
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Size: =10
+                  Visible: =varModoMae = "crear"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =342
+            - lblNvDirTrabMae:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =16
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Dirección trabajo"
+                  Visible: =varModoMae = "crear"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =390
+            - txtDirTrabNvoMae:
+                Control: Classic/TextInput@2.3.2
+                Properties:
+                  AccessibleLabel: ="Dirección de trabajo"
+                  BorderColor: =gblC.borde
+                  Default: =""
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Size: =10
+                  Visible: =varModoMae = "crear"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =408
+            - lblHintCifMae:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.pendInk
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="⚠ El CIF debe ser el del core. Un CIF equivocado duplica el cliente en el próximo import."
+                  VerticalAlign: =VerticalAlign.Top
+                  Visible: =varModoMae = "crear"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =456
+            - btnCancelarNvoMae:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  Color: =gblC.ink2
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoBoton
+                  OnSelect: =Set(varPanelMae, false)
+                  Size: =10
+                  Text: ="Cancelar"
+                  Visible: =varModoMae = "crear"
+                  Width: =(Parent.Width - 3*gblE.Pad) / 2
+                  X: =gblE.Pad
+                  Y: =Parent.Height - gblE.AltoBoton - gblE.Pad
+            - btnCrearMae:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderThickness: =0
+                  Color: =Color.White
+                  DisabledColor: =Color.White
+                  DisabledFill: =ColorFade(gblC.teal, 60%)
+                  DisplayMode: |-
+                    =If(IsBlank(Trim(txtCifNvoMae.Text)) || IsBlank(Trim(txtNombreNvoMae.Text)),
+                        DisplayMode.Disabled, DisplayMode.Edit)
+                  Fill: =gblC.teal
+                  FocusedBorderColor: =gblC.ink
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoBoton
+                  HoverFill: =ColorFade(gblC.teal, 10%)
+                  OnSelect: |-
+                    =// Anti-duplicado primero (LookUp delegable por CIF; el Trim va sobre el argumento
+                    // local, no sobre la columna — 00 §4.2). Si el CIF ya existe, el CSV lo fusionaría
+                    // por upsert (DEC-013): acá NO se crea y se manda al Admin a buscarlo.
+                    If(
+                        !IsBlank(LookUp('CM | TBL | Clientes', '[CL] CIF' = Trim(txtCifNvoMae.Text))),
+                        Notify("Ya existe un cliente con CIF " & Trim(txtCifNvoMae.Text) &
+                               " — buscalo y editalo, no lo dupliques.", NotificationType.Warning),
+
+                        // IfError (B-03): si el cliente no se crea, detalle y el formulario NO se limpia.
+                        IfError(
+                            Patch('CM | TBL | Clientes', Defaults('CM | TBL | Clientes'),
+                                {
+                                    '[CL] CIF': Trim(txtCifNvoMae.Text),
+                                    '[CL] Nombre': Trim(txtNombreNvoMae.Text),
+                                    '[CL] Departamento': Trim(txtDeptoNvoMae.Text),
+                                    '[CL] Distrito': Trim(txtDistritoNvoMae.Text),
+                                    '[CL] Trabajo': Trim(txtTrabajoNvoMae.Text)
+                                }
+                            ),
+                            Notify("No se pudo crear el cliente " & Trim(txtCifNvoMae.Text) & ": " & FirstError.Message,
+                                NotificationType.Error),
+                            // Registro creado (para los lookups hijos): LookUp delegable por CIF.
+                            Set(varNuevoCliMae, LookUp('CM | TBL | Clientes', '[CL] CIF' = Trim(txtCifNvoMae.Text)));
+                            // Hijos opcionales: un Patch por cada tel/dir NO vacío, con lookup + CIF denormalizado.
+                            // IfError por pares: se corta en el primer hijo que falle y avisa (el cliente YA existe).
+                            IfError(
+                                If(!IsBlank(Trim(txtTelCelNvoMae.Text)),
+                                    Patch('CM | TBL | Telefonos', Defaults('CM | TBL | Telefonos'),
+                                        {'[TL] Cliente': varNuevoCliMae, '[TL] CIF': varNuevoCliMae.'[CL] CIF',
+                                         '[TL] Numero': Trim(txtTelCelNvoMae.Text), '[TL] Tipo': "Celular"})),
+                                Notify("Cliente creado, pero no se pudo grabar el celular " & Trim(txtTelCelNvoMae.Text) & ": " & FirstError.Message,
+                                    NotificationType.Error),
+                                If(!IsBlank(Trim(txtTelCasNvoMae.Text)),
+                                    Patch('CM | TBL | Telefonos', Defaults('CM | TBL | Telefonos'),
+                                        {'[TL] Cliente': varNuevoCliMae, '[TL] CIF': varNuevoCliMae.'[CL] CIF',
+                                         '[TL] Numero': Trim(txtTelCasNvoMae.Text), '[TL] Tipo': "Casa"})),
+                                Notify("Cliente creado, pero no se pudo grabar el teléfono de casa " & Trim(txtTelCasNvoMae.Text) & ": " & FirstError.Message,
+                                    NotificationType.Error),
+                                If(!IsBlank(Trim(txtDirCasaNvoMae.Text)),
+                                    Patch('CM | TBL | Direccions', Defaults('CM | TBL | Direccions'),
+                                        {'[DR] Cliente': varNuevoCliMae, '[DR] CIF': varNuevoCliMae.'[CL] CIF',
+                                         '[DR] Direccion': Trim(txtDirCasaNvoMae.Text), '[DR] Tipo': "Casa"})),
+                                Notify("Cliente creado, pero no se pudo grabar la dirección de casa: " & FirstError.Message,
+                                    NotificationType.Error),
+                                If(!IsBlank(Trim(txtDirTrabNvoMae.Text)),
+                                    Patch('CM | TBL | Direccions', Defaults('CM | TBL | Direccions'),
+                                        {'[DR] Cliente': varNuevoCliMae, '[DR] CIF': varNuevoCliMae.'[CL] CIF',
+                                         '[DR] Direccion': Trim(txtDirTrabNvoMae.Text), '[DR] Tipo': "Trabajo"})),
+                                Notify("Cliente creado, pero no se pudo grabar la dirección de trabajo: " & FirstError.Message,
+                                    NotificationType.Error),
+                                Notify("✓ Cliente " & varNuevoCliMae.'[CL] Nombre' & " creado", NotificationType.Success, 2500)
+                            );
+                            // Cerrar limpio (el cliente existe; si falló un hijo, se agrega desde editar).
+                            Reset(txtCifNvoMae); Reset(txtNombreNvoMae); Reset(txtDeptoNvoMae); Reset(txtDistritoNvoMae);
+                            Reset(txtTrabajoNvoMae); Reset(txtTelCelNvoMae); Reset(txtTelCasNvoMae);
+                            Reset(txtDirCasaNvoMae); Reset(txtDirTrabNvoMae);
+                            Set(varPanelMae, false)
+                        )
+                    )
+                  Size: =10
+                  Text: ="＋ Crear cliente"
+                  Visible: =varModoMae = "crear"
+                  Width: =(Parent.Width - 3*gblE.Pad) / 2
+                  X: =2*gblE.Pad + Self.Width
+                  Y: =Parent.Height - gblE.AltoBoton - gblE.Pad
+      - cmpNavMae:
+          Control: CanvasComponent
+          ComponentName: cmpNavLateral
+          Properties:
+            Height: =Parent.Height
+            RutaActiva: ="mae"
+            Visible: =!nfMovil || gblNavMovilAbierta
+            Width: =gblE.AnchoNav

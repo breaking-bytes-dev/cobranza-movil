@@ -1,0 +1,247 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+#
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+#
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+ComponentDefinitions:
+  cmpSheet:
+    DefinitionType: CanvasComponent
+    AccessAppScope: true
+    Children:
+      - conSheet:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            Fill: =RGBA(16,24,40,0.45)
+            Height: =Parent.Height
+            LayoutAlignItems: =LayoutAlignItems.Center
+            LayoutDirection: =LayoutDirection.Vertical
+            LayoutJustifyContent: =LayoutJustifyContent.End
+            PaddingTop: =7
+            RadiusBottomLeft: =9
+            RadiusBottomRight: =9
+            RadiusTopLeft: =9
+            RadiusTopRight: =9
+            Width: =Parent.Width
+          Children:
+            - Button2:
+                Control: ModernButton@1.0.0
+                Properties:
+                  AlignInContainer: =AlignInContainer.Stretch
+                  Appearance: =ButtonAppearance.Transparent
+                  FillPortions: =1
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  OnSelect: =Set(varSheetEscala, false)
+                  Text: =
+            - cardSheet:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  Fill: =gblC.surface
+                  FillPortions: =0
+                  Height: =560
+                  LayoutAlignItems: =LayoutAlignItems.Center
+                  LayoutDirection: =LayoutDirection.Vertical
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  PaddingBottom: =16
+                  PaddingLeft: =16
+                  PaddingRight: =16
+                  PaddingTop: =14
+                  RadiusTopLeft: =22
+                  RadiusTopRight: =22
+                Children:
+                  - lblTemaT:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.muted2
+                        FontWeight: =FontWeight.Bold
+                        Height: =44
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Size: =gblT.fsm
+                        Text: ="TEMA"
+                  - btnTemaDia:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Stretch
+                        BorderStyle: =BorderStyle.None
+                        Color: =If(!gblDark, gblC.accent, gblC.ink)
+                        Fill: =If(!gblDark, gblC.accentBg, Color.Transparent)
+                        FontWeight: =If(!gblDark, FontWeight.Bold, FontWeight.Normal)
+                        HoverColor: =Self.Color
+                        HoverFill: =Self.Fill
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        OnSelect: |-
+                          =Set(gblDark, false);
+                          Set(gblC, gblDay);
+                          ClearCollect(colPrefs, {dark: gblDark, scale: gblScale});
+                          IfError(SaveData(colPrefs, "cmPrefs"), Blank())
+                        PaddingBottom: =14
+                        PaddingLeft: =14
+                        PaddingRight: =14
+                        PaddingTop: =14
+                        RadiusBottomLeft: =12
+                        RadiusBottomRight: =12
+                        RadiusTopLeft: =12
+                        RadiusTopRight: =12
+                        Size: =gblT.fmd
+                        Text: ="☀  Día"
+                  - btnTemaNoche:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Stretch
+                        BorderStyle: =BorderStyle.None
+                        Color: =If(gblDark, gblC.accent, gblC.ink)
+                        Fill: =If(gblDark, gblC.accentBg, Color.Transparent)
+                        FontWeight: =If(gblDark, FontWeight.Bold, FontWeight.Normal)
+                        HoverColor: =Self.Color
+                        HoverFill: =Self.Fill
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        OnSelect: |-
+                          =Set(gblDark, true);
+                          Set(gblC, gblNight);
+                          ClearCollect(colPrefs, {dark: gblDark, scale: gblScale});
+                          IfError(SaveData(colPrefs, "cmPrefs"), Blank())
+                        PaddingBottom: =14
+                        PaddingLeft: =14
+                        PaddingRight: =14
+                        PaddingTop: =14
+                        RadiusBottomLeft: =12
+                        RadiusBottomRight: =12
+                        RadiusTopLeft: =12
+                        RadiusTopRight: =12
+                        Size: =gblT.fmd
+                        Text: ="🌙  Noche"
+                  - lblSheetT:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.muted2
+                        FontWeight: =FontWeight.Bold
+                        Height: =60
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Size: =gblT.fsm
+                        Text: ="TAMAÑO DE VISTA"
+                  - btnNivelNormal:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Stretch
+                        BorderStyle: =BorderStyle.None
+                        Color: =If(gblScale=1, gblC.accent, gblC.ink)
+                        Fill: =If(gblScale=1, gblC.accentBg, Color.Transparent)
+                        FontWeight: =If(gblScale=1, FontWeight.Bold, FontWeight.Normal)
+                        HoverColor: =Self.Color
+                        HoverFill: =Self.Fill
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        OnSelect: |-
+                          =Set(gblScale, 1);
+                          Set(gblT, { f2xs:10*gblScale, fxs:11*gblScale, fsm:12.5*gblScale, fbase:13.5*gblScale,
+                                      fmd:15*gblScale, flg:17*gblScale, fxl:23*gblScale, fbig:24*gblScale });
+                          ClearCollect(colPrefs, {dark: gblDark, scale: gblScale});
+                          IfError(SaveData(colPrefs, "cmPrefs"), Blank());
+                          Set(varSheetEscala, false)
+                        PaddingBottom: =14
+                        PaddingLeft: =14
+                        PaddingRight: =14
+                        PaddingTop: =14
+                        RadiusBottomLeft: =12
+                        RadiusBottomRight: =12
+                        RadiusTopLeft: =12
+                        RadiusTopRight: =12
+                        Size: =15
+                        Text: ="Aa  Normal"
+                  - btnNivelGrande:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Stretch
+                        BorderStyle: =BorderStyle.None
+                        Color: =If(gblScale=1.2, gblC.accent, gblC.ink)
+                        Fill: =If(gblScale=1.2, gblC.accentBg, Color.Transparent)
+                        FontWeight: =If(gblScale=1.2, FontWeight.Bold, FontWeight.Normal)
+                        HoverColor: =Self.Color
+                        HoverFill: =Self.Fill
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        OnSelect: |-
+                          =Set(gblScale,1.2);
+                          Set(gblT, { f2xs:10*gblScale, fxs:11*gblScale, fsm:12.5*gblScale, fbase:13.5*gblScale,
+                                      fmd:15*gblScale, flg:17*gblScale, fxl:23*gblScale, fbig:24*gblScale });
+                          ClearCollect(colPrefs, {dark: gblDark, scale: gblScale});
+                          IfError(SaveData(colPrefs, "cmPrefs"), Blank());
+                          Set(varSheetEscala, false)
+                        PaddingBottom: =14
+                        PaddingLeft: =14
+                        PaddingRight: =14
+                        PaddingTop: =14
+                        RadiusBottomLeft: =12
+                        RadiusBottomRight: =12
+                        RadiusTopLeft: =12
+                        RadiusTopRight: =12
+                        Size: =15*1.2
+                        Text: ="Aa  Grande"
+                  - btnNivelMuyGrande:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Stretch
+                        BorderStyle: =BorderStyle.None
+                        Color: =If(gblScale=1.45, gblC.accent, gblC.ink)
+                        Fill: =If(gblScale=1.45, gblC.accentBg, Color.Transparent)
+                        FontWeight: =If(gblScale=1.45, FontWeight.Bold, FontWeight.Normal)
+                        HoverColor: =Self.Color
+                        HoverFill: =Self.Fill
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        OnSelect: |-
+                          =Set(gblScale,  1.45);
+                          Set(gblT, { f2xs:10*gblScale, fxs:11*gblScale, fsm:12.5*gblScale, fbase:13.5*gblScale,
+                                      fmd:15*gblScale, flg:17*gblScale, fxl:23*gblScale, fbig:24*gblScale });
+                          ClearCollect(colPrefs, {dark: gblDark, scale: gblScale});
+                          IfError(SaveData(colPrefs, "cmPrefs"), Blank());
+                          Set(varSheetEscala, false)
+                        PaddingBottom: =14
+                        PaddingLeft: =14
+                        PaddingRight: =14
+                        PaddingTop: =14
+                        RadiusBottomLeft: =12
+                        RadiusBottomRight: =12
+                        RadiusTopLeft: =12
+                        RadiusTopRight: =12
+                        Size: =15*1.45
+                        Text: ="Aa  Muy grande"
+                  - btnNivelMaximo:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Stretch
+                        BorderStyle: =BorderStyle.None
+                        Color: =If(gblScale=1.7, gblC.accent, gblC.ink)
+                        Fill: =If(gblScale=1.7, gblC.accentBg, Color.Transparent)
+                        FontWeight: =If(gblScale=1.7, FontWeight.Bold, FontWeight.Normal)
+                        HoverColor: =Self.Color
+                        HoverFill: =Self.Fill
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        OnSelect: |-
+                          =Set(gblScale, 1.7);
+                          Set(gblT, { f2xs:10*gblScale, fxs:11*gblScale, fsm:12.5*gblScale, fbase:13.5*gblScale,
+                                      fmd:15*gblScale, flg:17*gblScale, fxl:23*gblScale, fbig:24*gblScale });
+                          ClearCollect(colPrefs, {dark: gblDark, scale: gblScale});
+                          IfError(SaveData(colPrefs, "cmPrefs"), Blank());
+                          Set(varSheetEscala, false)
+                        PaddingBottom: =14
+                        PaddingLeft: =14
+                        PaddingRight: =14
+                        PaddingTop: =14
+                        RadiusBottomLeft: =12
+                        RadiusBottomRight: =12
+                        RadiusTopLeft: =12
+                        RadiusTopRight: =12
+                        Size: =15*1.7
+                        Text: ="Aa  Máximo"
