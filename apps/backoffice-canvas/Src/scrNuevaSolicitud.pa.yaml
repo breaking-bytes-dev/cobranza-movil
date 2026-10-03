@@ -346,7 +346,7 @@ Screens:
                                 '[AS] Estado de aprobacion': 'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion',
                                 'Retiro NIO': Value(txtRetiroNioNva.Text),
                                 'Retiro USD': Value(txtRetiroUsdNva.Text),
-                                'Notas': cmbTipoNva.Selected.Value & " — " & Trim(txtMotivoNva.Text),
+                                Notas: cmbTipoNva.Selected.Value & " — " & Trim(txtMotivoNva.Text),
                                 '[AS] Solicitado por': gblUsuarioDV,
                                 '[AS] Fecha de Asignacion': Now()
                             }

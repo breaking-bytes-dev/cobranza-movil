@@ -34,52 +34,228 @@ App:
     OnStart: |-
       =// ===== App.OnStart =====
       // 1) Tokens de color (identidad de la familia, modo día)
-      Set(gblC, {
-          teal:ColorValue("#0F6B6B"), tealOscuro:ColorValue("#0B5252"), tealSuave:ColorValue("#E0EEEE"),
-          pantalla:ColorValue("#F2F4F7"), card:ColorValue("#FFFFFF"),
-          borde:ColorValue("#E4E7EC"), hairline:ColorValue("#F0F2F5"),
-          ink:ColorValue("#101828"), ink2:ColorValue("#475467"), muted:ColorValue("#667085"), muted2:ColorValue("#98A2B3"),
-          okBg:ColorValue("#ECFDF5"), okInk:ColorValue("#067647"),
-          pendBg:ColorValue("#FEF3C7"), pendInk:ColorValue("#B45309"),
-          redBg:ColorValue("#FEE2E2"), redInk:ColorValue("#DC2626"),
-          diariaBg:ColorValue("#DBEAFE"), diariaInk:ColorValue("#2563EB"),
-          incobBg:ColorValue("#FEF3C7"), incobInk:ColorValue("#B45309"),
-          espBg:ColorValue("#EDE9FE"), espInk:ColorValue("#7C3AED"),
-          blancoTr:RGBA(255,255,255,0.18), scrim:RGBA(16,24,40,0.45)
-      });
-      // 2) Tokens de medida (los ÚNICOS números "absolutos" permitidos en las guías)
-      Set(gblE, {Pad:16, PadSm:10, AnchoNav:240, Radio:12, RadioSm:9, AltoBarra:56, AltoFila:64,
-                 AltoInput:40, AltoBoton:44, AnchoMax:1160});
-      // 3) Identidad: gblRol derivado de los ROLES DE SEGURIDAD reales (00 §3.1 — sin tabla extra).
-      // Directos (systemuserroles) + heredados por TEAM (teammembership -> teamroles). Son los
-      // conjuntos de UN usuario (puñados de filas): sin delegación en juego, corre una sola vez.
-      Set(gblUsuarioDV, LookUp(Users, 'Primary Email' = Lower(User().Email)));
-      ClearCollect(colRolesUsrTmp, gblUsuarioDV.'Security Roles (systemuserroles_association)');
-      // desde Team la relación es única → 'Security Roles' pelado
-      ForAll(gblUsuarioDV.'Teams (teammembership_association)' As Tm,
-          Collect(colRolesUsrTmp, LookUp(Teams, Team = Tm.Team).'Security Roles'));
-      // "SR | CM | Backoffice" -> "Backoffice"; multi-rol => "Backoffice|Admin". El `in` de los
-      // guards es case-insensitive (el rol real "SR | CM | BackOffice" matchea igual).
-      // Sin ningún rol SR | CM => gblRol vacío => estado "sin acceso" de scrInicio.
-      Set(gblRol,
-          Concat(
-              Distinct(Filter(colRolesUsrTmp, StartsWith(Name, "SR | CM | ")),
-                       Substitute(Name, "SR | CM | ", "")),
-              Value, "|"));
-      // 4) Navegación por rol: la tabla que alimenta cmpNavLateral
-      ClearCollect(colNav,
-          {Orden:1, Icono:"🏠", Titulo:"Inicio",            Ruta:"ini",  Roles:"Backoffice|Solicitante|Supervisor|Admin"},
-          {Orden:2, Icono:"📥", Titulo:"Por transcribir",   Ruta:"trx",  Roles:"Backoffice"},
-          {Orden:3, Icono:"✅", Titulo:"Transcritas hoy",   Ruta:"tsc",  Roles:"Backoffice"},
-          {Orden:4, Icono:"✨", Titulo:"Nueva solicitud",   Ruta:"nva",  Roles:"Solicitante"},
-          {Orden:5, Icono:"🗂️", Titulo:"Mis solicitudes",  Ruta:"sol",  Roles:"Solicitante"},
-          {Orden:6, Icono:"⚖️", Titulo:"Aprobaciones",      Ruta:"aprb", Roles:"Supervisor"},
-          {Orden:7, Icono:"📡", Titulo:"Monitoreo de carga",Ruta:"mon",  Roles:"Admin"},
-          {Orden:8, Icono:"🧹", Titulo:"Reconciliación",    Ruta:"rec",  Roles:"Admin"},
-          {Orden:9, Icono:"🔒", Titulo:"Cierres",           Ruta:"cie",  Roles:"Admin"},
-          {Orden:10,Icono:"🏍️", Titulo:"Agentes y usuarios",Ruta:"age", Roles:"Admin"},
-          {Orden:11,Icono:"👥", Titulo:"Datos maestros",    Ruta:"mae",  Roles:"Admin"}
+      Set(
+          gblC,
+          {
+              teal: ColorValue("#0F6B6B"),
+              tealOscuro: ColorValue("#0B5252"),
+              tealSuave: ColorValue("#E0EEEE"),
+              pantalla: ColorValue("#F2F4F7"),
+              card: ColorValue("#FFFFFF"),
+              borde: ColorValue("#E4E7EC"),
+              hairline: ColorValue("#F0F2F5"),
+              ink: ColorValue("#101828"),
+              ink2: ColorValue("#475467"),
+              muted: ColorValue("#667085"),
+              muted2: ColorValue("#98A2B3"),
+              okBg: ColorValue("#ECFDF5"),
+              okInk: ColorValue("#067647"),
+              pendBg: ColorValue("#FEF3C7"),
+              pendInk: ColorValue("#B45309"),
+              redBg: ColorValue("#FEE2E2"),
+              redInk: ColorValue("#DC2626"),
+              diariaBg: ColorValue("#DBEAFE"),
+              diariaInk: ColorValue("#2563EB"),
+              incobBg: ColorValue("#FEF3C7"),
+              incobInk: ColorValue("#B45309"),
+              espBg: ColorValue("#EDE9FE"),
+              espInk: ColorValue("#7C3AED"),
+              blancoTr: RGBA(
+                  255,
+                  255,
+                  255,
+                  0.18
+              ),
+              scrim: RGBA(
+                  16,
+                  24,
+                  40,
+                  0.45
+              )
+          }
       );
-      Set(gblNavMovilAbierta, false)
+      // 2) Tokens de medida (los ÚNICOS números "absolutos" permitidos en las guías)
+      Set(
+          gblE,
+          {
+              Pad: 16,
+              PadSm: 10,
+              AnchoNav: 240,
+              Radio: 12,
+              RadioSm: 9,
+              AltoBarra: 56,
+              AltoFila: 64,
+              AltoInput: 40,
+              AltoBoton: 44,
+              AnchoMax: 1160
+          }
+      );
+      // 3) Identidad: gblRol derivado de la seguridad REAL (00 §3.1 — sin tabla extra).
+      // a) Roles DIRECTOS del usuario: "SR | CM | Admin" -> "Admin".
+      // b) Roles por TEAM: en este proyecto el rol se asigna por membresía al team
+      //    "CM · <perfil> · <ENV>". Canvas no deja navegar Team -> Security Roles dentro de un
+      //    ForAll ("not accessible in this context", verificado en Studio), así que el perfil
+      //    sale del segmento del medio del nombre del team (el sufijo DEV/PRD se ignora).
+      //    ⚠ Renombrar un team CM rompe este mapeo (mismo acople que el prefijo "SR | CM | ").
+      // Conjuntos de UN usuario (puñados de filas): sin delegación en juego, corre una vez.
+      Set(
+          gblUsuarioDV,
+          LookUp(
+              Users,
+              'Primary Email' = Lower(User().Email)
+          )
+      );
+      ClearCollect(
+          colRolTxt,
+          ForAll(
+              Filter(
+                  gblUsuarioDV.'Security Roles (systemuserroles_association)',
+                  StartsWith(
+                      Name,
+                      "SR | CM | "
+                  )
+              ) As R,
+              {
+                  v: Substitute(
+                      R.Name,
+                      "SR | CM | ",
+                      ""
+                  )
+              }
+          )
+      );
+      ForAll(
+          gblUsuarioDV.'Teams (teammembership_association)' As Tm,
+          If(
+              StartsWith(
+                  Tm.'Team Name',
+                  "CM · "
+              ),
+              Collect(
+                  colRolTxt,
+                  {
+                      v: Switch(
+                          Index(
+                              Split(
+                                  Tm.'Team Name',
+                                  " · "
+                              ),
+                              2
+                          ).Value,
+                          "Backoffice",
+                          "BackOffice",
+                          "Solicitantes",
+                          "Solicitante",
+                          "Supervisores",
+                          "Supervisor",
+                          "Admin y Carga",
+                          "Admin",
+                          ""
+                      )
+                  }
+              )
+          )
+      );
+      // Multi-rol => "BackOffice|Admin". El `in` de los guards/nav es case-insensitive.
+      // Sin ningún rol CM => gblRol vacío => estado "sin acceso" de scrInicio.
+      Set(
+          gblRol,
+          Concat(
+              Distinct(
+                  Filter(
+                      colRolTxt,
+                      !IsBlank(v)
+                  ),
+                  v
+              ),
+              Value,
+              "|"
+          )
+      );
+      // 4) Navegación por rol: la tabla que alimenta cmpNavLateral
+      ClearCollect(
+          colNav,
+          {
+              Orden: 1,
+              Icono: "🏠",
+              Titulo: "Inicio",
+              Ruta: "ini",
+              Roles: "Backoffice|Solicitante|Supervisor|Admin"
+          },
+          {
+              Orden: 2,
+              Icono: "📥",
+              Titulo: "Por transcribir",
+              Ruta: "trx",
+              Roles: "Backoffice"
+          },
+          {
+              Orden: 3,
+              Icono: "✅",
+              Titulo: "Transcritas hoy",
+              Ruta: "tsc",
+              Roles: "Backoffice"
+          },
+          {
+              Orden: 4,
+              Icono: "✨",
+              Titulo: "Nueva solicitud",
+              Ruta: "nva",
+              Roles: "Solicitante"
+          },
+          {
+              Orden: 5,
+              Icono: "🗂️",
+              Titulo: "Mis solicitudes",
+              Ruta: "sol",
+              Roles: "Solicitante"
+          },
+          {
+              Orden: 6,
+              Icono: "⚖️",
+              Titulo: "Aprobaciones",
+              Ruta: "aprb",
+              Roles: "Supervisor"
+          },
+          {
+              Orden: 7,
+              Icono: "📡",
+              Titulo: "Monitoreo de carga",
+              Ruta: "mon",
+              Roles: "Admin"
+          },
+          {
+              Orden: 8,
+              Icono: "🧹",
+              Titulo: "Reconciliación",
+              Ruta: "rec",
+              Roles: "Admin"
+          },
+          {
+              Orden: 9,
+              Icono: "🔒",
+              Titulo: "Cierres",
+              Ruta: "cie",
+              Roles: "Admin"
+          },
+          {
+              Orden: 10,
+              Icono: "🏍️",
+              Titulo: "Agentes y usuarios",
+              Ruta: "age",
+              Roles: "Admin"
+          },
+          {
+              Orden: 11,
+              Icono: "👥",
+              Titulo: "Datos maestros",
+              Ruta: "mae",
+              Roles: "Admin"
+          }
+      );
+      Set(
+          gblNavMovilAbierta,
+          false
+      )
     StartScreen: =scrInicio
     Theme: =PowerAppsTheme
