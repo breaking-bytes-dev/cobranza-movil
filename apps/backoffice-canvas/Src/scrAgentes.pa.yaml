@@ -44,6 +44,8 @@ Screens:
                   BorderThickness: =1
                   Color: =gblC.ink2
                   Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoBoton
                   HoverFill: =ColorFade(gblC.card, 10%)
@@ -133,6 +135,9 @@ Screens:
                       Control: Gallery@2.15.0
                       Variant: Vertical
                       Properties:
+                        AccessibleLabel: ="Lista de agentes"
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
                         Height: =Parent.Height - 2*gblE.PadSm
                         Items: =colAgentesAge
                         ShowScrollbar: =false
@@ -179,6 +184,7 @@ Screens:
                         - cmbUsuarioAge:
                             Control: Classic/ComboBox@2.4.0
                             Properties:
+                              AccessibleLabel: ="Usuario vinculado al agente"
                               BorderColor: =gblC.borde
                               DefaultSelectedItems: |-
                                 =// Preselección por email (texto plano, siempre presente; delegable). Si el ComboBox clásico no
@@ -187,6 +193,8 @@ Screens:
                                 If(!IsBlank(ThisItem.'Email Usuario'), Filter(Users, 'Primary Email' = ThisItem.'Email Usuario'))
                               DisplayFields: =["fullname", "internalemailaddress"]
                               Fill: =gblC.card
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
                               Font: =Font.'Segoe UI'
                               Height: =gblE.AltoInput
                               InputTextPlaceholder: |-
@@ -233,6 +241,8 @@ Screens:
                               Color: =If(IsBlank(ThisItem.'[AG] Usuario'), gblC.redInk, gblC.okInk)
                               DisplayMode: =DisplayMode.View
                               Fill: =If(IsBlank(ThisItem.'[AG] Usuario'), gblC.redBg, gblC.okBg)
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
                               Font: =Font.'Segoe UI'
                               FontWeight: =FontWeight.Bold
                               Height: =26
@@ -252,6 +262,8 @@ Screens:
                               Color: =If(ThisItem.'[AG] Activo', gblC.ink2, gblC.redInk)
                               DisplayMode: =DisplayMode.View
                               Fill: =If(ThisItem.'[AG] Activo', gblC.hairline, gblC.redBg)
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
                               Font: =Font.'Segoe UI'
                               FontWeight: =FontWeight.Bold
                               Height: =26
@@ -271,6 +283,8 @@ Screens:
                               BorderThickness: =If(ThisItem.'[AG] Activo', 1, 0)
                               Color: =If(ThisItem.'[AG] Activo', gblC.ink2, gblC.teal)
                               Fill: =If(ThisItem.'[AG] Activo', gblC.card, gblC.tealSuave)
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
                               Font: =Font.'Segoe UI'
                               Height: =34
                               OnSelect: |-

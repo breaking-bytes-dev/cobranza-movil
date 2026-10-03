@@ -353,7 +353,10 @@ Screens:
                             Properties:
                               BorderColor: =Color.Transparent
                               BorderThickness: =1
+                              Color: =Color.Transparent
                               Fill: =Color.Transparent
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
                               Height: =Parent.Height
                               HoverBorderColor: =gblC.teal
                               HoverFill: =Color.Transparent
@@ -364,7 +367,8 @@ Screens:
                               RadiusBottomRight: =gblE.Radio
                               RadiusTopLeft: =gblE.Radio
                               RadiusTopRight: =gblE.Radio
-                              Text: =""
+                              TabIndex: =0
+                              Text: =lblAccColaTitIni.Text
                               Width: =Parent.Width
                   - conAccArqIni:
                       Control: GroupContainer@1.5.0
@@ -426,7 +430,10 @@ Screens:
                             Properties:
                               BorderColor: =Color.Transparent
                               BorderThickness: =1
+                              Color: =Color.Transparent
                               Fill: =Color.Transparent
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
                               Height: =Parent.Height
                               HoverBorderColor: =gblC.teal
                               HoverFill: =Color.Transparent
@@ -437,7 +444,8 @@ Screens:
                               RadiusBottomRight: =gblE.Radio
                               RadiusTopLeft: =gblE.Radio
                               RadiusTopRight: =gblE.Radio
-                              Text: =""
+                              TabIndex: =0
+                              Text: =lblAccArqTitIni.Text
                               Width: =Parent.Width
             - conAccSolIni:
                 Control: GroupContainer@1.5.0
@@ -509,7 +517,10 @@ Screens:
                             Properties:
                               BorderColor: =Color.Transparent
                               BorderThickness: =1
+                              Color: =Color.Transparent
                               Fill: =Color.Transparent
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
                               Height: =Parent.Height
                               HoverBorderColor: =gblC.teal
                               HoverFill: =Color.Transparent
@@ -520,7 +531,8 @@ Screens:
                               RadiusBottomRight: =gblE.Radio
                               RadiusTopLeft: =gblE.Radio
                               RadiusTopRight: =gblE.Radio
-                              Text: =""
+                              TabIndex: =0
+                              Text: =lblAccNvaTitIni.Text
                               Width: =Parent.Width
                   - conAccMisIni:
                       Control: GroupContainer@1.5.0
@@ -583,7 +595,10 @@ Screens:
                             Properties:
                               BorderColor: =Color.Transparent
                               BorderThickness: =1
+                              Color: =Color.Transparent
                               Fill: =Color.Transparent
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
                               Height: =Parent.Height
                               HoverBorderColor: =gblC.teal
                               HoverFill: =Color.Transparent
@@ -594,7 +609,8 @@ Screens:
                               RadiusBottomRight: =gblE.Radio
                               RadiusTopLeft: =gblE.Radio
                               RadiusTopRight: =gblE.Radio
-                              Text: =""
+                              TabIndex: =0
+                              Text: =lblAccMisTitIni.Text
                               Width: =Parent.Width
             - conAccSupIni:
                 Control: GroupContainer@1.5.0
@@ -666,7 +682,10 @@ Screens:
                             Properties:
                               BorderColor: =Color.Transparent
                               BorderThickness: =1
+                              Color: =Color.Transparent
                               Fill: =Color.Transparent
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
                               Height: =Parent.Height
                               HoverBorderColor: =gblC.teal
                               HoverFill: =Color.Transparent
@@ -677,7 +696,8 @@ Screens:
                               RadiusBottomRight: =gblE.Radio
                               RadiusTopLeft: =gblE.Radio
                               RadiusTopRight: =gblE.Radio
-                              Text: =""
+                              TabIndex: =0
+                              Text: =lblAccAprbTitIni.Text
                               Width: =Parent.Width
             - conAccAdmIni:
                 Control: GroupContainer@1.5.0
@@ -750,7 +770,10 @@ Screens:
                             Properties:
                               BorderColor: =Color.Transparent
                               BorderThickness: =1
+                              Color: =Color.Transparent
                               Fill: =Color.Transparent
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
                               Height: =Parent.Height
                               HoverBorderColor: =gblC.teal
                               HoverFill: =Color.Transparent
@@ -761,7 +784,8 @@ Screens:
                               RadiusBottomRight: =gblE.Radio
                               RadiusTopLeft: =gblE.Radio
                               RadiusTopRight: =gblE.Radio
-                              Text: =""
+                              TabIndex: =0
+                              Text: =lblAccMonTitIni.Text
                               Width: =Parent.Width
                   - conAccRecIni:
                       Control: GroupContainer@1.5.0
@@ -824,7 +848,10 @@ Screens:
                             Properties:
                               BorderColor: =Color.Transparent
                               BorderThickness: =1
+                              Color: =Color.Transparent
                               Fill: =Color.Transparent
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
                               Height: =Parent.Height
                               HoverBorderColor: =gblC.teal
                               HoverFill: =Color.Transparent
@@ -835,7 +862,8 @@ Screens:
                               RadiusBottomRight: =gblE.Radio
                               RadiusTopLeft: =gblE.Radio
                               RadiusTopRight: =gblE.Radio
-                              Text: =""
+                              TabIndex: =0
+                              Text: =lblAccRecTitIni.Text
                               Width: =Parent.Width
                   - conAccAgeIni:
                       Control: GroupContainer@1.5.0
@@ -898,7 +926,10 @@ Screens:
                             Properties:
                               BorderColor: =Color.Transparent
                               BorderThickness: =1
+                              Color: =Color.Transparent
                               Fill: =Color.Transparent
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
                               Height: =Parent.Height
                               HoverBorderColor: =gblC.teal
                               HoverFill: =Color.Transparent
@@ -909,7 +940,8 @@ Screens:
                               RadiusBottomRight: =gblE.Radio
                               RadiusTopLeft: =gblE.Radio
                               RadiusTopRight: =gblE.Radio
-                              Text: =""
+                              TabIndex: =0
+                              Text: =lblAccAgeTitIni.Text
                               Width: =Parent.Width
       - cmpVacioIni:
           Control: CanvasComponent

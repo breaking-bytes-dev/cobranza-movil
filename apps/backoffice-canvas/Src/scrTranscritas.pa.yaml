@@ -76,6 +76,8 @@ Screens:
             BorderThickness: =1
             Color: =gblC.ink2
             Fill: =gblC.card
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
             Font: =Font.'Segoe UI'
             Height: =gblE.AltoInput
             OnSelect: |-
@@ -177,6 +179,9 @@ Screens:
                 Control: Gallery@2.15.0
                 Variant: Vertical
                 Properties:
+                  AccessibleLabel: ="Interacciones transcritas hoy"
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Height: =Parent.Height - 2*gblE.PadSm
                   Items: =Sort(colTscTsc, '[IN] Fecha grabacion', SortOrder.Descending)
                   OnSelect: =Set(varSelTsc, ThisItem); Set(varPanelTsc, true)
@@ -188,13 +193,6 @@ Screens:
                   X: =gblE.Pad
                   Y: =gblE.PadSm
                 Children:
-                  - recFilaTsc:
-                      Control: Rectangle@2.3.0
-                      Properties:
-                        Fill: =Color.Transparent
-                        Height: =Parent.TemplateHeight
-                        OnSelect: =Select(Parent)
-                        Width: =Parent.TemplateWidth
                   - lblClienteTsc:
                       Control: Label@2.5.1
                       Properties:
@@ -202,7 +200,6 @@ Screens:
                         Font: =Font.'Segoe UI'
                         FontWeight: =FontWeight.Semibold
                         Height: =20
-                        OnSelect: =Select(Parent)
                         PaddingLeft: =0
                         Size: =10
                         Text: =ThisItem.clienteTsc
@@ -216,7 +213,6 @@ Screens:
                         Color: =gblC.muted
                         Font: =Font.'Segoe UI'
                         Height: =18
-                        OnSelect: =Select(Parent)
                         PaddingLeft: =0
                         Size: =9
                         Text: =ThisItem.'[IN] Numerocuenta' & " · " & ThisItem.prodTsc
@@ -230,7 +226,6 @@ Screens:
                         Color: =gblC.muted2
                         Font: =Font.'Segoe UI'
                         Height: =16
-                        OnSelect: =Select(Parent)
                         PaddingLeft: =0
                         Size: =8
                         Text: |-
@@ -245,7 +240,6 @@ Screens:
                         Color: =gblC.ink2
                         Font: =Font.'Segoe UI'
                         Height: =Parent.TemplateHeight
-                        OnSelect: =Select(Parent)
                         PaddingLeft: =0
                         Size: =9
                         Text: =ThisItem.'[IN] Comentario'
@@ -259,10 +253,11 @@ Screens:
                         BorderThickness: =0
                         Color: =gblC.espInk
                         Fill: =gblC.espBg
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         FontWeight: =FontWeight.Bold
                         Height: =26
-                        OnSelect: =Select(Parent)
                         RadiusBottomLeft: =8
                         RadiusBottomRight: =8
                         RadiusTopLeft: =8
@@ -279,10 +274,11 @@ Screens:
                         BorderThickness: =0
                         Color: =gblC.okInk
                         Fill: =gblC.okBg
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         FontWeight: =FontWeight.Bold
                         Height: =26
-                        OnSelect: =Select(Parent)
                         RadiusBottomLeft: =8
                         RadiusBottomRight: =8
                         RadiusTopLeft: =8
@@ -300,10 +296,11 @@ Screens:
                         BorderThickness: =0
                         Color: =gblC.okInk
                         Fill: =gblC.okBg
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         FontWeight: =FontWeight.Bold
                         Height: =26
-                        OnSelect: =Select(Parent)
                         RadiusBottomLeft: =8
                         RadiusBottomRight: =8
                         RadiusTopLeft: =8
@@ -318,9 +315,25 @@ Screens:
                       Properties:
                         Fill: =gblC.hairline
                         Height: =1
-                        OnSelect: =Select(Parent)
                         Width: =Parent.TemplateWidth
                         Y: =Parent.TemplateHeight - 1
+                  - btnFilaTsc:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =Color.Transparent
+                        Fill: =Color.Transparent
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Height: =Parent.TemplateHeight
+                        HoverFill: =RGBA(15, 107, 107, 0.06)
+                        OnSelect: =Select(Parent)
+                        PressedFill: =RGBA(15, 107, 107, 0.12)
+                        TabIndex: =0
+                        Text: ="Ver interacción transcrita de " & ThisItem.clienteTsc
+                        Width: =Parent.TemplateWidth
+                        X: =0
+                        Y: =0
             - cmpVacioTsc:
                 Control: CanvasComponent
                 ComponentName: cmpVacio
@@ -336,9 +349,13 @@ Screens:
       - recScrimTsc:
           Control: Rectangle@2.3.0
           Properties:
+            AccessibleLabel: ="Cerrar panel"
             Fill: =gblC.scrim
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
             Height: =Parent.Height
             OnSelect: =Set(varPanelTsc, false)
+            TabIndex: =0
             Visible: =varPanelTsc
             Width: =Parent.Width
       - conPanelTsc:
@@ -374,10 +391,14 @@ Screens:
             - icoCerrarTsc:
                 Control: Classic/Icon@2.5.0
                 Properties:
+                  AccessibleLabel: ="Cerrar panel"
                   Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Height: =24
                   Icon: =Icon.Cancel
                   OnSelect: =Set(varPanelTsc, false)
+                  TabIndex: =0
                   Width: =24
                   X: =Parent.Width - 40
                   Y: =16
@@ -388,6 +409,8 @@ Screens:
                   Color: =gblC.ink2
                   DisplayMode: =DisplayMode.View
                   Fill: =gblC.hairline
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   FontWeight: =FontWeight.Bold
                   Height: =26
@@ -581,6 +604,8 @@ Screens:
                   Color: =gblC.espInk
                   DisplayMode: =DisplayMode.View
                   Fill: =gblC.espBg
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   FontWeight: =FontWeight.Bold
                   Height: =26
@@ -603,7 +628,7 @@ Screens:
                   Height: =18
                   PaddingLeft: =0
                   Size: =8
-                  Text: ="PAGOS (" & CountRows(galPagosPanelTsc.AllItems) & ")"
+                  Text: ="PAGOS (" & galPagosPanelTsc.AllItemsCount & ")"
                   Visible: =varSelTsc.'[IN] Aplica pago'
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
@@ -613,6 +638,9 @@ Screens:
                 Control: Gallery@2.15.0
                 Variant: Vertical
                 Properties:
+                  AccessibleLabel: ="Pagos de la interacción transcrita"
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Height: =108
                   Items: |-
                     =Filter('CM | TBL | Pagos',
@@ -750,6 +778,8 @@ Screens:
                   BorderThickness: =1
                   Color: =gblC.ink2
                   Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoBoton
                   OnSelect: =Set(varPanelTsc, false)

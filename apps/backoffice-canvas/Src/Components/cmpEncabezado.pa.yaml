@@ -46,10 +46,14 @@ ComponentDefinitions:
                   - icoMenuEncCmp:
                       Control: Classic/Icon@2.5.0
                       Properties:
+                        AccessibleLabel: ="Abrir menú"
                         Color: =Color.White
+                        FocusedBorderColor: =Color.White
+                        FocusedBorderThickness: =2
                         Height: =24
                         Icon: =Icon.Hamburger
                         OnSelect: =Set(gblNavMovilAbierta, true)
+                        TabIndex: =0
                         Width: =24
                         X: =gblE.Pad
                         Y: =(gblE.AltoBarra - 24) / 2

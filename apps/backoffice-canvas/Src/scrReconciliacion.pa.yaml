@@ -208,7 +208,10 @@ Screens:
                       Control: Gallery@2.15.0
                       Variant: Vertical
                       Properties:
+                        AccessibleLabel: ="Diarias activas fuera de cartera"
                         DisplayMode: =DisplayMode.View
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
                         Height: =Parent.Height
                         Items: =colDesapRec
                         ShowScrollbar: =false
@@ -252,7 +255,11 @@ Screens:
                               PaddingLeft: =0
                               Size: =9
                               Text: |-
-                                ="🏍️ " & Coalesce(ThisItem.'[AS] Agente'.'[AG] Nombre', "sin localizador") & " · última carga " & Text(DateAdd(ThisItem.'Última carga', TimeZoneOffset(ThisItem.'Última carga'), TimeUnit.Minutes), "dd/mm")
+                                =// If corta antes de TimeZoneOffset: en el template vacío de la galería ThisItem es Blank
+                                // y TimeZoneOffset(Blank) es error de runtime ("expected a valid date value").
+                                "🏍️ " & Coalesce(ThisItem.'[AS] Agente'.'[AG] Nombre', "sin localizador") & " · última carga " &
+                                    If(IsBlank(ThisItem.'Última carga'), "—",
+                                        Text(DateAdd(ThisItem.'Última carga', TimeZoneOffset(ThisItem.'Última carga'), TimeUnit.Minutes), "dd/mm"))
                               Width: =Parent.TemplateWidth * 0.4
                               X: =gblE.Pad + Parent.TemplateWidth * 0.4
                               Y: =10
@@ -263,6 +270,8 @@ Screens:
                               Color: =gblC.diariaInk
                               DisplayMode: =DisplayMode.View
                               Fill: =gblC.diariaBg
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
                               Font: =Font.'Segoe UI'
                               FontWeight: =FontWeight.Bold
                               Height: =26
@@ -317,6 +326,8 @@ Screens:
                       Properties:
                         Color: =gblC.ink
                         DisplayMode: =If(varRojoRec || nfUltimaCarga < Today(), DisplayMode.Disabled, DisplayMode.Edit)
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         Height: =48
                         Size: =9
@@ -334,19 +345,21 @@ Screens:
                         DisabledFill: =ColorFade(gblC.redBg, 60%)
                         DisplayMode: =If(chkConfirmarRec.Value && !varRojoRec && nfUltimaCarga >= Today(), DisplayMode.Edit, DisplayMode.Disabled)
                         Fill: =gblC.redBg
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         Height: =gblE.AltoBoton
                         HoverFill: =ColorFade(gblC.redBg, 10%)
                         OnSelect: |-
-                          =// Costo declarado: son N Patch SECUENCIALES (uno por Diaria desaparecida) —
-                          // aceptable para las decenas que el umbral del 30 % permite pasar. Si algún día
-                          // el lote legítimo fuera de CIENTOS, esto se muda a un flow/acción server-side
-                          // que reciba la lista y cierre en una transacción — no se "optimiza" en canvas
-                          // con trucos.
-                          ForAll(colDesapRec As D,
-                              Patch('CM | TBL | Asignacions',
-                                  LookUp('CM | TBL | Asignacions', '[AS] Numero' = D.'[AS] Numero'),
+                          =// UN solo Patch masivo: ForAll DEVUELVE la tabla de cambios (no muta adentro) y
+                          // cada registro lleva la PK ('CM | TBL | Asignacion') → Patch actualiza esas filas.
+                          // Sin LookUp por fila: colDesapRec ya trae la PK desde el Filter del OnVisible.
+                          // Si algún día el lote legítimo fuera de CIENTOS, esto se muda a un flow/acción
+                          // server-side que cierre en una transacción.
+                          Patch('CM | TBL | Asignacions',
+                              ForAll(colDesapRec As D,
                                   {
+                                      'CM | TBL | Asignacion': D.'CM | TBL | Asignacion',
                                       '[AS] Estado': false,
                                       '[AS] Motivo': "fuera de cartera",
                                       'Fecha de cierre': Now()

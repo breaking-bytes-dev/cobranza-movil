@@ -61,9 +61,12 @@ Screens:
             - cmbCuentaNva:
                 Control: Classic/ComboBox@2.4.0
                 Properties:
+                  AccessibleLabel: ="Cuenta del cliente"
                   BorderColor: =gblC.borde
                   DisplayFields: =["sanic_cm_ct_numerodecuenta", "lineaNva"]
                   Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =48
                   InputTextPlaceholder: ="— Buscar cuenta —"
@@ -153,10 +156,13 @@ Screens:
             - cmbTipoNva:
                 Control: Classic/ComboBox@2.4.0
                 Properties:
+                  AccessibleLabel: ="Tipo de solicitud"
                   BorderColor: =gblC.borde
                   DefaultSelectedItems: =["Retiro urgente"]
                   DisplayFields: =["Value"]
                   Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
                   IsSearchable: =false
@@ -183,9 +189,12 @@ Screens:
             - txtRetiroNioNva:
                 Control: Classic/TextInput@2.3.2
                 Properties:
+                  AccessibleLabel: ="Monto de retiro en córdobas"
                   BorderColor: =gblC.borde
                   Default: =""
                   Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Format: =TextFormat.Number
                   Height: =gblE.AltoInput
@@ -218,9 +227,12 @@ Screens:
             - txtRetiroUsdNva:
                 Control: Classic/TextInput@2.3.2
                 Properties:
+                  AccessibleLabel: ="Monto de retiro en dólares"
                   BorderColor: =gblC.borde
                   Default: =""
                   Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Format: =TextFormat.Number
                   Height: =gblE.AltoInput
@@ -263,9 +275,12 @@ Screens:
             - txtMotivoNva:
                 Control: Classic/TextInput@2.3.2
                 Properties:
+                  AccessibleLabel: ="Motivo de la solicitud"
                   BorderColor: =gblC.borde
                   Default: =""
                   Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =84
                   HintText: ="¿Por qué se necesita esta gestión especial?"
@@ -319,6 +334,8 @@ Screens:
                         && !IsBlank(Trim(txtMotivoNva.Text)),
                         DisplayMode.Edit, DisplayMode.Disabled)
                   Fill: =gblC.teal
+                  FocusedBorderColor: =gblC.ink
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoBoton
                   HoverFill: =ColorFade(gblC.teal, 10%)

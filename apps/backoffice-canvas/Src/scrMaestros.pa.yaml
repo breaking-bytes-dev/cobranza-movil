@@ -42,9 +42,12 @@ Screens:
             - txtBuscarMae:
                 Control: Classic/TextInput@2.3.2
                 Properties:
+                  AccessibleLabel: ="Buscar cliente por CIF o nombre"
                   BorderColor: =gblC.borde
                   Default: =""
                   Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
                   HintText: ="CIF o nombre…"
@@ -58,7 +61,10 @@ Screens:
             - icoBuscarMae:
                 Control: Classic/Icon@2.5.0
                 Properties:
+                  AccessibleLabel: ="Buscar cliente"
                   Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Height: =20
                   Icon: =Icon.Search
                   Width: =20
@@ -72,6 +78,8 @@ Screens:
                   DisabledColor: =Color.White
                   DisabledFill: =ColorFade(gblC.teal, 60%)
                   Fill: =gblC.teal
+                  FocusedBorderColor: =gblC.ink
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
                   HoverFill: =ColorFade(gblC.teal, 10%)
@@ -91,6 +99,9 @@ Screens:
           Control: Gallery@2.15.0
           Variant: Vertical
           Properties:
+            AccessibleLabel: ="Lista de clientes"
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
             Height: =Parent.Height - Self.Y - gblE.Pad
             Items: |-
               =// Ambas ramas delegables: Sort por columna escalar y StartsWith (00 §4.2).
@@ -103,15 +114,16 @@ Screens:
                       StartsWith('[CL] Nombre', Trim(txtBuscarMae.Text)))
               )
             OnSelect: |-
-              =// Carga las colecciones del cliente elegido (los 3 filtros delegables: texto exacto
+              =// Carga las colecciones del cliente elegido (los filtros delegables: texto exacto
               // por CIF y lookup por registro — 00 §4.2) y abre el panel en modo ver.
               Set(varCliMae, ThisItem);
               Set(varModoMae, "ver");
               Concurrent(
                   ClearCollect(colTelMae, Filter('CM | TBL | Telefonos', '[TL] CIF' = ThisItem.'[CL] CIF')),
-                  ClearCollect(colDirMae, Filter('CM | TBL | Direccions', '[DR] CIF' = ThisItem.'[CL] CIF')),
-                  ClearCollect(colCuentasCliMae, Filter('CM | TBL | Cuentas', '[CT] Cliente'.'CM | TBL | Cliente' = ThisItem.'CM | TBL | Cliente'))
+                  ClearCollect(colDirMae, Filter('CM | TBL | Direccions', '[DR] CIF' = ThisItem.'[CL] CIF'))
               );
+              // Las cuentas NO se coleccionan: galCtasMae lee el datasource directo (mismo filtro
+              // delegable, por varCliMae). Sin colección "inicializada y nunca actualizada".
               Set(varPanelMae, true)
             ShowScrollbar: =false
             TemplateFill: =If(ThisItem.IsSelected && varPanelMae, gblC.tealSuave, gblC.card)
@@ -121,13 +133,6 @@ Screens:
             X: =conToolbarMae.X
             Y: =conToolbarMae.Y + conToolbarMae.Height + gblE.PadSm
           Children:
-            - recFilaMae:
-                Control: Rectangle@2.3.0
-                Properties:
-                  Fill: =Color.Transparent
-                  Height: =Parent.TemplateHeight
-                  OnSelect: =Select(Parent)
-                  Width: =Parent.TemplateWidth
             - lblNomFilaMae:
                 Control: Label@2.5.1
                 Properties:
@@ -135,7 +140,6 @@ Screens:
                   Font: =Font.'Segoe UI'
                   FontWeight: =FontWeight.Bold
                   Height: =22
-                  OnSelect: =Select(Parent)
                   PaddingLeft: =0
                   Size: =10
                   Text: =ThisItem.'[CL] Nombre'
@@ -149,7 +153,6 @@ Screens:
                   Color: =gblC.muted
                   Font: =Font.'Segoe UI'
                   Height: =20
-                  OnSelect: =Select(Parent)
                   PaddingLeft: =0
                   Size: =9
                   Text: =ThisItem.'[CL] CIF' & " · " & Coalesce(ThisItem.'[CL] Departamento', "—")
@@ -163,7 +166,6 @@ Screens:
                   Color: =gblC.ink2
                   Font: =Font.'Segoe UI'
                   Height: =22
-                  OnSelect: =Select(Parent)
                   PaddingLeft: =0
                   Size: =10
                   Text: |-
@@ -178,9 +180,25 @@ Screens:
                 Properties:
                   Fill: =gblC.hairline
                   Height: =1
-                  OnSelect: =Select(Parent)
                   Width: =Parent.TemplateWidth
                   Y: =Parent.TemplateHeight - 1
+            - btnFilaMae:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderThickness: =0
+                  Color: =Color.Transparent
+                  Fill: =Color.Transparent
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: =Parent.TemplateHeight
+                  HoverFill: =RGBA(15, 107, 107, 0.06)
+                  OnSelect: =Select(Parent)
+                  PressedFill: =RGBA(15, 107, 107, 0.12)
+                  TabIndex: =0
+                  Text: ="Ver cliente " & ThisItem.'[CL] Nombre'
+                  Width: =Parent.TemplateWidth
+                  X: =0
+                  Y: =0
       - cmpVacioMae:
           Control: CanvasComponent
           ComponentName: cmpVacio
@@ -194,18 +212,22 @@ Screens:
                   "Ningún CIF ni nombre empieza con «" & Trim(txtBuscarMae.Text) & "».")
             Titulo: ="Sin resultados"
             Visible: |-
-              =// AllItems es client-side: cuenta la página cargada — para "¿hay cero resultados?"
+              =// AllItemsCount es client-side: cuenta la página cargada — para "¿hay cero resultados?"
               // alcanza y no delega nada.
-              CountRows(galClientesMae.AllItems) = 0
+              galClientesMae.AllItemsCount = 0
             Width: =320
             X: =galClientesMae.X + (galClientesMae.Width - 320) / 2
             Y: =galClientesMae.Y + 60
       - recScrimMae:
           Control: Rectangle@2.3.0
           Properties:
+            AccessibleLabel: ="Cerrar panel"
             Fill: =gblC.scrim
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
             Height: =Parent.Height
             OnSelect: =Set(varPanelMae, false)
+            TabIndex: =0
             Visible: =varPanelMae
             Width: =Parent.Width
       - conPanelMae:
@@ -245,10 +267,14 @@ Screens:
             - icoCerrarPanelMae:
                 Control: Classic/Icon@2.5.0
                 Properties:
+                  AccessibleLabel: ="Cerrar panel"
                   Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Height: =24
                   Icon: =Icon.Cancel
                   OnSelect: =Set(varPanelMae, false)
+                  TabIndex: =0
                   Width: =24
                   X: =Parent.Width - gblE.Pad - 24
                   Y: =gblE.Pad + 2
@@ -364,6 +390,9 @@ Screens:
                 Control: Gallery@2.15.0
                 Variant: Vertical
                 Properties:
+                  AccessibleLabel: ="Teléfonos del cliente"
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Height: =84
                   Items: =colTelMae
                   ShowScrollbar: =false
@@ -422,6 +451,9 @@ Screens:
                 Control: Gallery@2.15.0
                 Variant: Vertical
                 Properties:
+                  AccessibleLabel: ="Direcciones del cliente"
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Height: =84
                   Items: =colDirMae
                   ShowScrollbar: =false
@@ -470,7 +502,7 @@ Screens:
                   Height: =18
                   PaddingLeft: =0
                   Size: =8
-                  Text: ="CUENTAS (" & CountRows(colCuentasCliMae) & ")"
+                  Text: ="CUENTAS (" & galCtasMae.AllItemsCount & ")"
                   Visible: =varModoMae = "ver"
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
@@ -480,8 +512,13 @@ Screens:
                 Control: Gallery@2.15.0
                 Variant: Vertical
                 Properties:
+                  AccessibleLabel: ="Cuentas del cliente"
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Height: =112
-                  Items: =colCuentasCliMae
+                  Items: |-
+                    =// Directo al datasource (delegable: lookup por PK del cliente elegido).
+                    Filter('CM | TBL | Cuentas', '[CT] Cliente'.'CM | TBL | Cliente' = varCliMae.'CM | TBL | Cliente')
                   ShowScrollbar: =false
                   TemplateFill: =Color.Transparent
                   TemplatePadding: =0
@@ -516,7 +553,7 @@ Screens:
                   PaddingLeft: =0
                   Size: =10
                   Text: ="Sin cuentas en mora."
-                  Visible: =varModoMae = "ver" && CountRows(colCuentasCliMae) = 0
+                  Visible: =varModoMae = "ver" && galCtasMae.AllItemsCount = 0
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
                   X: =gblE.Pad
@@ -528,6 +565,8 @@ Screens:
                   BorderThickness: =1
                   Color: =gblC.ink2
                   Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoBoton
                   OnSelect: =Set(varPanelMae, false)
@@ -545,6 +584,8 @@ Screens:
                   DisabledColor: =Color.White
                   DisabledFill: =ColorFade(gblC.teal, 60%)
                   Fill: =gblC.tealSuave
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoBoton
                   HoverFill: =ColorFade(gblC.tealSuave, 10%)
@@ -577,9 +618,12 @@ Screens:
             - txtNombreMae:
                 Control: Classic/TextInput@2.3.2
                 Properties:
+                  AccessibleLabel: ="Nombre del cliente"
                   BorderColor: =gblC.borde
                   Default: =varCliMae.'[CL] Nombre'
                   Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
                   RadiusBottomLeft: =10
@@ -608,9 +652,12 @@ Screens:
             - txtDeptoMae:
                 Control: Classic/TextInput@2.3.2
                 Properties:
+                  AccessibleLabel: ="Departamento del cliente"
                   BorderColor: =gblC.borde
                   Default: =varCliMae.'[CL] Departamento'
                   Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
                   RadiusBottomLeft: =10
@@ -639,9 +686,12 @@ Screens:
             - txtDistritoMae:
                 Control: Classic/TextInput@2.3.2
                 Properties:
+                  AccessibleLabel: ="Distrito del cliente"
                   BorderColor: =gblC.borde
                   Default: =varCliMae.'[CL] Distrito'
                   Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
                   RadiusBottomLeft: =10
@@ -670,9 +720,12 @@ Screens:
             - txtTrabajoMae:
                 Control: Classic/TextInput@2.3.2
                 Properties:
+                  AccessibleLabel: ="Lugar de trabajo del cliente"
                   BorderColor: =gblC.borde
                   Default: =varCliMae.'[CL] Trabajo'
                   Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
                   RadiusBottomLeft: =10
@@ -693,6 +746,8 @@ Screens:
                   DisabledFill: =ColorFade(gblC.teal, 60%)
                   DisplayMode: =If(IsBlank(Trim(txtNombreMae.Text)), DisplayMode.Disabled, DisplayMode.Edit)
                   Fill: =gblC.teal
+                  FocusedBorderColor: =gblC.ink
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoBoton
                   HoverFill: =ColorFade(gblC.teal, 10%)
@@ -735,9 +790,12 @@ Screens:
             - txtNuevoTelMae:
                 Control: Classic/TextInput@2.3.2
                 Properties:
+                  AccessibleLabel: ="Nuevo teléfono"
                   BorderColor: =gblC.borde
                   Default: =""
                   Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
                   HintText: ="8888-8888"
@@ -753,10 +811,13 @@ Screens:
             - cmbTipoTelMae:
                 Control: Classic/ComboBox@2.4.0
                 Properties:
+                  AccessibleLabel: ="Tipo de teléfono"
                   BorderColor: =gblC.borde
                   DefaultSelectedItems: =["Celular"]
                   DisplayFields: =["Value"]
                   Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
                   IsSearchable: =false
@@ -776,6 +837,8 @@ Screens:
                   DisabledFill: =ColorFade(gblC.teal, 60%)
                   DisplayMode: =If(IsBlank(Trim(txtNuevoTelMae.Text)), DisplayMode.Disabled, DisplayMode.Edit)
                   Fill: =gblC.tealSuave
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
                   HoverFill: =ColorFade(gblC.tealSuave, 10%)
@@ -818,9 +881,12 @@ Screens:
             - txtNuevaDirMae:
                 Control: Classic/TextInput@2.3.2
                 Properties:
+                  AccessibleLabel: ="Nueva dirección"
                   BorderColor: =gblC.borde
                   Default: =""
                   Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
                   HintText: ="Del parque 2c al lago…"
@@ -836,10 +902,13 @@ Screens:
             - cmbTipoDirMae:
                 Control: Classic/ComboBox@2.4.0
                 Properties:
+                  AccessibleLabel: ="Tipo de dirección"
                   BorderColor: =gblC.borde
                   DefaultSelectedItems: =["Casa"]
                   DisplayFields: =["Value"]
                   Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
                   IsSearchable: =false
@@ -859,6 +928,8 @@ Screens:
                   DisabledFill: =ColorFade(gblC.teal, 60%)
                   DisplayMode: =If(IsBlank(Trim(txtNuevaDirMae.Text)), DisplayMode.Disabled, DisplayMode.Edit)
                   Fill: =gblC.tealSuave
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
                   HoverFill: =ColorFade(gblC.tealSuave, 10%)
@@ -888,6 +959,8 @@ Screens:
                   BorderThickness: =1
                   Color: =gblC.ink2
                   Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoBoton
                   OnSelect: =Set(varModoMae, "ver")
@@ -914,9 +987,12 @@ Screens:
             - txtCifNvoMae:
                 Control: Classic/TextInput@2.3.2
                 Properties:
+                  AccessibleLabel: ="CIF del cliente nuevo"
                   BorderColor: =gblC.borde
                   Default: =""
                   Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
                   HintText: ="C-00000"
@@ -946,9 +1022,12 @@ Screens:
             - txtNombreNvoMae:
                 Control: Classic/TextInput@2.3.2
                 Properties:
+                  AccessibleLabel: ="Nombre del cliente nuevo"
                   BorderColor: =gblC.borde
                   Default: =""
                   Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
                   RadiusBottomLeft: =10
@@ -977,9 +1056,12 @@ Screens:
             - txtDeptoNvoMae:
                 Control: Classic/TextInput@2.3.2
                 Properties:
+                  AccessibleLabel: ="Departamento del cliente nuevo"
                   BorderColor: =gblC.borde
                   Default: =""
                   Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
                   RadiusBottomLeft: =10
@@ -1008,9 +1090,12 @@ Screens:
             - txtDistritoNvoMae:
                 Control: Classic/TextInput@2.3.2
                 Properties:
+                  AccessibleLabel: ="Distrito del cliente nuevo"
                   BorderColor: =gblC.borde
                   Default: =""
                   Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
                   RadiusBottomLeft: =10
@@ -1039,9 +1124,12 @@ Screens:
             - txtTrabajoNvoMae:
                 Control: Classic/TextInput@2.3.2
                 Properties:
+                  AccessibleLabel: ="Lugar de trabajo del cliente nuevo"
                   BorderColor: =gblC.borde
                   Default: =""
                   Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
                   RadiusBottomLeft: =10
@@ -1070,9 +1158,12 @@ Screens:
             - txtTelCelNvoMae:
                 Control: Classic/TextInput@2.3.2
                 Properties:
+                  AccessibleLabel: ="Teléfono celular"
                   BorderColor: =gblC.borde
                   Default: =""
                   Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
                   HintText: ="8888-8888"
@@ -1102,9 +1193,12 @@ Screens:
             - txtTelCasNvoMae:
                 Control: Classic/TextInput@2.3.2
                 Properties:
+                  AccessibleLabel: ="Teléfono de casa"
                   BorderColor: =gblC.borde
                   Default: =""
                   Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
                   RadiusBottomLeft: =10
@@ -1133,9 +1227,12 @@ Screens:
             - txtDirCasaNvoMae:
                 Control: Classic/TextInput@2.3.2
                 Properties:
+                  AccessibleLabel: ="Dirección de casa"
                   BorderColor: =gblC.borde
                   Default: =""
                   Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
                   RadiusBottomLeft: =10
@@ -1164,9 +1261,12 @@ Screens:
             - txtDirTrabNvoMae:
                 Control: Classic/TextInput@2.3.2
                 Properties:
+                  AccessibleLabel: ="Dirección de trabajo"
                   BorderColor: =gblC.borde
                   Default: =""
                   Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
                   RadiusBottomLeft: =10
@@ -1198,6 +1298,8 @@ Screens:
                   BorderThickness: =1
                   Color: =gblC.ink2
                   Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoBoton
                   OnSelect: =Set(varPanelMae, false)
@@ -1218,6 +1320,8 @@ Screens:
                     =If(IsBlank(Trim(txtCifNvoMae.Text)) || IsBlank(Trim(txtNombreNvoMae.Text)),
                         DisplayMode.Disabled, DisplayMode.Edit)
                   Fill: =gblC.teal
+                  FocusedBorderColor: =gblC.ink
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoBoton
                   HoverFill: =ColorFade(gblC.teal, 10%)

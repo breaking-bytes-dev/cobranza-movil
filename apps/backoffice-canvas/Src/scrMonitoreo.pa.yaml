@@ -233,6 +233,8 @@ Screens:
                   DisabledColor: =gblC.teal
                   DisabledFill: =ColorFade(gblC.tealSuave, 60%)
                   Fill: =gblC.tealSuave
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoBoton
                   HoverFill: =ColorFade(gblC.tealSuave, 10%)

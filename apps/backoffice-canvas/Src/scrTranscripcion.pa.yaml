@@ -86,6 +86,8 @@ Screens:
             BorderThickness: =1
             Color: =gblC.ink2
             Fill: =gblC.card
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
             Font: =Font.'Segoe UI'
             Height: =36
             OnSelect: |-
@@ -177,6 +179,9 @@ Screens:
                 Control: Gallery@2.15.0
                 Variant: Vertical
                 Properties:
+                  AccessibleLabel: ="Localizadores con pendientes"
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Height: =Parent.Height - 22
                   Items: =colLocsTrx
                   OnSelect: |-
@@ -210,17 +215,19 @@ Screens:
                   Width: =If(Parent.Width < 1080, 150, 185)
                   Y: =22
                 Children:
-                  - btnLocCardTrx:
-                      Control: Classic/Button@2.2.0
+                  - conLocCardTrx:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
                       Properties:
                         BorderColor: =gblC.borde
                         BorderThickness: =1
+                        DropShadow: =DropShadow.None
                         Fill: =If(ThisItem.locTrx = varLocSelTrx, gblC.teal, gblC.card)
-                        Font: =Font.'Segoe UI'
                         Height: =46
-                        HoverFill: =ColorFade(Self.Fill, 5%)
-                        OnSelect: =Select(Parent)
-                        Text: =""
+                        RadiusBottomLeft: =10
+                        RadiusBottomRight: =10
+                        RadiusTopLeft: =10
+                        RadiusTopRight: =10
                         Width: =Parent.TemplateWidth
                   - lblLocNomTrx:
                       Control: Label@2.5.1
@@ -229,7 +236,6 @@ Screens:
                         Font: =Font.'Segoe UI'
                         FontWeight: =FontWeight.Bold
                         Height: =26
-                        OnSelect: =Select(Parent)
                         PaddingLeft: =0
                         Size: =9
                         Text: |-
@@ -244,10 +250,11 @@ Screens:
                         BorderThickness: =0
                         Color: =If(ThisItem.locTrx = varLocSelTrx, Color.White, gblC.ink2)
                         Fill: =If(ThisItem.locTrx = varLocSelTrx, gblC.blancoTr, gblC.hairline)
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         FontWeight: =FontWeight.Bold
                         Height: =26
-                        OnSelect: =Select(Parent)
                         RadiusBottomLeft: =8
                         RadiusBottomRight: =8
                         RadiusTopLeft: =8
@@ -257,10 +264,30 @@ Screens:
                         Width: =14 + 7*Len(Self.Text)
                         X: =Parent.TemplateWidth - Self.Width - gblE.PadSm
                         Y: =10
+                  - btnFilaLocsTrx:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =Color.Transparent
+                        Fill: =Color.Transparent
+                        FocusedBorderColor: =If(ThisItem.locTrx = varLocSelTrx, Color.White, gblC.teal)
+                        FocusedBorderThickness: =2
+                        Height: =Parent.TemplateHeight
+                        HoverFill: =RGBA(15, 107, 107, 0.06)
+                        OnSelect: =Select(Parent)
+                        PressedFill: =RGBA(15, 107, 107, 0.12)
+                        TabIndex: =0
+                        Text: =If(ThisItem.locTrx = "Todos", "Todos los localizadores", "Localizador " & ThisItem.locTrx) & " (" & ThisItem.nTrx & " pendientes)"
+                        Width: =Parent.TemplateWidth
+                        X: =0
+                        Y: =0
             - galLocsMovTrx:
                 Control: Gallery@2.15.0
                 Variant: Horizontal
                 Properties:
+                  AccessibleLabel: ="Localizadores con pendientes"
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Height: =56
                   Items: =colLocsTrx
                   OnSelect: |-
@@ -292,17 +319,19 @@ Screens:
                   Visible: =nfMovil
                   Width: =Parent.Width
                 Children:
-                  - btnLocCardMovTrx:
-                      Control: Classic/Button@2.2.0
+                  - conLocCardMovTrx:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
                       Properties:
                         BorderColor: =gblC.borde
                         BorderThickness: =1
+                        DropShadow: =DropShadow.None
                         Fill: =If(ThisItem.locTrx = varLocSelTrx, gblC.teal, gblC.card)
-                        Font: =Font.'Segoe UI'
                         Height: =46
-                        HoverFill: =ColorFade(Self.Fill, 5%)
-                        OnSelect: =Select(Parent)
-                        Text: =""
+                        RadiusBottomLeft: =10
+                        RadiusBottomRight: =10
+                        RadiusTopLeft: =10
+                        RadiusTopRight: =10
                         Width: =Parent.TemplateWidth - 8
                   - lblLocNomMovTrx:
                       Control: Label@2.5.1
@@ -311,7 +340,6 @@ Screens:
                         Font: =Font.'Segoe UI'
                         FontWeight: =FontWeight.Bold
                         Height: =26
-                        OnSelect: =Select(Parent)
                         PaddingLeft: =0
                         Size: =9
                         Text: |-
@@ -326,10 +354,11 @@ Screens:
                         BorderThickness: =0
                         Color: =If(ThisItem.locTrx = varLocSelTrx, Color.White, gblC.ink2)
                         Fill: =If(ThisItem.locTrx = varLocSelTrx, gblC.blancoTr, gblC.hairline)
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         FontWeight: =FontWeight.Bold
                         Height: =26
-                        OnSelect: =Select(Parent)
                         RadiusBottomLeft: =8
                         RadiusBottomRight: =8
                         RadiusTopLeft: =8
@@ -339,6 +368,23 @@ Screens:
                         Width: =14 + 7*Len(Self.Text)
                         X: =Parent.TemplateWidth - Self.Width - 14
                         Y: =10
+                  - btnFilaLocsMovTrx:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =Color.Transparent
+                        Fill: =Color.Transparent
+                        FocusedBorderColor: =If(ThisItem.locTrx = varLocSelTrx, Color.White, gblC.teal)
+                        FocusedBorderThickness: =2
+                        Height: =Parent.TemplateHeight
+                        HoverFill: =RGBA(15, 107, 107, 0.06)
+                        OnSelect: =Select(Parent)
+                        PressedFill: =RGBA(15, 107, 107, 0.12)
+                        TabIndex: =0
+                        Text: =If(ThisItem.locTrx = "Todos", "Todos los localizadores", "Localizador " & ThisItem.locTrx) & " (" & ThisItem.nTrx & " pendientes)"
+                        Width: =Parent.TemplateWidth
+                        X: =0
+                        Y: =0
             - lblHeadColaTrx:
                 Control: Label@2.5.1
                 Properties:
@@ -351,7 +397,7 @@ Screens:
                   Text: |-
                     ="PENDIENTES"
                         & If(varLocSelTrx <> "Todos", " · " & Upper(First(Split(varLocSelTrx, " ")).Value), "")
-                        & " · " & CountRows(galColaTrx.AllItems) & " · FIFO"
+                        & " · " & galColaTrx.AllItemsCount & " · FIFO"
                   Width: =If(Parent.Width < 1080, 210, 255)
                   Wrap: =false
                   X: =If(nfMovil, 0, If(Parent.Width < 1080, 150, 185) + 12)
@@ -360,6 +406,9 @@ Screens:
                 Control: Gallery@2.15.0
                 Variant: Vertical
                 Properties:
+                  AccessibleLabel: ="Cola de interacciones pendientes"
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Height: =Parent.Height - Self.Y
                   Items: |-
                     =Sort(
@@ -402,7 +451,6 @@ Screens:
                         Font: =Font.'Segoe UI'
                         FontWeight: =FontWeight.Bold
                         Height: =20
-                        OnSelect: =Select(Parent)
                         PaddingLeft: =0
                         Size: =9
                         Text: =ThisItem.clienteTrx
@@ -416,7 +464,6 @@ Screens:
                         Color: =gblC.muted
                         Font: =Font.'Segoe UI'
                         Height: =30
-                        OnSelect: =Select(Parent)
                         PaddingLeft: =0
                         Size: =8
                         Text: |-
@@ -434,9 +481,25 @@ Screens:
                       Properties:
                         Fill: =gblC.hairline
                         Height: =1
-                        OnSelect: =Select(Parent)
                         Width: =Parent.TemplateWidth
                         Y: =Parent.TemplateHeight - 1
+                  - btnFilaColaTrx:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =Color.Transparent
+                        Fill: =Color.Transparent
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Height: =Parent.TemplateHeight
+                        HoverFill: =RGBA(15, 107, 107, 0.06)
+                        OnSelect: =Select(Parent)
+                        PressedFill: =RGBA(15, 107, 107, 0.12)
+                        TabIndex: =0
+                        Text: ="Transcribir interacción de " & ThisItem.clienteTrx
+                        Width: =Parent.TemplateWidth
+                        X: =0
+                        Y: =0
             - cmpVacioColaTrx:
                 Control: CanvasComponent
                 ComponentName: cmpVacio
@@ -446,7 +509,7 @@ Screens:
                     ="🎉"
                   Mensaje: ="Pasá al siguiente localizador."
                   Titulo: ="Cola vacía"
-                  Visible: =CountRows(colPendTrx) > 0 && CountRows(galColaTrx.AllItems) = 0
+                  Visible: =CountRows(colPendTrx) > 0 && galColaTrx.AllItemsCount = 0
                   Width: =If(nfMovil, Parent.Width, If(Parent.Width < 1080, 210, 255))
                   X: =If(nfMovil, 0, If(Parent.Width < 1080, 150, 185) + 12)
                   Y: =lblHeadColaTrx.Y + 22
@@ -508,6 +571,8 @@ Screens:
                       Properties:
                         Align: =Align.Right
                         Color: =gblC.teal
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         FontWeight: =FontWeight.Bold
                         Height: =16
@@ -516,6 +581,7 @@ Screens:
                               & "," & varActualTrx.'[IN] Longitud')
                         PaddingRight: =0
                         Size: =8
+                        TabIndex: =0
                         Text: |-
                           ="📍 mapa"
                         Visible: =!IsBlank(varActualTrx) && !IsBlank(varActualTrx.'[IN] Latitud')
@@ -561,6 +627,8 @@ Screens:
                               Color: =Color.White
                               DisplayMode: =DisplayMode.View
                               Fill: =gblC.blancoTr
+                              FocusedBorderColor: =Color.White
+                              FocusedBorderThickness: =2
                               Font: =Font.'Segoe UI'
                               FontWeight: =FontWeight.Bold
                               Height: =26
@@ -591,12 +659,15 @@ Screens:
                             Control: Label@2.5.1
                             Properties:
                               Color: =Color.White
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
                               Font: =Font.'Segoe UI'
                               FontWeight: =FontWeight.Bold
                               Height: =38
                               OnSelect: =Copy(Self.Text)
                               PaddingLeft: =0
                               Size: =24
+                              TabIndex: =0
                               Text: =varActualTrx.'[IN] Numerocuenta'
                               Width: =Parent.Width - 2*gblE.Pad
                               Wrap: =false
@@ -642,7 +713,7 @@ Screens:
                         Height: =18
                         PaddingLeft: =0
                         Size: =8
-                        Text: ="PAGOS (" & CountRows(galPagosTrx.AllItems) & ")"
+                        Text: ="PAGOS (" & galPagosTrx.AllItemsCount & ")"
                         Visible: =!IsBlank(varActualTrx) && varActualTrx.'[IN] Aplica pago'
                         Width: =Parent.Width - 2*gblE.Pad
                         Wrap: =false
@@ -652,6 +723,9 @@ Screens:
                       Control: Gallery@2.15.0
                       Variant: Vertical
                       Properties:
+                        AccessibleLabel: ="Pagos de la interacción"
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
                         Height: =74
                         Items: |-
                           =Filter('CM | TBL | Pagos',
@@ -740,6 +814,9 @@ Screens:
                             Control: Gallery@2.15.0
                             Variant: Vertical
                             Properties:
+                              AccessibleLabel: ="Cambios de datos propuestos"
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
                               Height: =Parent.Height - 10
                               Items: =colCambiosTrx
                               ShowScrollbar: =false
@@ -799,6 +876,8 @@ Screens:
                                     Color: =Color.White
                                     DisplayMode: =DisplayMode.View
                                     Fill: =gblC.espInk
+                                    FocusedBorderColor: =gblC.teal
+                                    FocusedBorderThickness: =2
                                     Font: =Font.'Segoe UI'
                                     FontWeight: =FontWeight.Bold
                                     Height: =22
@@ -872,9 +951,12 @@ Screens:
                         - txtCodigoTrx:
                             Control: Classic/TextInput@2.3.2
                             Properties:
+                              AccessibleLabel: ="Código del core"
                               BorderColor: =gblC.borde
                               Default: =""
                               Fill: =gblC.card
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
                               Font: =Font.'Segoe UI'
                               FontWeight: =FontWeight.Bold
                               Height: =gblE.AltoInput
@@ -899,6 +981,8 @@ Screens:
                                 =If(!IsBlank(Trim(txtCodigoTrx.Text)) && !IsBlank(varActualTrx),
                                     DisplayMode.Edit, DisplayMode.Disabled)
                               Fill: =gblC.teal
+                              FocusedBorderColor: =gblC.ink
+                              FocusedBorderThickness: =2
                               Font: =Font.'Segoe UI'
                               HoverFill: =ColorFade(gblC.teal, 10%)
                               OnSelect: |-
@@ -950,7 +1034,7 @@ Screens:
                                         'Fecha de captura', SortOrder.Ascending));
                                 Set(varActualTrx,
                                     If(CountRows(colVistaTrx) = 0, Blank(),
-                                        Last(FirstN(colVistaTrx, Min(varPosTrx, CountRows(colVistaTrx))))));
+                                        Index(colVistaTrx, Min(varPosTrx, CountRows(colVistaTrx)))));
                                 If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info',
                                     Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                                         '[AD] Interaccion'.'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'));
@@ -988,6 +1072,8 @@ Screens:
                               BorderThickness: =1
                               Color: =gblC.ink2
                               Fill: =gblC.card
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
                               Font: =Font.'Segoe UI'
                               OnSelect: |-
                                 =ClearCollect(colVistaTrx,
@@ -998,7 +1084,7 @@ Screens:
                                     Set(varPosTrx,
                                         CountRows(Filter(colVistaTrx, 'Fecha de captura' < varActualTrx.'Fecha de captura')) + 1);
                                     Set(varActualTrx,
-                                        Last(FirstN(colVistaTrx, Mod(varPosTrx, CountRows(colVistaTrx)) + 1)));
+                                        Index(colVistaTrx, Mod(varPosTrx, CountRows(colVistaTrx)) + 1));
                                     If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info',
                                         Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                                             '[AD] Interaccion'.'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'));

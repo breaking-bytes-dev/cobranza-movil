@@ -54,6 +54,8 @@ Screens:
             BorderThickness: =1
             Color: =gblC.ink2
             Fill: =gblC.card
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
             Font: =Font.'Segoe UI'
             Height: =gblE.AltoBoton
             OnSelect: |-
@@ -92,6 +94,8 @@ Screens:
             DisabledColor: =Color.White
             DisabledFill: =ColorFade(gblC.teal, 60%)
             Fill: =gblC.teal
+            FocusedBorderColor: =gblC.ink
+            FocusedBorderThickness: =2
             Font: =Font.'Segoe UI'
             Height: =gblE.AltoBoton
             HoverFill: =ColorFade(gblC.teal, 10%)
@@ -135,6 +139,9 @@ Screens:
                       Control: Gallery@2.15.0
                       Variant: Vertical
                       Properties:
+                        AccessibleLabel: ="Mis solicitudes"
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
                         Height: =Parent.Height - 2*gblE.PadSm
                         Items: =colSolSol
                         OnSelect: =Set(varPanelSol, true)
@@ -147,13 +154,6 @@ Screens:
                         X: =gblE.PadSm
                         Y: =gblE.PadSm
                       Children:
-                        - recFilaSol:
-                            Control: Rectangle@2.3.0
-                            Properties:
-                              Fill: =Color.Transparent
-                              Height: =Parent.TemplateHeight
-                              OnSelect: =Select(Parent)
-                              Width: =Parent.TemplateWidth
                         - lblClienteFilaSol:
                             Control: Label@2.5.1
                             Properties:
@@ -161,7 +161,6 @@ Screens:
                               Font: =Font.'Segoe UI'
                               FontWeight: =FontWeight.Semibold
                               Height: =18
-                              OnSelect: =Select(Parent)
                               PaddingLeft: =0
                               Size: =10
                               Text: =ThisItem.clienteSol
@@ -175,7 +174,6 @@ Screens:
                               Color: =gblC.muted
                               Font: =Font.'Segoe UI'
                               Height: =16
-                              OnSelect: =Select(Parent)
                               PaddingLeft: =0
                               Size: =9
                               Text: =ThisItem.'[AS] NumeroCuenta'
@@ -189,7 +187,6 @@ Screens:
                               Color: =gblC.muted2
                               Font: =Font.'Segoe UI'
                               Height: =16
-                              OnSelect: =Select(Parent)
                               PaddingLeft: =0
                               Size: =8
                               Text: =ThisItem.'[AS] Numero' & " · " & Text(ThisItem.'[AS] Fecha de Asignacion', "dd/mm HH:mm")
@@ -203,7 +200,6 @@ Screens:
                               Color: =gblC.ink2
                               Font: =Font.'Segoe UI'
                               Height: =If(nfMovil, 34, Parent.TemplateHeight - 14)
-                              OnSelect: =Select(Parent)
                               PaddingLeft: =0
                               Size: =9
                               Text: =If(Len(ThisItem.Notas) > 90, Left(ThisItem.Notas, 90) & "…", ThisItem.Notas)
@@ -219,7 +215,6 @@ Screens:
                               Font: =Font.'Segoe UI'
                               FontWeight: =FontWeight.Semibold
                               Height: =18
-                              OnSelect: =Select(Parent)
                               PaddingLeft: =0
                               PaddingRight: =0
                               Size: =10
@@ -246,10 +241,11 @@ Screens:
                                         'Choice | CM | Estado aprobacion especial'.Aprobado, gblC.okBg,
                                         'Choice | CM | Estado aprobacion especial'.Rechazada, gblC.redBg,
                                         gblC.hairline))
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
                               Font: =Font.'Segoe UI'
                               FontWeight: =FontWeight.Bold
                               Height: =26
-                              OnSelect: =Select(Parent)
                               RadiusBottomLeft: =8
                               RadiusBottomRight: =8
                               RadiusTopLeft: =8
@@ -272,10 +268,11 @@ Screens:
                               BorderThickness: =0
                               Color: =gblC.ink2
                               Fill: =gblC.hairline
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
                               Font: =Font.'Segoe UI'
                               FontWeight: =FontWeight.Bold
                               Height: =26
-                              OnSelect: =Select(Parent)
                               RadiusBottomLeft: =8
                               RadiusBottomRight: =8
                               RadiusTopLeft: =8
@@ -292,9 +289,25 @@ Screens:
                             Properties:
                               Fill: =gblC.hairline
                               Height: =1
-                              OnSelect: =Select(Parent)
                               Width: =Parent.TemplateWidth
                               Y: =Parent.TemplateHeight - 1
+                        - btnFilaSol:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderThickness: =0
+                              Color: =Color.Transparent
+                              Fill: =Color.Transparent
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Height: =Parent.TemplateHeight
+                              HoverFill: =RGBA(15, 107, 107, 0.06)
+                              OnSelect: =Select(Parent)
+                              PressedFill: =RGBA(15, 107, 107, 0.12)
+                              TabIndex: =0
+                              Text: ="Ver solicitud de " & ThisItem.clienteSol
+                              Width: =Parent.TemplateWidth
+                              X: =0
+                              Y: =0
             - cmpVacioSol:
                 Control: CanvasComponent
                 ComponentName: cmpVacio
@@ -311,9 +324,13 @@ Screens:
       - recScrimSol:
           Control: Rectangle@2.3.0
           Properties:
+            AccessibleLabel: ="Cerrar panel"
             Fill: =gblC.scrim
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
             Height: =Parent.Height
             OnSelect: =Set(varPanelSol, false)
+            TabIndex: =0
             Visible: =varPanelSol
             Width: =Parent.Width
       - conPanelSol:
@@ -349,10 +366,14 @@ Screens:
             - icoCerrarSol:
                 Control: Classic/Icon@2.5.0
                 Properties:
+                  AccessibleLabel: ="Cerrar panel"
                   Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Height: =22
                   Icon: =Icon.Cancel
                   OnSelect: =Set(varPanelSol, false)
+                  TabIndex: =0
                   Width: =22
                   X: =Parent.Width - Self.Width - gblE.Pad
                   Y: =16
@@ -650,6 +671,8 @@ Screens:
                   BorderThickness: =1
                   Color: =gblC.ink2
                   Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoBoton
                   OnSelect: =Set(varPanelSol, false)

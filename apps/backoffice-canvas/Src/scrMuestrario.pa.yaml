@@ -51,17 +51,25 @@ Screens:
       - muestraBoton:
           Control: Classic/Button@2.2.0
           Properties:
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
             X: =80
             Y: =80
       - muestraIcono:
           Control: Classic/Icon@2.5.0
           Properties:
+            AccessibleLabel: ="Ícono de muestra"
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
             Icon: =Icon.Printing3D
             X: =100
             Y: =100
       - muestraImagen:
           Control: Image@2.2.3
           Properties:
+            AccessibleLabel: ="Imagen de muestra"
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
             X: =120
             Y: =120
       - muestraRectangulo:
@@ -72,16 +80,24 @@ Screens:
       - muestraEntradaTexto:
           Control: Classic/TextInput@2.3.2
           Properties:
+            AccessibleLabel: ="Entrada de texto de muestra"
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
             X: =160
             Y: =160
       - muestraCombo:
           Control: Classic/ComboBox@2.4.0
           Properties:
+            AccessibleLabel: ="Cuadro combinado de muestra"
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
             X: =180
             Y: =180
       - muestraCasilla:
           Control: Classic/CheckBox@2.1.0
           Properties:
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
             X: =200
             Y: =200
       - muestraAlternar:
@@ -93,12 +109,18 @@ Screens:
           Control: Gallery@2.15.0
           Variant: Vertical
           Properties:
+            AccessibleLabel: ="Galería vertical de muestra"
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
             X: =240
             Y: =193
       - muestraGaleriaH:
           Control: Gallery@2.15.0
           Variant: Horizontal
           Properties:
+            AccessibleLabel: ="Galería horizontal de muestra"
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
             X: =260
             Y: =193
       - muestraTemporizador:

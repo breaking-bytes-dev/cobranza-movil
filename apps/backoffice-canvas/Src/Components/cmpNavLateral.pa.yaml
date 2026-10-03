@@ -99,10 +99,13 @@ ComponentDefinitions:
                 Control: Gallery@2.15.0
                 Variant: Vertical
                 Properties:
+                  AccessibleLabel: ="Menú de navegación"
+                  FocusedBorderColor: =Color.White
+                  FocusedBorderThickness: =2
                   Height: =Parent.Height - (gblE.AltoBarra + gblE.Pad) - (gblE.AltoFila + gblE.PadSm)
                   Items: |-
                     =Sort(
-                        Filter(colNav, CountRows(Filter(Split(Roles, "|"), Value in gblRol)) > 0),
+                        Filter(nfNav, CountRows(Filter(Split(Roles, "|"), Value in gblRol)) > 0),
                         Orden
                     )
                   OnSelect: |-
@@ -133,7 +136,6 @@ ComponentDefinitions:
                         Align: =Align.Center
                         Font: =Font.'Segoe UI'
                         Height: =Parent.TemplateHeight
-                        OnSelect: =Select(Parent)
                         PaddingLeft: =0
                         PaddingRight: =0
                         Size: =11
@@ -148,13 +150,29 @@ ComponentDefinitions:
                         Font: =Font.'Segoe UI'
                         FontWeight: =If(ThisItem.Ruta = cmpNavLateral.RutaActiva, FontWeight.Bold, FontWeight.Normal)
                         Height: =Parent.TemplateHeight
-                        OnSelect: =Select(Parent)
                         PaddingLeft: =0
                         Size: =10
                         Text: =ThisItem.Titulo
                         Width: =Parent.TemplateWidth - (gblE.Pad + 24 + gblE.PadSm) - gblE.PadSm
                         Wrap: =false
                         X: =gblE.Pad + 24 + gblE.PadSm
+                  - btnFilaNavCmp:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =Color.Transparent
+                        Fill: =Color.Transparent
+                        FocusedBorderColor: =Color.White
+                        FocusedBorderThickness: =2
+                        Height: =Parent.TemplateHeight
+                        HoverFill: =RGBA(255, 255, 255, 0.08)
+                        OnSelect: =Select(Parent)
+                        PressedFill: =RGBA(255, 255, 255, 0.14)
+                        TabIndex: =0
+                        Text: =ThisItem.Titulo
+                        Width: =Parent.TemplateWidth
+                        X: =0
+                        Y: =0
             - conPieNavCmp:
                 Control: GroupContainer@1.5.0
                 Variant: ManualLayout

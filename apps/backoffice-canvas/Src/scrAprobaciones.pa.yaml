@@ -65,6 +65,8 @@ Screens:
                   BorderThickness: =1
                   Color: =gblC.ink2
                   Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =36
                   OnSelect: |-
@@ -94,6 +96,9 @@ Screens:
                 Control: Gallery@2.15.0
                 Variant: Vertical
                 Properties:
+                  AccessibleLabel: ="Solicitudes pendientes de aprobación"
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Height: =Parent.Height - Self.Y - gblE.Pad
                   Items: =Sort(colAprobAprb, '[AS] Fecha de Asignacion', SortOrder.Ascending)
                   OnSelect: |-
@@ -109,13 +114,6 @@ Screens:
                   X: =gblE.Pad
                   Y: =btnActualizarAprb.Y + btnActualizarAprb.Height + gblE.PadSm
                 Children:
-                  - recFilaAprb:
-                      Control: Rectangle@2.3.0
-                      Properties:
-                        Fill: =Color.Transparent
-                        Height: =Parent.TemplateHeight
-                        OnSelect: =Select(Parent)
-                        Width: =Parent.TemplateWidth
                   - lblFilaClienteAprb:
                       Control: Label@2.5.1
                       Properties:
@@ -123,7 +121,6 @@ Screens:
                         Font: =Font.'Segoe UI'
                         FontWeight: =FontWeight.Semibold
                         Height: =20
-                        OnSelect: =Select(Parent)
                         PaddingLeft: =0
                         Size: =10
                         Text: =ThisItem.clienteAprb
@@ -137,7 +134,6 @@ Screens:
                         Color: =gblC.muted
                         Font: =Font.'Segoe UI'
                         Height: =16
-                        OnSelect: =Select(Parent)
                         PaddingLeft: =0
                         Size: =9
                         Text: =ThisItem.'[AS] NumeroCuenta'
@@ -151,7 +147,6 @@ Screens:
                         Color: =gblC.muted2
                         Font: =Font.'Segoe UI'
                         Height: =16
-                        OnSelect: =Select(Parent)
                         PaddingLeft: =0
                         Size: =8
                         Text: |-
@@ -166,7 +161,6 @@ Screens:
                         Color: =gblC.ink2
                         Font: =Font.'Segoe UI'
                         Height: =60
-                        OnSelect: =Select(Parent)
                         PaddingLeft: =0
                         Size: =9
                         Text: =ThisItem.Notas
@@ -183,7 +177,6 @@ Screens:
                         Font: =Font.'Segoe UI'
                         FontWeight: =FontWeight.Semibold
                         Height: =20
-                        OnSelect: =Select(Parent)
                         PaddingLeft: =0
                         PaddingRight: =0
                         Size: =10
@@ -197,10 +190,11 @@ Screens:
                         BorderThickness: =0
                         Color: =gblC.pendInk
                         Fill: =gblC.pendBg
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         FontWeight: =FontWeight.Bold
                         Height: =26
-                        OnSelect: =Select(Parent)
                         RadiusBottomLeft: =8
                         RadiusBottomRight: =8
                         RadiusTopLeft: =8
@@ -215,9 +209,25 @@ Screens:
                       Properties:
                         Fill: =gblC.hairline
                         Height: =1
-                        OnSelect: =Select(Parent)
                         Width: =Parent.TemplateWidth
                         Y: =Parent.TemplateHeight - 1
+                  - btnFilaAprb:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =Color.Transparent
+                        Fill: =Color.Transparent
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Height: =Parent.TemplateHeight
+                        HoverFill: =RGBA(15, 107, 107, 0.06)
+                        OnSelect: =Select(Parent)
+                        PressedFill: =RGBA(15, 107, 107, 0.12)
+                        TabIndex: =0
+                        Text: ="Revisar solicitud de " & ThisItem.clienteAprb
+                        Width: =Parent.TemplateWidth
+                        X: =0
+                        Y: =0
             - cmpVacioAprb:
                 Control: CanvasComponent
                 ComponentName: cmpVacio
@@ -234,9 +244,13 @@ Screens:
       - recScrimAprb:
           Control: Rectangle@2.3.0
           Properties:
+            AccessibleLabel: ="Cerrar panel"
             Fill: =gblC.scrim
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
             Height: =Parent.Height
             OnSelect: =Set(varPanelAprb, false)
+            TabIndex: =0
             Visible: =varPanelAprb
             Width: =Parent.Width
       - conPanelAprb:
@@ -272,10 +286,14 @@ Screens:
             - icoCerrarAprb:
                 Control: Classic/Icon@2.5.0
                 Properties:
+                  AccessibleLabel: ="Cerrar panel"
                   Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Height: =28
                   Icon: =Icon.Cancel
                   OnSelect: =Set(varPanelAprb, false)
+                  TabIndex: =0
                   Width: =28
                   X: =Parent.Width - 40
                   Y: =gblE.Pad
@@ -510,10 +528,13 @@ Screens:
             - cmbAgenteAprb:
                 Control: Classic/ComboBox@2.4.0
                 Properties:
+                  AccessibleLabel: ="Agente asignado"
                   BorderColor: =gblC.borde
                   DefaultSelectedItems: =Blank()
                   DisplayFields: =["sanic_cm_ag_nombre"]
                   Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
                   Items: =Filter(colAgentesAprb, !IsBlank('Email Usuario'))
@@ -540,9 +561,12 @@ Screens:
             - txtMotRechAprb:
                 Control: Classic/TextInput@2.3.2
                 Properties:
+                  AccessibleLabel: ="Motivo del rechazo"
                   BorderColor: =gblC.borde
                   Default: =""
                   Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
                   HintText: ="¿Por qué se rechaza?"
@@ -563,6 +587,8 @@ Screens:
                   DisabledFill: =ColorFade(gblC.redBg, 60%)
                   DisplayMode: =If(!IsBlank(Trim(txtMotRechAprb.Text)), DisplayMode.Edit, DisplayMode.Disabled)
                   Fill: =gblC.redBg
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoBoton
                   HoverFill: =ColorFade(gblC.redBg, 10%)
@@ -594,6 +620,8 @@ Screens:
                   DisabledFill: =ColorFade(gblC.teal, 60%)
                   DisplayMode: =If(!IsBlank(cmbAgenteAprb.Selected), DisplayMode.Edit, DisplayMode.Disabled)
                   Fill: =gblC.teal
+                  FocusedBorderColor: =gblC.ink
+                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoBoton
                   HoverFill: =ColorFade(gblC.teal, 10%)
