@@ -548,14 +548,14 @@ Corrida completa sin reintentos: ✅ 25 · ❌ 12 · ⛔ 4. Los 3 casos del rein
 | B-07 Carga de hoy = 0 | **RESUELTO** | D-07: app 1 = API 1; filtro contra `00:00Z` |
 | B-08 Abrir Agentes escribe | **RESUELTO** | F-04c: 0 escrituras al abrir, botón "Desvincular" aparte (no se pulsó) |
 | B-09 Responsive / ScaleToFit | **RESUELTO** | X-01: nav 240 px a 800 px de ancho, barra móvil + hamburguesa |
-| B-10 Flow de owner | **PENDIENTE (B-10 / B-17)** | No se tocó a propósito. F-03c: owner sin cambio (§10.5) |
+| B-10 Flow de owner | **CORREGIDO (post-corrida, §10.10)** | Corrida 3: F-03c sin cambio de owner. Corregido después y verificado por API; falta re-correr F-03c |
 | B-11 412 al re-pedir sobre cerrada | **SIN VERIFICAR** | F-02c/F-02d ⛔ por B-04 |
 | B-12 Cota de 500 filas | **RESUELTO** | F-05b: 801 filas en 1 página, sin `nextLink`, sin aviso. El límite efectivo ahora es mayor (≥ 1,006: B-19 trajo 1,006 sin cortar). No se verificó el valor exacto del *Data row limit* |
 | B-13 Consulta por tecla | **RESUELTO** | D-03: 1 consulta para 14 caracteres |
 | B-14 Licencias User1/User2 | **RESUELTO** | R-02 y R-03 |
 | B-15 "La versión publicada no tenía los fixes" | **RETRACTADO** | Causa real: caché de localStorage del player en las sesiones de prueba (§10.7) |
-| B-16 Disparador del flow falla sin agente | **PERSISTE (flow)** | Corrida 3, `flowruns` del 18:40Z en adelante: 5 runs, **4 Failed `ActionFailed`** (alta de asignaciones sin agente) y 1 Succeeded (la aprobación, sin cambiar el owner) |
-| B-17 Rol Solicitante lee a nivel usuario | **LATENTE** | Sin cambio; se manifestará cuando el flow mueva el owner. F-02e hoy pasa por eso |
+| B-16 Disparador del flow falla sin agente | **CORREGIDO (post-corrida, §10.10)** | Corrida 3, `flowruns` del 18:40Z en adelante: 5 runs, **4 Failed `ActionFailed`** (alta de asignaciones sin agente) y 1 Succeeded (la aprobación, sin cambiar el owner) |
+| B-17 Rol Solicitante lee a nivel usuario | **CORREGIDO por compartido (§10.10)** | Decisión: el flow comparte la Especial con "Solicitado por" (mínimo privilegio, el rol sigue en Basic). Falta re-correr F-02e, X-02, F-02c y F-02d |
 | B-18 Cola y KPI POR APROBAR con cerradas | **RESUELTO** | KPI POR APROBAR = 3 = API con `Estado = true`; la API sin ese filtro daba 5 (2 Especiales QA cerradas estando pendientes). La cola de Aprobaciones muestra 3 filas y ninguna cerrada · `D-02f`, `F-03-combo-agente.png` |
 
 ### 10.5 Lo que depende del flow "Cambio de Owner en Asignaciones" (pendiente B-10 / B-17)
@@ -611,7 +611,36 @@ Observaciones menores del test:
 
 1. **B-04** (combos): es lo que más bloquea (7 escenarios entre ❌ y ⛔). Reproducir en Studio en modo Play y con el Monitor; probar `DisplayFields` con otros nombres antes de cambiar la estructura de `Items`.
 2. **B-06** (banner): Monitor de Studio al abrir Inicio con un rol.
-3. **B-10 / B-16 / B-17**: decidir el modelo de seguridad (B-17) y corregir el flow. Después re-evaluar F-02e, F-03c, X-02, F-02d y F-02c.
+3. ~~B-10 / B-16 / B-17~~: hecho (§10.10). Re-evaluar F-02e, F-03c, X-02, F-02d y F-02c en la próxima corrida.
 4. **B-19**: no consultar la tabla de cuentas sin texto de búsqueda.
 5. **B-01** en Admin: investigar la carrera en frío (intermitente).
 6. Cualquier corrida futura debe usar `sesionSinCacheDeApp` (ya está en `lib/player.js`) y revisar la tabla "Versión de la app probada" de `resumen.md` contra el último *Published*.
+
+### 10.10 Corrección del flow "Cambio de Owner en Asignaciones" (después de la corrida 3)
+
+**Decisión de B-17:** compartir desde el flow. El rol Solicitante sigue con lectura **Basic**; el flow, al mover el owner al usuario del localizador, comparte esa Especial con su "Solicitado por". Alternativas descartadas: Read a nivel BU (el Solicitante podría leer todas las asignaciones de la BU por API) y que las Especiales no cambien de owner (invierte el modelo solo para un tipo).
+
+Defectos corregidos en la definición (despliegue por Web API, `workflows(3b897aa2-…)`.`clientdata`):
+
+| # | Antes | Después |
+|---|---|---|
+| B-16 | El disparador corría en cada alta y `GetItem` fallaba con id nulo | Condición de disparo `@not(equals(triggerOutputs()?['body/_sanic_cm_as_agenteid_value'], null))` |
+| B-10 (1) | If externo `equals("", "")`: siempre verdadero, con la rama verdadera vacía → **nunca hacía nada** | `equals(<usuario del agente>, null)`: sin usuario no hace nada; con usuario sigue |
+| B-10 (2) | If interno comparaba el owner contra `""` | Compara el owner contra el usuario del agente; si ya es el owner no reasigna (y ya no corta con `Terminate`) |
+| B-10 (3) | `ownerid@odata.bind` con el GUID pelado | `systemusers(<guid>)` |
+| B-17 | — | Acción nueva `GrantAccess_al_solicitante` (*Perform an unbound action* · `GrantAccess`) si `sanic_cm_as_tipo = 3` (Especial) y hay "Solicitado por": `ReadAccess,WriteAccess,AppendAccess` (Append porque la reactivación de B-11 setea lookups). Es idempotente |
+
+Gotchas del conector encontrados al desplegar:
+
+- Los parámetros se validan contra el esquema del conector al guardar (`WorkflowOperationParametersExtraParameter`). Para `GrantAccess` funciona `item/Target = "sanic_cm_tbl_asignacions(@{id})"` y `item/PrincipalAccess` como **objeto** (`Principal` + `AccessMask`). Las claves planas `item/Target/@odata.type` no existen.
+- Dentro de un objeto literal, `@odata.type` se interpreta como expresión: hay que escribirlo `@@odata.type`.
+
+**Verificación por API** (registros QA-E2E, borrados al terminar):
+
+| Prueba | Resultado |
+|---|---|
+| Especial QA solicitada por User2, se le asigna el agente real Carlos Mendoza (→ User1; el agente no se modifica) | Owner = **User1 a los 16 s**; `RetrievePrincipalAccess` de User2 = `ReadAccess, WriteAccess, AppendAccess…`; run **Succeeded** |
+| Especial QA **sin** agente | El flow **no dispara** (90 s sin runs nuevos) |
+
+Pendiente: re-correr F-03c, F-02e, X-02, F-02c y F-02d (los tres últimos siguen bloqueados por B-04). El flow corregido queda en el repo (`solutions/unpacked`) con el próximo `solution-release` → `solution-sync`.
+
