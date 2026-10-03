@@ -72,14 +72,13 @@ Screens:
                   Y: =btnActualizarAge.Y + btnActualizarAge.Height + gblE.PadSm
                 Children:
                   - recBordeAlertaAge:
-                      Control: Rectangle@2.3.0
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
                       Properties:
-                        AccessibleLabel: =""
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.None
                         Fill: =gblC.pendInk
-                        FocusedBorderColor: =gblC.teal
-                        FocusedBorderThickness: =2
                         Height: =Parent.Height
-                        TabIndex: =-1
                         Width: =4
                   - lblAlertaTituloAge:
                       Control: Label@2.5.1
@@ -113,7 +112,7 @@ Screens:
                         Size: =9
                         Text: |-
                           =Concat(
-                              Filter(colAgentesAge, '[AG] Activo' && IsBlank('[AG] Usuario')),
+                              Filter(colAgentesAge, '[AG] Activo' && IsBlank('Email Usuario')),
                               '[AG] Nombre', ", ") &
                               ". Esta lista debe estar VACÍA antes de operar: sin usuario no entran a la app del celular y Comp-14 no aísla sus asignaciones."
                         VerticalAlign: =VerticalAlign.Top
@@ -316,14 +315,13 @@ Screens:
                               X: =Parent.TemplateWidth - Self.Width - gblE.Pad
                               Y: =If(nfMovil, 102, (Parent.TemplateHeight - Self.Height)/2)
                         - recSepAge:
-                            Control: Rectangle@2.3.0
+                            Control: GroupContainer@1.5.0
+                            Variant: ManualLayout
                             Properties:
-                              AccessibleLabel: =""
+                              BorderThickness: =0
+                              DropShadow: =DropShadow.None
                               Fill: =gblC.hairline
-                              FocusedBorderColor: =gblC.teal
-                              FocusedBorderThickness: =2
                               Height: =1
-                              TabIndex: =-1
                               Width: =Parent.TemplateWidth
                               Y: =Parent.TemplateHeight - 1
                   - cmpVacioAge:

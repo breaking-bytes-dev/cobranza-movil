@@ -489,14 +489,13 @@ Screens:
                         X: =gblE.PadSm
                         Y: =28
                   - recSepColaTrx:
-                      Control: Rectangle@2.3.0
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
                       Properties:
-                        AccessibleLabel: =""
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.None
                         Fill: =gblC.hairline
-                        FocusedBorderColor: =gblC.teal
-                        FocusedBorderThickness: =2
                         Height: =1
-                        TabIndex: =-1
                         Width: =Parent.TemplateWidth
                         Y: =Parent.TemplateHeight - 1
                   - btnFilaColaTrx:
@@ -800,14 +799,13 @@ Screens:
                               X: =Parent.TemplateWidth * 0.55
                               Y: =6
                         - recSepPagoTrx:
-                            Control: Rectangle@2.3.0
+                            Control: GroupContainer@1.5.0
+                            Variant: ManualLayout
                             Properties:
-                              AccessibleLabel: =""
+                              BorderThickness: =0
+                              DropShadow: =DropShadow.None
                               Fill: =gblC.hairline
-                              FocusedBorderColor: =gblC.teal
-                              FocusedBorderThickness: =2
                               Height: =1
-                              TabIndex: =-1
                               Width: =Parent.TemplateWidth
                               Y: =Parent.TemplateHeight - 1
                   - lblSecDatosTrx:
@@ -975,14 +973,13 @@ Screens:
                         Y: =Parent.Height - 64
                       Children:
                         - recHairTrx:
-                            Control: Rectangle@2.3.0
+                            Control: GroupContainer@1.5.0
+                            Variant: ManualLayout
                             Properties:
-                              AccessibleLabel: =""
+                              BorderThickness: =0
+                              DropShadow: =DropShadow.None
                               Fill: =gblC.hairline
-                              FocusedBorderColor: =gblC.teal
-                              FocusedBorderThickness: =2
                               Height: =1
-                              TabIndex: =-1
                               Width: =Parent.Width
                         - lblCodigoTrx:
                             Control: Label@2.5.1

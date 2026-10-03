@@ -319,14 +319,13 @@ Screens:
                         X: =Parent.TemplateWidth - Self.Width - gblE.PadSm
                         Y: =(Parent.TemplateHeight - Self.Height)/2
                   - recSepTsc:
-                      Control: Rectangle@2.3.0
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
                       Properties:
-                        AccessibleLabel: =""
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.None
                         Fill: =gblC.hairline
-                        FocusedBorderColor: =gblC.teal
-                        FocusedBorderThickness: =2
                         Height: =1
-                        TabIndex: =-1
                         Width: =Parent.TemplateWidth
                         Y: =Parent.TemplateHeight - 1
                   - btnFilaTsc:
@@ -730,14 +729,13 @@ Screens:
                         X: =Parent.TemplateWidth*0.55
                         Y: =8
                   - recSepPagoTsc:
-                      Control: Rectangle@2.3.0
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
                       Properties:
-                        AccessibleLabel: =""
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.None
                         Fill: =gblC.hairline
-                        FocusedBorderColor: =gblC.teal
-                        FocusedBorderThickness: =2
                         Height: =1
-                        TabIndex: =-1
                         Width: =Parent.TemplateWidth
                         Y: =Parent.TemplateHeight - 1
             - lblSecTransTsc:

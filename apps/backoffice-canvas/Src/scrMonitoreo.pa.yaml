@@ -58,14 +58,13 @@ Screens:
                   Width: =Parent.Width
                 Children:
                   - recBordeOkMon:
-                      Control: Rectangle@2.3.0
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
                       Properties:
-                        AccessibleLabel: =""
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.None
                         Fill: =gblC.okInk
-                        FocusedBorderColor: =gblC.teal
-                        FocusedBorderThickness: =2
                         Height: =Parent.Height
-                        TabIndex: =-1
                         Width: =4
                   - lblEstadoOkTituloMon:
                       Control: Label@2.5.1
@@ -116,14 +115,13 @@ Screens:
                   Width: =Parent.Width
                 Children:
                   - recBordeAlertaMon:
-                      Control: Rectangle@2.3.0
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
                       Properties:
-                        AccessibleLabel: =""
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.None
                         Fill: =gblC.redInk
-                        FocusedBorderColor: =gblC.teal
-                        FocusedBorderThickness: =2
                         Height: =Parent.Height
-                        TabIndex: =-1
                         Width: =4
                   - lblEstadoAlertaTituloMon:
                       Control: Label@2.5.1

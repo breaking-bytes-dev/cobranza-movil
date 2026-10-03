@@ -292,14 +292,13 @@ Screens:
                         X: =Parent.TemplateWidth - Self.Width - gblE.Pad
                         Y: =32
                   - recSepCie:
-                      Control: Rectangle@2.3.0
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
                       Properties:
-                        AccessibleLabel: =""
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.None
                         Fill: =gblC.hairline
-                        FocusedBorderColor: =gblC.teal
-                        FocusedBorderThickness: =2
                         Height: =1
-                        TabIndex: =-1
                         Width: =Parent.TemplateWidth
                         Y: =Parent.TemplateHeight - 1
                   - btnFilaCie:
@@ -423,14 +422,13 @@ Screens:
                   X: =gblE.Pad + 120
                   Y: =56
             - recKvSep1Cie:
-                Control: Rectangle@2.3.0
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
                 Properties:
-                  AccessibleLabel: =""
+                  BorderThickness: =0
+                  DropShadow: =DropShadow.None
                   Fill: =gblC.hairline
-                  FocusedBorderColor: =gblC.teal
-                  FocusedBorderThickness: =2
                   Height: =1
-                  TabIndex: =-1
                   Width: =Parent.Width - 2*gblE.Pad
                   X: =gblE.Pad
                   Y: =91
@@ -468,14 +466,13 @@ Screens:
                   X: =gblE.Pad + 120
                   Y: =92
             - recKvSep2Cie:
-                Control: Rectangle@2.3.0
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
                 Properties:
-                  AccessibleLabel: =""
+                  BorderThickness: =0
+                  DropShadow: =DropShadow.None
                   Fill: =gblC.hairline
-                  FocusedBorderColor: =gblC.teal
-                  FocusedBorderThickness: =2
                   Height: =1
-                  TabIndex: =-1
                   Width: =Parent.Width - 2*gblE.Pad
                   X: =gblE.Pad
                   Y: =127
@@ -515,14 +512,13 @@ Screens:
                   X: =gblE.Pad + 120
                   Y: =128
             - recKvSep3Cie:
-                Control: Rectangle@2.3.0
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
                 Properties:
-                  AccessibleLabel: =""
+                  BorderThickness: =0
+                  DropShadow: =DropShadow.None
                   Fill: =gblC.hairline
-                  FocusedBorderColor: =gblC.teal
-                  FocusedBorderThickness: =2
                   Height: =1
-                  TabIndex: =-1
                   Width: =Parent.Width - 2*gblE.Pad
                   X: =gblE.Pad
                   Y: =163
