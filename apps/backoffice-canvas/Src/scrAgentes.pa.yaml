@@ -548,9 +548,10 @@ Screens:
                     // → buscador + galería. Filter directo sobre Users, delegable (StartsWith en ambas
                     // columnas). Con menos de 2 caracteres, centinela "§§": no se consulta la tabla entera
                     // (B-19) y siempre hay tabla (B-06).
-                    With({t: If(Len(Trim(txtBuscarUsrAge.Text)) < 2, "§§", Trim(txtBuscarUsrAge.Text))},
-                        Filter(Users, StartsWith('Full Name', t) || StartsWith('Primary Email', t))
-                    )
+                    // SIN With (cortaba la delegación — ver scrNuevaSolicitud.galCtaNva). En línea sí delega.
+                    Filter(Users,
+                        StartsWith('Full Name', If(Len(Trim(txtBuscarUsrAge.Text)) < 2, "§§", Trim(txtBuscarUsrAge.Text)))
+                        || StartsWith('Primary Email', If(Len(Trim(txtBuscarUsrAge.Text)) < 2, "§§", Trim(txtBuscarUsrAge.Text))))
                   OnSelect: |-
                     =// Tocar un usuario CONFIRMA el vínculo del agente objetivo (varAgenteAge).
                     // Se escriben las DOS columnas SIEMPRE juntas: '[AG] Usuario' (lookup, lo usa

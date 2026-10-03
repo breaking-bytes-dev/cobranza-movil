@@ -631,12 +631,11 @@ Screens:
                     // <> Blank() y StartsWith. Solo agentes activos con usuario vinculado (sin usuario
                     // Comp-14 no puede pasarle el owner). Con menos de 2 caracteres, centinela "§§":
                     // no se consulta la tabla entera (B-19) y siempre hay tabla (B-06).
-                    With({t: If(Len(Trim(txtBuscarAgeAprb.Text)) < 2, "§§", Trim(txtBuscarAgeAprb.Text))},
-                        Filter('CM | TBL | Agentes',
-                            '[AG] Activo' = true
-                            && 'Email Usuario' <> Blank()
-                            && StartsWith('[AG] Nombre', t))
-                    )
+                    // SIN With (cortaba la delegación — ver scrNuevaSolicitud.galCtaNva). En línea sí delega.
+                    Filter('CM | TBL | Agentes',
+                        '[AG] Activo' = true
+                        && 'Email Usuario' <> Blank()
+                        && StartsWith('[AG] Nombre', If(Len(Trim(txtBuscarAgeAprb.Text)) < 2, "§§", Trim(txtBuscarAgeAprb.Text))))
                   OnSelect: =Set(varAgeAprb, ThisItem)
                   ShowScrollbar: =false
                   TemplateFill: =gblC.card

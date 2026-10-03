@@ -116,13 +116,14 @@ Screens:
                     // clásico NO pinta registros de Dataverse en esta app (Cuentas, Agentes y hasta Users:
                     // 15 opciones con el texto vacío); ni con registros planos vía ForAll, que además NO
                     // delega (bajaba la tabla entera). Por eso: buscador + galería sobre el Filter directo.
-                    // Delegación: StartsWith delega en Dataverse; t es constante por consulta.
-                    // B-19: con menos de 2 caracteres t es un centinela que no matchea nada → nunca se
+                    // Delegación: StartsWith delega en Dataverse; el texto de búsqueda es constante por consulta.
+                    // B-19: con menos de 2 caracteres se busca un centinela que no matchea nada → nunca se
                     // trae la tabla entera (y siempre hay tabla: sin If sin rama falsa, B-06).
-                    With({t: If(Len(Trim(txtBuscarCtaNva.Text)) < 2, "§§", Trim(txtBuscarCtaNva.Text))},
-                        Filter('CM | TBL | Cuentas',
-                            StartsWith('[CT] Numero de cuenta', t) || StartsWith('Nombre Cliente', t))
-                    )
+                    // SIN With: una variable de With dentro del predicado cortaba la delegación (la consulta salía
+                    // sin $filter y bajaba la tabla entera — verificado en la red del player). En línea sí delega.
+                    Filter('CM | TBL | Cuentas',
+                        StartsWith('[CT] Numero de cuenta', If(Len(Trim(txtBuscarCtaNva.Text)) < 2, "§§", Trim(txtBuscarCtaNva.Text)))
+                        || StartsWith('Nombre Cliente', If(Len(Trim(txtBuscarCtaNva.Text)) < 2, "§§", Trim(txtBuscarCtaNva.Text))))
                   OnSelect: |-
                     =// El registro de Dataverse entero queda en la variable: el Patch de btnEnviarNva lo usa
                     // tal cual para el lookup '[AS] Cuenta'. Las columnas que la pantalla lee de varCtaNva
