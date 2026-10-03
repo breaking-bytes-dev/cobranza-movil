@@ -6,6 +6,7 @@ const cfg = require('./config');
 const escenarios = [];
 const capturasRed = []; // { fase, usuario, rolEfectivo, entradas }
 const hallazgos = [];   // observaciones libres (errores de runtime, etc.)
+const aperturas = [];   // traza: versión de la app que cargó el player en cada apertura (B-15)
 
 class Escenario {
   constructor(id, desc, rol) { this.id = id; this.desc = desc; this.rol = rol; this.checks = []; this.evidencia = []; this.notas = []; this.estado = null; this.t0 = Date.now(); }
@@ -86,12 +87,13 @@ function analizarRed(entradas) {
 }
 
 function registrarRed(fase, usuario, rolEfectivo, red) { capturasRed.push({ fase, usuario, rolEfectivo, entradas: red.entradas }); }
+function registrarApertura(fase, usuario, rolEfectivo, version) { aperturas.push({ fase, usuario, rolEfectivo, version: version || '(sin dato)' }); console.log(`   · app.version (player) = ${version || '(sin dato)'}`); }
 function hallazgo(t) { hallazgos.push(t); console.log(`   ⚑ ${t}`); }
 
 function volcar(extra = {}) {
   fs.mkdirSync(cfg.resultadosDir, { recursive: true });
   const delegacion = capturasRed.map(c => ({ fase: c.fase, usuario: c.usuario, rolEfectivo: c.rolEfectivo, pantallas: analizarRed(c.entradas) }));
-  const out = { generado: new Date().toISOString(), escenarios: escenarios.map(e => ({ ...e, t0: undefined })), delegacion, hallazgos, ...extra };
+  const out = { generado: new Date().toISOString(), escenarios: escenarios.map(e => ({ ...e, t0: undefined })), delegacion, hallazgos, aperturas, ...extra };
   const p = path.join(cfg.resultadosDir, 'resultados.json');
   fs.writeFileSync(p, JSON.stringify(out, null, 1));
   // Resumen legible
@@ -105,9 +107,12 @@ function volcar(extra = {}) {
     for (const x of lista) L.push(`| ${x.metodo || ''} | ${x.entidad} | ${x.veredicto} | ${x.filas ?? ''}${x.resultado !== undefined ? ` (res=${x.resultado})` : ''}${x.error ? ` ERR ${x.error}` : ''} | \`${(x.ruta || '').replace(/\|/g, '¦').slice(0, 260)}\` |`);
     L.push('');
   }
+  L.push('## Versión de la app probada (por apertura del player)', '', `Publicada (Dataverse): ${extra.app ? `${extra.app.version || ''} (lastpublishtime ${extra.app.publicada || ''})` : '(n/d)'}`, '', '| Fase | Usuario | Rol | app.version del player |', '|---|---|---|---|');
+  for (const a of aperturas) L.push(`| ${a.fase} | ${a.usuario} | ${a.rolEfectivo} | ${a.version} |`);
+  L.push('', `Versiones distintas vistas: ${[...new Set(aperturas.map(a => a.version))].join(', ') || '(ninguna)'}`, '');
   L.push('## Hallazgos', '', ...hallazgos.map(h => `- ${h}`));
   fs.writeFileSync(path.join(cfg.resultadosDir, 'resumen.md'), L.join('\n'));
   return p;
 }
 
-module.exports = { escenario, correr, registrarRed, hallazgo, volcar, analizarRed, escenarios };
+module.exports = { escenario, correr, registrarRed, registrarApertura, hallazgo, volcar, analizarRed, escenarios };

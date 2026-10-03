@@ -4,6 +4,13 @@
 > verificación de cada número/escritura contra **Dataverse** (Web API con el Service Principal).
 > Suite: [`tests/backoffice-canvas/`](../../../tests/backoffice-canvas/README.md) · plan base: guía 13.
 > Prioridad del dueño: **cero problemas de DELEGACIÓN** → sección 4.
+>
+> **Corrida 2 (post-fixes, 2026-10-03 mediodía) → [sección 9](#9-corrida-2-post-fixes).** Las secciones 1–8 son la
+> corrida 1 y se conservan como histórico.
+>
+> **Corrida 3 (sesiones sin caché de app, 2026-10-03 tarde) → [sección 10](#10-corrida-3-sesiones-sin-caché-de-app).**
+> Corrige el hallazgo B-15 de la corrida 2: la versión publicada SÍ tenía los fixes; lo que estaba viejo era la
+> copia cacheada por el player en las sesiones de prueba.
 
 ## 1. Datos de la corrida
 
@@ -263,3 +270,348 @@ node run.js --solo-limpieza                          # si una corrida se cortó
 Después de corregir: B-02/B-05 (roles), B-04 (combos), B-07 (fecha DateOnly), B-01 (orden OnStart/OnVisible)
 y B-09 (escalado), re-correr la suite completa; los escenarios hoy en ❌ por esas causas deberían pasar sin
 cambiar el test (F-02/F-02b/F-03 ya tienen la ruta por UI escrita y la ruta por API es solo el respaldo; F-06 se prueba por API contra la alt key).
+
+---
+
+## 9. Corrida 2 (post-fixes)
+
+### 9.1 Datos de la corrida
+
+| Ítem | Valor |
+|---|---|
+| Fecha | 2026-10-03 — corrida completa 11:59–12:10 hora Managua (UTC−6) + re-chequeo de fases B, C, F y G 12:10–12:18 |
+| App | `sanic_appcmbackofficecanvas_d0162` · **appversion `2026-10-03T17:42:41Z`** (= lastpublishtime). ⚠ Lo que el player sirvió a las sesiones fue una **copia cacheada más vieja** (ver B-15 y la sección 10) |
+| Usuarios | **mapeo real y fijo, sin sustitutos**: User1 → Backoffice · User2 → Solicitantes · User3 → Supervisores · User4 → Admin y Carga (+ User10, ajeno). El único cambio temporal fue R-06: User1 + "Admin y Carga" en la fase E, quitado en la misma fase |
+| Resultados crudos | `tests/backoffice-canvas/resultados/corrida-2/` y `…/corrida-2-recheck-BCFG/` (gitignoreadas) |
+| Cambios de la suite | sin fase L ni sustitutos. Nuevos escenarios: X-02 (falla controlada, B-03), F-02d (reactivar una Especial cerrada propia, B-11), F-02e (visibilidad tras aprobar o cerrar), D-05 (mínimo privilegio, B-05) y F-02c por UI. Checks nuevos: botón "Desvincular" en F-04c, B-13 en D-03, B-12 en F-05b, KPIs en frío **= API** (antes solo "no vacío"), 403 en la red al abrir (E-01). F-03c aprueba por API si la UI no puede (B-04), para observar igual el flow |
+
+### 9.2 Veredicto
+
+**NO ACEPTABLE — pero por un motivo distinto al que se escribió originalmente.**
+
+> **Corrección (corrida 3):** este apartado decía "la versión publicada no tiene los fixes de código" (B-15). **Eso
+> era falso.** La app publicada sí los tenía. Lo que se probó fue una **copia vieja de la app cacheada por el player**
+> en las sesiones de navegador de prueba (ver B-15 en §9.6 y la sección 10). Las conclusiones por bug de esta corrida
+> sobre B-01, B-03..B-09, B-11..B-13 y B-18 **no valen como estado de la app publicada**: describen una versión
+> congelada, y la sección 10 las reemplaza.
+
+Lo que la corrida 2 observó realmente (sobre esa copia cacheada de las sesiones):
+
+- El Solicitante veía "Cobrado hoy…" en lugar de "Tus solicitudes Especiales".
+- Los combos mostraban 15 opciones vacías.
+- Aparecía el banner "expected a table".
+- Abrir Agentes generaba 2 PATCH y no existía `btnDesvincularAge`.
+- La búsqueda de Maestros disparaba 13 consultas.
+- La app escalaba en lugar de pasar al diseño móvil.
+
+La inferencia posterior ("el `.msapr` commiteado tampoco tiene los fixes, porque solo cambió `Properties.json`") es un
+dato cierto del archivo pero **no explica** el comportamiento: el player no sirve ese `.msapr`, sirve la versión
+publicada (o, en estas sesiones, su copia cacheada).
+
+**Lo que sí era del lado servidor:**
+
+- **B-02**: el rol BackOffice ya tiene `Append` sobre interacción y User1 transcribió solo con el rol Backoffice.
+- **B-14**: User1 y User2 tienen licencia.
+- **B-10 a medias**: el flow está **activado**, pero su lógica es un **no-op** (ver B-10 y B-16).
+
+**Delegación: sigue LIMPIA** (§9.5).
+
+### 9.3 Resultados por escenario
+
+Leyenda: ✅ PASÓ · ❌ FALLÓ · ⛔ BLOQUEADO. Evidencia relativa a `resultados/corrida-2/` (✱ = tomado del re-chequeo
+`corrida-2-recheck-BCFG/` porque el test se corrigió o completó, ver nota).
+
+| ID | Descripción | Usuario (rol) | Estado | Evidencia / detalle |
+|---|---|---|:---:|---|
+| R-05 | Admin ve solo su nav (6) + sección Admin | User4 (Admin) | ✅ | `R-05-admin-inicio.png` |
+| E-01a | Abrir sin banners ni 403 (Admin) | User4 | ❌ | "Incorrect argument type, expected a table." (B-06) |
+| D-02a | Inicio Admin: KPIs en la PRIMERA carga = API | User4 | ❌ | Frío `""`/`""` vs API 0/16; **0 consultas** del OnVisible (B-01) |
+| D-02b | Inicio Admin (tibio) = API | User4 | ✅ | 0 = 0 · 16 = 16 · "sin carga" · C$ 250.00 = Sum API |
+| D-02c | Monitoreo: cuentas, clientes, carga de hoy = API | User4 | ✅ | 1,006 · 959 · 0 (sin carga hoy B-07 no se manifiesta) |
+| F-05 | Reconciliación sin carga de hoy: % y freno | User4 | ✅ | `F-05-reconciliacion.png` |
+| D-02d | Cierres: contadores = API | User4 | ✅ | `D-02d-cierres.png` |
+| F-04c | Agentes: 0 escrituras al abrir + botón "Desvincular" aparte | User4 | ❌ | **2 PATCH** (Álvaro Zeledón, Carlos Mendoza) y **0 botones "Desvincular"** (B-08). Valores idénticos antes/después; alerta 16 = API ✅ |
+| D-03 | Maestros: búsqueda delegada + B-13 | User4 | ❌ | `startswith` en `$filter` ✅ y centinela (701/958) encontrado ✅; **13 consultas** para 14 caracteres (B-13) |
+| F-04b | Alta de cliente QA + anti-duplicado | User4 | ✅ | `F-04b-*.png` |
+| R-03 | **User2** (Solicitante real) abre y ve solo su nav | User2 | ✅ | B-14 resuelto · `R-03-solicitante-inicio.png` |
+| E-01b | Abrir sin banners ni 403 (Solicitante) | User2 | ❌ | Banner B-06 + **403 Carga diarias** (B-05) |
+| D-02e | Inicio Solicitante: frío = API + subtítulo propio | User2 | ❌ | Subtítulo "Cobrado hoy por los localizadores: C$ 0.00" (B-05); frío vacío (B-01); tibio = API ✅ |
+| D-04 | Combo de cuentas: búsqueda con `startswith` | User2 | ✅ | El servidor devuelve las 4 cuentas QA |
+| F-02a | El combo muestra número + cliente y deja elegir | User2 | ❌ | 15 opciones **vacías**; "sin resultados" tras buscar (B-04) |
+| F-02 | Crear Especial por la UI | User2 | ❌ | Imposible por B-04 → creada por API para no bloquear C, F y G |
+| F-02b | Anti-duplicado | User2 | ⛔ | B-04 |
+| X-02 | **Falla controlada (B-03)**: Especial cerrada invisible para el Solicitante → alt key → error mostrado, nada dado por hecho | User2 | ⛔ | B-04 (no se puede elegir cuenta) |
+| F-02d | Reactivar Especial cerrada PROPIA (B-11) | User2 | ⛔ | B-04 |
+| D-05 | Mínimo privilegio: sin consultas a Pagos/Carga ni 403 | User2 | ❌ | Consultas a `cargadiarias` (`nfUltimaCarga`) y a `pagos` (Sum de Inicio): **403** (B-05) |
+| R-04 | Supervisor ve solo su nav | User3 | ✅ | |
+| E-01c | Abrir sin banners ni 403 (Supervisor) | User3 | ❌ | B-06 + 403 Carga diarias (B-05) |
+| D-02f | POR APROBAR frío = API | User3 | ❌ | Frío vacío (B-01); tibio 5 = API ✅ |
+| F-03 | Aprobar con el combo de localizador | User3 | ❌ | 15 opciones vacías (debería ofrecer exactamente 2: Carlos Mendoza, Álvaro Zeledón); "sin resultados" (B-04) · `F-03-combo-agente.png` |
+| F-03c ✱ | Comp-14: owner → usuario del agente (≤ 3 min) | API | ❌ | Flow **Activado**; aprobación hecha por API (misma escritura que la app); a los **187 s** el owner sigue siendo User2 (esperado User1). Flowrun 18:12:39Z **Succeeded sin actualizar** → B-10 / B-16 |
+| F-03b | Rechazar con motivo | User3 | ✅ | Guards ✅ · Rechazada (4) + motivo + resolutor User3 · sale de la cola |
+| R-02 | **User1** (Backoffice real) abre y ve solo su nav | User1 | ✅ | B-14 resuelto |
+| E-01d | Abrir sin banners ni 403 (Backoffice) | User1 | ❌ | B-06 (sin 403) |
+| D-02g | Inicio BO: frío = API | User1 | ❌ | Frío vacío y "Cobrado hoy C$ 0.00" vs API C$ 250.00 (B-01); tibio = API ✅ |
+| D-02h | Estación: chip "Todos" y encabezado = API | User1 | ✅ | |
+| F-01 | **Transcripción con el rol Backoffice SOLO** | User1 | ✅ | **B-02 RESUELTO**: IN-1023/IN-1024 Grabado, `QAE2E1`/`QAE2E2`, grabado por User1, fecha de hoy; FIFO, avance, input limpio, ✏️ antes→nuevo, chip NUEVO, "¡cola vacía!" |
+| F-01b | Transcritas hoy = API | User1 | ✅ | |
+| R-06a | Multi-rol User1 (BO + Admin y Carga) | User1 | ❌ | Nav combinada (8), ambas secciones, pie "BackOffice · Admin", abre Transcripción y Maestros ✅; **falla solo por el banner B-06** |
+| R-06b | Quitado de Admin y Carga → solo Backoffice | User1 | ✅ | `R-06b-solo-backoffice.png` |
+| F-04 | Admin cierra la Especial QA (UI) | User4 | ✅ | 1 PATCH, Estado=false, motivo "Gestión completada — QA-E2E cierre F-04", fecha de hoy |
+| D-07 | Carga de HOY (1 fila QA): FILAS DE CARGA HOY = API | User4 | ❌ | App **0** vs API **1**; la request sigue viajando `ge 2026-10-03T06:00:00Z` (B-07) |
+| F-05b | Reconciliación con carga de hoy + **B-12** | User4 | ❌ | % = API (801 de 801) ✅, freno ✅ (botón y casilla deshabilitados, **no se pulsó nada**); **"Mostrando las primeras 500"**, botón "Cerrar **500**", 1 página de 500 + `nextLink` no seguido (B-12) |
+| F-02e ✱ | Tras aprobar y cerrar: el Solicitante sigue viendo SUS Especiales | User2 | ✅ | KPIs (tibio) = API y Mis solicitudes la lista. **Pasa solo porque el flow no movió el owner** (ver B-17) |
+| F-02c ✱ | Re-solicitar por UI tras el ciclo real (B-11) | User2 | ⛔ | B-04 |
+| X-01 | Responsive a 800×900 | User4 | ❌ | Sin barra móvil ni hamburguesa; nav **141 px** = la app escala (B-09) |
+| D-01 | Delegación + errores de lectura en toda la red | todos | ❌ | **Delegación OK** (0 alertas); falla solo por los **403** de lectura de B-05 |
+
+**Totales:** 41 escenarios → ✅ **17** · ❌ **20** · ⛔ **4**.
+
+Nota ✱: en la corrida principal había 3 problemas del test que se corrigieron en el re-chequeo:
+
+- **F-03c** pasaba solo con "flow activado", sin observar el owner. Ahora aprueba por API cuando la UI no puede.
+- **F-02e** leía los KPIs en frío y mezclaba B-01. Ahora los lee en tibio.
+- **F-02c** cortaba con una excepción por B-04. Ahora queda ⛔.
+
+El resto del re-chequeo repitió el mismo resultado que la corrida principal.
+
+### 9.4 Estado de los bugs de la corrida 1
+
+| # | Estado | Evidencia (corrida 2) |
+|---|:---:|---|
+| B-01 KPIs vacíos en la 1.ª carga | **PERSISTE** | D-02a/e/f/g: frío `""` en los 4 roles, 0 consultas del OnVisible; tibio = API |
+| B-02 BackOffice sin Append | **RESUELTO** | F-01 con User1 solo-Backoffice graba (Dataverse: Grabado, grabado por User1). Rol `SR \| CM \| BackOffice`: `Appendinteraccion: Global` |
+| B-03 Escritura fallida dada por hecha | **SIN VERIFICAR** | La corrida 2 midió la copia cacheada (ver §10). X-02, la falla controlada, quedó ⛔ por B-04 (sigue ⛔ en la corrida 3) |
+| B-04 Combos con opciones vacías | **PERSISTE** | F-02a, F-03: 15 opciones vacías y "sin resultados" (el servidor devolvió 4 cuentas) |
+| B-05 403 por falta de privilegios | **PERSISTE** | 403 en `cargadiarias` (Solicitante y Supervisor) y en `pagos` (Solicitante); subtítulo "Cobrado hoy" para el Solicitante |
+| B-06 Banner "expected a table" | **PERSISTE** | E-01a..d y R-06a |
+| B-07 Carga de hoy = 0 | **PERSISTE** | D-07: 0 vs 1; request `ge …T06:00:00Z` |
+| B-08 Abrir Agentes escribe | **PERSISTE** | F-04c: 2 PATCH y sin `btnDesvincularAge` (valores intactos) |
+| B-09 Responsive / ScaleToFit | **PERSISTE** | X-01: nav 141 px, sin barra móvil |
+| B-10 Flow de owner | **PERSISTE (causa nueva)** | Activado (statecode 1) pero no-op. La condición `Verificar_que_el_agente_tenga_asignado_un_usuario` es `equals("", "")`, siempre verdadero, y su rama verdadera está vacía. `Actualizar_owner_de_la_asignacion` está en el `else` y nunca corre (la condición interna también es `equals(owner, "")`). F-03c: owner sin cambio tras 187 s; flowrun Succeeded |
+| B-11 412 al re-pedir sobre cerrada | **SIN VERIFICAR** | F-02c/F-02d ⛔ por B-04 (también en la corrida 3). Ver además **B-17** (riesgo del fix tal como está escrito) |
+| B-12 Cota de 500 filas | **PERSISTE** | F-05b: "Mostrando las primeras 500", botón "Cerrar 500" con 801 desaparecidas; 1 página + `nextLink` |
+| B-13 Consulta por tecla | **PERSISTE** | D-03: 13 consultas para un CIF de 14 caracteres |
+| B-14 Licencias User1/User2 | **RESUELTO** | R-02 y R-03 con los dueños reales |
+
+### 9.5 Delegación (corrida 2)
+
+**Sigue limpia.** Hay **cero GET sin filtro a tablas grandes**, **cero N+1** y **cero descargas completas**, en 42 combinaciones de pantalla y rol. Los conteos y las sumas viajan como `$apply=…/aggregate(...)` y las listas con `$filter` y `$expand`. Todos los números comparados contra la Web API coincidieron cuando la app los pidió.
+
+Requests por pantalla (GET / escrituras, deduplicadas por pantalla y momento):
+
+| Pantalla (rol) | GET | Escr. | Observación |
+|---|:---:|:---:|---|
+| scrInicio frío (Admin / Sol. / Sup. / BO) | 4 c/u | 0 | Solo identidad + `nfUltimaCarga`; **sin KPIs** (B-01). Sol./Sup.: **403** `cargadiarias` |
+| scrInicio tibio (Admin / Sol. / Sup. / BO) | 3–5 | 0 | KPIs delegados (`aggregate`). Sol.: **403** `pagos` (Sum de Cobrado hoy) |
+| scrMonitoreo (Admin) | 3–6 | 0 | `cargadiarias ge …T06:00Z` (B-07), conteos de cuentas y clientes con `aggregate` |
+| scrReconciliacion (Admin) | 3 | 0 | Lista con `$filter` + `$expand`; con carga de hoy, **500 filas + nextLink** (B-12) |
+| scrCierres (Admin) | 4 | 1 al cerrar | `$filter` tipo 2/3 + estado; cierre = 1 PATCH |
+| scrAgentes (Admin) | 14 | **2** | `systemusers` sin filtro (172, catálogo chico) y agentes (18); **2 PATCH al abrir** (B-08) |
+| scrMaestros (Admin) | 2 + 13 + 9 | 2 al crear | Búsqueda `startswith` en servidor; 13 y 9 consultas por tecla (B-13) |
+| scrMisSolicitudes (Sol.) | 3 | 0 | `$filter` tipo 3 + solicitado por; **403** `cargadiarias` |
+| scrNuevaSolicitud (Sol.) | 1–2 | 0 | Combo vacío: **1.ª página de 500 cuentas sin `$filter`** (paginado del servidor, no descarga completa); con texto, `startswith` |
+| scrAprobaciones (Sup.) | 3 | 1 al rechazar | **403** `cargadiarias` |
+| scrTranscripcion (BO) | 5–12 | 2 al grabar | Cola `$filter` estado; detalle por clave; PATCH 204 (sin 403: B-02 resuelto) |
+| scrTranscritas (BO) | 3 | 0 | |
+
+**Único GET a tabla grande sin `$filter`**: `sanic_cm_tbl_cuentas` al abrir el combo de Nueva solicitud (`StartsWith(x, "")` se optimiza a sin filtro). Trae 1 página de 500 con `nextLink`. Es paginado de servidor, igual que en la corrida 1; aceptable, pero es payload innecesario. Los otros GET sin filtro son catálogos chicos (`systemusers` 172, `sanic_cm_tbl_agentes` 18) y metadatos de choice (`EntityDefinitions`).
+
+### 9.6 Bugs nuevos
+
+| # | Sev. | Dónde | Qué pasa | Evidencia |
+|---|:---:|---|---|---|
+| B-15 | ⚪ RETRACTADO (era 🔴) | Entorno de prueba (caché del player), **no** despliegue | **Hallazgo original (falso):** "la versión publicada no contiene los fixes de la ronda 6". **Causa real (verificada en la corrida 3):** el player de Power Apps guarda la app en `localStorage` (`PAAppLoadCache-*`, `PAPreloadKeyV2-*`) y arranca con esa copia mientras revalida en segundo plano (*stale-while-revalidate*). Las sesiones `storageState` de `local/` estaban congeladas con versiones viejas (User4 05:46Z, User3 12:46Z), así que cada corrida probó **la versión cacheada el día que se capturó la sesión**, no la publicada. El import con `--publish-changes` **sí publica**: no hacía falta "pegar los `.pa.yaml` en Studio" | Corrida 3: con `sesionSinCacheDeApp` (descarta esas dos claves) las 10 aperturas del player cargaron la versión `2026-10-03T18:42:50Z` = `lastpublishtime`, y B-05, B-07, B-08, B-09, B-12, B-13 y B-18 aparecen resueltos. **Acción**: ninguna sobre el despliegue. Mantener `sesionSinCacheDeApp` y la traza `app.version` por apertura (resultados.json / resumen.md) para que toda corrida diga contra qué versión se probó |
+| B-16 | 🟡 MEDIA | Flow Comp-14 · disparador | El disparador (create+update, scope Organization, filtro `sanic_cm_as_agenteid`) **corre en cada alta de asignación** y **falla** cuando no hay agente (`GetItem` con id nulo). Eso pasa en cada Especial nueva y potencialmente en cada fila del import diario | `flowruns`: 7 runs **Failed** "ActionFailed" en los instantes de alta de las asignaciones QA (18:02–18:11Z). Fix: condición de disparo `@not(equals(triggerOutputs()?['body/_sanic_cm_as_agenteid_value'], null))` |
+| B-17 | 🟠 ALTA (latente) | Modelo de seguridad + fix de B-11 | El rol **Solicitante lee y escribe asignaciones a nivel USUARIO** (Basic). Cuando Comp-14 funcione y pase el owner al usuario del localizador: (a) el Solicitante **deja de ver** sus Especiales aprobadas (Mis solicitudes, KPI APROBADAS); (b) el `LookUp` de la reactivación (fix de B-11) **no ve** la Especial cerrada → intenta CREAR → **412 por la alt key** (B-11 vuelve). Hoy no se manifiesta porque el flow es no-op (B-10) | `RetrieveRolePrivilegesRole`: `Readasignacion: Basic`, `Writeasignacion: Basic`. X-02 estaba diseñado para provocar exactamente esto (⛔ por B-04). Fix: Read a nivel BU/Org para el Solicitante (filtrando por "Solicitado por" en la app), o compartir la Especial con el solicitante en el flow, o reactivar del lado servidor |
+| B-18 | 🟡 MEDIA | scrAprobaciones + KPI "POR APROBAR" (código viejo **y** nuevo) | La cola y el conteo filtran tipo + "Pendiente aprobación" pero **no** `'[AS] Estado' = true`. Una Especial que el Admin cierra estando pendiente (Cierres la deja cerrar) **sigue en la cola del Supervisor**, que puede "aprobar" una asignación cerrada | F-03b: la cola mostraba las Especiales QA cerradas (`X-02 cerrada ajena`, `F-02d cerrada propia`). En la corrida principal, F-04 cerró por UI AS-2014 todavía pendiente. Fix: agregar `&& '[AS] Estado' = true` (delegable) en `colAprobAprb` y en `varNSaprIni`/POR APROBAR |
+
+### 9.7 Limpieza (verificada)
+
+| Verificación | Resultado |
+|---|---|
+| Restos QA-E2E en las 9 tablas (borrado por la suite + verificación independiente posterior por prefijo y por registro, con existencia real) | **0** en las 9 tablas, en las dos corridas |
+| Membresías de teams | Backoffice = [User1] · Solicitantes = [User2] · Supervisores = [User3] · Admin y Carga = [User10, User4]: **exactamente el mapeo** (`mapeoFinal.comoMapeo = true`; `restaurarMembresias` sin cambios pendientes). User1 se agregó y se quitó de "Admin y Carga" dentro de la fase E |
+| Agentes reales | Carlos Mendoza → user1@… · Álvaro Zeledón → admin@… — usuario, email y activo **sin cambios**. B-08 los re-escribió con los mismos valores (`modifiedon` cambió). Nunca se pulsó Vincular ni Desvincular |
+| Cierre en lote | **Nunca se pulsó**: solo se leyó su texto y su estado (deshabilitado) |
+| Fila QA de carga de hoy | Creada solo en la fase F y borrada al terminarla (HTTP 204) |
+| Sesión admin / app / guías 00–13 | No se usaron ni se modificaron. Sin commit ni push |
+
+### 9.8 Próximo paso
+
+1. ~~Publicar de verdad los fixes (B-15)~~ — retractado: no era un problema de publicación (ver §10). Re-correr con sesiones sin caché.
+2. Corregir el flow (B-10 / B-16) y decidir el modelo de lectura del Solicitante (B-17) **antes** de dar por cerrado B-11.
+3. Agregar el filtro de estado en Aprobaciones (B-18).
+4. Re-correr: `BO_RESULTADOS_DIR=$PWD/resultados/corrida-3 node run.js`. X-02, F-02b, F-02c y F-02d ya tienen la ruta por UI escrita y se desbloquean solos con B-04.
+
+---
+
+## 10. Corrida 3 (sesiones sin caché de app)
+
+### 10.1 Datos de la corrida
+
+| Ítem | Valor |
+|---|---|
+| Fecha | 2026-10-03 — corrida completa 12:50–13:04 hora Managua (UTC−6; 18:50–19:04Z) + re-chequeo de las fases A, B y C 13:07–13:13 (19:07–19:13Z) |
+| App publicada | `sanic_appcmbackofficecanvas_d0162` · **appversion `2026-10-03T18:42:50Z`** (= `lastpublishtime`), re-importada y publicada con el fix B-18 |
+| **Versión que cargó el player** | **`2026-10-03T18:42:50Z` en las 10 aperturas** (A, B, C, D, E, E2, F, F2, G, X) y en las 3 del re-chequeo. Una sola versión, y es la última *Published*. Queda registrada por apertura en `resultados.json` (`aperturas`) y en la sección "Versión de la app probada" de `resumen.md` |
+| Cambio de la suite | `lib/player.js`: `sesionSinCacheDeApp` descarta `PAAppLoadCache-*` y `PAPreloadKeyV2-*` de la sesión antes de abrir; `app.version` guarda la versión que cargó el player (sufijo de la clave `PAPreloadKeyV2-`). `lib/informe.js` + `escenarios/comun.js`: cada apertura registra su `app.version`. `lib/verdad.js`: el oráculo de POR APROBAR cuenta solo asignaciones **activas** (B-18) |
+| Usuarios | mapeo real y fijo, igual que la corrida 2. Único cambio temporal: R-06 (User1 + "Admin y Carga" en la fase E, quitado en la misma fase) |
+| Resultados crudos | `tests/backoffice-canvas/resultados/corrida-3/` y `…/corrida-3-retry-ABC/` (gitignoreadas) |
+| Reintentos | 3 escenarios se reintentaron una vez (fases A, B y C, corriendo todo el bloque): **R-05** (lectura de la nav antes de que renderizara: `[]`), **D-02a** (KPIs de Admin vacíos en frío) y **D-02f** (el oráculo del test no contaba el filtro de B-18, ver §10.4). El resultado de cada caso en la tabla usa el reintento donde aplica y lo marca con ↻ |
+
+### 10.2 Veredicto
+
+**MEJORA GRANDE, TODAVÍA NO ACEPTABLE.** Con la app publicada de verdad (sin la copia cacheada), **28 de 41**
+escenarios pasan (en la corrida 2 eran 17). Se resolvieron **B-05, B-07, B-08, B-09, B-12, B-13 y B-18**, y el
+banner de 403 desapareció en los cuatro roles.
+
+Lo que sigue roto, y por qué:
+
+- **B-04 (combos de Cuenta y de Localizador con opciones vacías)** sigue vivo y es lo que más pesa: bloquea
+  F-02a, F-02, F-03 y deja en ⛔ a F-02b, X-02, F-02d y F-02c. El Solicitante **no puede crear una Especial por la UI**
+  y el Supervisor **no puede elegir localizador**.
+- **B-06** (banner "Incorrect argument type, expected a table.") sigue al abrir, en los cuatro roles (E-01a..d).
+- **B-10 / B-16 (flow Comp-14)** sigue sin hacer nada: **pendiente B-10 / B-17, no es una regresión** (§10.5).
+- **B-19 (nuevo)**: la pantalla Nueva solicitud descarga la tabla de cuentas completa. Es lo único que falla en D-01.
+
+**Delegación: limpia salvo B-19.** 43 combinaciones pantalla/rol, 0 errores de lectura, 0 N+1 y un solo GET sin filtro a una tabla grande (§10.6).
+
+### 10.3 Resultados por escenario
+
+Leyenda: ✅ PASÓ · ❌ FALLÓ · ⛔ BLOQUEADO · ↻ resultado del reintento · "C2" = estado en la corrida 2.
+Evidencia relativa a `resultados/corrida-3/` (↻ = `corrida-3-retry-ABC/`).
+
+| ID | Descripción | Usuario (rol) | C2 | C3 | Detalle |
+|---|---|---|:---:|:---:|---|
+| R-05 | Admin ve solo su nav (6) + sección Admin | User4 (Admin) | ✅ | ✅ ↻ | 1.er intento: nav `[]` (la lectura corrió antes de renderizar, la captura posterior sí la muestra completa). Reintento: nav exacta |
+| E-01a | Abrir sin banners ni 403 (Admin) | User4 | ❌ | ❌ | **Sin 403** ✅. Banner "expected a table" (B-06) · `E-01a-al-abrir.png` |
+| D-02a | Inicio Admin: KPIs en la PRIMERA carga = API | User4 | ❌ | ✅ ↻ | 1.er intento: frío `""`/`""` con solo 2 consultas del OnVisible. Reintento: 0 y 16 = API, 4 consultas. **B-01 intermitente en Admin** (§10.4) |
+| D-02b | Inicio Admin (tibio) = API | User4 | ✅ | ✅ | 0 · 16 · "sin carga" · C$ 250.00 |
+| D-02c | Monitoreo: cuentas, clientes, carga de hoy = API | User4 | ✅ | ✅ | 1,006 · 959 · 0 |
+| F-05 | Reconciliación sin carga de hoy: % y freno | User4 | ✅ | ✅ | 0 de 801 (0 %), card ⛔ visible |
+| D-02d | Cierres: contadores = API | User4 | ✅ | ✅ | Incobrables (151) · Especiales (47) |
+| F-04c | Agentes: 0 escrituras al abrir + botón "Desvincular" aparte | User4 | ❌ | ✅ | **B-08 RESUELTO**: 0 escrituras, valores idénticos, 2 botones "Desvincular" (no se pulsaron), alerta 16 = API |
+| D-03 | Maestros: búsqueda delegada + B-13 | User4 | ❌ | ✅ | **B-13 RESUELTO**: 14 caracteres = **1** consulta (antes 13); `startswith` en `$filter`; centinela (puesto 701 de 958) encontrado |
+| F-04b | Alta de cliente QA + anti-duplicado | User4 | ✅ | ✅ | |
+| R-03 | User2 (Solicitante real) abre y ve solo su nav | User2 | ✅ | ✅ | |
+| E-01b | Abrir sin banners ni 403 (Solicitante) | User2 | ❌ | ❌ | **Sin 403** ✅ (B-05 resuelto). Solo falla el banner B-06 |
+| D-02e | Inicio Solicitante: frío = API + subtítulo propio | User2 | ❌ | ✅ | **B-05 y B-01 OK**: subtítulo "Tus solicitudes Especiales"; PENDIENTES/APROBADAS/RECHAZADAS en frío y tibio = API |
+| D-04 | Combo de cuentas: búsqueda con `startswith` | User2 | ✅ | ✅ | El servidor devuelve las 4 cuentas QA |
+| F-02a | El combo muestra número + cliente y deja elegir | User2 | ❌ | ❌ | 15 opciones **vacías** al abrir; "sin resultados" tras buscar aunque el servidor devolvió 4 filas (B-04) |
+| F-02 | Crear Especial por la UI | User2 | ❌ | ❌ | Imposible por B-04 → AS-2022 creada por API para no bloquear C, F y G |
+| F-02b | Anti-duplicado | User2 | ⛔ | ⛔ | B-04 |
+| X-02 | Falla controlada de escritura (B-03) | User2 | ⛔ | ⛔ | B-04 |
+| F-02d | Reactivar Especial cerrada PROPIA (B-11) | User2 | ⛔ | ⛔ | B-04 |
+| D-05 | Mínimo privilegio: sin consultas a Pagos/Carga ni 403 | User2 | ❌ | ✅ | **B-05 RESUELTO**: cero consultas a `pagos` y `cargadiarias`, cero 403 en toda la sesión |
+| R-04 | Supervisor ve solo su nav | User3 | ✅ | ✅ | |
+| E-01c | Abrir sin banners ni 403 (Supervisor) | User3 | ❌ | ❌ | Sin 403 ✅. Solo banner B-06 |
+| D-02f | POR APROBAR frío y tibio = API | User3 | ❌ | ✅ ↻ | **3 = 3** con el oráculo corregido (solo activas, B-18). En el 1.er intento el test esperaba 5 (contaba 2 Especiales QA cerradas estando pendientes) |
+| F-03 | Aprobar con el combo de localizador | User3 | ❌ | ❌ | 15 opciones vacías (debería ofrecer exactamente 2); "sin resultados" al buscar "Carlos" (B-04) · `F-03-combo-agente.png` |
+| F-03c | Comp-14: owner → usuario del agente (≤ 3 min) | API | ❌ | ❌ | **Pendiente B-10 / B-16 / B-17.** Flow **Activado** (modificado 18:46:43Z); aprobación por API (misma escritura que la app); a los ~185 s el owner **sigue siendo User2** (esperado User1). Ver §10.5 |
+| F-03b | Rechazar con motivo | User3 | ✅ | ✅ | Guards ✅ · Rechazada (4) + motivo + resolutor User3 · sale de la cola. La cola muestra solo asignaciones activas (3 filas) |
+| R-02 | User1 (Backoffice real) abre y ve solo su nav | User1 | ✅ | ✅ | |
+| E-01d | Abrir sin banners ni 403 (Backoffice) | User1 | ❌ | ❌ | Solo banner B-06 |
+| D-02g | Inicio BO: frío = API | User1 | ❌ | ✅ | **B-01 OK en BO**: EN COLA 6 · CON PAGO 1 · TRANSCRITAS HOY 0 en frío y tibio; "Cobrado hoy C$ 250.00" |
+| D-02h | Estación: chip "Todos" y encabezado = API | User1 | ✅ | ✅ | |
+| F-01 | Transcripción con el rol Backoffice SOLO | User1 | ✅ | ✅ | IN-1027/IN-1028: FIFO, Enter y botón, `QAE2E1`, grabado por User1, fecha de hoy, ✏️ antes→nuevo |
+| F-01b | Transcritas hoy = API | User1 | ✅ | ✅ | |
+| R-06a | Multi-rol User1 (BO + Admin y Carga) | User1 | ❌ | ✅ | Nav combinada, ambas secciones, pie "BackOffice · Admin", abre Transcripción y Maestros. **Sin banner** en esta apertura (ver nota de B-06) |
+| R-06b | Quitado de Admin y Carga → solo Backoffice | User1 | ✅ | ✅ | |
+| F-04 | Admin cierra la Especial QA (UI) | User4 | ✅ | ✅ | 1 PATCH, Estado=false, motivo, fecha de hoy |
+| D-07 | Carga de HOY (1 fila QA): FILAS DE CARGA HOY = API | User4 | ❌ | ✅ | **B-07 RESUELTO**: la request viaja `ge 2026-10-03T00:00:00Z` (antes `06:00Z`); app 1 = API 1 |
+| F-05b | Reconciliación con carga de hoy + B-12 | User4 | ❌ | ✅ | **B-12 RESUELTO**: lista de 801 en **1 página, sin `nextLink`**, sin aviso "primeras 500", botón "Cerrar 801" (texto leído; **nunca se pulsó**), casilla y botón deshabilitados por umbral rojo |
+| F-02e | Tras aprobar y cerrar: el Solicitante sigue viendo SUS Especiales | User2 | ✅ | ✅ | KPIs = API y Mis solicitudes lista las 3. **Pasa solo porque el flow no movió el owner** (B-17) |
+| F-02c | Re-solicitar por UI tras el ciclo real (B-11) | User2 | ⛔ | ⛔ | B-04 |
+| X-01 | Responsive a 800×900 | User4 | ❌ | ✅ | **B-09 RESUELTO**: pantalla 799 px, nav 240 px (no escala), barra móvil + hamburguesa, drawer se cierra al navegar |
+| D-01 | Delegación + errores de lectura en toda la red | todos | ❌ | ❌ | **Delegación OK salvo B-19** (GET sin filtro a `cuentas` al abrir Nueva solicitud). **Cero errores de lectura** (los 403 de la corrida 2 desaparecieron) |
+
+**Totales:** 41 escenarios → ✅ **28** · ❌ **9** · ⛔ **4** (corrida 2: ✅ 17 · ❌ 20 · ⛔ 4).
+
+Corrida completa sin reintentos: ✅ 25 · ❌ 12 · ⛔ 4. Los 3 casos del reintento (R-05, D-02a, D-02f) pasan de ❌ a ✅ y dan 28.
+
+**Los 9 ❌ restantes:** E-01a, E-01b, E-01c, E-01d (todos B-06), F-02a, F-02, F-03 (B-04), F-03c (B-10/B-16/B-17 pendiente) y D-01 (B-19).
+**Los 4 ⛔:** F-02b, X-02, F-02d y F-02c, todos por B-04.
+
+**Comparación con la corrida 2:** 11 casos pasaron de ❌ a ✅ (D-02a, F-04c, D-03, D-02e, D-05, D-02f, D-02g, R-06a, D-07, F-05b, X-01). Ninguno pasó de ✅ a ❌. Los 4 ⛔ siguen igual. Los 9 ❌ de ahora ya estaban en ❌.
+
+### 10.4 Estado de los bugs
+
+| # | Estado | Evidencia (corrida 3) |
+|---|:---:|---|
+| B-01 KPIs vacíos en la 1.ª carga | **MEJORADO — intermitente en Admin** | D-02e/f/g (Solicitante, Supervisor y BO): frío = API en las dos corridas. Admin: D-02a falló en la corrida principal (frío `""`, solo 2 consultas del OnVisible) y pasó en el reintento (4 consultas). Probable carrera entre el `OnVisible` de Inicio y la evaluación de las fórmulas con nombre (hipótesis), no un 0-consultas determinista como antes |
+| B-02 BackOffice sin Append | **RESUELTO** | F-01 con User1 solo-Backoffice graba |
+| B-03 Escritura fallida dada por hecha | **SIN VERIFICAR** | X-02 sigue ⛔ por B-04. La falla controlada no se pudo provocar por la UI |
+| B-04 Combos con opciones vacías | **PERSISTE** | F-02a, F-03: 15 opciones vacías y "sin resultados". Los datos SÍ llegan: la request trae `$select=…numerodecuenta,…nombrecliente…` y 1,006 filas (o 4 al buscar). Falla el render del texto. El código ya está en la variante "Filter directo sin AddColumns" (`Src/scrNuevaSolicitud.pa.yaml` L76–85, `Src/scrAprobaciones.pa.yaml` L575–585), así que el fix de la ronda 6 **estaba desplegado y no alcanzó en el player**, aunque el comentario del código dice "verificado en Studio". Hipótesis: `DisplayFields`/`SearchFields` con nombres lógicos (`sanic_cm_ct_numerodecuenta`, `sanic_cm_ag_nombre`) que el runtime no resuelve en un combo cuyas `Items` vienen de una tabla Dataverse con prefijo de publisher; los combos que funcionan usan `["Value"]` (opciones de Choice) o columnas nativas (`fullname`). Verificar en Studio → Monitor y en modo Play, no solo en el editor |
+| B-05 403 por falta de privilegios | **RESUELTO** | D-05 ✅; cero 403 en E-01b/c; subtítulo "Tus solicitudes Especiales" |
+| B-06 Banner "expected a table" | **PERSISTE** | E-01a..d en las dos corridas. Aparece en **Inicio de los cuatro roles**, así que el origen está en lo que se evalúa al abrir (fórmulas de `App.pa.yaml`, controles de `scrInicio`, nav), no en `scrAgentes`/`scrAprobaciones` (pantallas que aún no se cargaron). Nota: en R-06a (multi-rol) no apareció, lo que apunta a una dependencia del orden de evaluación. Hipótesis sin confirmar: alguna expresión que devuelve Blank donde se espera una tabla (p. ej. las relaciones `Security Roles`/`Teams` de `gblUsuarioDV` mientras el `LookUp` aún no resuelve). Requiere el Monitor de Studio |
+| B-07 Carga de hoy = 0 | **RESUELTO** | D-07: app 1 = API 1; filtro contra `00:00Z` |
+| B-08 Abrir Agentes escribe | **RESUELTO** | F-04c: 0 escrituras al abrir, botón "Desvincular" aparte (no se pulsó) |
+| B-09 Responsive / ScaleToFit | **RESUELTO** | X-01: nav 240 px a 800 px de ancho, barra móvil + hamburguesa |
+| B-10 Flow de owner | **PENDIENTE (B-10 / B-17)** | No se tocó a propósito. F-03c: owner sin cambio (§10.5) |
+| B-11 412 al re-pedir sobre cerrada | **SIN VERIFICAR** | F-02c/F-02d ⛔ por B-04 |
+| B-12 Cota de 500 filas | **RESUELTO** | F-05b: 801 filas en 1 página, sin `nextLink`, sin aviso. El límite efectivo ahora es mayor (≥ 1,006: B-19 trajo 1,006 sin cortar). No se verificó el valor exacto del *Data row limit* |
+| B-13 Consulta por tecla | **RESUELTO** | D-03: 1 consulta para 14 caracteres |
+| B-14 Licencias User1/User2 | **RESUELTO** | R-02 y R-03 |
+| B-15 "La versión publicada no tenía los fixes" | **RETRACTADO** | Causa real: caché de localStorage del player en las sesiones de prueba (§10.7) |
+| B-16 Disparador del flow falla sin agente | **PERSISTE (flow)** | Corrida 3, `flowruns` del 18:40Z en adelante: 5 runs, **4 Failed `ActionFailed`** (alta de asignaciones sin agente) y 1 Succeeded (la aprobación, sin cambiar el owner) |
+| B-17 Rol Solicitante lee a nivel usuario | **LATENTE** | Sin cambio; se manifestará cuando el flow mueva el owner. F-02e hoy pasa por eso |
+| B-18 Cola y KPI POR APROBAR con cerradas | **RESUELTO** | KPI POR APROBAR = 3 = API con `Estado = true`; la API sin ese filtro daba 5 (2 Especiales QA cerradas estando pendientes). La cola de Aprobaciones muestra 3 filas y ninguna cerrada · `D-02f`, `F-03-combo-agente.png` |
+
+### 10.5 Lo que depende del flow "Cambio de Owner en Asignaciones" (pendiente B-10 / B-17)
+
+Por decisión, el flow no se corrigió. Estos casos **no son regresiones**:
+
+| Caso | Estado | Por qué |
+|---|:---:|---|
+| F-03c | ❌ pendiente B-10 / B-16 | Flow Activado, pero no actualiza el owner: tras ~185 s sigue siendo User2 (esperado: el usuario de Carlos Mendoza, User1). El run de la aprobación termina Succeeded sin escribir |
+| F-02e | ✅ (condicionado) | Pasa porque el owner no se mueve. Cuando el flow funcione, este caso **debe volver a evaluarse**: ahí aparece B-17 (el Solicitante deja de ver sus Especiales aprobadas) |
+| X-02 / F-02d / F-02c | ⛔ | Hoy bloqueados por B-04, pero cuando B-04 se resuelva su resultado dependerá de B-10 y B-17 (el `LookUp` de reactivación no vería la Especial cerrada si el owner cambió) |
+
+### 10.6 Delegación (corrida 3)
+
+**Limpia, con una excepción nueva (B-19).** De 43 combinaciones pantalla/rol:
+
+- **0 errores de lectura** (en la corrida 2 había 403 de B-05).
+- **0 N+1.**
+- **1 alerta**, repetida en dos momentos (B y G): `sanic_cm_tbl_cuentas` sin `$filter` ni `$top`, **1,006 filas en una sola respuesta, sin `nextLink`**.
+- Conteos y sumas siguen yendo como `$apply=…/aggregate(...)`, listas con `$filter` y `$expand`, y la búsqueda de Maestros con `startswith` (1 consulta).
+- Escrituras observadas, todas sobre registros QA-E2E: alta de cliente y teléfono (2 POST), rechazo (1 PATCH), transcripción (2 PATCH), cierre (1 PATCH). Abrir Agentes ya no escribe.
+
+Requests por pantalla relevantes (GET / escrituras): Inicio frío 6–11 / 0 (Admin 6, BO 8, multi-rol 11) · Monitoreo 3–8 / 0 · Reconciliación 3 / 0 · Cierres 4 / 1 al cerrar · Agentes 7 / 0 · Maestros 2 + 1 + 1 / 2 al crear · Mis solicitudes 2 / 0 · **Nueva solicitud 1 (+1 combo) / 0** · Aprobaciones 2 / 1 al rechazar · Transcripción 5–12 / 2 al grabar · Transcritas 3 / 0.
+
+### 10.7 Bugs nuevos y corrección de B-15
+
+| # | Sev. | Dónde | Qué pasa | Evidencia / causa probable |
+|---|:---:|---|---|---|
+| B-19 | 🟡 MEDIA (delegación) | `Src/scrNuevaSolicitud.pa.yaml` · `cmbCuentaNva.Items` (L76–85) | Al abrir **Nueva solicitud** la app hace **1 GET sin filtro** a `sanic_cm_tbl_cuentas` (`$select=…&$count=true`) y baja la tabla **entera**: **1,006 filas en una respuesta, sin `nextLink`**. En la corrida 2 eran 500 filas + `nextLink` (el *Data row limit* efectivo era 500); con el límite ya mayor, la página única es la tabla completa. En producción (~7,000 cuentas) bajarían hasta el tope del límite en cada apertura, con la lista truncada en silencio | D-01 `B:scrNuevaSolicitud` y `G:scrNuevaSolicitud(re-solicitud)`: veredicto "⚠ SIN FILTRO A TABLA GRANDE", 1,006 filas, sin `nextLink`. **No afecta la corrección de la búsqueda**: con texto, la request lleva `startswith(...)` en `$filter` y devuelve las 4 cuentas QA (D-04 ✅). **Causa probable**: con `SearchText` vacío, `StartsWith(x, "") \|\| StartsWith(y, "")` es verdadero para todo y el optimizador de delegación lo reduce a "sin `$filter`". **Fix candidato** (no aplicado): no consultar sin texto, o limitar con `FirstN` (que sí delega como `$top`), p. ej. `If(Len(cmbCuentaNva.SearchText) < 2, FirstN('CM \| TBL \| Cuentas', 20), Filter(…))` |
+
+**Corrección de B-15 (causa real).** El player de Power Apps guarda la app en `localStorage`
+(`PAAppLoadCache-<env>-<app>`, `PAPreloadKeyV2-/providers/Microsoft.PowerApps/apps/<app>-<versión>`) y arranca con esa copia mientras revalida en segundo plano (*stale-while-revalidate*). Como la sesión `storageState` es un JSON congelado que nunca se vuelve a guardar, cada corrida abría **la versión que estaba publicada el día que se capturó la sesión**: User4 la de 05:46Z y User3 la de 12:46Z. Por eso la corrida 2 reprodujo la corrida 1 punto por punto aunque ya hubiera código nuevo publicado. El import con `--publish-changes` **sí publica**.
+
+Prueba de la corrección: con `sesionSinCacheDeApp` (descarta esas dos claves y deja la autenticación `msal.*`) las 13 aperturas cargaron la versión `2026-10-03T18:42:50Z`, igual a `lastpublishtime`, y 7 bugs que la corrida 2 daba por "no desplegados" aparecen resueltos. El sufijo de la clave `PAPreloadKeyV2-` es la versión publicada que el player cargó, y de ahí sale `app.version`.
+
+Observaciones menores del test:
+
+- **R-05** leyó la nav antes de que renderizara (`[]`). El reintento pasó. Conviene esperar a que `galNavCmp` tenga ítems antes de leerla; no es un bug de la app.
+- El **oráculo de D-02f** quedó viejo cuando se arregló B-18; ya cuenta solo asignaciones activas.
+
+### 10.8 Limpieza (verificada)
+
+| Verificación | Resultado |
+|---|---|
+| Restos QA-E2E en las 9 tablas (limpieza previa y final de la suite) | **0** en las 9 tablas, en la corrida completa y en el re-chequeo; 0 errores de borrado |
+| Membresías de teams | Backoffice = [User1] · Solicitantes = [User2] · Supervisores = [User3] · Admin y Carga = [User10, User4]: **exactamente el mapeo** (`mapeoFinal.comoMapeo = true`; `restaurarMembresias` sin cambios pendientes) en ambas corridas. User1 se agregó y se quitó de "Admin y Carga" dentro de la fase E |
+| Agentes reales | usuario, email y activo **idénticos** a la foto inicial (`agentes.identicos = true`, 0 restaurados). Esta vez Agentes no los re-escribió (B-08 resuelto). Nunca se pulsó Vincular ni Desvincular |
+| Cierre en lote | **Nunca se pulsó**: solo se leyó el texto del botón ("Cerrar 801 asignaciones en lote") y su estado deshabilitado |
+| Fila QA de carga de hoy | Creada solo en la fase F y borrada al terminarla |
+| Sesión admin / app / flow / roles / Smelter / guías 00–13 | No se usaron ni se modificaron. Sin despliegues. Sin commit ni push |
+
+### 10.9 Próximo paso
+
+1. **B-04** (combos): es lo que más bloquea (7 escenarios entre ❌ y ⛔). Reproducir en Studio en modo Play y con el Monitor; probar `DisplayFields` con otros nombres antes de cambiar la estructura de `Items`.
+2. **B-06** (banner): Monitor de Studio al abrir Inicio con un rol.
+3. **B-10 / B-16 / B-17**: decidir el modelo de seguridad (B-17) y corregir el flow. Después re-evaluar F-02e, F-03c, X-02, F-02d y F-02c.
+4. **B-19**: no consultar la tabla de cuentas sin texto de búsqueda.
+5. **B-01** en Admin: investigar la carrera en frío (intermitente).
+6. Cualquier corrida futura debe usar `sesionSinCacheDeApp` (ya está en `lib/player.js`) y revisar la tabla "Versión de la app probada" de `resumen.md` contra el último *Published*.

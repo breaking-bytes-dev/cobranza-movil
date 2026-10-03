@@ -34,7 +34,8 @@ const v = {
   pendientesConPago: () => I('sanic_cm_in_estadograbacion eq 1 and sanic_cm_cd_aplicapago eq true'),
   transcritasHoy: (userId) => I(`sanic_cm_in_estadograbacion eq 2 and sanic_cm_in_fechagrabacion ge ${hoy().inicioUTC} and _sanic_cm_in_grabadopor_value eq ${userId}`),
   especialesDe: (userId, estadoAprob) => A(`sanic_cm_as_tipo eq 3 and _sanic_cm_as_solicitadopor_value eq ${userId} and sanic_cm_as_estadoaprobacion eq ${estadoAprob}`),
-  porAprobar: () => A('sanic_cm_as_tipo eq 3 and sanic_cm_as_estadoaprobacion eq 2'),
+  // B-18: la cola y el KPI solo cuentan asignaciones ACTIVAS (una Especial cerrada estando pendiente no se aprueba)
+  porAprobar: () => A('sanic_cm_as_tipo eq 3 and sanic_cm_as_estado eq true and sanic_cm_as_estadoaprobacion eq 2'),
   diariasActivas: () => A('sanic_cm_as_tipo eq 1 and sanic_cm_as_estado eq true'),
   // Corte = 00:00 UTC del día de la última carga (misma regla que la app, 00 §4.4).
   desaparecidas: async () => {

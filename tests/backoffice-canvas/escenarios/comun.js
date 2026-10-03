@@ -22,6 +22,7 @@ async function abrir(suite, usuario, fase, rolEfectivo, opts = {}) {
   console.log(`\n··· Abriendo player como ${usuario} (${rolEfectivo}) — fase ${fase}`);
   const app = await pl.abrirApp(suite.browser, usuario, { etiqueta: `${fase}:scrInicio(frío)`, ...opts });
   inf.registrarRed(fase, usuario, rolEfectivo, app.red);
+  inf.registrarApertura(fase, usuario, rolEfectivo, app.version);
   app.fase = fase;
   return app;
 }
