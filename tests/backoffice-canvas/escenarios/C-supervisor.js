@@ -1,4 +1,4 @@
-// FASE C — User3 con su rol BASE (Supervisor): roles, KPI, aprobar la Especial QA de F-02 asignando
+// FASE C — User3 en su rol REAL (Supervisor): roles, KPI, aprobar la Especial QA de F-02 asignando
 // agente (+ verificación del flow de owner Comp-14) y rechazar otra Especial QA creada por API.
 const pl = require('../lib/player');
 const inf = require('../lib/informe');
@@ -24,8 +24,8 @@ async function abrirFilaQA(app, marca) {
 
 module.exports = async function faseC(suite) {
   const yo = cfg.usuarios.user3.id;
-  // Especial QA para rechazar, creada por API (solicitante: User2).
-  suite.datos.especialRech = await qa.crearEspecialPendiente(suite.datos.cuentas[1], cfg.usuarios.user2.id, 'rechazo F-03');
+  // Especial QA para rechazar, creada por API como si la hubiera pedido User2 (solicitante y dueño).
+  suite.datos.especialRech = await qa.crearEspecialPendiente(suite.datos.cuentas[1], cfg.usuarios.user2.id, 'rechazo F-03', { owner: cfg.usuarios.user2.id });
   const app = await c.abrir(suite, 'user3', 'C', 'Supervisor');
   try {
     await inf.correr('R-04', 'User3 (Supervisor) ve SOLO su nav e Inicio con su sección', 'Supervisor', async (e) => {
@@ -35,11 +35,11 @@ module.exports = async function faseC(suite) {
 
     await c.errorAlAbrir('E-01c', app, 'Supervisor');
 
-    await inf.correr('D-02f', 'Inicio Supervisor: POR APROBAR (frío y tibio) = API', 'Supervisor', async (e) => {
+    await inf.correr('D-02f', 'Inicio Supervisor: POR APROBAR en la PRIMERA carga y en tibio = API (B-01)', 'Supervisor', async (e) => {
       const k = await c.kpisInicio(app, 'Aprobaciones', 'scrAprobaciones');
       const p = await v.porAprobar();
       e.nota(`frío: ${JSON.stringify(k.frio)} · tibio: ${JSON.stringify(k.tibio)}`);
-      e.check(k.frio['POR APROBAR'] !== '' && k.frio['POR APROBAR'] != null, 'POR APROBAR con valor en la primera carga', p, k.frio['POR APROBAR']);
+      e.check(c.num(k.frio['POR APROBAR']) === p, 'POR APROBAR en la PRIMERA carga = API', p, k.frio['POR APROBAR']);
       e.check(c.num(k.tibio['POR APROBAR']) === p, 'POR APROBAR = API', p, k.tibio['POR APROBAR']);
     });
 
@@ -55,7 +55,9 @@ module.exports = async function faseC(suite) {
       const ag = suite.datos.agente;
       const r = await c.elegirCombo(app, 'cmbAgenteAprb', { buscar: ag.sanic_cm_ag_nombre.split(' ')[0], opcion: ag.sanic_cm_ag_nombre });
       e.nota(`opciones del combo al abrir: ${r.iniciales.length} — textos ${JSON.stringify(r.iniciales.slice(0, 5))}`);
-      e.check(r.iniciales.some(t => t.length > 0), 'las opciones del combo de localizador muestran el nombre del agente', 'nombres visibles', JSON.stringify(r.iniciales.slice(0, 5)));
+      e.check(r.iniciales.length > 0 && r.iniciales.every(t => t.length > 0), 'las opciones del combo de localizador muestran el nombre del agente (B-04)', 'nombres visibles', JSON.stringify(r.iniciales.slice(0, 5)));
+      const conEmailApi = (await dv.getAll("sanic_cm_tbl_agentes?$select=sanic_cm_ag_nombre&$filter=sanic_cm_ag_activo eq true and sanic_cm_ag_emailusuario ne null")).map(x => x.sanic_cm_ag_nombre).sort();
+      e.check(r.iniciales.length === conEmailApi.length && conEmailApi.every(nm => r.iniciales.some(t => t.includes(nm))), 'el combo ofrece EXACTAMENTE los agentes activos con usuario (API)', conEmailApi, r.iniciales);
       e.check(r.ok, `buscar "${ag.sanic_cm_ag_nombre.split(' ')[0]}" ofrece al agente ${ag.sanic_cm_ag_nombre}`, ag.sanic_cm_ag_nombre, r.sinResultados ? 'flyout "sin resultados"' : r.textos);
       if (!r.ok) { suite.datos.aprobacionUiImposible = true; await (await pl.visible(app, 'icoCerrarAprb')).click().catch(() => {}); e.evid(await pl.foto(app, 'F-03-combo-agente')); return; }
       const conEmail = (await dv.getAll("sanic_cm_tbl_agentes?$select=sanic_cm_ag_nombre&$filter=sanic_cm_ag_activo eq true and sanic_cm_ag_emailusuario ne null")).map(a => a.sanic_cm_ag_nombre);
@@ -63,7 +65,7 @@ module.exports = async function faseC(suite) {
       e.check(await pl.botonHabilitado(app, 'btnAprobarAprb'), 'Aprobar habilitado con localizador', true, false);
       const ownerAntes = (await dv.get(`sanic_cm_tbl_asignacions(${esp.sanic_cm_tbl_asignacionid})?$select=_ownerid_value`))._ownerid_value;
       suite.datos.ownerAntesAprob = ownerAntes;
-      await (await pl.boton(app, 'btnAprobarAprb')).click();
+      await (await pl.boton(app, 'btnAprobarAprb')).click(); suite.datos.tAprob = Date.now();
       const n = await c.esperarNotif(app, /Aprobada|error/i);
       e.check(/Aprobada — asignada a/.test(n || ''), 'Notify de aprobación', '✓ Aprobada — asignada a …', n);
       await app.red.quieta(app.page, { quietoMs: 4000, maxMs: 30000 });
@@ -78,13 +80,28 @@ module.exports = async function faseC(suite) {
       const esp = suite.datos.especialF02; const ag = suite.datos.agente;
       const flow = (await dv.get("workflows?$select=statecode,statuscode,modifiedon&$filter=name eq 'Cloud Flow | CM | Cambio de Owner en Asignaciones'")).value[0];
       e.check(flow && flow.statecode === 1, 'el flow "Cloud Flow | CM | Cambio de Owner en Asignaciones" está ACTIVADO', 'statecode 1 (Activated)', flow ? `statecode ${flow.statecode} (0 = Draft/apagado) · modificado ${flow.modifiedon}` : 'no existe');
-      if (suite.datos.aprobacionUiImposible) { e.nota('No se aprobó por la UI (combo de localizador inutilizable, F-03): el cambio de owner no se puede observar end-to-end.'); return; }
+      if (suite.datos.aprobacionUiImposible) {
+        // La UI no deja elegir localizador (F-03): se hace la MISMA escritura que el Patch de btnAprobarAprb
+        // (estado Aprobado + agente + resolutor) por Web API sobre la Especial QA, para verificar el flow igual.
+        if (!/^QA-E2E-CTA-/.test(esp.sanic_cm_as_numerocuenta || '')) throw new Error('Seguridad: Especial no QA');
+        suite.datos.ownerAntesAprob = (await dv.get(`sanic_cm_tbl_asignacions(${esp.sanic_cm_tbl_asignacionid})?$select=_ownerid_value`))._ownerid_value;
+        await dv.patch('sanic_cm_tbl_asignacions', esp.sanic_cm_tbl_asignacionid, {
+          sanic_cm_as_estadoaprobacion: 3,
+          'sanic_cm_as_agenteid@odata.bind': `/sanic_cm_tbl_agentes(${ag.sanic_cm_tbl_agenteid})`,
+          'sanic_cm_as_resolutorid@odata.bind': `/systemusers(${yo})`,
+        });
+        suite.datos.tAprob = Date.now(); suite.datos.aprobadaPorApi = true;
+        e.nota('Aprobación hecha POR API (misma escritura que la app; la UI está bloqueada por B-04) para observar el flow Comp-14.');
+      }
       const a = await dv.get(`sanic_cm_tbl_asignacions(${esp.sanic_cm_tbl_asignacionid})?$select=_ownerid_value`);
       const ownerAntes = suite.datos.ownerAntesAprob || a._ownerid_value;
       let ownerDesp = a._ownerid_value;
-      const vueltas = flow && flow.statecode === 1 ? 12 : 3; // flow apagado: 30 s alcanzan para documentarlo
+      const vueltas = flow && flow.statecode === 1 ? 18 : 3; // flow activo: hasta ~3 min; apagado: 30 s alcanzan para documentarlo
       for (let i = 0; i < vueltas && ownerDesp === ownerAntes; i++) { await new Promise(r2 => setTimeout(r2, 10000)); ownerDesp = (await dv.get(`sanic_cm_tbl_asignacions(${esp.sanic_cm_tbl_asignacionid})?$select=_ownerid_value`))._ownerid_value; }
-      e.check(ownerDesp === ag._sanic_cm_ag_usuarioid_value, 'Comp-14: owner = usuario del agente (esperado ≤ 2 min)', ag._sanic_cm_ag_usuarioid_value, `${ownerDesp} (antes ${ownerAntes})`);
+      const t = Date.now() - (suite.datos.tAprob || Date.now());
+      e.check(ownerDesp === ag._sanic_cm_ag_usuarioid_value, 'Comp-14: owner = usuario del agente (esperado ≤ 3 min)', ag._sanic_cm_ag_usuarioid_value, `${ownerDesp} (antes ${ownerAntes})`);
+      e.nota(`owner antes ${ownerAntes} → después ${ownerDesp} · agente ${ag.sanic_cm_ag_nombre} (usuario ${ag._sanic_cm_ag_usuarioid_value}) · ~${Math.round(t / 1000)} s desde la aprobación`);
+      suite.datos.ownerTrasAprob = ownerDesp;
 
     });
 

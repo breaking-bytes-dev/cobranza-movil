@@ -84,9 +84,20 @@ function resumirResp(status, json) {
 // ── Apertura ─────────────────────────────────────────────────────────────────────────────
 async function lanzar() { return chromium.launch({ headless: cfg.headless }); }
 
+// B-15: el player guarda la app en localStorage (PAAppLoadCache-*, PAPreloadKeyV2-*) y arranca
+// con esa copia mientras revalida en segundo plano (stale-while-revalidate). Como la sesión es un
+// JSON congelado que nunca se re-guarda, cada corrida probaba la versión cacheada el día que se
+// capturó la sesión, no la publicada. Se descartan esas claves; la autenticación (msal.*) queda.
+const CACHE_APP = /^(PAAppLoadCache-|PAPreloadKeyV2-)/;
+function sesionSinCacheDeApp(usuario) {
+  const s = JSON.parse(fs.readFileSync(cfg.sesionPath(usuario), 'utf8'));
+  for (const o of s.origins || []) o.localStorage = (o.localStorage || []).filter(i => !CACHE_APP.test(i.name));
+  return s;
+}
+
 async function abrirApp(browser, usuario, { viewport = { width: 1600, height: 950 }, etiqueta = 'carga' } = {}) {
   const ctx = await browser.newContext({
-    storageState: cfg.sesionPath(usuario), viewport, timezoneId: 'America/Managua',
+    storageState: sesionSinCacheDeApp(usuario), viewport, timezoneId: 'America/Managua',
   });
   const red = new RedDataverse(); red.marcar(etiqueta); await red.instalar(ctx);
   const page = await ctx.newPage();
@@ -107,6 +118,9 @@ async function abrirApp(browser, usuario, { viewport = { width: 1600, height: 95
   }
   if (!ok) throw new Error('La app no terminó de cargar (sin nav ni estado sin-acceso)');
   await red.quieta(page, { quietoMs: 8000, maxMs: cfg.tCargaMs, minMs: 5000 });
+  // Versión publicada que efectivamente cargó el player (traza para el reporte; ver B-15).
+  app.version = await page.evaluate(() => Object.keys(localStorage)
+    .filter(k => k.startsWith('PAPreloadKeyV2-')).map(k => k.slice(-20)).join(',')).catch(() => '');
   return app;
 }
 

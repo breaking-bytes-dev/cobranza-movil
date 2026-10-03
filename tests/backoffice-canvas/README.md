@@ -32,28 +32,38 @@ Resultados de la última corrida: [`docs/guias/backoffice-canvas/14-resultados-p
 ## Correr
 
 ```bash
-node run.js                       # todas las fases: L,A,B,C,D,E,F,G,X  (~25 min)
-node run.js --fases A,X           # solo algunas (B→C→E→G dependen entre sí: corrélas en orden)
+node run.js                       # todas las fases: A,B,C,D,E,F,G,X  (~15 min)
+node run.js --fases A,X           # solo algunas (B→C→F→G dependen entre sí: corrélas en orden)
 node run.js --solo-limpieza       # borra restos QA-E2E de corridas anteriores
+BO_RESULTADOS_DIR=$PWD/resultados/corrida-N node run.js   # guardar cada corrida aparte
 ```
+
+## Usuarios: mapeo REAL y fijo (sin sustitutos)
+
+| Sesión | Team | Rol |
+|---|---|---|
+| `sesion-user1.json` | CM · Backoffice · DEV | BackOffice |
+| `sesion-user2.json` | CM · Solicitantes · DEV | Solicitante |
+| `sesion-user3.json` | CM · Supervisores · DEV | Supervisor |
+| `sesion-user4.json` | CM · Admin y Carga · DEV | Admin (User10 también está en ese team y no se toca) |
+
+`run.js` verifica la foto inicial de membresías contra este mapeo (`cfg.membresiasEsperadas()`), la restaura al
+final y la vuelve a verificar. El ÚNICO cambio temporal es R-06: User1 se agrega a "Admin y Carga" en la fase E
+y se lo quita en la misma fase.
 
 ## Qué hace (y en qué orden)
 
-| Fase | Usuario (rol efectivo) | Escenarios |
+| Fase | Usuario (rol) | Escenarios |
 |---|---|---|
-| L | User1, User2 | R-02 / R-03 con el usuario original (detecta licencia vencida → BLOQUEADO con captura) |
-| A | User4 (Admin) | R-05, E-01a (sin banners de error al abrir), D-02a..d (KPIs Inicio/Monitoreo/Cierres vs API), F-05 (Reconciliación), F-04c (Agentes, solo lectura), D-03 (búsqueda delegada en Maestros), F-04b (alta de cliente QA + anti-duplicado) |
-| B | User3 → team Solicitantes | R-03*, E-01b, D-02e, D-04 (búsqueda del combo con StartsWith), F-02a (el combo muestra/permite elegir), F-02 (crear Especial QA; si la UI no deja, se crea por API para no bloquear C/E) y F-02b (anti-duplicado) |
-| C | User3 (Supervisor) | R-04, E-01c, D-02f, F-03 (aprobar con localizador), F-03c (owner por Comp-14), F-03b (rechazar con motivo) |
-| D | User4 → team Backoffice | R-02*, E-01d, D-02g/h, F-01 (transcribir 2 interacciones QA), F-01b (Transcritas hoy, si F-01 grabó) |
-| E | User4 → Backoffice + Admin | R-06a (multi-rol), F-01m + F-01b (transcripción con BO+Admin si el rol BO solo no pudo grabar), F-04 (cerrar la Especial QA) |
-| F | User4 (Admin) + 1 fila QA de carga HOY | R-06b, D-07 (Monitoreo con carga de hoy), F-05b (freno de Reconciliación) |
-| G | — (Web API) | F-06 (re-solicitar Especial tras cerrar la anterior: misma escritura que el Patch de la app, contra la alt key cuenta+tipo) |
-| X | User4 a 800×900 | X-01 (responsive: barra móvil + hamburguesa) |
-| — | todas | **D-01**: análisis de TODA la red capturada por pantalla (delegación, N+1, errores) |
-
-Los usuarios marcados con `*` son **sustitutos**: si el dueño del rol no puede abrir el player (p. ej. licencia
-vencida), la suite mueve TEMPORALMENTE a otro usuario de prueba entre teams `CM · <perfil> · DEV` por Web API.
+| A | User4 (Admin) | R-05, E-01a (sin banners ni 403 al abrir), D-02a (KPIs en la PRIMERA carga = API, B-01), D-02b..d, F-05, F-04c (Agentes: 0 escrituras al abrir, botón "Desvincular" aparte — nunca se pulsa), D-03 (búsqueda delegada + B-13 DelayOutput), F-04b |
+| B | User2 (Solicitante) | R-03, E-01b, D-02e (frío + subtítulo "Tus solicitudes Especiales"), D-04, F-02a (combo número + cliente, B-04), F-02 (crear por UI), F-02b (anti-duplicado), **X-02** (falla CONTROLADA de escritura, B-03: Especial cerrada que el Solicitante no ve → alt key → error mostrado, nada dado por hecho), **F-02d** (reactivar Especial cerrada propia, B-11), **D-05** (mínimo privilegio: sin consultas a Pagos/Carga ni 403) |
+| C | User3 (Supervisor) | R-04, E-01c, D-02f, F-03 (aprobar con combo de agentes, B-04), F-03c (owner → usuario del agente por Comp-14, hasta ~3 min, B-10), F-03b (rechazar) |
+| D | User1 (Backoffice) | R-02, E-01d, D-02g, D-02h, F-01 (transcribir con el rol BO solo, B-02), F-01b |
+| E | User1 + Admin y Carga (temporal) | R-06a (multi-rol), R-06b (quitado → solo Backoffice) |
+| F | User4 (Admin) + 1 fila QA de carga HOY | F-04 (cerrar la Especial QA), D-07 (carga de hoy, B-07), F-05b (freno + lista completa sin tope de 500, B-12; el cierre en lote NUNCA se pulsa) |
+| G | User2 (Solicitante) | F-02e (sigue viendo sus Especiales tras aprobación/cierre), F-02c (re-solicitar por UI tras el ciclo real, B-11) |
+| X | User4 a 800×900 | X-01 (responsive: barra móvil + hamburguesa, B-09) |
+| — | todas | **D-01**: análisis de TODA la red capturada por pantalla (delegación, N+1, errores de lectura) |
 
 ## Reglas de seguridad que el código hace cumplir
 

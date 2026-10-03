@@ -114,16 +114,31 @@ async function verificarRol(e, app, roles, etiquetaPie) {
   }
 }
 
-// E-01: la app abre SIN banners de error de runtime para ese rol (permisos, tipos).
+// Respuestas de error (HTTP >= 400) de Dataverse capturadas en la red de `app` (opcional: solo una etiqueta).
+function erroresRed(app, etiqueta) {
+  const out = [];
+  for (const en of app.red.entradas) {
+    if (etiqueta && en.pantalla !== etiqueta) continue;
+    (en.respuestas || []).forEach((r, i) => {
+      if (r.status >= 400) out.push(`${r.status} ${(en.subs[i] || en.subs[0] || {}).metodo || ''} ${((en.subs[i] || en.subs[0] || {}).ruta || '').split('?')[0]} ${r.error || ''}`.slice(0, 260));
+    });
+  }
+  return out;
+}
+
+// E-01: la app abre SIN banners de error de runtime para ese rol (permisos, tipos) y SIN respuestas 4xx/5xx
+// de Dataverse en la carga en frío (B-05: mínimo privilegio, B-06: "expected a table").
 async function errorAlAbrir(id, app, rol) {
-  return inf.correr(id, `Al abrir como ${rol}: sin banners de error de runtime (permisos / tipos)`, rol, async (e) => {
+  return inf.correr(id, `Al abrir como ${rol}: sin banners de error de runtime ni respuestas de error (403) de Dataverse`, rol, async (e) => {
     const err = await c_err(app);
-    e.check(err.length === 0, 'sin errores visibles al abrir', [], err);
-    if (err.length) e.evid(await pl.foto(app, `${id}-errores`));
+    e.check(err.length === 0, 'sin errores visibles al abrir (banner)', [], err);
+    const red = erroresRed(app, `${app.fase}:scrInicio(frío)`);
+    e.check(red.length === 0, 'sin respuestas HTTP >= 400 de Dataverse en la carga en frío', [], red);
+    e.evid(await pl.foto(app, `${id}-al-abrir`));
   });
 }
 const c_err = (app) => erroresVisibles(app);
 
 const num = s => (s === null || s === undefined || s === '' ? null : Number(String(s).replace(/[^\d.-]/g, '')));
 
-module.exports = { errorAlAbrir, NAV, navEsperada, SECCION, abrir, ir, erroresVisibles, esperarNotif, elegirCombo, chkDeshabilitado, kpisInicio, cambiarTeams, verificarRol, num };
+module.exports = { errorAlAbrir, erroresRed, NAV, navEsperada, SECCION, abrir, ir, erroresVisibles, esperarNotif, elegirCombo, chkDeshabilitado, kpisInicio, cambiarTeams, verificarRol, num };

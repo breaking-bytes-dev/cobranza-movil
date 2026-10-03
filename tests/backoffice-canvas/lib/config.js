@@ -23,13 +23,16 @@ const cfg = {
   prefijoQA: 'QA-E2E',
 };
 
-// Usuarios por rol. La sesión "admin" está PROHIBIDA en esta suite (solo Studio).
+// Usuarios por rol — mapeo REAL y FIJO (cada usuario en su team; todos con licencia activa).
+// La sesión "admin" está PROHIBIDA en esta suite (solo Studio).
 cfg.usuarios = {
-  user1: { alias: 'U-BO', upn: 'User1@55xljh.onmicrosoft.com', id: '592f1177-6116-f111-8342-000d3a316609', rol: 'BackOffice' },
-  user2: { alias: 'U-SOL', upn: 'User2@55xljh.onmicrosoft.com', id: '7f9ef595-6116-f111-8342-000d3a316609', rol: 'Solicitante' },
-  user3: { alias: 'U-SUP', upn: 'User3@55xljh.onmicrosoft.com', id: '75c684ab-6116-f111-8342-000d3a316609', rol: 'Supervisor' },
-  user4: { alias: 'U-ADM', upn: 'User4@55xljh.onmicrosoft.com', id: 'f78065ba-6116-f111-8342-000d3a316609', rol: 'Admin' },
+  user1: { alias: 'U-BO', upn: 'User1@55xljh.onmicrosoft.com', id: '592f1177-6116-f111-8342-000d3a316609', rol: 'BackOffice', team: 'Backoffice' },
+  user2: { alias: 'U-SOL', upn: 'User2@55xljh.onmicrosoft.com', id: '7f9ef595-6116-f111-8342-000d3a316609', rol: 'Solicitante', team: 'Solicitantes' },
+  user3: { alias: 'U-SUP', upn: 'User3@55xljh.onmicrosoft.com', id: '75c684ab-6116-f111-8342-000d3a316609', rol: 'Supervisor', team: 'Supervisores' },
+  user4: { alias: 'U-ADM', upn: 'User4@55xljh.onmicrosoft.com', id: 'f78065ba-6116-f111-8342-000d3a316609', rol: 'Admin', team: 'AdminCarga' },
 };
+// Usuario ajeno a la suite que YA estaba en "Admin y Carga" (se respeta, nunca se toca).
+cfg.ajenos = { AdminCarga: ['User10@55xljh.onmicrosoft.com'] };
 
 cfg.teams = {
   Backoffice: '7e0f4531-a38a-f111-8076-70a8a59c703e',
@@ -38,7 +41,16 @@ cfg.teams = {
   AdminCarga: '870f4531-a38a-f111-8076-70a8a59c703e',
 };
 
-// Las membresías NO se hardcodean: run.js toma una foto al inicio y la restaura al final.
+// Membresías ESPERADAS (mapeo fijo). run.js verifica la foto inicial contra esto, la restaura al
+// final y vuelve a verificar. El único cambio temporal es R-06 (User1 + Admin y Carga, fase E).
+cfg.membresiasEsperadas = () => {
+  const out = {};
+  for (const t of Object.keys(cfg.teams)) out[t] = [];
+  for (const u of Object.values(cfg.usuarios)) out[u.team].push(u.upn);
+  for (const [t, l] of Object.entries(cfg.ajenos)) out[t].push(...l);
+  for (const t of Object.keys(out)) out[t] = out[t].map(x => x.toLowerCase()).sort();
+  return out;
+};
 
 cfg.sesionPath = (u) => {
   if (/admin/i.test(u)) throw new Error('La sesión admin está prohibida en la suite E2E');

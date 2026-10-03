@@ -40,7 +40,7 @@ async function agenteActivoConUsuario() {
   return r.value.find(a => !/^admin@/i.test(a.sanic_cm_ag_emailusuario)) || r.value[0];
 }
 
-// Siembra base: 1 cliente, 2 cuentas, 1 teléfono "antes", 2 interacciones pendientes (pago / actualización).
+// Siembra base: 1 cliente, 4 cuentas (0003 = falla controlada B-03, 0004 = reactivación B-11), 1 teléfono "antes", 2 interacciones pendientes (pago / actualización).
 async function sembrar() {
   const prod = (await dv.get("sanic_cm_tbl_productos?$select=sanic_cm_pr_codigo,sanic_cm_pr_tipo&$filter=sanic_cm_pr_codigo eq 'TC001'")).value[0];
   const ag = await agenteActivoConUsuario();
@@ -49,7 +49,7 @@ async function sembrar() {
   }, 'cliente base');
   const cliId = cli.sanic_cm_tbl_clienteid;
   const cuentas = [];
-  for (const n of ['0001', '0002']) {
+  for (const n of ['0001', '0002', '0003', '0004']) {
     const c = await crear('cuenta', {
       sanic_cm_ct_numerodecuenta: `${P}-CTA-${n}`, sanic_cm_ct_nombrecliente: `${P} CLIENTE UNO`,
       sanic_cm_ct_cifcliente: `${P}-CIF-001`, sanic_cm_ct_tipoproducto: prod.sanic_cm_pr_tipo,
@@ -88,14 +88,18 @@ async function sembrar() {
 }
 
 // Especial QA creada por API (para el rechazo de F-03).
-async function crearEspecialPendiente(cuenta, solicitanteId, nota, { notas, nio = 100 } = {}) {
-  return crear('asignacion', {
-    sanic_cm_as_numerocuenta: cuenta.sanic_cm_ct_numerodecuenta, sanic_cm_as_tipo: 3, sanic_cm_as_estado: true,
+// `owner`: systemuserid dueño (como si la hubiera creado ese usuario desde la app); `estado`: false = CERRADA.
+async function crearEspecialPendiente(cuenta, solicitanteId, nota, { notas, nio = 100, owner, estado = true } = {}) {
+  const a = await crear('asignacion', {
+    sanic_cm_as_numerocuenta: cuenta.sanic_cm_ct_numerodecuenta, sanic_cm_as_tipo: 3, sanic_cm_as_estado: estado,
     sanic_cm_as_estadoaprobacion: 2, sanic_cm_as_retironio: nio, sanic_cm_as_notas: notas || `Verificación — ${P} ${nota}`,
     sanic_cm_as_fechasignacion: new Date().toISOString(),
+    ...(estado ? {} : { sanic_cm_as_motivo: `Gestión completada — ${P} ${nota}`, sanic_cm_as_fechacierre: new Date().toISOString() }),
     'sanic_cm_as_cuentaid@odata.bind': bind('sanic_cm_tbl_cuentas', cuenta.sanic_cm_tbl_cuentaid),
     'sanic_cm_as_solicitadopor@odata.bind': bind('systemusers', solicitanteId),
   }, nota);
+  if (owner) await dv.patch('sanic_cm_tbl_asignacions', a.sanic_cm_tbl_asignacionid, { 'ownerid@odata.bind': `/systemusers(${owner})` });
+  return a;
 }
 
 // Fila QA de carga diaria con FechaCarga = HOY (DateOnly) — escenario D-07.

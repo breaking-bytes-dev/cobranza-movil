@@ -1,5 +1,5 @@
-// FASE D — Rol Backoffice. User1 (dueño del rol) tiene la licencia de Power Apps vencida →
-// se usa User4 movido TEMPORALMENTE al team "CM · Backoffice · DEV" (y fuera de Admin y Carga).
+// FASE D — User1 en su rol REAL (team "CM · Backoffice · DEV"; rol BackOffice con Write+Append en
+// interacción desde la corrección de B-02). Transcripción E2E con el rol Backoffice SOLO.
 const pl = require('../lib/player');
 const inf = require('../lib/informe');
 const v = require('../lib/verdad');
@@ -36,7 +36,7 @@ async function flujoTranscripcion(e, app, suite, yo) {
       e.check(r1.sanic_cm_in_estadograbacion === 2, 'Dataverse: estado = Grabado', 2, r1.sanic_cm_in_estadograbacion);
       if (r1.sanic_cm_in_estadograbacion !== 2) { const err = await c.erroresVisibles(app); e.check(!/grabada/.test(n1 || ''), 'si el Patch FALLA, la app NO anuncia "✓ grabada" ni saca la interacción de la cola', 'sin ✓ / interacción sigue en la cola', `Notify: ${n1} · banner: ${err.join(' | ').slice(0, 300)}`); e.evid(await pl.foto(app, `${app.fase}-F-01-patch-fallido`)); }
       e.check(r1.sanic_cm_in_codigograbacion === 'QAE2E1', 'Dataverse: código en MAYÚSCULAS', 'QAE2E1', r1.sanic_cm_in_codigograbacion);
-      e.check(r1._sanic_cm_in_grabadopor_value === yo, 'Dataverse: grabado por = usuario de la sesión (User4)', yo, r1._sanic_cm_in_grabadopor_value);
+      e.check(r1._sanic_cm_in_grabadopor_value === yo, 'Dataverse: grabado por = usuario de la sesión', yo, r1._sanic_cm_in_grabadopor_value);
       e.check(r1.sanic_cm_in_fechagrabacion >= v.hoy().inicioUTC, 'Dataverse: fecha de grabación = hoy', `>= ${v.hoy().inicioUTC}`, r1.sanic_cm_in_fechagrabacion);
       const patches = app.red.de(`${app.fase}:scrTranscripcion(grabar)`).flatMap(x => x.subs).filter(s => s.metodo !== 'GET');
       e.nota(`escrituras enviadas al marcar: ${patches.map(p => `${p.metodo} ${p.ruta}`).join(' | ')}`);
@@ -62,7 +62,7 @@ async function flujoTranscripcion(e, app, suite, yo) {
       e.check(/grabada — ¡cola vacía!/.test(n2 || ''), 'botón graba y anuncia cola vacía', `✓ ${int2.sanic_cm_in_numerointeraccion} grabada — ¡cola vacía!`, n2);
       await app.red.quieta(app.page, { quietoMs: 4000, maxMs: 30000 });
       const r2 = await dv.get(`sanic_cm_tbl_interaccions(${int2.sanic_cm_tbl_interaccionid})?$select=sanic_cm_in_estadograbacion,sanic_cm_in_codigograbacion,_sanic_cm_in_grabadopor_value`);
-      e.check(r2.sanic_cm_in_estadograbacion === 2 && r2.sanic_cm_in_codigograbacion === 'QAE2E2' && r2._sanic_cm_in_grabadopor_value === yo, 'Dataverse: 2.ª grabada con código y usuario', 'Grabado/QAE2E2/User4', `${r2.sanic_cm_in_estadograbacion}/${r2.sanic_cm_in_codigograbacion}/${r2._sanic_cm_in_grabadopor_value}`);
+      e.check(r2.sanic_cm_in_estadograbacion === 2 && r2.sanic_cm_in_codigograbacion === 'QAE2E2' && r2._sanic_cm_in_grabadopor_value === yo, 'Dataverse: 2.ª grabada con código y usuario', `2/QAE2E2/${yo}`, `${r2.sanic_cm_in_estadograbacion}/${r2.sanic_cm_in_codigograbacion}/${r2._sanic_cm_in_grabadopor_value}`);
       const locs = (await pl.ctl(app, 'btnFilaLocsTrx').locator('visible=true').allInnerTexts()).join(' / ');
       e.check(!locs.includes(LOC_QA), 'el localizador QA desapareció de la columna', `sin ${LOC_QA}`, locs);
       e.evid(await pl.foto(app, 'F-01-cola-vacia'));
@@ -85,23 +85,24 @@ async function arqueo(e, app, yo) {
 }
 
 module.exports = async function faseD(suite) {
-  const U = 'user4', yo = cfg.usuarios.user4.id;
-  const { int1, int2 } = suite.datos;
-  await c.cambiarTeams(U, { quitar: ['AdminCarga'], agregar: ['Backoffice'] });
-  const app = await c.abrir(suite, U, 'D', 'BackOffice (User4 sustituto)');
+  const U = 'user1', yo = cfg.usuarios.user1.id;
+  const app = await c.abrir(suite, U, 'D', 'BackOffice');
   try {
-    await inf.correr('R-02*', 'Backoffice (User4 en team Backoffice) ve SOLO su nav e Inicio con su sección', 'BackOffice', async (e) => {
+    await inf.correr('R-02', 'User1 (Backoffice) abre la app y ve SOLO su nav e Inicio con su sección', 'BackOffice', async (e) => {
       await c.verificarRol(e, app, ['BackOffice'], /^BackOffice$/);
       e.evid(await pl.foto(app, 'R-02-backoffice-inicio'));
     });
 
     await c.errorAlAbrir('E-01d', app, 'BackOffice');
 
-    await inf.correr('D-02g', 'Inicio Backoffice: EN COLA / CON PAGO / TRANSCRITAS HOY (frío y tibio) = API', 'BackOffice', async (e) => {
+    await inf.correr('D-02g', 'Inicio Backoffice: EN COLA / CON PAGO / TRANSCRITAS HOY en la PRIMERA carga y en tibio = API (B-01)', 'BackOffice', async (e) => {
+      const subF = await pl.texto(app, 'lblSubEncCmp').catch(() => '');
       const k = await c.kpisInicio(app, 'Por transcribir', 'scrTranscripcion');
-      e.nota(`frío: ${JSON.stringify(k.frio)} · tibio: ${JSON.stringify(k.tibio)}`);
-      e.check(k.frio['EN COLA'] !== '' && k.frio['EN COLA'] != null, 'EN COLA con valor en la primera carga', 'número', k.frio['EN COLA']);
+      e.nota(`frío: ${JSON.stringify(k.frio)} · tibio: ${JSON.stringify(k.tibio)} · subtítulo: ${subF}`);
       const [p, cp, t] = [await v.pendientes(), await v.pendientesConPago(), await v.transcritasHoy(yo)];
+      for (const [et, val] of [['EN COLA', p], ['CON PAGO', cp], ['TRANSCRITAS HOY', t]]) e.check(c.num(k.frio[et]) === val, `${et} en la PRIMERA carga = API`, val, k.frio[et]);
+      const cob = await v.cobradoHoy();
+      e.check((subF || '').endsWith(v.moneda(cob.nio, cob.usd)), 'Cobrado hoy (subtítulo, rol BO) = Sum API', v.moneda(cob.nio, cob.usd), subF);
       e.check(c.num(k.tibio['EN COLA']) === p, 'EN COLA = API', p, k.tibio['EN COLA']);
       e.check(c.num(k.tibio['CON PAGO']) === cp, 'CON PAGO = API', cp, k.tibio['CON PAGO']);
       e.check(c.num(k.tibio['TRANSCRITAS HOY']) === t, 'TRANSCRITAS HOY = API', t, k.tibio['TRANSCRITAS HOY']);
@@ -119,10 +120,12 @@ module.exports = async function faseD(suite) {
       e.evid(await pl.foto(app, 'D-02h-transcripcion'));
     });
 
-    await inf.correr('F-01', 'Backoffice transcribe las 2 interacciones QA (Enter y botón), avance y detalle', 'BackOffice', (e) => flujoTranscripcion(e, app, suite, yo));
+    await inf.correr('F-01', 'Backoffice (rol SOLO) transcribe las 2 interacciones QA (Enter y botón), avance y detalle (B-02)', 'BackOffice', (e) => flujoTranscripcion(e, app, suite, yo));
 
-    if (suite.datos.transcritoOk) await inf.correr('F-01b', 'Transcritas hoy: KPI = API y aparecen las 2 QA con su pago', 'BackOffice', (e) => arqueo(e, app, yo));
-    else console.log('   (F-01b se corre en la fase E: en D no se pudo grabar)');
+    await inf.correr('F-01b', 'Transcritas hoy: KPI = API y aparecen las 2 QA con su pago', 'BackOffice', async (e) => {
+      if (!suite.datos.transcritoOk) { e.bloquear('depende de F-01 (no se grabó)'); return; }
+      await arqueo(e, app, yo);
+    });
   } finally {
     await pl.cerrar(app);
   }
