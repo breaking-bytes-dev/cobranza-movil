@@ -65,25 +65,41 @@ Screens:
                 Properties:
                   AccessibleLabel: ="Cuenta del cliente"
                   BorderColor: =gblC.borde
-                  DisplayFields: =["sanic_cm_ct_numerodecuenta", "sanic_cm_ct_nombrecliente"]
+                  DisplayFields: =["Value"]
                   Fill: =gblC.card
                   FocusedBorderColor: =gblC.teal
                   FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =48
-                  InputTextPlaceholder: ="— Buscar cuenta —"
+                  InputTextPlaceholder: ="— Buscar cuenta (mín. 2 caracteres) —"
                   IsSearchable: =true
                   Items: |-
-                    =// Búsqueda delegable de maestros (receta 01 §7.9): StartsWith SÍ delega en Dataverse,
-                    // así el combo busca contra ~7 000 cuentas sin warning azul.
-                    // Filter DIRECTO sobre la tabla, SIN AddColumns (B-04, ronda 6, verificado en Studio):
-                    // con AddColumns o colección el combo mostraba opciones en blanco y "sin resultados".
-                    // 2.ª línea del combo = nombre del cliente (DisplayFields).
-                    Filter('CM | TBL | Cuentas',
-                        StartsWith('[CT] Numero de cuenta', cmbCuentaNva.SearchText)
-                        || StartsWith('Nombre Cliente', cmbCuentaNva.SearchText)
+                    =// B-04 (causa real, verificada en el DOM del player y en Studio Preview): el combo clásico
+                    // NO pinta el texto cuando sus Items son registros de Dataverse (Cuentas, Agentes y hasta
+                    // Users salían en blanco); con registros PLANOS (como ["…"] → Value) sí. Por eso el combo
+                    // recibe registros armados con ForAll y los campos que la pantalla usa, explícitos.
+                    // Delegación: el Filter interno SÍ delega (StartsWith en Dataverse) y ForAll solo da
+                    // forma a las filas que devolvió el servidor (patrón Filter + shaping de la doc oficial).
+                    // B-19: sin al menos 2 caracteres no se consulta la tabla entera (Len(t) es constante por
+                    // consulta, no rompe la delegación).
+                    With({t: cmbCuentaNva.SearchText},
+                        ForAll(
+                            Filter('CM | TBL | Cuentas',
+                                Len(t) >= 2
+                                && (StartsWith('[CT] Numero de cuenta', t) || StartsWith('Nombre Cliente', t))
+                            ) As c,
+                            {
+                                Value: c.'[CT] Numero de cuenta' & "  ·  " & c.'Nombre Cliente',
+                                Numero: c.'[CT] Numero de cuenta',
+                                NIO: c.'[CT] Saldo Vencido NIO',
+                                USD: c.'[CT] Saldo Vencido USD',
+                                DiasMora: c.'[CT] Dias Mora',
+                                NivelMora: c.'[CT] Nivel Mora',
+                                Cuenta: c
+                            }
+                        )
                     )
-                  SearchFields: =["sanic_cm_ct_numerodecuenta", "sanic_cm_ct_nombrecliente"]
+                  SearchFields: =["Value"]
                   SelectMultiple: =false
                   Size: =10
                   Width: =Parent.Width - 2*gblE.Pad
@@ -118,8 +134,8 @@ Screens:
                         Size: =10
                         Text: |-
                           ="Saldo vencido: " & Moneda(
-                              cmbCuentaNva.Selected.'[CT] Saldo Vencido NIO',
-                              cmbCuentaNva.Selected.'[CT] Saldo Vencido USD')
+                              cmbCuentaNva.Selected.NIO,
+                              cmbCuentaNva.Selected.USD)
                         Width: =Parent.Width - 2*gblE.PadSm
                         Wrap: =false
                         X: =gblE.PadSm
@@ -135,8 +151,8 @@ Screens:
                         PaddingLeft: =0
                         Size: =9
                         Text: |-
-                          ="Mora: " & cmbCuentaNva.Selected.'[CT] Dias Mora' & " días · nivel "
-                              & cmbCuentaNva.Selected.'[CT] Nivel Mora'
+                          ="Mora: " & cmbCuentaNva.Selected.DiasMora & " días · nivel "
+                              & cmbCuentaNva.Selected.NivelMora
                         Width: =Parent.Width - 2*gblE.PadSm
                         Wrap: =false
                         X: =gblE.PadSm
@@ -365,9 +381,9 @@ Screens:
                     // IfError (B-03): si el Patch falla se muestra el detalle y el formulario NO se limpia.
                     With(
                         {
-                            _cta: cmbCuentaNva.Selected.'[CT] Numero de cuenta',
+                            _cta: cmbCuentaNva.Selected.Numero,
                             _cerrada: LookUp('CM | TBL | Asignacions',
-                                '[AS] NumeroCuenta' = cmbCuentaNva.Selected.'[CT] Numero de cuenta'
+                                '[AS] NumeroCuenta' = cmbCuentaNva.Selected.Numero
                                 && '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
                                 && '[AS] Estado' = false)
                         },
@@ -403,7 +419,7 @@ Screens:
                                     // c) Crear
                                     Patch('CM | TBL | Asignacions', Defaults('CM | TBL | Asignacions'),
                                         {
-                                            '[AS] Cuenta': cmbCuentaNva.Selected,
+                                            '[AS] Cuenta': cmbCuentaNva.Selected.Cuenta,
                                             '[AS] NumeroCuenta': _cta,
                                             '[AS] Tipo': 'Choice | CM | Tipo asignacion'.Especial,
                                             '[AS] Estado': true,

@@ -11,8 +11,7 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =// Catálogo de agentes: lo resuelve cmbAgenteAprb.Items DIRECTO contra la tabla (B-04, ronda 6:
-        // un combo con Items desde colección/AddColumns mostraba opciones en blanco).
+        =// Catálogo de agentes: lo resuelve cmbAgenteAprb.Items (Filter delegado + registros planos, B-04).
         // La cola + datos de la cuenta horneados navegando el lookup '[AS] Cuenta' (lo resuelve el
         // servidor, sin catálogo de cuentas truncable al Data row limit).
         ClearCollect(colAprobAprb,
@@ -572,17 +571,21 @@ Screens:
                 Properties:
                   AccessibleLabel: ="Agente asignado"
                   BorderColor: =gblC.borde
-                  DisplayFields: =["sanic_cm_ag_nombre"]
+                  DisplayFields: =["Value"]
                   Fill: =gblC.card
                   FocusedBorderColor: =gblC.teal
                   FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
                   Items: |-
-                    =// DIRECTO a la tabla Dataverse (B-04): con colección o AddColumns el combo mostraba
-                    // opciones en blanco. Agentes activos con usuario vinculado (<> Blank() delega).
-                    Filter('CM | TBL | Agentes', '[AG] Activo' = true && 'Email Usuario' <> Blank())
-                  SearchFields: =["sanic_cm_ag_nombre"]
+                    =// B-04: el combo clásico no pinta registros de Dataverse; recibe registros PLANOS
+                    // (ver cmbCuentaNva). El Filter delega; ForAll da forma a lo que devolvió el servidor.
+                    // Agentes activos con usuario vinculado (<> Blank() delega).
+                    ForAll(
+                        Filter('CM | TBL | Agentes', '[AG] Activo' = true && 'Email Usuario' <> Blank()) As a,
+                        {Value: a.'[AG] Nombre', Agente: a}
+                    )
+                  SearchFields: =["Value"]
                   SelectMultiple: =false
                   Size: =10
                   Width: =Parent.Width - 2*gblE.Pad
@@ -688,7 +691,7 @@ Screens:
                             LookUp('CM | TBL | Asignacions', '[AS] Numero' = varSelAprb.'[AS] Numero'),
                             {
                                 '[AS] Estado de aprobacion': 'Choice | CM | Estado aprobacion especial'.Aprobado,
-                                '[AS] Agente': cmbAgenteAprb.Selected,
+                                '[AS] Agente': cmbAgenteAprb.Selected.Agente,
                                 '[AS] Resolutor': gblUsuarioDV
                             }
                         ),
@@ -698,7 +701,7 @@ Screens:
                             LookUp(colAprobAprb, '[AS] Numero' = varSelAprb.'[AS] Numero'));
                         Set(varPanelAprb, false);
                         Set(varSelAprb, Blank());
-                        Notify("✓ Aprobada — asignada a " & cmbAgenteAprb.Selected.'[AG] Nombre' &
+                        Notify("✓ Aprobada — asignada a " & cmbAgenteAprb.Selected.Value &
                             ". El flujo de owner la baja al celular del localizador.",
                             NotificationType.Success, 2500)
                     )
