@@ -53,7 +53,10 @@ App:
       );
 
       // Expresión pura (Concat/Split/Distinct, sin Collect/Set): válida en fórmula con nombre.
-      gblRol = With(
+      // B-06: guarda de Blank. Si el LookUp de gblUsuarioDV todavía no resolvió (carrera al abrir) o el
+      // usuario no existe en Users, sus relaciones son Blank y Filter/Concat fallaban con
+      // "expected a table" (banner en Inicio). Sin usuario => "" => estado "sin acceso".
+      gblRol = If(IsBlank(gblUsuarioDV), "", With(
           {
               // a) roles directos "SR | CM | Admin" -> "Admin"
               rolesDirectos: Concat(
@@ -118,7 +121,7 @@ App:
               Value,
               "|"
           )
-      );
+      ));
 
       // Navegación por rol: catálogo estático que alimenta cmpNavLateral (galNavCmp.Items).
       // Fórmula con nombre y no colección: nunca muta (App Checker: "initialized but never updated").
