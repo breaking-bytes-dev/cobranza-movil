@@ -101,7 +101,7 @@ ComponentDefinitions:
                 Properties:
                   Height: =Parent.Height - (gblE.AltoBarra + gblE.Pad) - (gblE.AltoFila + gblE.PadSm)
                   Items: |-
-                    =SortByColumns(
+                    =Sort(
                         Filter(colNav, CountRows(Filter(Split(Roles, "|"), Value in gblRol)) > 0),
                         Orden
                     )
