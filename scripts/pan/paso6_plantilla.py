@@ -24,7 +24,7 @@ def columnas(tm): return get(f"sanic_tbl_smlt_columnmappings?$filter=_sanic_smlt
 def hacer(desc, metodo, ruta, cuerpo=None):
     print(('APLICAR ' if APLICAR else 'PLAN    ') + desc)
     if not APLICAR: return {}
-    st, b = rq(metodo, ruta, cuerpo)
+    st, b = rq(metodo, ruta, cuerpo, {'Prefer': 'return=representation'} if metodo == 'POST' else None)
     if st >= 300: raise SystemExit(f'   ✗ {st}: {b}')
     return b or {}
 def cambiar_tm(tm, **campos):

@@ -48,6 +48,19 @@
 | **D3.1** | **Cómo le llega K a Smelter.** Verificado en Microsoft Learn: un Custom API (ProcessChunk) **no recibe configuración segura**, y las variables de entorno con secreto de Key Vault **solo llegan a flows, Copilot Studio y conectores personalizados**, no a plugins. El único camino GA es la **identidad administrada de Power Platform** (ensamblado firmado + credencial federada + `IManagedIdentityService`). **DEV:** K en una tabla protegida de Smelter (sin privilegios para ningún rol, la lee SYSTEM). Tiene que ser la misma K del archivo que usó el backfill. **PROD:** identidad administrada + Key Vault; la tabla de DEV **no sirve para PROD** (los administradores pueden leer K y queda junto a los datos) |
 | **D11** | **AS-2002 borrada** (2026-10-04). Era una Especial duplicada y sin agente sobre la misma cuenta que AS-2001, creada sin `as_numerocuenta` por una versión anterior del backoffice. No tenía registros dependientes. Respaldo en `local/_backups/` (fuera del repo). Se mantiene la regla de **una asignación por cuenta y tipo**, que el backoffice ya aplica |
 
+### Estado de ejecución en DEV (2026-10-04)
+
+| Paso | Estado | Evidencia |
+|---|---|---|
+| 1–4 | ✅ | Commits `a470e7e`, `41444b1`. 6 claves nuevas `Active` (la de asignación, después de D11) |
+| 5 | ✅ registrado | Ensamblado `Sanic.CobranzaMovil.Plugins` 1.0.0.0 (sandbox, firmado; la clave `.snk` está fuera del repo y en el secret `PLUGIN_SNK_BASE64`). 15 pasos: **12 PanGuard desactivados** (se activan en el paso 8), `ClaveDesdeCuenta` ×2 y `CuentaDesdeInteraccion` activos. 129 pruebas en verde en CI. `ClaveDesdeCuenta` usa la clave de la referencia cuando la cuenta llega por clave alternativa sin Id (upsert de Smelter) |
+| 6 | ✅ | **Smelter** rama `feat/hmac-transform` (HMAC + tabla `sanic_tbl_smlt_hmackey`, `Smelter.Plugins` 1.0.6) desplegada en DEV. K cargada con `paso6_clave_k.py` (coincide con la del backfill). System Customizer sin acceso a la tabla; quedan System Administrator y roles de Microsoft que no se pueden editar. Plantilla con `paso6_plantilla.py` (respaldo previo en `local/_backups/`). **`paso6_prueba.py`: OK dos veces** (3 filas QA, 2 importaciones cada una: 0 fallos, 4 claves = HMAC, bóveda 1:1 enmascarada, sin duplicados, logs sin PAN, limpieza completa) |
+| 7–12 | Pendiente | — |
+
+**Lección del despliegue de Smelter:** sin subir la versión de `Smelter.Plugins`, algunos workers del sandbox siguieron con la versión anterior y la carga fallaba de forma intermitente con `Unknown function: HMAC`. Cada cambio de código de un plugin tiene que subir la versión.
+
+**⚠ Mientras la rama de Smelter no esté en `main`:** si alguien despliega Smelter desde `main` en DEV, `HMAC()` desaparece y **toda** carga de "Cobranza movil" falla por fila (no se escribe nada con clave vacía). Volver atrás: reimportar la plantilla del respaldo.
+
 Verificaciones independientes del consolidador:
 - `ct_numerodecuenta` es nombre principal con `CanBeSecuredForRead = false`.
 - La única clave alternativa de cuenta es `sanic_cm_pk_ct_numerodecuenta` (el PAN).
