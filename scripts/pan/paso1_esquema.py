@@ -78,6 +78,15 @@ if existe_entidad(BOVEDA):
         m['IsRetrieveAuditEnabled'] = True; m['IsRetrieveMultipleAuditEnabled'] = True
         hacer('auditoría de lectura (Retrieve y RetrieveMultiple) en la bóveda', 'PUT', f"EntityDefinitions({m['MetadataId']})", m)
     else: print('YA ACTIVA auditoría de lectura en la bóveda')
+# 8) Offline móvil ("Can be taken offline"): sin esto el perfil autogenerado de la app del cobrador no baja la bóveda
+if existe_entidad(BOVEDA):
+    m = get(f"EntityDefinitions(LogicalName='{BOVEDA}')")
+    if not m['IsOfflineInMobileClient']['Value']:
+        for k in [k for k in m if k.startswith('@odata')]: m.pop(k)
+        m['@odata.type'] = 'Microsoft.Dynamics.CRM.EntityMetadata'
+        m['IsOfflineInMobileClient']['Value'] = True
+        hacer('offline móvil en la bóveda (IsOfflineInMobileClient)', 'PUT', f"EntityDefinitions({m['MetadataId']})", m)
+    else: print('YA ACTIVO offline móvil en la bóveda')
 if APLICAR:
     ents = [BOVEDA, P + 'cuenta', P + 'asignacion', P + 'cargadiaria', P + 'pago']
     st, b = rq('POST', 'PublishXml', {'ParameterXml': '<importexportxml><entities>' + ''.join(f'<entity>{x}</entity>' for x in ents) + '</entities></importexportxml>'})
