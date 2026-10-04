@@ -59,7 +59,7 @@ def importar(n):
 
 def estado():
     claves = {clave(p) for p in pans}
-    ct = [c for c in todas("sanic_cm_tbl_cuentas?$select=sanic_cm_tbl_cuentaid,sanic_cm_ct_clavepan,sanic_cm_ct_ultimos4&$filter=startswith(sanic_cm_ct_cifcliente,'" + QA + "')")]
+    ct = [c for c in todas("sanic_cm_tbl_cuentas?$select=sanic_cm_tbl_cuentaid,sanic_cm_ct_clavepan,sanic_cm_ct_ultimos4,sanic_cm_ct_numerodecuenta&$filter=startswith(sanic_cm_ct_cifcliente,'" + QA + "')")]
     cp = todas("sanic_cm_tbl_cuentapans?$select=sanic_cm_cp_pan,sanic_cm_cp_name,sanic_cm_cp_clavepan,_sanic_cm_cp_cuentaid_value&$filter=" +
                ' or '.join(f"sanic_cm_cp_clavepan eq '{k}'" for k in claves))
     return ct, cp
@@ -91,7 +91,10 @@ try:
         ok_c = c is not None and c['sanic_cm_ct_ultimos4'] == pan[-4:]
         ok_b = b is not None and hmac.compare_digest(b['sanic_cm_cp_pan'] or '', pan) and b['sanic_cm_cp_name'] == '****' + pan[-4:] and c is not None and b['_sanic_cm_cp_cuentaid_value'] == c['sanic_cm_tbl_cuentaid']
         a = todas(f"{P}asignacions?$select=sanic_cm_as_clavepan&$filter=_sanic_cm_as_cuentaid_value eq {c['sanic_cm_tbl_cuentaid']}") if c else []
-        d = todas(f"{P}cargadiarias?$select=sanic_cm_cd_clavepan&$filter=_sanic_cm_cd_cuenta_value eq {c['sanic_cm_tbl_cuentaid']}") if c else []
+        d = todas(f"{P}cargadiarias?$select=sanic_cm_cd_clavepan,sanic_cm_cd_numerocuenta&$filter=_sanic_cm_cd_cuenta_value eq {c['sanic_cm_tbl_cuentaid']}") if c else []
+        # Paso 8: la carga escribe el nombre principal enmascarado (PanGuard rechaza el número completo)
+        check(c is not None and c['sanic_cm_ct_numerodecuenta'] == '****' + pan[-4:] and len(d) == 1 and d[0]['sanic_cm_cd_numerocuenta'] == '****' + pan[-4:],
+              f'fila {i}: ct_numerodecuenta y cd_numerocuenta enmascarados (****{pan[-4:]})')
         check(ok_c and ok_b and len(a) == 1 and a[0]['sanic_cm_as_clavepan'] == k and len(d) == 1 and d[0]['sanic_cm_cd_clavepan'] == k,
               f'fila {i}: ct_clavepan=HMAC, ultimos4, bóveda (pan, ****{pan[-4:]}, cuenta), asignación y carga diaria por clave')
     print('Importación 2 (mismo archivo: no debe duplicar)')
