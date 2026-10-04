@@ -9,7 +9,7 @@
 Screens:
   scrCliente:
     Properties:
-      OnVisible: =Set(varCliCuentas, AddColumns(Filter('CM | TBL | Asignacions', LookUp(colCuentas, '[CT] Numero de cuenta' = '[AS] NumeroCuenta').'CIF Cliente' = varCliente, '[AS] Estado'=true), cta, LookUp(colCuentas, '[CT] Numero de cuenta' = '[AS] NumeroCuenta')))
+      OnVisible: =Set(varCliCuentas, AddColumns(Filter('CM | TBL | Asignacions', LookUp(colCuentas, 'CM | TBL | Cuenta' = '[AS] Cuenta'.'CM | TBL | Cuenta').'CIF Cliente' = varCliente, '[AS] Estado'=true), cta, LookUp(colCuentas, 'CM | TBL | Cuenta' = '[AS] Cuenta'.'CM | TBL | Cuenta')))
     Children:
       - conMaster_2:
           Control: GroupContainer@1.5.0
@@ -125,7 +125,7 @@ Screens:
                         RadiusTopLeft: =
                         RadiusTopRight: =
                         Size: =gblT.fsm
-                        Text: ="Interacciones (" & CountRows(Filter('CM | TBL | Interaccions', LookUp(colCuentas, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'CIF Cliente' = varCliente)) &")"
+                        Text: ="Interacciones (" & CountRows(Filter('CM | TBL | Interaccions', LookUp(colCuentas, 'CM | TBL | Cuenta' = '[IN] Cuenta'.'CM | TBL | Cuenta').'CIF Cliente' = varCliente)) &")"
             - cardTotalCli:
                 Control: GroupContainer@1.5.0
                 Variant: AutoLayout
@@ -207,10 +207,12 @@ Screens:
                       Variant: Vertical
                       Properties:
                         FillPortions: =0
-                        Height: =CountRows(Self.AllItems)*52
+                        Height: =CountRows(Self.AllItems)*Self.TemplateHeight
                         Items: =Filter(colTelefonos, '[TL] CIF' = varCliente)
                         LayoutMinHeight: =16
                         LayoutMinWidth: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                        TemplatePadding: =
+                        TemplateSize: =If(gblScale = 1, 60,gblScale = 1.2,64,gblScale = 1.45,70,76)
                       Children:
                         - conFilaTel:
                             Control: GroupContainer@1.5.0
@@ -383,7 +385,7 @@ Screens:
                   AlignInContainer: =AlignInContainer.Center
                   BorderStyle: =BorderStyle.None
                   BorderThickness: =3
-                  Items: =Sort(Filter('CM | TBL | Interaccions', LookUp(colCuentas, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'CIF Cliente' = varCliente), 'Created On', SortOrder.Descending)
+                  Items: =Sort(Filter('CM | TBL | Interaccions', LookUp(colCuentas, 'CM | TBL | Cuenta' = '[IN] Cuenta'.'CM | TBL | Cuenta').'CIF Cliente' = varCliente), 'Created On', SortOrder.Descending)
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
                   Visible: =varCliTab = "inter"
@@ -454,7 +456,8 @@ Screens:
                                     PaddingBottom: =0
                                     PaddingTop: =0
                                     Size: =gblT.fxs
-                                    Text: =LookUp(colCuentas, '[CT] Numero de cuenta' = ThisItem.'[IN] Numerocuenta').'Tipo Producto' & " · " & ThisItem.'[IN] Numerocuenta'
+                                    Text: |-
+                                      =With({ c: LookUp(colCuentas, 'CM | TBL | Cuenta' = ThisItem.'[IN] Cuenta'.'CM | TBL | Cuenta') }, c.'Tipo Producto' & " · " & PanMasc(c.'Últimos 4'))
                                     Width: =Parent.Width - 16
                               - lblICom_1:
                                   Control: Label@2.5.1
@@ -601,7 +604,7 @@ Screens:
                                           LayoutMinWidth: =16
                                           PaddingTop: =0
                                           Size: =gblT.fxs
-                                          Text: =ThisItem.'[AS] NumeroCuenta'
+                                          Text: =PanMasc(ThisItem.cta.'Últimos 4')
                               - Text1:
                                   Control: ModernText@1.0.0
                                   Properties:

@@ -13,6 +13,14 @@ App:
          With({ pn: If(nio>0, "C$ " & Text(nio, "#,##0.00"), ""),
                 pu: If(usd>0, "US$ " & Text(usd, "#,##0.00"), "") },
             Coalesce(pn & If(!IsBlank(pn) && !IsBlank(pu), " · ", "") & pu, "C$ 0.00"));
+      PanMasc(u4:Text): Text =
+         If(IsBlank(u4), "", "•••• " & u4);
+      EspTipo(notas:Text): Text =
+         With({ i: Find(" — ", Coalesce(notas, "")) },
+            If(IsBlank(i), "", Trim(Left(notas, i - 1))));
+      EspNota(notas:Text): Text =
+         With({ i: Find(" — ", Coalesce(notas, "")) },
+            If(IsBlank(i), Coalesce(notas, ""), Trim(Mid(notas, i + 3))));
     OnStart: |-
       =// ===================== PREFERENCIAS PERSISTIDAS (accesibilidad, offline-safe) =====================
       Set(gblFont, Font.'Segoe UI');

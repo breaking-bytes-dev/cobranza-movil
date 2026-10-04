@@ -257,11 +257,13 @@ Screens:
                 Properties:
                   AlignInContainer: =AlignInContainer.Center
                   Items: |-
-                    =GroupBy(AddColumns(colPagHoy,
-                               cliNom, LookUp(colCuentas, '[CT] Numero de cuenta' = '[PG] Numero Cuenta').'Nombre Cliente',
-                               prod,   LookUp(colCuentas, '[CT] Numero de cuenta' = '[PG] Numero Cuenta').'Tipo Producto',
-                               cta,    '[PG] Numero Cuenta'),
-                             cliNom,prod,cta,Lineas)
+                    =GroupBy(AddColumns(AddColumns(AddColumns(colPagHoy,
+                               ctaId,  Cuenta.'CM | TBL | Cuenta'),
+                               ctaRec, LookUp(colCuentas, 'CM | TBL | Cuenta' = ctaId)),
+                               cliNom, ctaRec.'Nombre Cliente',
+                               prod,   ctaRec.'Tipo Producto',
+                               u4,     ctaRec.'Últimos 4'),
+                             cliNom,prod,ctaId,u4,Lineas)
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
                   Width: =Parent.Width - Parent.PaddingLeft*2
@@ -303,7 +305,7 @@ Screens:
                               LayoutMinHeight: =16
                               LayoutMinWidth: =16
                               Size: =gblT.fxs
-                              Text: =ThisItem.prod & " · " & ThisItem.cta
+                              Text: =ThisItem.prod & " · " & PanMasc(ThisItem.u4)
                         - galLineas:
                             Control: Gallery@2.15.0
                             Variant: VariableHeight

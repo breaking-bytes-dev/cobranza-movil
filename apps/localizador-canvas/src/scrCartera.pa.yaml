@@ -11,12 +11,14 @@ Screens:
     Properties:
       Fill: =gblC.screen
       OnHidden: |-
-        =ForAll(Filter(colClientes, dirty) As C,
-             ForAll(Filter(colAsig, cid = C.cid) As A,
-                UpdateIf('CM | TBL | Asignacions',
-                   '[AS] NumeroCuenta' = A.'[AS] NumeroCuenta',
-                   { '[AS] Orden': C.orden })));
-          UpdateIf(colClientes, dirty, { dirty: false })
+        =IfError(
+            ForAll(Filter(colClientes, dirty) As C,
+                 ForAll(Filter(colAsig, cid = C.cid) As A,
+                    UpdateIf('CM | TBL | Asignacions',
+                       'CM | TBL | Asignacion' = A.'CM | TBL | Asignacion',
+                       { '[AS] Orden': C.orden })));
+              UpdateIf(colClientes, dirty, { dirty: false }),
+            Notify("No se pudo guardar el orden de la cartera. Se reintenta al salir de nuevo.", NotificationType.Warning))
       OnVisible: |-
         =  If(!varCarteraLista || varRecargarCartera,
           UpdateContext({varshowLoader: true});
@@ -24,7 +26,7 @@ Screens:
          ClearCollect(colAsig,
              AddColumns(
                 AddColumns(colAsigRaw,
-                   cta, LookUp(colCuentas, '[CT] Numero de cuenta' = '[AS] NumeroCuenta')),
+                   cta, LookUp(colCuentas, 'CM | TBL | Cuenta' = '[AS] Cuenta'.'CM | TBL | Cuenta')),
                 cid,      cta.'CIF Cliente',
                 cliNom,   cta.'Nombre Cliente',
                 saldoNio, cta.'[CT] Saldo Vencido NIO',
@@ -140,7 +142,7 @@ Screens:
                               Font: =
                               FontWeight: =FontWeight.Normal
                               Height: =30
-                              OnSelect: "=UpdateContext({varshowLoader: true});\r\n\r\nForAll(colClientes As C,\r\n     ForAll(Filter(colAsig, cid = C.cid) As A,\r\n        UpdateIf('CM | TBL | Asignacions',\r\n           '[AS] NumeroCuenta' = A.'[AS] NumeroCuenta',\r\n           { '[AS] Orden': C.orden })));\r\n\r\nClearCollect(colAsigRaw, Filter('CM | TBL | Asignacions', '[AS] Estado' = true));\r\nClearCollect(colAsig,\r\n     AddColumns(\r\n        AddColumns(colAsigRaw,\r\n           cta, LookUp(colCuentas, '[CT] Numero de cuenta' = '[AS] NumeroCuenta')),\r\n        cid,      cta.'CIF Cliente',\r\n        cliNom,   cta.'Nombre Cliente',\r\n        saldoNio, cta.'[CT] Saldo Vencido NIO',\r\n        saldoUsd, cta.'[CT] Saldo Vencido USD',\r\n        diasMora, cta.'[CT] Dias Mora',\r\n        ord,      '[AS] Orden'));\r\n\r\n  ClearCollect(colClientes,\r\n     AddColumns(\r\n        GroupBy(colAsig, cid, cliNom, Asigs),\r\n        orden,    Min(Asigs, ord),\r\n        totNio,   Sum(Asigs, saldoNio),\r\n        totUsd,   Sum(Asigs, saldoUsd),\r\n        maxDias,  Max(Asigs, diasMora),\r\n        nCuentas, CountRows(Asigs),\r\n        dirCasa,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'=\"Casa\").'[DR] Direccion',\r\n        dirTrab,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'=\"Trabajo\").'[DR] Direccion',\r\n        dirty,   false));\r\n    Set(varCarteraLista, true);\r\n     Set(varRecargarCartera, false);\r\n     Set(varFechaUltimaActualizacion, Now());\r\n     UpdateContext({varshowLoader: false});\r\n        "
+                              OnSelect: "=UpdateContext({varshowLoader: true});\r\n\r\nForAll(Filter(colClientes, dirty) As C,\r\n     ForAll(Filter(colAsig, cid = C.cid) As A,\r\n        UpdateIf('CM | TBL | Asignacions',\r\n           'CM | TBL | Asignacion' = A.'CM | TBL | Asignacion',\r\n           { '[AS] Orden': C.orden })));\r\n\r\nClearCollect(colAsigRaw, Filter('CM | TBL | Asignacions', '[AS] Estado' = true));\r\nClearCollect(colAsig,\r\n     AddColumns(\r\n        AddColumns(colAsigRaw,\r\n           cta, LookUp(colCuentas, 'CM | TBL | Cuenta' = '[AS] Cuenta'.'CM | TBL | Cuenta')),\r\n        cid,      cta.'CIF Cliente',\r\n        cliNom,   cta.'Nombre Cliente',\r\n        saldoNio, cta.'[CT] Saldo Vencido NIO',\r\n        saldoUsd, cta.'[CT] Saldo Vencido USD',\r\n        diasMora, cta.'[CT] Dias Mora',\r\n        ord,      '[AS] Orden'));\r\n\r\n  ClearCollect(colClientes,\r\n     AddColumns(\r\n        GroupBy(colAsig, cid, cliNom, Asigs),\r\n        orden,    Min(Asigs, ord),\r\n        totNio,   Sum(Asigs, saldoNio),\r\n        totUsd,   Sum(Asigs, saldoUsd),\r\n        maxDias,  Max(Asigs, diasMora),\r\n        nCuentas, CountRows(Asigs),\r\n        dirCasa,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'=\"Casa\").'[DR] Direccion',\r\n        dirTrab,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'=\"Trabajo\").'[DR] Direccion',\r\n        dirty,   false));\r\n    Set(varCarteraLista, true);\r\n     Set(varRecargarCartera, false);\r\n     Set(varFechaUltimaActualizacion, Now());\r\n     UpdateContext({varshowLoader: false});\r\n        "
                               PaddingBottom: =7
                               PaddingLeft: =11
                               PaddingRight: =11
@@ -553,20 +555,20 @@ Screens:
                             Filter(colClientes,
                                (varFiltro = "Todos" || CountRows(Filter(Asigs, Text('[AS] Tipo')  = varFiltro)) > 0)
                                && (varBuscar = "" || varBuscar in cliNom
-                                                  || CountRows(Filter(Asigs, varBuscar in '[AS] NumeroCuenta')) > 0)),
+                                                  || CountRows(Filter(Asigs, varBuscar in cta.'Últimos 4')) > 0)),
                             "orden", SortOrder.Ascending)
 
                       /*If(varModo = "cuenta",
                          SortByColumns(
                             Filter(colAsig,
                                (varFiltro = "Todos" || Text('[AS] Tipo') = varFiltro)
-                               && (varBuscar = "" || varBuscar in cliNom || varBuscar in '[AS] NumeroCuenta')),
-                            "ord", SortOrder.Ascending, "sanic_cm_as_numerocuenta", SortOrder.Ascending),
+                               && (varBuscar = "" || varBuscar in cliNom || varBuscar in cta.'Últimos 4')),
+                            "ord", SortOrder.Ascending, "cliNom", SortOrder.Ascending),
                          SortByColumns(
                             Filter(colClientes,
                                (varFiltro = "Todos" || CountRows(Filter(Asigs, Text('[AS] Tipo')  = varFiltro)) > 0)
                                && (varBuscar = "" || varBuscar in cliNom
-                                                  || CountRows(Filter(Asigs, varBuscar in '[AS] NumeroCuenta')) > 0)),
+                                                  || CountRows(Filter(Asigs, varBuscar in cta.'Últimos 4')) > 0)),
                             "orden", SortOrder.Ascending))*/
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
@@ -874,8 +876,8 @@ Screens:
                     =SortByColumns(
                             Filter(colAsig,
                                (varFiltro = "Todos" || Text('[AS] Tipo') = varFiltro)
-                               && (varBuscar = "" || varBuscar in cliNom || varBuscar in '[AS] NumeroCuenta')),
-                            "ord", SortOrder.Ascending, "sanic_cm_as_numerocuenta", SortOrder.Ascending)
+                               && (varBuscar = "" || varBuscar in cliNom || varBuscar in cta.'Últimos 4')),
+                            "ord", SortOrder.Ascending, "cliNom", SortOrder.Ascending)
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
                   TemplatePadding: =12
