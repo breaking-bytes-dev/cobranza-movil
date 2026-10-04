@@ -136,6 +136,10 @@ async function crearCargaHoy(cliId, cuenta, fechaIso) {
 async function inventarioQA() {
   const q = async (tipo, filtro) => {
     const [set, pk] = ES[tipo];
+    // Los fixtures de los teléfonos (QA-E2E-LOC*: carteras de User5 y User6 para la app nativa) comparten el prefijo
+    // pero NO son de esta suite: el 2026-10-04 una limpieza se los llevó. Se excluyen de todo barrido por prefijo.
+    filtro = filtro.replace(/startswith\((\w+),'([^']+)'\)/g, (m, campo, pre) =>
+      pre === P ? `(${m} and not startswith(${campo},'${P}-LOC') and not startswith(${campo},'${P} Localizador User'))` : m);
     return (await dv.getAll(`${set}?$select=${pk}&$filter=${encodeURIComponent(filtro)}`)).map(x => x[pk]);
   };
   const reg = leerRegistro().creados;
