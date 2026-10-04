@@ -38,7 +38,7 @@ async function correr(id, desc, rol, fn) {
 
 // ── Delegación ─────────────────────────────────────────────────────────────────────────
 const GRANDES = new Set(['sanic_cm_tbl_interaccions', 'sanic_cm_tbl_asignacions', 'sanic_cm_tbl_cuentas', 'sanic_cm_tbl_clientes',
-  'sanic_cm_tbl_pagos', 'sanic_cm_tbl_cargadiarias', 'sanic_cm_tbl_telefonos', 'sanic_cm_tbl_direccions', 'sanic_cm_tbl_actualizaciondatoses']);
+  'sanic_cm_tbl_pagos', 'sanic_cm_tbl_cuentapans', 'sanic_cm_tbl_cargadiarias', 'sanic_cm_tbl_telefonos', 'sanic_cm_tbl_direccions', 'sanic_cm_tbl_actualizaciondatoses']);
 
 function clasificar(sub, resp) {
   const [base, qs = ''] = sub.ruta.split('?');

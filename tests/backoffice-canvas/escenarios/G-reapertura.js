@@ -6,12 +6,14 @@ const pl = require('../lib/player');
 const inf = require('../lib/informe');
 const v = require('../lib/verdad');
 const cfg = require('../lib/config');
+const qa = require('../lib/datosqa');
 const c = require('./comun');
 const { pedirEspecial, especialesDe } = require('./B-solicitante');
 
 module.exports = async function faseG(suite) {
   const yo = cfg.usuarios.user2.id;
-  const cta = suite.datos.cuentas[0].sanic_cm_ct_numerodecuenta; // QA-E2E-CTA-0001
+  const cta = suite.datos.cuentas[0]; // registro de la cuenta QA 0001
+  const mCta = qa.mascara(cta);       // "•••• E2E1": lo único que ve el Solicitante
   const app = await c.abrir(suite, 'user2', 'G', 'Solicitante');
   try {
     await inf.correr('F-02e', 'Tras aprobar (owner → localizador) y cerrar: el Solicitante sigue viendo SUS Especiales (KPIs de Inicio y Mis solicitudes = API)', 'Solicitante', async (e) => {
@@ -25,16 +27,16 @@ module.exports = async function faseG(suite) {
       e.check(c.num(k.RECHAZADAS) === r, 'RECHAZADAS = API', r, k.RECHAZADAS);
       await c.ir(app, 'Mis solicitudes', 'scrMisSolicitudes');
       const filas = (await pl.ctl(app, 'lblCuentaFilaSol').locator('visible=true').allInnerTexts()).map(x => x.trim());
-      const api = (await Promise.all(suite.datos.cuentas.map(x => especialesDe(x.sanic_cm_ct_numerodecuenta)))).flat()
+      const api = (await Promise.all(suite.datos.cuentas.map(x => especialesDe(x)))).flat()
         .filter(x => x._sanic_cm_as_solicitadopor_value === yo).map(x => x.sanic_cm_as_numero);
-      e.nota(`Mis solicitudes (QA visibles): ${JSON.stringify(filas.filter(x => /QA-E2E/.test(x)))} · API (solicitadas por User2): ${api.length}`);
-      e.check(filas.includes(cta), `Mis solicitudes muestra la Especial aprobada y cerrada de ${cta}`, cta, filas.filter(x => /QA-E2E/.test(x)));
+      e.nota(`Mis solicitudes (QA visibles): ${JSON.stringify(filas.filter(x => /E2E/.test(x)))} · API (solicitadas por User2): ${api.length}`);
+      e.check(filas.includes(mCta), `Mis solicitudes muestra la Especial aprobada y cerrada de ${mCta}`, mCta, filas.filter(x => /E2E/.test(x)));
       e.evid(await pl.foto(app, 'F-02e-mis-solicitudes'));
     });
 
     await inf.correr('F-02c', 'Re-solicitar por la UI una Especial cuya anterior fue APROBADA y CERRADA (ciclo real) → la app la REACTIVA (B-11)', 'Solicitante', async (e) => {
       const previa = await especialesDe(cta);
-      if (!(previa.length === 1 && previa[0].sanic_cm_as_estado === false)) { e.bloquear(`precondición: 1 Especial CERRADA en ${cta} (hay ${previa.length}, estados ${JSON.stringify(previa.map(x => x.sanic_cm_as_estado))})`); return; }
+      if (!(previa.length === 1 && previa[0].sanic_cm_as_estado === false)) { e.bloquear(`precondición: 1 Especial CERRADA en ${mCta} (hay ${previa.length}, estados ${JSON.stringify(previa.map(x => x.sanic_cm_as_estado))})`); return; }
       let n;
       try { n = await pedirEspecial(app, cta, { nio: 120, motivo: 'QA-E2E re-solicitud F-02c', etiqueta: 'scrNuevaSolicitud(re-solicitud)' }); }
       catch (err) { if (/No se pudo elegir la cuenta/.test(err.message)) { e.bloquear(`el buscador de cuentas no deja elegir (B-04): ${err.message.slice(0, 120)}`); return; } throw err; }

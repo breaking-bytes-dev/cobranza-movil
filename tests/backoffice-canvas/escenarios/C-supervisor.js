@@ -92,7 +92,7 @@ module.exports = async function faseC(suite) {
       if (suite.datos.aprobacionUiImposible) {
         // La UI no deja elegir localizador (F-03): se hace la MISMA escritura que el Patch de btnAprobarAprb
         // (estado Aprobado + agente + resolutor) por Web API sobre la Especial QA, para verificar el flow igual.
-        if (!/^QA-E2E-CTA-/.test(esp.sanic_cm_as_numerocuenta || '')) throw new Error('Seguridad: Especial no QA');
+        if (!/^QA-E2E-CLAVE-/.test(esp.sanic_cm_as_clavepan || '')) throw new Error('Seguridad: Especial no QA');
         suite.datos.ownerAntesAprob = (await dv.get(`sanic_cm_tbl_asignacions(${esp.sanic_cm_tbl_asignacionid})?$select=_ownerid_value`))._ownerid_value;
         await dv.patch('sanic_cm_tbl_asignacions', esp.sanic_cm_tbl_asignacionid, {
           sanic_cm_as_estadoaprobacion: 3,

@@ -23,6 +23,7 @@ Screens:
                         'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion'),
                 clienteAprb,
                 Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
+                ult4Aprb, Coalesce(ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
                 prodAprb, Coalesce(ThisRecord.'[AS] Cuenta'.'Tipo Producto', "—"),
                 nioAprb, ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO',
                 usdAprb, ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD',
@@ -77,6 +78,7 @@ Screens:
                                     'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion'),
                             clienteAprb,
                             Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
+                            ult4Aprb, Coalesce(ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
                             prodAprb, Coalesce(ThisRecord.'[AS] Cuenta'.'Tipo Producto', "—"),
                             nioAprb, ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO',
                             usdAprb, ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD',
@@ -140,7 +142,7 @@ Screens:
                         Height: =16
                         PaddingLeft: =0
                         Size: =9
-                        Text: =ThisItem.'[AS] NumeroCuenta'
+                        Text: =CuentaMasc(ThisItem.ult4Aprb)
                         Width: =lblFilaClienteAprb.Width
                         Wrap: =false
                         X: =gblE.Pad
@@ -394,7 +396,7 @@ Screens:
                   PaddingRight: =0
                   Size: =10
                   Text: |-
-                    =varSelAprb.'[AS] NumeroCuenta' & " · " & varSelAprb.prodAprb
+                    =CuentaMasc(varSelAprb.ult4Aprb) & " · " & varSelAprb.prodAprb
                   Width: =Parent.Width - 2*gblE.Pad - 130
                   Wrap: =false
                   X: =gblE.Pad + 130

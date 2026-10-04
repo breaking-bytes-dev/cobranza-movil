@@ -28,6 +28,11 @@ App:
               "C$ 0.00"
           );
 
+      // Cuenta enmascarada (PCI, fase 2): ninguna pantalla muestra el número completo; se muestra
+      // "•••• " + 'Últimos 4' (columna de la cuenta). Solo el rol BackOffice lee el PAN completo (bóveda, scrTranscripcion/Transcritas).
+      CuentaMasc(ult4:Text): Text =
+          If(IsBlank(ult4), "••••", "•••• " & ult4);
+
       // Breakpoint responsive único del proyecto (00 §7).
       // Si Studio rechaza App.ActiveScreen acá, mover nfMovil a cada pantalla como Parent.Width < 920.
       nfMovil = App.ActiveScreen.Width < 920;

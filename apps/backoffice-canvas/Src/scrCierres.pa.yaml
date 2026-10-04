@@ -23,6 +23,8 @@ Screens:
                     && '[AS] Estado' = true),
                 clienteCie, Upper(Coalesce(
                     ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
+                ult4Cie, Coalesce(
+                    ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
                 diasCie, Coalesce(
                     ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
                 nioCie, Coalesce(
@@ -152,6 +154,8 @@ Screens:
                                 && '[AS] Estado' = true),
                             clienteCie, Upper(Coalesce(
                                 ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
+                            ult4Cie, Coalesce(
+                                ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
                             diasCie, Coalesce(
                                 ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
                             nioCie, Coalesce(
@@ -226,7 +230,7 @@ Screens:
                         PaddingLeft: =0
                         Size: =9
                         Text: |-
-                          =ThisItem.'[AS] NumeroCuenta' & " · 🏍️ " &
+                          =CuentaMasc(ThisItem.ult4Cie) & " · 🏍️ " &
                               Coalesce(ThisItem.'[AS] Agente'.'[AG] Nombre', "—")
                         Width: =Parent.TemplateWidth * 0.38
                         Wrap: =false
@@ -460,7 +464,7 @@ Screens:
                   PaddingLeft: =0
                   PaddingRight: =0
                   Size: =10
-                  Text: =varSelCie.'[AS] NumeroCuenta'
+                  Text: =CuentaMasc(varSelCie.ult4Cie)
                   Width: =Parent.Width - 3*gblE.Pad - 120
                   Wrap: =false
                   X: =gblE.Pad + 120

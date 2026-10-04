@@ -19,7 +19,11 @@ async function flujoTranscripcion(e, app, suite, yo) {
       await pl.esperar(app, 3000);
       let pos = await pl.texto(app, 'lblPosTrx');
       e.check(pos.includes(int1.sanic_cm_in_numerointeraccion) && pos.startsWith('1 DE 2'), 'selección inicial = la QA más vieja (FIFO)', `1 DE 2 … ${int1.sanic_cm_in_numerointeraccion}`, pos);
-      e.check((await pl.texto(app, 'lblCuentaGrandeTrx')) === 'QA-E2E-CTA-0001', 'detalle: cuenta QA', 'QA-E2E-CTA-0001', await pl.texto(app, 'lblCuentaGrandeTrx'));
+      // PCI (fase 2): el detalle muestra el número COMPLETO leído de la bóveda (el "PAN" QA es la cuenta QA).
+      // Si la bóveda no se pudo leer, la app cae a "•••• E2E1" y este check lo delata.
+      e.check((await pl.texto(app, 'lblCuentaGrandeTrx')) === 'QA-E2E-CTA-0001', 'detalle: número completo de la cuenta QA leído de la bóveda (BackOffice)', 'QA-E2E-CTA-0001', await pl.texto(app, 'lblCuentaGrandeTrx'));
+      const colaMeta = (await pl.ctl(app, 'lblColaMetaTrx').locator('visible=true').allInnerTexts()).join(' | ');
+      e.check(!colaMeta.includes('QA-E2E-CTA-0001') && colaMeta.includes('•••• E2E1'), 'la cola muestra la cuenta enmascarada (el número completo solo en el detalle)', '•••• E2E1 sin QA-E2E-CTA-0001', colaMeta.slice(0, 200));
       // Detalle de pagos
       const secP = await pl.texto(app, 'lblSecPagosTrx').catch(() => null);
       const montos = await pl.ctl(app, 'lblPagoMontoTrx').locator('visible=true').allInnerTexts();
@@ -79,7 +83,7 @@ async function arqueo(e, app, yo) {
       const t = await v.transcritasHoy(yo);
       e.check(c.num(k.TRANSCRITAS) === t, 'KPI TRANSCRITAS = API (grabadas hoy por mí)', t, k.TRANSCRITAS);
       e.check(k['PAGOS TRANSCRITOS'] === 'C$ 250.00', 'KPI PAGOS TRANSCRITOS = pagos de hoy de mis transcritas', 'C$ 250.00', k['PAGOS TRANSCRITOS']);
-      const filas = (await pl.ctl(app, 'lblCuentaTsc').locator('visible=true').allInnerTexts()).filter(x => x.includes('QA-E2E-CTA-0001'));
+      const filas = (await pl.ctl(app, 'lblCuentaTsc').locator('visible=true').allInnerTexts()).filter(x => x.includes('•••• E2E1'));
       e.check(filas.length === 2, 'las 2 interacciones QA están en el arqueo', 2, filas.length);
       e.evid(await pl.foto(app, 'F-01b-transcritas'));
 }

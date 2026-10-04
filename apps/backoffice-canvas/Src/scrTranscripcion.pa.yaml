@@ -23,7 +23,10 @@ Screens:
                 cifTrx, Coalesce(
                     ThisRecord.'[IN] Cuenta'.'CIF Cliente', "—"),
                 productoTrx, Coalesce(
-                    ThisRecord.'[IN] Cuenta'.'Tipo Producto', "—")
+                    ThisRecord.'[IN] Cuenta'.'Tipo Producto', "—"),
+                ult4Trx, Coalesce(
+                    ThisRecord.'[IN] Cuenta'.'Últimos 4', ""),
+                cuentaIdTrx, ThisRecord.'[IN] Cuenta'.'CM | TBL | Cuenta'
             )
         );
         // 4) columna de localizadores materializada
@@ -101,7 +104,10 @@ Screens:
                       cifTrx, Coalesce(
                           ThisRecord.'[IN] Cuenta'.'CIF Cliente', "—"),
                       productoTrx, Coalesce(
-                          ThisRecord.'[IN] Cuenta'.'Tipo Producto', "—")
+                          ThisRecord.'[IN] Cuenta'.'Tipo Producto', "—"),
+                      ult4Trx, Coalesce(
+                          ThisRecord.'[IN] Cuenta'.'Últimos 4', ""),
+                      cuentaIdTrx, ThisRecord.'[IN] Cuenta'.'CM | TBL | Cuenta'
                   )
               );
               // 3) columna de localizadores
@@ -479,7 +485,7 @@ Screens:
                         PaddingLeft: =0
                         Size: =8
                         Text: |-
-                          =ThisItem.'[IN] Numerocuenta'
+                          =CuentaMasc(ThisItem.ult4Trx)
                               & " · " & Text(ThisItem.'Fecha de captura', "HH:mm")
                               & If(ThisItem.'[IN] Aplica pago', " · 💵", "")
                               & If(ThisItem.'[IN] Actualiza info', " · ✏️", "")
@@ -689,7 +695,20 @@ Screens:
                               PaddingLeft: =0
                               Size: =24
                               TabIndex: =0
-                              Text: =varActualTrx.'[IN] Numerocuenta'
+                              Text: |-
+                                =// PCI (fase 2): el número completo vive SOLO en la bóveda y solo lo lee el rol BackOffice
+                                // (lectura Global). Un LookUp (delegable, un nivel de lookup) por registro mostrado.
+                                // Sin rol, sin permiso o sin fila en la bóveda → solo "•••• 1234"; nunca se cae al
+                                // número de la cuenta. Copy() (OnSelect) existe SOLO acá (D8).
+                                If(IsBlank(varActualTrx), "",
+                                    "Backoffice" in gblRol,
+                                    Coalesce(
+                                        IfError(
+                                            LookUp('CM | TBL | PAN de cuentas',
+                                                Cuenta.'CM | TBL | Cuenta' = varActualTrx.cuentaIdTrx).PAN,
+                                            Blank()),
+                                        CuentaMasc(varActualTrx.ult4Trx)),
+                                    CuentaMasc(varActualTrx.ult4Trx))
                               Width: =Parent.Width - 2*gblE.Pad
                               Wrap: =false
                               X: =gblE.Pad
