@@ -8,6 +8,8 @@ const cfg = require('../lib/config');
 const c = require('./comun');
 
 const LOC_QA = 'QA-E2E Localizador';
+// Los agentes de los teléfonos de prueba ('QA-E2E Localizador User5/User6') también empiezan así: no son de la suite.
+const RE_LOC_QA = /QA-E2E Localizador(?! User)/i;
 
 
 // Flujo de transcripción de las 2 interacciones QA (lo usan F-01 y F-01m).
@@ -15,7 +17,7 @@ async function flujoTranscripcion(e, app, suite, yo) {
   const { int1, int2 } = suite.datos;
   await c.ir(app, 'Por transcribir', 'scrTranscripcion');
       app.red.marcar(`${app.fase}:scrTranscripcion(grabar)`);
-      await pl.ctl(app, 'btnFilaLocsTrx').locator('visible=true').filter({ hasText: LOC_QA }).first().click();
+      await pl.ctl(app, 'btnFilaLocsTrx').locator('visible=true').filter({ hasText: RE_LOC_QA }).first().click();
       await pl.esperar(app, 3000);
       let pos = await pl.texto(app, 'lblPosTrx');
       e.check(pos.includes(int1.sanic_cm_in_numerointeraccion) && pos.startsWith('1 DE 2'), 'selección inicial = la QA más vieja (FIFO)', `1 DE 2 … ${int1.sanic_cm_in_numerointeraccion}`, pos);
@@ -68,7 +70,7 @@ async function flujoTranscripcion(e, app, suite, yo) {
       const r2 = await dv.get(`sanic_cm_tbl_interaccions(${int2.sanic_cm_tbl_interaccionid})?$select=sanic_cm_in_estadograbacion,sanic_cm_in_codigograbacion,_sanic_cm_in_grabadopor_value`);
       e.check(r2.sanic_cm_in_estadograbacion === 2 && r2.sanic_cm_in_codigograbacion === 'QAE2E2' && r2._sanic_cm_in_grabadopor_value === yo, 'Dataverse: 2.ª grabada con código y usuario', `2/QAE2E2/${yo}`, `${r2.sanic_cm_in_estadograbacion}/${r2.sanic_cm_in_codigograbacion}/${r2._sanic_cm_in_grabadopor_value}`);
       const locs = (await pl.ctl(app, 'btnFilaLocsTrx').locator('visible=true').allInnerTexts()).join(' / ');
-      e.check(!locs.includes(LOC_QA), 'el localizador QA desapareció de la columna', `sin ${LOC_QA}`, locs);
+      e.check(!RE_LOC_QA.test(locs), 'el localizador QA desapareció de la columna', `sin ${LOC_QA}`, locs);
       e.evid(await pl.foto(app, 'F-01-cola-vacia'));
 
   const ok = e.checks.filter(x => /^Dataverse/.test(x.msg)).every(x => x.ok);
@@ -120,7 +122,7 @@ module.exports = async function faseD(suite) {
       e.check(c.num(todos && todos.match(/\((\d+) pendientes\)/)?.[1]) === p, 'chip "Todos" = pendientes API', p, todos);
       const head = await pl.texto(app, 'lblHeadColaTrx');
       e.check(c.num(head.match(/PENDIENTES · (\d+)/)?.[1]) === p, 'encabezado de la cola = pendientes API', p, head);
-      e.check(locs.some(x => x.includes(LOC_QA)), 'aparece el localizador QA con sus 2 pendientes', `${LOC_QA} (2 pendientes)`, locs);
+      e.check(locs.some(x => RE_LOC_QA.test(x)), 'aparece el localizador QA con sus 2 pendientes', `${LOC_QA} (2 pendientes)`, locs);
       e.evid(await pl.foto(app, 'D-02h-transcripcion'));
     });
 
