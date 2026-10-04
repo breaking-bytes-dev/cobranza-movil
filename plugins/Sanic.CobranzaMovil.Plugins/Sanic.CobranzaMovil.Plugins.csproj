@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Ensamblado de plugins de Cobranza Movil (Fase 2 PAN/PCI).
+    - net462: el sandbox de Dataverse carga ensamblados de .NET Framework.
+    - Sin dependencias en tiempo de ejecucion fuera del SDK de Dataverse (el ensamblado se sube SOLO, sin ILMerge).
+    - Firma de nombre seguro: Dataverse la exige. La clave NO esta en el repo (*.snk esta en .gitignore).
+      Se pasa por linea de comandos: -p:AssemblyOriginatorKeyFile=<ruta al .snk>.
+      Sin ese parametro el ensamblado compila SIN firmar (suficiente para las pruebas, NO registrable).
+  -->
+  <PropertyGroup>
+    <TargetFramework>net462</TargetFramework>
+    <AssemblyName>Sanic.CobranzaMovil.Plugins</AssemblyName>
+    <RootNamespace>Sanic.CobranzaMovil.Plugins</RootNamespace>
+    <LangVersion>7.3</LangVersion>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <Version>1.0.0</Version>
+    <Company>Sanic</Company>
+    <Product>Cobranza Movil</Product>
+    <Description>Plugins de Cobranza Movil: PanGuard, ClaveDesdeCuenta, CuentaDesdeInteraccion.</Description>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(AssemblyOriginatorKeyFile)' != ''">
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CrmSdk.CoreAssemblies" Version="9.0.2.*" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

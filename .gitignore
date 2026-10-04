@@ -26,3 +26,9 @@ test-data/*prod*
 .DS_Store
 Thumbs.db
 *.swp
+
+# ── Compilacion de los plugins .NET ─────────────────────────────────────
+plugins/**/bin/
+plugins/**/obj/
+out/
+__pycache__/
