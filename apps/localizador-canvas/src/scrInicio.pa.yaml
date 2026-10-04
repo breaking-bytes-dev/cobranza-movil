@@ -355,7 +355,7 @@ Screens:
                               LayoutMinWidth: =16
                               PaddingBottom: =0
                               Size: =gblT.flg
-                              Text: =CountRows(Distinct(colIntHoy, '[IN] Numerocuenta'))
+                              Text: =CountRows(Distinct(colIntHoy, '[IN] Cuenta'.'CM | TBL | Cuenta'))
                         - lblSl_1:
                             Control: Label@2.5.1
                             Properties:
@@ -403,7 +403,7 @@ Screens:
                               LayoutMinWidth: =16
                               PaddingBottom: =0
                               Size: =gblT.flg
-                              Text: =CountRows(Distinct(AddColumns(colIntHoy, cliJoin, LookUp(colCuentas, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'Nombre Cliente'), cliJoin))
+                              Text: =CountRows(Distinct(AddColumns(colIntHoy, cliJoin, LookUp(colCuentas, 'CM | TBL | Cuenta' = '[IN] Cuenta'.'CM | TBL | Cuenta').'Nombre Cliente'), cliJoin))
                         - lblSl_2:
                             Control: Label@2.5.1
                             Properties:
@@ -509,9 +509,9 @@ Screens:
                             AddColumns(
                                 colIntHoy,
                                 cliNom,
-                                LookUp(colCuentas, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'Nombre Cliente',
+                                LookUp(colCuentas, 'CM | TBL | Cuenta' = '[IN] Cuenta'.'CM | TBL | Cuenta').'Nombre Cliente',
                                 cid,
-                                LookUp(colCuentas, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'CIF Cliente'
+                                LookUp(colCuentas, 'CM | TBL | Cuenta' = '[IN] Cuenta'.'CM | TBL | Cuenta').'CIF Cliente'
                             ),
                             cliNom,
                             cid,
@@ -656,11 +656,11 @@ Screens:
                             AddColumns(
                                 colIntHoy,
                                 prod,
-                                LookUp(colCuentas, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'Tipo Producto',
+                                LookUp(colCuentas, 'CM | TBL | Cuenta' = '[IN] Cuenta'.'CM | TBL | Cuenta').'Tipo Producto',
                                 cta,
-                                '[IN] Numerocuenta',
+                                '[IN] Cuenta'.'CM | TBL | Cuenta',
                                 cliNom,
-                                LookUp(colCuentas, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'Nombre Cliente'
+                                LookUp(colCuentas, 'CM | TBL | Cuenta' = '[IN] Cuenta'.'CM | TBL | Cuenta').'Nombre Cliente'
                             ),
                             prod,
                             cta,
@@ -668,7 +668,7 @@ Screens:
                             Items
                         ),
                             ctaRec,
-                            LookUp(colCuentas, '[CT] Numero de cuenta' = cta)
+                            LookUp(colCuentas, 'CM | TBL | Cuenta' = cta)
                         ),Blank())
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
@@ -732,7 +732,7 @@ Screens:
                                     LayoutMinHeight: =16
                                     LayoutMinWidth: =16
                                     Size: =gblT.fxs
-                                    Text: =ThisItem.cliNom & " · " & ThisItem.cta
+                                    Text: =ThisItem.cliNom & " · " & PanMasc(ThisItem.ctaRec.'Últimos 4')
                         - conBrowDer_1:
                             Control: GroupContainer@1.5.0
                             Variant: AutoLayout

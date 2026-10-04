@@ -10,7 +10,8 @@ Screens:
   scrInteraccion:
     Properties:
       OnHidden: |-
-        =Reset(txtComentario);
+        =UpdateContext({locPan: Blank()});
+        Reset(txtComentario);
         Reset(tpPago);
         Clear(colLineasPago);
         Reset(tgDatos);
@@ -22,11 +23,12 @@ Screens:
         Reset(inDirTrab);
         Reset(inCorreo);
       OnVisible: |-
-        =ClearCollect(colProdInt,
+        =UpdateContext({locPan: Blank()});
+        ClearCollect(colProdInt,
             AddColumns(
                 Filter(colAsig, cid = varCuenta.'CIF Cliente' && '[AS] Estado' = true),
-                esActual, '[AS] NumeroCuenta' = varCuenta.'[CT] Numero de cuenta',
-                sel,      '[AS] NumeroCuenta' = varCuenta.'[CT] Numero de cuenta'))
+                esActual, '[AS] Cuenta'.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta',
+                sel,      '[AS] Cuenta'.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta'))
     Children:
       - conMaster_4:
           Control: GroupContainer@1.5.0
@@ -62,7 +64,7 @@ Screens:
                       ComponentName: cmpHeaderBack
                       Properties:
                         Height: =Parent.Height
-                        Subtitulo: =varCuenta.'Tipo Producto' & " · " & varCuenta.'[CT] Numero de cuenta'
+                        Subtitulo: =varCuenta.'Tipo Producto' & " · " & If(IsBlank(locPan), PanMasc(varCuenta.'Últimos 4'), locPan)
                         Titulo: =varCuenta.'Nombre Cliente'
                         Width: =Parent.Width
                   - Button1_5:
@@ -104,6 +106,47 @@ Screens:
                         Width: =100
                         X: =Parent.Width - 18  - Self.Width
                         Y: =Button1_5.Y + Button1_5.Height + 20
+                  - btnVerPan_IN:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderStyle: =BorderStyle.None
+                        Color: =gblC.white
+                        DisplayMode: =If(IsBlank(varCuenta), DisplayMode.Disabled, DisplayMode.Edit)
+                        Fill: =RGBA(255,255,255,0.18)
+                        FontWeight: =FontWeight.Bold
+                        Height: =If(gblScale = 1, 28,gblScale = 1.2,30,gblScale = 1.45,34,38)
+                        OnSelect: |-
+                          =// Número completo SOLO en variable de contexto (nunca en colecciones, SaveData ni globales).
+                          // Un solo nivel de lookup: funciona offline. El Timer lo oculta a los 30 s.
+                          If(!IsBlank(locPan),
+                              UpdateContext({locPan: Blank()}),
+                              With({ pan: LookUp('CM | TBL | PAN de cuentas', Cuenta.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta').PAN },
+                                  If(IsBlank(pan),
+                                      Notify("El número de tarjeta no está disponible en este dispositivo. Sincronizá y volvé a intentar.", NotificationType.Warning),
+                                      UpdateContext({locPan: pan}))))
+                        PaddingBottom: =4
+                        PaddingLeft: =8
+                        PaddingRight: =8
+                        PaddingTop: =4
+                        RadiusBottomLeft: =9
+                        RadiusBottomRight: =9
+                        RadiusTopLeft: =9
+                        RadiusTopRight: =9
+                        Size: =gblT.fxs
+                        Text: =If(IsBlank(locPan), "Ver número", "Ocultar")
+                        Width: =If(gblScale = 1, 84,gblScale = 1.2,96,gblScale = 1.45,112,124)
+                        X: =Parent.Width - Self.Width - 14
+                        Y: =Parent.Height - Self.Height - 6
+                  - tmrVerPan_IN:
+                      Control: Timer@2.1.0
+                      Properties:
+                        AutoPause: =false
+                        Duration: =30000
+                        OnTimerEnd: |-
+                          =UpdateContext({locPan: Blank()})
+                        Repeat: =false
+                        Start: =!IsBlank(locPan)
+                        Visible: =false
             - cardTotalCli_2:
                 Control: GroupContainer@1.5.0
                 Variant: AutoLayout
@@ -347,7 +390,7 @@ Screens:
                                           LayoutMinHeight: =16
                                           LayoutMinWidth: =16
                                           Size: =gblT.fxs
-                                          Text: =ThisItem.'[AS] NumeroCuenta'
+                                          Text: =PanMasc(ThisItem.cta.sanic_cm_ct_ultimos4)
                               - lblActBadge:
                                   Control: ModernText@1.0.0
                                   Properties:
@@ -371,8 +414,8 @@ Screens:
                               Height: =Parent.TemplateHeight
                               OnSelect: |-
                                 =With(
-                                    { tn: ThisItem.'[AS] NumeroCuenta', ts: ThisItem.sel },
-                                    UpdateIf(colProdInt, '[AS] NumeroCuenta' = tn, { sel: !ts }))
+                                    { tn: ThisItem.'CM | TBL | Asignacion', ts: ThisItem.sel },
+                                    UpdateIf(colProdInt, 'CM | TBL | Asignacion' = tn, { sel: !ts }))
                               Text: =
                               Width: =Parent.TemplateWidth
                   - lblSelNota:
@@ -1078,14 +1121,13 @@ Screens:
                             '[IN] Actualiza info': tgDatos.Value,
                             '[IN] Latitud': Location.Latitude,
                             '[IN] Longitud': Location.Longitude,
-                            '[IN] Numerocuenta': varCuenta.'[CT] Numero de cuenta',
                             'Fecha de captura': Now(),
                             '[IN] NombreAgente': Coalesce(gblAgente.'[AG] Nombre', "Sin nombre") }));
                         If(tpPago.Value, ForAll(Filter(colLineasPago, monto > 0) As L,
                             Patch('CM | TBL | Pagos', Defaults('CM | TBL | Pagos'), {
                                 '[PG] Interaccion': varInt,
                                 '[PG] Numero Interaccion': varInt.'[IN] Numero de Interaccion',
-                                '[PG] Numero Cuenta': varCuenta.'[CT] Numero de cuenta',
+                                Cuenta: varCuenta,
                                 '[PG] Monto': L.monto,
                                 '[PG] Moneda': Switch(L.moneda, "USD", 'Choice | CM | Monedas en Pago'.USD, 'Choice | CM | Monedas en Pago'.NIO),
                                 '[PG] Numero recibo': L.recibo })));
@@ -1108,7 +1150,6 @@ Screens:
                                 '[IN] Actualiza info': false,
                                 '[IN] Latitud': Location.Latitude,
                                 '[IN] Longitud': Location.Longitude,
-                                '[IN] Numerocuenta': P.'[AS] NumeroCuenta',
                                 'Fecha de captura': Now(),
                                 '[IN] NombreAgente': Coalesce(gblAgente.'[AG] Nombre', "Sin nombre") })));
                     Set(varCom, "");

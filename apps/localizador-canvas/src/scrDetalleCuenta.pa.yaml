@@ -8,6 +8,18 @@
 # ************************************************************************************************
 Screens:
   scrDetalleCuenta:
+    Properties:
+      OnHidden: |-
+        =UpdateContext({locPan: Blank()})
+      OnVisible: |-
+        =// locPan: número completo (se oculta solo). locEsp: Especial activa de ESTA cuenta (retiro y nota viven en la asignación).
+        UpdateContext({
+            locPan: Blank(),
+            locEsp: LookUp('CM | TBL | Asignacions',
+                '[AS] Cuenta'.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta'
+                && '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                && '[AS] Estado' = true)
+        })
     Children:
       - conMaster_3:
           Control: GroupContainer@1.5.0
@@ -43,7 +55,7 @@ Screens:
                       ComponentName: cmpHeaderBack
                       Properties:
                         Height: =Parent.Height
-                        Subtitulo: =varCuenta.'Tipo Producto' & " · " & varCuenta.'[CT] Numero de cuenta'
+                        Subtitulo: =varCuenta.'Tipo Producto' & " · " & If(IsBlank(locPan), PanMasc(varCuenta.'Últimos 4'), locPan)
                         Titulo: =varCuenta.'Nombre Cliente'
                         Width: =Parent.Width
                   - Button1_4:
@@ -85,6 +97,47 @@ Screens:
                         Width: =80
                         X: =Parent.Width - 18  - Self.Width
                         Y: =Button1_4.Y + Button1_4.Height + 20
+                  - btnVerPan_DC:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderStyle: =BorderStyle.None
+                        Color: =gblC.white
+                        DisplayMode: =If(IsBlank(varCuenta), DisplayMode.Disabled, DisplayMode.Edit)
+                        Fill: =RGBA(255,255,255,0.18)
+                        FontWeight: =FontWeight.Bold
+                        Height: =If(gblScale = 1, 28,gblScale = 1.2,30,gblScale = 1.45,34,38)
+                        OnSelect: |-
+                          =// Número completo SOLO en variable de contexto (nunca en colecciones, SaveData ni globales).
+                          // Un solo nivel de lookup: funciona offline. El Timer lo oculta a los 30 s.
+                          If(!IsBlank(locPan),
+                              UpdateContext({locPan: Blank()}),
+                              With({ pan: LookUp('CM | TBL | PAN de cuentas', Cuenta.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta').PAN },
+                                  If(IsBlank(pan),
+                                      Notify("El número de tarjeta no está disponible en este dispositivo. Sincronizá y volvé a intentar.", NotificationType.Warning),
+                                      UpdateContext({locPan: pan}))))
+                        PaddingBottom: =4
+                        PaddingLeft: =8
+                        PaddingRight: =8
+                        PaddingTop: =4
+                        RadiusBottomLeft: =9
+                        RadiusBottomRight: =9
+                        RadiusTopLeft: =9
+                        RadiusTopRight: =9
+                        Size: =gblT.fxs
+                        Text: =If(IsBlank(locPan), "Ver número", "Ocultar")
+                        Width: =If(gblScale = 1, 84,gblScale = 1.2,96,gblScale = 1.45,112,124)
+                        X: =Parent.Width - Self.Width - 14
+                        Y: =Parent.Height - Self.Height - 6
+                  - tmrVerPan_DC:
+                      Control: Timer@2.1.0
+                      Properties:
+                        AutoPause: =false
+                        Duration: =30000
+                        OnTimerEnd: |-
+                          =UpdateContext({locPan: Blank()})
+                        Repeat: =false
+                        Start: =!IsBlank(locPan)
+                        Visible: =false
             - conTabs_1:
                 Control: GroupContainer@1.5.0
                 Variant: AutoLayout
@@ -140,7 +193,7 @@ Screens:
                         RadiusTopLeft: =
                         RadiusTopRight: =
                         Size: =gblT.fsm
-                        Text: ="Interacciones (" & CountRows(Filter('CM | TBL | Interaccions', LookUp(colCuentas, '[CT] Numero de cuenta' = '[IN] Numerocuenta').'CIF Cliente' = varCuenta.'CIF Cliente')) &")"
+                        Text: ="Interacciones (" & CountRows(Filter('CM | TBL | Interaccions', '[IN] Cuenta'.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta')) &")"
             - cardTotalCli_1:
                 Control: GroupContainer@1.5.0
                 Variant: AutoLayout
@@ -517,7 +570,7 @@ Screens:
                   RadiusBottomRight: =14
                   RadiusTopLeft: =14
                   RadiusTopRight: =14
-                  Visible: =Text(varAsig.'[AS] Tipo') = "Especial"
+                  Visible: =!IsBlank(locEsp)
                 Children:
                   - lblSecTel_3:
                       Control: Label@2.5.1
@@ -565,7 +618,7 @@ Screens:
                               LayoutMinHeight: =16
                               LayoutMinWidth: =16
                               Size: =gblT.fbase
-                              Text: =varCuenta.'[CT] Tipo Especial'
+                              Text: =Coalesce(EspTipo(locEsp.Notas), "—")
                   - conFila_DiasMora_2:
                       Control: GroupContainer@1.5.0
                       Variant: AutoLayout
@@ -601,7 +654,7 @@ Screens:
                               LayoutMinHeight: =16
                               LayoutMinWidth: =16
                               Size: =gblT.fbase
-                              Text: =Moneda(varCuenta.'[CT] Retiro NIO', varCuenta.'[CT] Retiro USD')
+                              Text: =Moneda(locEsp.'Retiro NIO', locEsp.'Retiro USD')
                   - conFila_Ciclo_1:
                       Control: GroupContainer@1.5.0
                       Variant: AutoLayout
@@ -637,13 +690,13 @@ Screens:
                               LayoutMinHeight: =16
                               LayoutMinWidth: =16
                               Size: =gblT.fbase
-                              Text: =varCuenta.'[CT] Nota'
+                              Text: =Coalesce(EspNota(locEsp.Notas), "—")
             - galInterCli_1:
                 Control: Gallery@2.15.0
                 Variant: VariableHeight
                 Properties:
                   AlignInContainer: =AlignInContainer.Center
-                  Items: =Sort(Filter('CM | TBL | Interaccions', '[IN] Numerocuenta' = varCuenta.'[CT] Numero de cuenta'), 'Created On', SortOrder.Descending)
+                  Items: =Sort(Filter('CM | TBL | Interaccions', '[IN] Cuenta'.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta'), 'Created On', SortOrder.Descending)
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
                   Visible: =varCliTab = "inter"
@@ -713,7 +766,7 @@ Screens:
                                     PaddingBottom: =0
                                     PaddingTop: =0
                                     Size: =gblT.fxs
-                                    Text: =LookUp(colCuentas, '[CT] Numero de cuenta' = ThisItem.'[IN] Numerocuenta').'Tipo Producto' & " · " & ThisItem.'[IN] Numerocuenta'
+                                    Text: =varCuenta.'Tipo Producto' & " · " & PanMasc(varCuenta.'Últimos 4')
                                     Width: =Parent.Width - 16
                               - lblICom_2:
                                   Control: Label@2.5.1

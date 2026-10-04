@@ -297,6 +297,34 @@ Screens:
                   RadiusTopLeft: =14
                   RadiusTopRight: =14
                   Text: =If(Connection.Connected,"↻ Buscar actualizaciones","Sin conexión — no se puede sincronizar")
+            - btnSyncCompleta:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  AlignInContainer: =AlignInContainer.Stretch
+                  BorderStyle: =BorderStyle.None
+                  Color: =gblC.ink2
+                  Fill: =gblC.chipBg
+                  Height: =54
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  OnSelect: =ShowHostInfo(HostInfo.OfflineSync)
+                  RadiusBottomLeft: =14
+                  RadiusBottomRight: =14
+                  RadiusTopLeft: =14
+                  RadiusTopRight: =14
+                  Text: ="⟳ Sincronización completa"
+                  Visible: =Host.OfflineEnabled
+            - lblSyncCompletaHint:
+                Control: Label@2.5.1
+                Properties:
+                  AlignInContainer: =AlignInContainer.Stretch
+                  AutoHeight: =true
+                  Color: =gblC.muted
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  Size: =gblT.fxs
+                  Text: ="Abre el estado del dispositivo. Tocá Actualizar para revisar toda tu cartera y quitar lo que ya no te corresponde."
+                  Visible: =Host.OfflineEnabled
             - lblCapTit:
                 Control: Label@2.5.1
                 Properties:
@@ -363,7 +391,8 @@ Screens:
                                     LayoutMinHeight: =16
                                     LayoutMinWidth: =16
                                     Size: =gblT.fbase
-                                    Text: =LookUp(colCuentas, '[CT] Numero de cuenta' = ThisItem.'[IN] Numerocuenta').'Nombre Cliente' & " · " & LookUp(colCuentas, '[CT] Numero de cuenta' = ThisItem.'[IN] Numerocuenta').'Tipo Producto'
+                                    Text: |-
+                                      =With({ c: LookUp(colCuentas, 'CM | TBL | Cuenta' = ThisItem.'[IN] Cuenta'.'CM | TBL | Cuenta') }, c.'Nombre Cliente' & " · " & c.'Tipo Producto')
                                     Width: =Parent.Width
                               - lblCapH:
                                   Control: Label@2.5.1
