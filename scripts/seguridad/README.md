@@ -26,6 +26,27 @@ python3 scripts/seguridad/paso3_reconciliar.py --aplicar
 
 La reconciliación solo **agrega** los compartidos que falten. Los compartidos sobrantes de un cierre o reasignación ocurridos durante ese intervalo quedan sin revocar; eso queda pendiente para una reconciliación completa (Fase 4).
 
+## Resultado verificado en el dispositivo (Android real con Power Apps, User5)
+
+**Primera sincronización limpia** (con los datos de la app borrados): el teléfono bajó **solo su cartera**.
+
+| Tabla | Antes de la Fase 1 | Después |
+|---|---|---|
+| Cuentas | 1.004 (todo el banco) | 2 |
+| Clientes | 959 | 1 |
+| Direcciones | 2.697 | 1 |
+| Teléfonos | 1.059 | 1 |
+
+Efecto colateral: las colecciones del cobrador ya no superan el límite de 500 filas, así que **las tarjetas salen completas** (nombre, CIF, dirección y saldos). F-1 queda resuelto para el rol Localizador.
+
+### ⚠ Los teléfonos que ya bajaron el padrón lo conservan
+
+La sincronización incremental solo baja registros que **cambiaron** ([doc](https://learn.microsoft.com/power-apps/mobile/offline-sync-icon#types-of-offline-syncs)). Quitar un permiso no cambia el registro, así que el teléfono no se entera. Hacen falta una **sincronización completa** ("Refresh" en Device status, que esta app todavía no expone: L-7) o un **reinicio** (cerrar sesión, reinstalar o borrado selectivo de Intune).
+
+- **Antes del go-live:** si la Fase 1 entra antes de cargar datos reales, ningún teléfono llega a tener el padrón.
+- **En DEV:** hay que reiniciar los teléfonos que ya tenían datos (User1, User6 y el Android del VPS, que ya está limpio).
+- **Al reasignar o cerrar una asignación:** el teléfono del cobrador anterior conserva la fila hasta la próxima sincronización completa. Mitigación prevista: un botón de sincronización completa con `ShowHostInfo(HostInfo.OfflineSync)` y, en PROD, la política de Intune.
+
 ## Lecciones (verificadas)
 
 - El conector "List rows" del flow **falló con FetchXML que tiene `link-entity`**, aunque la Web API lo aceptaba. Se reemplazó por `$filter` OData con navegación: `sanic_cm_as_cuentaid/_sanic_cm_ct_clienteid_value eq …`.

@@ -74,6 +74,13 @@ Revisé por mi cuenta, fuera de los agentes, las afirmaciones más graves:
 
 ---
 
+## Avance
+
+| Fase | Estado | Evidencia |
+|---|---|---|
+| 0 · Línea base | ✅ | Commits `49275f0`, `0f4d491` |
+| 1 · Exposición (S-1, S-2, S-8) | ✅ en DEV | [scripts/seguridad](../../scripts/seguridad/README.md): cascadas cortadas, auditoría transaccional, el flow comparte y revoca, backfill de 282 compartidos, Localizador en lectura Basic. Teléfono de User5 con primera sincronización limpia: 2 cuentas en vez de 1.004, y tarjetas completas (también resuelve F-1 para cobradores). Pendiente: los teléfonos que ya tenían el padrón lo conservan hasta reiniciarlos (ver README) |
+
 ## Orden de corrección propuesto
 
 1. **Línea base (Q-1):** desempaquetar la versión publicada al repo y commitearla. Sin esto cualquier corrección pisa el multi-producto.
