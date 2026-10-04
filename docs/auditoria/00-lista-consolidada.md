@@ -1,0 +1,98 @@
+# Auditoría Cobranza Móvil: lista consolidada de bugs y riesgos
+
+> Fecha: 2026-10-03 · Entorno: DEV · Alcance: app del cobrador ("App - Cobranza Movil", versión **publicada**), backoffice canvas, Dataverse (roles, perfiles offline, metadata), flows.
+> Método: pruebas en la **app nativa de Power Apps** (Android sobre Redroid, User5) y en un teléfono físico (User6, del usuario), más tres revisiones de solo lectura: seguridad, código y contrato de datos.
+> Detalle y evidencia completa en:
+> - [localizador-seguridad.md](localizador-seguridad.md) (SEC-01…22)
+> - [localizador-bugs-codigo.md](localizador-bugs-codigo.md) (APP-01…33)
+> - [contrato-de-datos.md](contrato-de-datos.md) (DAT-01…32)
+>
+> Los 87 hallazgos se agrupan en **32 ítems** sin duplicados. Confianza: **V** = verificado (dispositivo, datos o metadata), **C** = verificado en código, **P** = probable, **H** = hipótesis.
+
+## Verificaciones independientes del consolidador
+
+Revisé por mi cuenta, fuera de los agentes, las afirmaciones más graves:
+
+| Afirmación | Resultado |
+|---|---|
+| El teléfono del cobrador guarda el padrón completo | Base SQLite de User5: cuentas 1004/1004, clientes 959/959, direcciones 2697/2697, teléfonos 1059/1059 (pantalla: 2 cuentas) |
+| Corte silencioso en 500 filas | User1 (lectura Global): **500 de 1006** asignaciones activas, observado en el teléfono del usuario. Data row limit = 500 en el `.msapp` **publicado** |
+| Pedido Especial lee la cuenta | Teléfono del usuario (User6, CTA-0004): Retiro C$ 0.00, nota vacía; la asignación tiene C$ 750 y nota |
+| Pagos sin "Fecha del pago" | 3 de 3 pagos en DEV |
+| Sin seguridad de columna | 0 columnas `IsSecured` en las 8 tablas CM |
+| Auditoría | Encendida en cuenta/cliente/teléfono/dirección; **apagada en asignación, interacción, pago y agente** |
+| Flow de owner | Dueño = cuenta personal `a***@` (System Administrator); conexión personal, no referencia de la solución |
+
+---
+
+## P0: bloqueantes de seguridad (cerrar ANTES de cargar cualquier dato real)
+
+| # | Sev. | Ítem | Hallazgos | Conf. |
+|---|---|---|---|---|
+| S-1 | 🔴 Crítica | **Cada teléfono descarga el padrón completo del banco** (todas las filas y columnas de cuentas, clientes, direcciones, teléfonos y fiadores). La app usa el perfil offline **autogenerado** ("All records") y no el diseñado | SEC-01, DAT-06, APP-01 | V |
+| S-2 | 🔴 Crítica | **El rol Localizador tiene lectura Global del padrón.** Aunque se corrija el perfil, el cobrador puede extraer todo por la Web API. Solicitante y Supervisor también leen de más | SEC-02, SEC-12 | V |
+| S-3 | 🔴 Crítica | **Sin control del dispositivo.** Los datos offline quedan en el teléfono hasta desinstalar, sin borrado remoto, Intune/MAM ni Conditional Access demostrables; los timeouts de sesión no aplican a canvas | SEC-03 | H (falta acceso a Intune/Entra) |
+| S-4 | 🟠 Alta | **Canales de exfiltración abiertos**: todos los roles CM pueden crear flows; exportar a Excel (hasta 100k filas); endpoint TDS; **0 políticas DLP** | SEC-04, SEC-22 | V / P (DLP) |
+| S-5 | 🟠 Alta | **Datos de tarjeta en claro y sin seguridad de columna.** Número de cuenta completo de 13 dígitos (443 tarjetas); CIF con formato de cédula. Si en PROD es el PAN real, aplica **PCI DSS** | SEC-05, SEC-15, DAT-11 | V (formato) / P (PCI) |
+| S-6 | 🟠 Alta | **Se puede saltar la aprobación de una Especial.** El Solicitante puede crear la asignación con el agente cargado, el flow mueve el owner sin mirar el estado de aprobación y el teléfono muestra Especiales en Borrador o Pendiente | SEC-06, APP-08, DAT-09 | P / V (teléfono) |
+| S-7 | 🟠 Alta | **El flow de owner corre como System Administrator con conexión personal** y da Read/Write/Append a quien figure en "Solicitado por", un campo editable por Solicitante, Supervisor y Localizador | SEC-07, SEC-21, DAT-25 | V (config) / P (explotación) |
+| S-8 | 🟠 Alta | **Auditoría apagada justo en las tablas transaccionales** (asignación, interacción, pago, agente): no hay rastro de quién cambió un pago | SEC-09, DAT-12 | V |
+| S-9 | 🟠 Alta | **El cobrador puede alterar lo ya registrado**: Write sobre interacciones y pagos propios, Assign de pagos; monto, recibo, GPS, fecha y agente los pone el cliente; los "bloqueos" son reglas de formulario que no corren en servidor | SEC-08, SEC-10, SEC-16 | V (privilegios) / P (explotación) |
+| S-10 | 🟡 Media | **Segregación de funciones rota**: la app del cobrador está compartida con User1 (BackOffice, que además es agente de 66 asignaciones) y User9 (sin rol CM) | SEC-11 | V |
+| S-11 | 🟡 Media | El Supervisor puede escribir todas las columnas de cualquier asignación | SEC-13 | V |
+| S-12 | 🟡 Media | **El entorno no tiene controles de plataforma**: no es Managed, no tiene grupo de seguridad, firewall por IP ni cookie binding, y hay 15 System Administrators | SEC-14 | V |
+| S-13 | 🟢 Baja | Usuarios de prueba con roles de otras soluciones; dirección del cliente enviada a Google Maps; trace log de plugins en "All" legible por todos; todos los roles listan usuarios | SEC-17…20 | V |
+
+## P1: integridad de datos y operación (cerrar antes de PRD)
+
+| # | Sev. | Ítem | Hallazgos | Conf. |
+|---|---|---|---|---|
+| F-1 | 🔴 Crítica | **Colecciones truncadas a 500 filas sin aviso**: tarjetas vacías (nombre, saldo, mora, dirección), agrupación errónea, direcciones faltantes. Las filas que llegan por delta sync quedan fuera del corte | APP-01, APP-12, APP-15, DAT-23 | V |
+| F-2 | 🔴 Crítica | **Interacciones del teléfono sin lookup de Agente ni de Cuenta** ("Sin nombre"): el backoffice no puede atribuirlas ni transcribirlas bien | APP-03, DAT-04 | V (síntoma) / H (causa del agente) |
+| F-3 | 🔴 Crítica | **"✓ Guardado" falso**: "Guardar en 0 productos" no guarda nada; el guardado no maneja errores; doble tap duplica; quedan pagos huérfanos | APP-02, APP-04, APP-09 | C |
+| F-4 | 🔴 Crítica | **Pagos offline invisibles al transcribir**: se vinculan por un autonumérico que offline está vacío, y el backoffice une por ese texto | APP-05, DAT-03 | C / P |
+| F-5 | 🔴 Crítica | **"Fecha del pago" nunca se escribe**: "Cobrado hoy" y el arqueo del backoffice dan 0; "hoy" del teléfono usa la fecha de creación del servidor | DAT-02, APP-20, APP-21, DAT-27 | V |
+| F-6 | 🟠 Alta | **El Pedido Especial muestra datos de la cuenta y no de la solicitud**: C$ 0.00, o incluso un monto ajeno (AS-2001: C$ 46.048,91 en lugar de C$ 1.000) | APP-06, DAT-01 | V |
+| F-7 | 🟠 Alta | **Huecos del flow de owner**: con agente sin usuario no hace nada (871 de 1008 asignaciones); vincular el usuario después no propaga el owner; las asignaciones cerradas o reasignadas no salen del teléfono | DAT-07, DAT-08, DAT-24 | V / P |
+| F-8 | 🟠 Alta | **Sin validaciones de entrada**: pagos sin recibo, sin tope de monto, recibos duplicados; actualización de datos sin largo ni formato (el rechazo llega diferido en el sync) | APP-10, APP-24, APP-32, DAT-21, DAT-22 | C |
+| F-9 | 🟠 Alta | **Estado global sucio**: `varAsig` arrastra el tipo y la Especial de otra cuenta; las pestañas comparten variable; `colClientes` tiene dos esquemas | APP-07, APP-17, APP-19 | C |
+| F-10 | 🟠 Alta | **Escrituras masivas de `Orden`** sobre todas las asignaciones (incluso ajenas o inactivas), que marcan "limpio" aunque fallen; `Orden` sin inicializar (la regla de negocio quedó en borrador) | APP-13, APP-23, DAT-16 | V |
+| F-11 | 🟠 Alta | **Sincronización opaca**: "Sincronizado" con solo tener red; última sincronización fija; el botón no trae cartera; no hay `ShowHostInfo`/`Connection.Sync` | APP-14, L-7 | V |
+| F-12 | 🟡 Media | **GPS con 2 decimales (~1 km)**, null sin aviso, "capturada" siempre fijo | APP-11, DAT-05 | V |
+| F-13 | 🟡 Media | **Ciclo de vida de datos incompleto**: una Diaria reconciliada que reaparece no se reactiva; la actualización de datos no tiene cierre; el backoffice no puede crear cuentas; nombre y CIF duplicados en cuenta y cliente; email en texto contra lookup; `ApplicationRequired` no se exige en servidor; el anti-duplicado del Solicitante no ve todo; grano asignación contra cuenta; cascadas | DAT-10, 13…20, 26 | V / P |
+| F-14 | 🟡 Media | **Las respuestas rápidas pisan lo tipeado**; el comentario pasa al cliente siguiente | APP-18 | V |
+
+## P2: calidad, accesibilidad y proceso
+
+| # | Sev. | Ítem | Hallazgos | Conf. |
+|---|---|---|---|---|
+| Q-1 | 🟠 Alta | **El repo no refleja lo publicado** (5 de 7 pantallas difieren; se perdería el multi-producto) y la documentación está desfasada. Hay que fijar lo publicado como línea base **antes** de corregir | APP-33, DAT-32 | V |
+| Q-2 | 🟡 Media | **Accesibilidad**: 0 etiquetas accesibles, contraste 2,58:1 en 41 textos, toques de ~19 dp; textos recortados al agrandar la letra | APP-25, APP-31 | C / V |
+| Q-3 | 🟡 Media | **Formatos**: "U$" sin formato, fechas según el idioma del dispositivo, rótulos engañosos, buscador que arranca con el placeholder como texto, conteo de interacciones por CIF | APP-16, APP-22, APP-26 | V / C |
+| Q-4 | 🟢 Baja | Nota de desarrollador visible, mensajes técnicos, navegación que apila pantallas, la app publicada tiene 2 errores de análisis | APP-27, APP-29, APP-30 | V / P |
+| Q-5 | 🟢 Baja | Tablas y columnas huérfanas, autonumérico como clave de negocio, default de `estadoaprobacion` | DAT-28…31 | V |
+
+---
+
+## Orden de corrección propuesto
+
+1. **Línea base (Q-1):** desempaquetar la versión publicada al repo y commitearla. Sin esto cualquier corrección pisa el multi-producto.
+2. **Cerrar la exposición (S-1, S-2, S-10):**
+   - asociar el perfil offline diseñado (solo lo relacionado con las asignaciones del cobrador);
+   - bajar la lectura del Localizador a lo que le corresponde (ver alternativas en [localizador-seguridad.md](localizador-seguridad.md));
+   - limpiar con quién está compartida la app.
+3. **Plataforma (S-3, S-4, S-12):** Intune/MAM y Conditional Access para la app de Power Apps; políticas DLP; grupo de seguridad del entorno; quitar la creación de flows y la exportación a Excel a los roles CM.
+4. **Integridad en servidor (S-6, S-7, S-8, S-9, F-7):**
+   - flow con identidad de servicio;
+   - validar la aprobación antes de mover el owner;
+   - auditoría en las tablas transaccionales;
+   - bloquear los cambios posteriores a la grabación con lógica de servidor, no con reglas de formulario.
+5. **App del cobrador (F-1…F-6, F-8…F-12, F-14):** leer por las relaciones de la asignación en lugar de colecciones de tablas enteras; guardado transaccional con manejo de errores; vínculo pago↔interacción por lookup; escribir "Fecha del pago"; Especial desde la asignación.
+6. **Calidad (Q-2…Q-5).**
+
+## Decisiones que necesitan al dueño del producto
+
+- **¿El "número de cuenta" en PROD es el número real de la tarjeta (PAN)?** Si es así, la solución entra en alcance **PCI DSS** y hay que enmascarar o tokenizar antes de llevarlo al teléfono.
+- **¿Hay Intune disponible para los teléfonos de los cobradores** (dispositivos corporativos o BYOD)? Define si S-3 se resuelve con MAM, MDM o ambos.
+- **Modelo de lectura "solo su cartera"** para cuentas y clientes: el informe de seguridad trae 4 alternativas con sus costos.
+- **Identidad del flow**: usuario de aplicación (service principal) o cuenta de servicio dedicada.
