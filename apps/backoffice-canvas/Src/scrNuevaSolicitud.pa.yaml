@@ -65,7 +65,7 @@ Screens:
             - txtBuscarCtaNva:
                 Control: Classic/TextInput@2.3.2
                 Properties:
-                  AccessibleLabel: ="Buscar cuenta por número o cliente"
+                  AccessibleLabel: ="Buscar cuenta por últimos 4 dígitos, CIF o cliente"
                   BorderColor: =gblC.borde
                   Default: =""
                   DelayOutput: =true
@@ -74,7 +74,7 @@ Screens:
                   FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
-                  HintText: ="Buscar por número de cuenta o cliente (mín. 2)"
+                  HintText: ="Últimos 4 de la cuenta, CIF o cliente (mín. 2)"
                   PaddingLeft: =34
                   RadiusBottomLeft: =10
                   RadiusBottomRight: =10
@@ -121,8 +121,12 @@ Screens:
                     // trae la tabla entera (y siempre hay tabla: sin If sin rama falsa, B-06).
                     // SIN With: una variable de With dentro del predicado cortaba la delegación (la consulta salía
                     // sin $filter y bajaba la tabla entera — verificado en la red del player). En línea sí delega.
+                    // PCI (fase 2, D5): el Solicitante NO tiene el número completo ni acceso a la bóveda; identifica
+                    // la cuenta por los ÚLTIMOS 4 (igualdad exacta, solo con 4 caracteres) o por CIF / nombre del
+                    // cliente (StartsWith, mín. 2). La fila muestra "•••• 1234" y debajo cliente · CIF.
                     Filter('CM | TBL | Cuentas',
-                        StartsWith('[CT] Numero de cuenta', If(Len(Trim(txtBuscarCtaNva.Text)) < 2, "§§", Trim(txtBuscarCtaNva.Text)))
+                        'Últimos 4' = If(Len(Trim(txtBuscarCtaNva.Text)) = 4, Trim(txtBuscarCtaNva.Text), "§§")
+                        || StartsWith('CIF Cliente', If(Len(Trim(txtBuscarCtaNva.Text)) < 2, "§§", Trim(txtBuscarCtaNva.Text)))
                         || StartsWith('Nombre Cliente', If(Len(Trim(txtBuscarCtaNva.Text)) < 2, "§§", Trim(txtBuscarCtaNva.Text))))
                   OnSelect: |-
                     =// El registro de Dataverse entero queda en la variable: el Patch de btnEnviarNva lo usa
@@ -150,7 +154,7 @@ Screens:
                         Height: =20
                         PaddingLeft: =0
                         Size: =10
-                        Text: =ThisItem.'[CT] Numero de cuenta'
+                        Text: =CuentaMasc(ThisItem.'Últimos 4')
                         Width: =Parent.TemplateWidth - 2*gblE.PadSm - lblSaldoFilaCtaNva.Width
                         Wrap: =false
                         X: =gblE.PadSm
@@ -165,7 +169,7 @@ Screens:
                         Height: =18
                         PaddingLeft: =0
                         Size: =9
-                        Text: =ThisItem.'Nombre Cliente'
+                        Text: =ThisItem.'Nombre Cliente' & " · " & Coalesce(ThisItem.'CIF Cliente', "—")
                         Width: =lblNumFilaCtaNva.Width
                         Wrap: =false
                         X: =gblE.PadSm
@@ -227,7 +231,7 @@ Screens:
                         OnSelect: =Select(Parent)
                         PressedFill: =RGBA(15, 107, 107, 0.12)
                         TabIndex: =0
-                        Text: ="Elegir cuenta " & ThisItem.'[CT] Numero de cuenta' & " · " & ThisItem.'Nombre Cliente'
+                        Text: ="Elegir cuenta " & CuentaMasc(ThisItem.'Últimos 4') & " · " & ThisItem.'Nombre Cliente'
                         Width: =Parent.TemplateWidth
                         X: =0
                         Y: =0
@@ -241,7 +245,7 @@ Screens:
                   Height: =galCtaNva.Height
                   PaddingLeft: =gblE.PadSm
                   Size: =9
-                  Text: ="Ninguna cuenta ni cliente empieza con «" & Trim(txtBuscarCtaNva.Text) & "»."
+                  Text: ="Ninguna cuenta (últimos 4), CIF ni cliente coincide con «" & Trim(txtBuscarCtaNva.Text) & "»."
                   Visible: |-
                     =// AllItemsCount es client-side (la página cargada): para "¿cero resultados?" alcanza.
                     galCtaNva.Visible && galCtaNva.AllItemsCount = 0
@@ -278,7 +282,7 @@ Screens:
                         Height: =22
                         PaddingLeft: =0
                         Size: =10
-                        Text: =varCtaNva.'[CT] Numero de cuenta' & "  ·  " & varCtaNva.'Nombre Cliente'
+                        Text: =CuentaMasc(varCtaNva.'Últimos 4') & "  ·  " & varCtaNva.'Nombre Cliente'
                         Width: =Parent.Width - 3*gblE.PadSm - btnCambiarCtaNva.Width
                         Wrap: =false
                         X: =gblE.PadSm
@@ -568,20 +572,23 @@ Screens:
                     // b) Especial CERRADA → se REACTIVA ese mismo registro (crear otra daba 412 por la
                     //    alt key, B-11); el historial queda en la auditoría.
                     // c) No existe → se crea.
+                    // PCI (fase 2): la asignación se busca y se crea por el lookup '[AS] Cuenta' (por Id, delegable).
+                    // NO se escribe '[AS] NumeroCuenta' (columna en desuso) ni la clave '[AS] Clave PAN': la completa
+                    // el plugin ClaveDesdeCuenta desde la cuenta. Alt key de la asignación = (clave PAN, tipo).
                     // Sin '[AS] Agente' a propósito: la solicitud nace SIN localizador — lo asigna
                     // el Supervisor al aprobar (scrAprobaciones). Ver NOTA BACKEND de la guía 06.
                     // IfError (B-03): si el Patch falla se muestra el detalle y el formulario NO se limpia.
                     With(
                         {
-                            _cta: varCtaNva.'[CT] Numero de cuenta',
+                            _cta: CuentaMasc(varCtaNva.'Últimos 4'),
                             _cerrada: LookUp('CM | TBL | Asignacions',
-                                '[AS] NumeroCuenta' = varCtaNva.'[CT] Numero de cuenta'
+                                '[AS] Cuenta'.'CM | TBL | Cuenta' = varCtaNva.'CM | TBL | Cuenta'
                                 && '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
                                 && '[AS] Estado' = false)
                         },
                         If(
                             !IsBlank(LookUp('CM | TBL | Asignacions',
-                                '[AS] NumeroCuenta' = _cta
+                                '[AS] Cuenta'.'CM | TBL | Cuenta' = varCtaNva.'CM | TBL | Cuenta'
                                 && '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
                                 && '[AS] Estado' = true)),
 
@@ -612,7 +619,6 @@ Screens:
                                     Patch('CM | TBL | Asignacions', Defaults('CM | TBL | Asignacions'),
                                         {
                                             '[AS] Cuenta': varCtaNva,
-                                            '[AS] NumeroCuenta': _cta,
                                             '[AS] Tipo': 'Choice | CM | Tipo asignacion'.Especial,
                                             '[AS] Estado': true,
                                             '[AS] Estado de aprobacion': 'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion',

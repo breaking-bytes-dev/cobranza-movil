@@ -23,6 +23,8 @@ Screens:
                         && '[AS] Solicitado por'.User = gblUsuarioDV.User),
                     clienteSol, Upper(Coalesce(
                         ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
+                    ult4Sol, Coalesce(
+                        ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
                     prodSol, Coalesce(
                         ThisRecord.'[AS] Cuenta'.'Tipo Producto', "—"),
                     saldoNioSol, Coalesce(
@@ -67,6 +69,8 @@ Screens:
                               && '[AS] Solicitado por'.User = gblUsuarioDV.User),
                           clienteSol, Upper(Coalesce(
                               ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
+                          ult4Sol, Coalesce(
+                              ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
                           prodSol, Coalesce(
                               ThisRecord.'[AS] Cuenta'.'Tipo Producto', "—"),
                           saldoNioSol, Coalesce(
@@ -180,7 +184,7 @@ Screens:
                               Height: =16
                               PaddingLeft: =0
                               Size: =9
-                              Text: =ThisItem.'[AS] NumeroCuenta'
+                              Text: =CuentaMasc(ThisItem.ult4Sol)
                               Width: =lblClienteFilaSol.Width
                               Wrap: =false
                               X: =gblE.PadSm
@@ -467,7 +471,7 @@ Screens:
                   PaddingLeft: =0
                   PaddingRight: =0
                   Size: =10
-                  Text: =galSolSol.Selected.'[AS] NumeroCuenta' & " · " & galSolSol.Selected.prodSol
+                  Text: =CuentaMasc(galSolSol.Selected.ult4Sol) & " · " & galSolSol.Selected.prodSol
                   Width: =Parent.Width - 2*gblE.Pad - 110
                   Wrap: =false
                   X: =gblE.Pad + 110

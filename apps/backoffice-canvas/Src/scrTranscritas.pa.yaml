@@ -34,7 +34,9 @@ Screens:
                     && '[IN] Grabado por'.User = gblUsuarioDV.User),
                 clienteTsc, Upper(Coalesce(ThisRecord.'[IN] Cuenta'.'Nombre Cliente', "—")),   // LED-01
                 cifTsc, Coalesce(ThisRecord.'[IN] Cuenta'.'CIF Cliente', "—"),
-                prodTsc, Coalesce(ThisRecord.'[IN] Cuenta'.'Tipo Producto', "—")
+                prodTsc, Coalesce(ThisRecord.'[IN] Cuenta'.'Tipo Producto', "—"),
+                ult4Tsc, Coalesce(ThisRecord.'[IN] Cuenta'.'Últimos 4', ""),
+                cuentaIdTsc, ThisRecord.'[IN] Cuenta'.'CM | TBL | Cuenta'
             )
         );
         // 4) Pagos del arqueo = pagos de HOY (ya en memoria) ∩ mis transcritas.
@@ -98,7 +100,9 @@ Screens:
                           && '[IN] Grabado por'.User = gblUsuarioDV.User),
                       clienteTsc, Upper(Coalesce(ThisRecord.'[IN] Cuenta'.'Nombre Cliente', "—")),
                       cifTsc, Coalesce(ThisRecord.'[IN] Cuenta'.'CIF Cliente', "—"),
-                      prodTsc, Coalesce(ThisRecord.'[IN] Cuenta'.'Tipo Producto', "—")
+                      prodTsc, Coalesce(ThisRecord.'[IN] Cuenta'.'Tipo Producto', "—"),
+                      ult4Tsc, Coalesce(ThisRecord.'[IN] Cuenta'.'Últimos 4', ""),
+                      cuentaIdTsc, ThisRecord.'[IN] Cuenta'.'CM | TBL | Cuenta'
                   )
               );
               ClearCollect(colPagosTsc,
@@ -219,7 +223,7 @@ Screens:
                         Height: =18
                         PaddingLeft: =0
                         Size: =9
-                        Text: =ThisItem.'[IN] Numerocuenta' & " · " & ThisItem.prodTsc
+                        Text: =CuentaMasc(ThisItem.ult4Tsc) & " · " & ThisItem.prodTsc
                         Width: =lblClienteTsc.Width
                         Wrap: =false
                         X: =gblE.PadSm
@@ -537,7 +541,18 @@ Screens:
                   Height: =24
                   PaddingLeft: =0
                   Size: =10
-                  Text: =varSelTsc.'[IN] Numerocuenta' & " · " & varSelTsc.prodTsc
+                  Text: |-
+                    =// PCI (fase 2): número completo desde la bóveda, solo rol BackOffice (ver scrTranscripcion).
+                    // Sin rol, sin permiso o sin fila → "•••• 1234". Un LookUp por registro seleccionado.
+                    If(IsBlank(varSelTsc), "",
+                        "Backoffice" in gblRol,
+                        Coalesce(
+                            IfError(
+                                LookUp('CM | TBL | PAN de cuentas',
+                                    Cuenta.'CM | TBL | Cuenta' = varSelTsc.cuentaIdTsc).PAN,
+                                Blank()),
+                            CuentaMasc(varSelTsc.ult4Tsc)),
+                        CuentaMasc(varSelTsc.ult4Tsc)) & " · " & varSelTsc.prodTsc
                   Width: =Parent.Width - gblE.Pad - Self.X
                   Wrap: =false
                   X: =gblE.Pad + 110

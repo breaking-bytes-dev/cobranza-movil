@@ -11,7 +11,7 @@ const qa = require('../lib/datosqa');
 const c = require('./comun');
 
 // Abre en el panel de Cierres la fila QA cuya cuenta es `cuenta`.
-async function abrirCierreQA(app, cuenta) {
+async function abrirCierreQA(app, cuenta) { // `cuenta` = texto enmascarado, p.ej. "•••• E2E1"
   const filas = pl.ctl(app, 'btnFilaCie').locator('visible=true').filter({ hasText: 'QA-E2E CLIENTE UNO' });
   const n = await filas.count();
   for (let i = 0; i < n; i++) {
@@ -33,10 +33,11 @@ module.exports = async function faseF(suite) {
       const esp = suite.datos.especialF02;
       if (!esp) throw new Error('No hay Especial QA de F-02 para cerrar');
       await (await pl.boton(app1, 'btnTabEspCie')).click(); await pl.esperar(app1, 1500);
-      const ok = await abrirCierreQA(app1, 'QA-E2E-CTA-0001');
+      const mQA = qa.mascara(cuentas[0]); // PCI: el Admin solo ve la cuenta enmascarada
+      const ok = await abrirCierreQA(app1, mQA);
       if (!ok) throw new Error('No se encontró la Especial QA en la pestaña Especiales');
       const cta = await pl.texto(app1, 'lblV2Cie');
-      if (cta !== 'QA-E2E-CTA-0001') throw new Error(`Seguridad: panel con cuenta no QA (${cta})`);
+      if (cta !== mQA) throw new Error(`Seguridad: panel con cuenta no QA (${cta})`);
       e.check(!(await pl.botonHabilitado(app1, 'btnCerrarCie')), 'Cerrar deshabilitado sin motivo', 'Disabled', 'Edit');
       const r = await c.elegirCombo(app1, 'cmbMotivoCie', { opcion: 'Gestión completada' });
       e.check(r.ok && r.textos.join('|') === 'Gestión completada|Ya no aplica|Solicitud errónea', 'motivos de Especial', 'Gestión completada|Ya no aplica|Solicitud errónea', r.textos.join('|'));
@@ -57,7 +58,7 @@ module.exports = async function faseF(suite) {
   } finally { await pl.cerrar(app1); }
 
   // ── 2) Carga de hoy ───────────────────────────────────────────────────────────────────
-  const carga = await qa.crearCargaHoy(cliente.sanic_cm_tbl_clienteid, cuentas[0].sanic_cm_tbl_cuentaid, v.hoy().fecha);
+  const carga = await qa.crearCargaHoy(cliente.sanic_cm_tbl_clienteid, cuentas[0], v.hoy().fecha);
   const app = await c.abrir(suite, 'user4', 'F2', 'Admin (carga de hoy)');
   try {
     await inf.correr('D-07', 'Con carga de HOY (1 fila QA): Inicio y Monitoreo "filas de carga hoy" = API (B-07)', 'Admin', async (e) => {

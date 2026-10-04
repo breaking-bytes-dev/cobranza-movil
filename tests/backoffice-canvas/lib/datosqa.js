@@ -8,9 +8,15 @@ const cfg = require('./config');
 const P = cfg.prefijoQA;
 const REG = () => path.join(cfg.resultadosDir, 'registro-qa.json');
 
+// PCI (fase 2): el número de cuenta completo vive SOLO en la bóveda (cuentapan.cp_pan). Los datos QA NO usan PANs
+// reales: el "PAN" QA es la cadena `QA-E2E-CTA-000n` (cp_pan), el último-4 QA es `E2En` (ct_ultimos4: no choca con
+// dígitos reales) y la clave sustituta QA es `QA-E2E-CLAVE-000n` (en vez de un HMAC). Con eso las alt keys
+// (clavepan, tipo) / (clavepan, fecha) y la 1:1 de la bóveda se cumplen sin tocar un solo dígito real.
+// Las columnas viejas as_/in_/pg_numerocuenta YA NO se escriben (se eliminan en el paso 8).
 const ES = {
   cliente: ['sanic_cm_tbl_clientes', 'sanic_cm_tbl_clienteid'],
   cuenta: ['sanic_cm_tbl_cuentas', 'sanic_cm_tbl_cuentaid'],
+  boveda: ['sanic_cm_tbl_cuentapans', 'sanic_cm_tbl_cuentapanid'],
   telefono: ['sanic_cm_tbl_telefonos', 'sanic_cm_tbl_telefonoid'],
   direccion: ['sanic_cm_tbl_direccions', 'sanic_cm_tbl_direccionid'],
   interaccion: ['sanic_cm_tbl_interaccions', 'sanic_cm_tbl_interaccionid'],
@@ -32,6 +38,8 @@ async function crear(tipo, data, nota) {
   return rec;
 }
 const bind = (set, id) => `/${set}(${id})`;
+// Lo que la app muestra de una cuenta QA: "•••• E2E1" (CuentaMasc de App.Formulas).
+const mascara = (cuenta) => `•••• ${cuenta.sanic_cm_ct_ultimos4}`;
 
 // Agente REAL activo usado como lookup de las interacciones QA (solo referencia, no se modifica).
 async function agenteActivoConUsuario() {
@@ -52,12 +60,19 @@ async function sembrar() {
   for (const n of ['0001', '0002', '0003', '0004']) {
     const c = await crear('cuenta', {
       sanic_cm_ct_numerodecuenta: `${P}-CTA-${n}`, sanic_cm_ct_nombrecliente: `${P} CLIENTE UNO`,
+      sanic_cm_ct_ultimos4: `E2E${n.slice(-1)}`, sanic_cm_ct_clavepan: `${P}-CLAVE-${n}`,
       sanic_cm_ct_cifcliente: `${P}-CIF-001`, sanic_cm_ct_tipoproducto: prod.sanic_cm_pr_tipo,
       sanic_cm_ct_saldovencidonio: 1500, sanic_cm_ct_saldovencidousd: 0, sanic_cm_ct_diasmora: 30,
       'sanic_cm_ct_clienteid@odata.bind': bind('sanic_cm_tbl_clientes', cliId),
       'sanic_cm_ct_productoid@odata.bind': bind('sanic_cm_tbl_productos', prod.sanic_cm_tbl_productoid),
     }, `cuenta ${n}`);
     cuentas.push(c);
+    // Bóveda 1:1 (la lee el rol BackOffice): el nombre principal va enmascarado, el "PAN" QA es la cuenta QA.
+    await crear('boveda', {
+      sanic_cm_cp_name: `****${c.sanic_cm_ct_ultimos4}`, sanic_cm_cp_pan: c.sanic_cm_ct_numerodecuenta,
+      sanic_cm_cp_clavepan: c.sanic_cm_ct_clavepan,
+      'sanic_cm_cp_cuentaid@odata.bind': bind('sanic_cm_tbl_cuentas', c.sanic_cm_tbl_cuentaid),
+    }, `boveda ${n}`);
   }
   await crear('telefono', {
     sanic_cm_tl_cif: `${P}-CIF-001`, sanic_cm_tl_numero: '2222-0000', sanic_cm_tl_tipo: 'Casa',
@@ -65,7 +80,7 @@ async function sembrar() {
   }, 'telefono antes');
   const ahora = Date.now();
   const mkInt = (min, extra, nota) => crear('interaccion', {
-    sanic_cm_in_numerocuenta: `${P}-CTA-0001`, sanic_cm_in_nombreagente: `${P} Localizador`,
+    sanic_cm_in_nombreagente: `${P} Localizador`,
     sanic_cm_in_comentario: `${P} ${nota}`, sanic_cm_in_estadograbacion: 1,
     sanic_cm_in_fechacaptura: new Date(ahora - min * 60000).toISOString(),
     'sanic_cm_in_cuentaid@odata.bind': bind('sanic_cm_tbl_cuentas', cuentas[0].sanic_cm_tbl_cuentaid),
@@ -76,7 +91,8 @@ async function sembrar() {
   const int2 = await mkInt(60, { sanic_cm_cd_aplicapago: false, sanic_cm_in_actualizainfo: true }, 'interaccion con actualizacion');
   const pago = await crear('pago', {
     sanic_cm_pg_monto: 250, sanic_cm_pg_moneda: 1, sanic_cm_pg_numerorecibo: `${P}-REC-1`,
-    sanic_cm_pg_fecha: new Date().toISOString(), sanic_cm_pg_numerocuenta: `${P}-CTA-0001`,
+    sanic_cm_pg_fecha: new Date().toISOString(),
+    'sanic_cm_pg_cuentaid@odata.bind': bind('sanic_cm_tbl_cuentas', cuentas[0].sanic_cm_tbl_cuentaid),
     sanic_cm_pg_numerointeraccion: int1.sanic_cm_in_numerointeraccion,
     'sanic_cm_pg_interaccion@odata.bind': bind('sanic_cm_tbl_interaccions', int1.sanic_cm_tbl_interaccionid),
   }, 'pago de interaccion 1');
@@ -91,7 +107,7 @@ async function sembrar() {
 // `owner`: systemuserid dueño (como si la hubiera creado ese usuario desde la app); `estado`: false = CERRADA.
 async function crearEspecialPendiente(cuenta, solicitanteId, nota, { notas, nio = 100, owner, estado = true } = {}) {
   const a = await crear('asignacion', {
-    sanic_cm_as_numerocuenta: cuenta.sanic_cm_ct_numerodecuenta, sanic_cm_as_tipo: 3, sanic_cm_as_estado: estado,
+    sanic_cm_as_clavepan: cuenta.sanic_cm_ct_clavepan, sanic_cm_as_tipo: 3, sanic_cm_as_estado: estado,
     sanic_cm_as_estadoaprobacion: 2, sanic_cm_as_retironio: nio, sanic_cm_as_notas: notas || `Verificación — ${P} ${nota}`,
     sanic_cm_as_fechasignacion: new Date().toISOString(),
     ...(estado ? {} : { sanic_cm_as_motivo: `Gestión completada — ${P} ${nota}`, sanic_cm_as_fechacierre: new Date().toISOString() }),
@@ -103,15 +119,20 @@ async function crearEspecialPendiente(cuenta, solicitanteId, nota, { notas, nio 
 }
 
 // Fila QA de carga diaria con FechaCarga = HOY (DateOnly) — escenario D-07.
-async function crearCargaHoy(cliId, cuentaId, fechaIso) {
+async function crearCargaHoy(cliId, cuenta, fechaIso) {
+  const cuentaId = cuenta.sanic_cm_tbl_cuentaid;
   return crear('carga', {
-    sanic_cm_cd_numerocuenta: `${P}-CTA-0001`, sanic_cm_cd_fechacarga: fechaIso, sanic_cm_cd_tipoasignacion: `${P}`,
+    // cd_numerocuenta es el nombre principal (no se muestra); la alt key nueva es (cd_clavepan, cd_fechacarga).
+    sanic_cm_cd_numerocuenta: cuenta.sanic_cm_ct_numerodecuenta, sanic_cm_cd_clavepan: cuenta.sanic_cm_ct_clavepan, sanic_cm_cd_fechacarga: fechaIso, sanic_cm_cd_tipoasignacion: `${P}`,
     'sanic_cm_cd_clienteid@odata.bind': bind('sanic_cm_tbl_clientes', cliId),
     'sanic_cm_cd_cuenta@odata.bind': bind('sanic_cm_tbl_cuentas', cuentaId),
   }, 'carga de hoy QA');
 }
 
 // Barrido por prefijo (incluye lo que creó la APP: Especiales por UI, cliente/teléfono de Maestros).
+// PCI (fase 2): ya no se barre por as_/in_/pg_numerocuenta (columnas en desuso, la app no las escribe). Se barre por la
+// clave sustituta QA (`QA-E2E-CLAVE-…`, que el plugin ClaveDesdeCuenta copia a la asignación) y por los lookups a las
+// cuentas QA.
 async function inventarioQA() {
   const q = async (tipo, filtro) => {
     const [set, pk] = ES[tipo];
@@ -120,18 +141,24 @@ async function inventarioQA() {
   const reg = leerRegistro().creados;
   const deReg = t => reg.filter(x => x.tipo === t).map(x => x.id);
   const uniq = a => [...new Set(a)];
-  const inter = await q('interaccion', `startswith(sanic_cm_in_numerocuenta,'${P}')`);
+  const cuentas = uniq([...await q('cuenta', `startswith(sanic_cm_ct_numerodecuenta,'${P}')`), ...deReg('cuenta')]);
+  const porCuenta = (campo) => cuentas.length ? cuentas.map(id => `${campo} eq ${id}`).join(' or ') : null;
+  const qCuentas = async (tipo, campo) => { const f = porCuenta(campo); return f ? q(tipo, f) : []; };
+  const inter = uniq([
+    ...await q('interaccion', `startswith(sanic_cm_in_nombreagente,'${P}')`),
+    ...await qCuentas('interaccion', '_sanic_cm_in_cuentaid_value'), ...deReg('interaccion')]);
   const adPorInt = [];
-  for (const id of uniq([...inter, ...deReg('interaccion')])) {
+  for (const id of inter) {
     adPorInt.push(...(await dv.getAll(`sanic_cm_tbl_actualizaciondatoses?$select=sanic_cm_tbl_actualizaciondatosid&$filter=_sanic_cm_ad_interaccionid_value eq ${id}`)).map(x => x.sanic_cm_tbl_actualizaciondatosid));
   }
   return {
-    pago: uniq([...await q('pago', `startswith(sanic_cm_pg_numerocuenta,'${P}') or startswith(sanic_cm_pg_numerorecibo,'${P}')`), ...deReg('pago')]),
+    pago: uniq([...await q('pago', `startswith(sanic_cm_pg_numerorecibo,'${P}')`), ...await qCuentas('pago', '_sanic_cm_pg_cuentaid_value'), ...deReg('pago')]),
     actualizacion: uniq([...adPorInt, ...await q('actualizacion', "startswith(sanic_cm_ad_correoelectronico,'qa-e2e')"), ...deReg('actualizacion')]),
-    interaccion: uniq([...inter, ...deReg('interaccion')]),
-    asignacion: uniq([...await q('asignacion', `startswith(sanic_cm_as_numerocuenta,'${P}')`), ...deReg('asignacion')]),
+    interaccion: inter,
+    asignacion: uniq([...await q('asignacion', `startswith(sanic_cm_as_clavepan,'${P}')`), ...await qCuentas('asignacion', '_sanic_cm_as_cuentaid_value'), ...deReg('asignacion')]),
     carga: uniq([...await q('carga', `startswith(sanic_cm_cd_numerocuenta,'${P}')`), ...deReg('carga')]),
-    cuenta: uniq([...await q('cuenta', `startswith(sanic_cm_ct_numerodecuenta,'${P}')`), ...deReg('cuenta')]),
+    boveda: uniq([...await q('boveda', `startswith(sanic_cm_cp_clavepan,'${P}')`), ...await qCuentas('boveda', '_sanic_cm_cp_cuentaid_value'), ...deReg('boveda')]),
+    cuenta: cuentas,
     telefono: uniq([...await q('telefono', `startswith(sanic_cm_tl_cif,'${P}')`), ...deReg('telefono')]),
     direccion: uniq([...await q('direccion', `startswith(sanic_cm_dr_cif,'${P}')`), ...deReg('direccion')]),
     cliente: uniq([...await q('cliente', `startswith(sanic_cm_cl_cif,'${P}')`), ...deReg('cliente')]),
@@ -141,7 +168,7 @@ async function inventarioQA() {
 async function limpiar() {
   const inv = await inventarioQA();
   const res = {};
-  for (const tipo of ['pago', 'actualizacion', 'interaccion', 'asignacion', 'carga', 'cuenta', 'telefono', 'direccion', 'cliente']) {
+  for (const tipo of ['pago', 'actualizacion', 'interaccion', 'asignacion', 'carga', 'boveda', 'cuenta', 'telefono', 'direccion', 'cliente']) {
     res[tipo] = { borrados: 0, yaNoExistian: 0, errores: [] };
     for (const id of inv[tipo]) {
       try { const st = await dv.del(ES[tipo][0], id); if (st === 404) res[tipo].yaNoExistian++; else res[tipo].borrados++; }
@@ -189,6 +216,6 @@ async function restaurarMembresias(foto) {
 }
 
 module.exports = {
-  ES, sembrar, crearEspecialPendiente, crearCargaHoy, registrar, leerRegistro, inventarioQA, limpiar,
+  ES, mascara, sembrar, crearEspecialPendiente, crearCargaHoy, registrar, leerRegistro, inventarioQA, limpiar,
   membresias, agregarATeam, quitarDeTeam, restaurarMembresias,
 };

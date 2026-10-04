@@ -32,7 +32,7 @@ Resultados de la última corrida: [`docs/guias/backoffice-canvas/14-resultados-p
 ## Correr
 
 ```bash
-node run.js                       # todas las fases: A,B,C,D,E,F,G,X  (~15 min)
+node run.js                       # todas las fases: A,B,C,D,E,F,G,H,X  (~15 min)
 node run.js --fases A,X           # solo algunas (B→C→F→G dependen entre sí: corrélas en orden)
 node run.js --solo-limpieza       # borra restos QA-E2E de corridas anteriores
 BO_RESULTADOS_DIR=$PWD/resultados/corrida-N node run.js   # guardar cada corrida aparte
@@ -62,20 +62,22 @@ y se lo quita en la misma fase.
 | E | User1 + Admin y Carga (temporal) | R-06a (multi-rol), R-06b (quitado → solo Backoffice) |
 | F | User4 (Admin) + 1 fila QA de carga HOY | F-04 (cerrar la Especial QA), D-07 (carga de hoy, B-07), F-05b (freno + lista completa sin tope de 500, B-12; el cierre en lote NUNCA se pulsa) |
 | G | User2 (Solicitante) | F-02e (sigue viendo sus Especiales tras aprobación/cierre), F-02c (re-solicitar por UI tras el ciclo real, B-11) |
+| H | API (suplantando) + User2, User3, User4, User1 | **PCI fase 2**: H-01 (solo BackOffice lee la bóveda `cuentapan`; Solicitante/Supervisor/Admin → 403 o vacío), H-02 (Solicitante, Supervisor y Admin: ninguna pantalla muestra 13+ dígitos ni toca la bóveda ni las columnas `*_numerocuenta`), H-03 (BackOffice: Transcritas hoy lista enmascarada y detalle con el número completo de la bóveda). Sin capturas: un fallo no debe dejar un PAN en un PNG. Depende de la siembra y de F-01 (fase D) |
 | X | User4 a 800×900 | X-01 (responsive: barra móvil + hamburguesa, B-09) |
 | — | todas | **D-01**: análisis de TODA la red capturada por pantalla (delegación, N+1, errores de lectura) |
 
 ## Reglas de seguridad que el código hace cumplir
 
-1. Todo dato que la suite crea (o hace crear a la app) lleva el prefijo **`QA-E2E`** (CIF, nombre, cuenta,
+1. **PCI**: los datos QA no llevan PANs reales. La cuenta QA `QA-E2E-CTA-000n` es a la vez su nombre principal y el "PAN" de su fila en la bóveda; la app la muestra como `•••• E2En` (`ct_ultimos4`) y su clave sustituta es `QA-E2E-CLAVE-000n`. La suite ya no escribe `as_/in_/pg_numerocuenta`.
+2. Todo dato que la suite crea (o hace crear a la app) lleva el prefijo **`QA-E2E`** (CIF, nombre, cuenta,
    localizador, recibo, notas, código). Antes de cada acción destructiva en la UI se verifica que el registro
    en pantalla es QA (número de interacción, número de asignación, cuenta) o se aborta el escenario.
-2. El **cierre en lote** de Reconciliación NUNCA se ejecuta: solo se verifica que esté deshabilitado.
-3. **Limpieza** al final (pase o falle, también con Ctrl+C): borra por API todo lo QA-E2E (pagos →
-   actualizaciones → interacciones → asignaciones → carga → cuentas → teléfonos/direcciones → clientes),
+3. El **cierre en lote** de Reconciliación NUNCA se ejecuta: solo se verifica que esté deshabilitado.
+4. **Limpieza** al final (pase o falle, también con Ctrl+C): borra por API todo lo QA-E2E (pagos →
+   actualizaciones → interacciones → asignaciones → carga → bóveda → cuentas → teléfonos/direcciones → clientes),
    verifica CERO restos, restaura las **membresías de teams** a la foto tomada al inicio y verifica que los
    **agentes reales** conservan usuario/email/activo (si no, los restaura y lo reporta).
-4. Nada sensible en el repo: sesiones y secretos se leen de rutas externas; `resultados/` está gitignoreada.
+5. Nada sensible en el repo: sesiones y secretos se leen de rutas externas; `resultados/` está gitignoreada.
 
 ## Estructura
 

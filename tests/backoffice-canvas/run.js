@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Runner E2E de "App - CM - Backoffice Canvas" sobre el PLAYER real (DEV).
-// Uso:  node run.js [--fases A,B,C,D,E,F,G,X] [--solo-limpieza]
+// Uso:  node run.js [--fases A,B,C,D,E,F,G,H,X] [--solo-limpieza]
 // Ver README.md. Las sesiones y secretos se leen de rutas FUERA del repo (lib/config.js).
 const fs = require('fs');
 const path = require('path');
@@ -18,13 +18,14 @@ const FASES = {
   E: require('./escenarios/E-multirol'),
   F: require('./escenarios/F-carga-hoy'),
   G: require('./escenarios/G-reapertura'),
+  H: require('./escenarios/H-pan'),
   X: require('./escenarios/X-responsive'),
 };
 
 const args = process.argv.slice(2);
 const soloLimpieza = args.includes('--solo-limpieza');
 const fasesArg = (args[args.indexOf('--fases') + 1] || '').split(',').filter(Boolean);
-const fases = args.includes('--fases') ? fasesArg : ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'X'];
+const fases = args.includes('--fases') ? fasesArg : ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'X'];
 
 // D-01 — análisis de delegación de TODA la red capturada (por fase y pantalla).
 function d01() {
@@ -94,7 +95,7 @@ async function main() {
   try {
     if (fases.some(f => f !== 'X')) {
       Object.assign(suite.datos, await qa.sembrar());
-      console.log(`Siembra QA: ${suite.datos.int1.sanic_cm_in_numerointeraccion}, ${suite.datos.int2.sanic_cm_in_numerointeraccion}, cuentas ${suite.datos.cuentas.map(x => x.sanic_cm_ct_numerodecuenta)}, agente ${suite.datos.agente.sanic_cm_ag_nombre}`);
+      console.log(`Siembra QA: ${suite.datos.int1.sanic_cm_in_numerointeraccion}, ${suite.datos.int2.sanic_cm_in_numerointeraccion}, cuentas QA (últimos 4) ${suite.datos.cuentas.map(x => x.sanic_cm_ct_ultimos4)}, agente ${suite.datos.agente.sanic_cm_ag_nombre}`);
     }
     for (const f of fases) {
       console.log(`\n================ FASE ${f} ================`);

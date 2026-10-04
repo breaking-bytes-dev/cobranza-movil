@@ -579,7 +579,7 @@ Screens:
                         Text: |-
                           =// Si IntelliSense marca 'Tipo Producto' como choice, envolvelo en
                           // Text(ThisItem.'Tipo Producto') dentro del concatenado.
-                          ThisItem.'[CT] Numero de cuenta' & " · " & ThisItem.'Tipo Producto' & " · " &
+                          CuentaMasc(ThisItem.'Últimos 4') & " · " & ThisItem.'Tipo Producto' & " · " &
                               Moneda(ThisItem.'[CT] Saldo Vencido NIO', ThisItem.'[CT] Saldo Vencido USD')
                         Width: =Parent.TemplateWidth
                         Wrap: =false
