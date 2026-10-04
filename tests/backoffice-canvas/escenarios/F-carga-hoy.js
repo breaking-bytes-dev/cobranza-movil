@@ -12,12 +12,20 @@ const c = require('./comun');
 
 // Abre en el panel de Cierres la fila QA cuya cuenta es `cuenta`.
 async function abrirCierreQA(app, cuenta) { // `cuenta` = texto enmascarado, p.ej. "•••• E2E1"
-  const filas = pl.ctl(app, 'btnFilaCie').locator('visible=true').filter({ hasText: 'QA-E2E CLIENTE UNO' });
-  const n = await filas.count();
-  for (let i = 0; i < n; i++) {
-    await filas.nth(i).click(); await pl.esperar(app, 2000);
-    if ((await pl.texto(app, 'lblV2Cie').catch(() => '')) === cuenta) return true;
-    await (await pl.boton(app, 'btnCancelarCie')).click().catch(() => {}); await pl.esperar(app, 1000);
+  // La galería no ordena y virtualiza (solo dibuja lo visible): la Especial QA, creada en la corrida, puede quedar abajo.
+  // Se baja con la rueda hasta que aparezca (falla real si no aparece tras recorrerla).
+  const gal = pl.ctl(app, 'galCierresCie'); const caja = await gal.boundingBox().catch(() => null);
+  for (let vuelta = 0; vuelta < 15; vuelta++) {
+    const filas = pl.ctl(app, 'btnFilaCie').locator('visible=true').filter({ hasText: 'QA-E2E CLIENTE UNO' });
+    const n = await filas.count();
+    for (let i = 0; i < n; i++) {
+      await filas.nth(i).click(); await pl.esperar(app, 2000);
+      if ((await pl.texto(app, 'lblV2Cie').catch(() => '')) === cuenta) return true;
+      await (await pl.boton(app, 'btnCancelarCie')).click().catch(() => {}); await pl.esperar(app, 1000);
+    }
+    if (!caja) break;
+    await app.page.mouse.move(caja.x + caja.width / 2, caja.y + caja.height / 2);
+    await app.page.mouse.wheel(0, caja.height * 0.8); await pl.esperar(app, 1200);
   }
   return false;
 }
@@ -35,7 +43,12 @@ module.exports = async function faseF(suite) {
       await (await pl.boton(app1, 'btnTabEspCie')).click(); await pl.esperar(app1, 1500);
       const mQA = qa.mascara(cuentas[0]); // PCI: el Admin solo ve la cuenta enmascarada
       const ok = await abrirCierreQA(app1, mQA);
-      if (!ok) throw new Error('No se encontró la Especial QA en la pestaña Especiales');
+      if (!ok) {
+        const filas = pl.ctl(app1, 'btnFilaCie').locator('visible=true');
+        const total = await filas.count(); const qaN = await filas.filter({ hasText: 'QA-E2E' }).count();
+        await app1.page.screenshot({ path: inf.ruta ? inf.ruta('capturas/F-04-no-encontrada.png') : 'F-04-no-encontrada.png' }).catch(() => {});
+        throw new Error(`No se encontró la Especial QA en la pestaña Especiales (filas visibles ${total}, con QA-E2E ${qaN}, buscada ${mQA}, panel "${await pl.texto(app1, 'lblV2Cie').catch(() => '?')}")`);
+      }
       const cta = await pl.texto(app1, 'lblV2Cie');
       if (cta !== mQA) throw new Error(`Seguridad: panel con cuenta no QA (${cta})`);
       e.check(!(await pl.botonHabilitado(app1, 'btnCerrarCie')), 'Cerrar deshabilitado sin motivo', 'Disabled', 'Edit');
