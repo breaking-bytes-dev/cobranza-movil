@@ -8,6 +8,12 @@ Fuentes YAML (layout SourceCode) de la app Canvas del localizador, rediseñada
 - `src/scr*.pa.yaml` — pantallas. Cartera (`scrCartera`) rediseñada al mockup.
 - `src/Components/` — `cmpSheet` (Ajustes: tema + tamaño), `cmpHeaderBack`, `cmpNav`, `cmpSyncPill`.
 
+## Fuentes de datos (`*.msapr`)
+Las fuentes de datos NO están en los `.pa.yaml`: viven en `sanic_appcobranzamovil_c4e67_DocumentUri.msapr`
+(`References/DataSources.json`, `Properties.json` y `References/QualifiedValues.json`). Para agregar una tabla o refrescar
+columnas nuevas sin Studio: `python3 scripts/pan/paso7_fuentes.py <msapr> --tablas <logicalname,...> --aplicar`
+(replica las consultas de Studio; `--comparar <tabla>` valida la réplica contra una fuente existente).
+
 ## Build + deploy (Dev)
 ```bash
 # 1) empaquetar
