@@ -137,7 +137,7 @@ module.exports = async function faseH(suite) {
       const det = await pl.texto(app, 'lblVCuentaTsc');
       e.check(det.startsWith('QA-E2E-CTA-0001'), 'el detalle muestra el número completo (QA) leído de la bóveda', 'QA-E2E-CTA-0001 · …', det.replace(/\d{5,}/g, '#'));
       const bov = app.red.de('H:scrTranscritas(detalle)').flatMap(x => x.subs.map(s => s.ruta)).filter(r => /^sanic_cm_tbl_cuentapans\?/.test(r));
-      e.check(bov.length > 0 && bov.every(r => /_sanic_cm_cp_cuentaid_value eq [0-9a-f-]{36}/i.test(decodeURIComponent(r))), 'la lectura de la bóveda es UNA consulta filtrada por la cuenta del registro (no N+1, no tabla entera)', '$filter=_sanic_cm_cp_cuentaid_value eq <id>', bov.slice(0, 2));
+      e.check(bov.length > 0 && bov.length === 1 && bov.every(r => /(_sanic_cm_cp_cuentaid_value|sanic_cm_cp_cuentaid\/sanic_cm_tbl_cuentaid) eq [0-9a-f-]{36}/i.test(decodeURIComponent(r))), 'la lectura de la bóveda es UNA consulta filtrada por la cuenta del registro (no N+1, no tabla entera)', '$filter=_sanic_cm_cp_cuentaid_value eq <id>', bov.slice(0, 2));
       const fallos = c.erroresRed(app, 'H:scrTranscritas(detalle)');
       e.check(fallos.length === 0, 'sin errores de Dataverse al leer la bóveda', [], fallos);
     });

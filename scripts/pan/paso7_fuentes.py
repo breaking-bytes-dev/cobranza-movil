@@ -108,7 +108,11 @@ def main():
             ds.insert(ultimo + 1 if ultimo is not None else len(ds), nueva)
         for o in opciones: poner(o, 'OptionSetInfo')
         poner(vistas, 'ViewInfo')
+        # MaxGetRowsCount es el límite de filas de la app (Configuración → Límite de filas): se CONSERVA al refrescar; una tabla
+        # nueva toma el mayor de la app. Fijarlo en 500 rompió B-12 en el backoffice (que usa 2000) el 2026-10-04.
         i = next((k for k, d in enumerate(ds) if d.get('LogicalName') == t and d['Type'] == 'NativeCDSDataSourceInfo'), None)
+        tabla['MaxGetRowsCount'] = ds[i].get('MaxGetRowsCount', 500) if i is not None else \
+            max((d.get('MaxGetRowsCount', 500) for d in ds if d['Type'] == 'NativeCDSDataSourceInfo'), default=500)
         if i is not None: ds[i] = tabla
         else: ds.insert(next(k for k, d in enumerate(ds) if d['Name'] == 'Users'), tabla)
         ldr['default.cds']['dataSources'][tabla['Name']] = {'entitySetName': em['EntitySetName'], 'logicalName': t}
