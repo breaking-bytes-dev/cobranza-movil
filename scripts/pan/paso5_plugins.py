@@ -241,7 +241,9 @@ def main():
 
         filtro = ','.join(p['filtro'])
         mensaje_id, filtro_msg_id = mensajes[p['mensaje']], filtro_id(p['mensaje'], p['entidad'])
-        deseado_activo = None  # None = no tocar
+        # ClaveDesdeCuenta y CuentaDesdeInteraccion van SIEMPRE activos (una importación de la solución puede apagarlos);
+        # PanGuard: None = conservar su estado (se activa en el paso 8).
+        deseado_activo = None if p['panguard'] else True
         if p['panguard']:
             if a.activar_panguard: deseado_activo = True
             elif a.desactivar_panguard: deseado_activo = False

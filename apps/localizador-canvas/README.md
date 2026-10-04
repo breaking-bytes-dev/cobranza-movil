@@ -14,7 +14,13 @@ Las fuentes de datos NO están en los `.pa.yaml`: viven en `sanic_appcobranzamov
 columnas nuevas sin Studio: `python3 scripts/pan/paso7_fuentes.py <msapr> --tablas <logicalname,...> --aplicar`
 (replica las consultas de Studio; `--comparar <tabla>` valida la réplica contra una fuente existente).
 
-## Build + deploy (Dev)
+## ⚠ Despliegue: usar `scripts/pan/paso7_desplegar.py`
+Despliega cobrador + backoffice en una importación, sincroniza `DatabaseReferences`/`CdsDependencies` (sin eso la app no consulta
+tablas nuevas) y **restaura el estado de los pasos de plugin y de los flows**. Los workflows `import-app` / `import-backoffice`
+(en `main`) importan con `--activate-plugins`: el 2026-10-04 eso **encendió PanGuard** (debe seguir apagado hasta el paso 8).
+No usarlos mientras exista PanGuard apagado.
+
+## Build + deploy (Dev) — histórico
 ```bash
 # 1) empaquetar
 pac canvas pack --sources apps/localizador-canvas --msapp app.msapp --overwrite

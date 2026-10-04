@@ -5,9 +5,13 @@ Las tablas que la app puede usar también están en customizations.xml (<Databas
 
 Pasos: pac canvas pack de cada app (con chequeo de YAML: con la carpeta mal nombrada pac empaqueta SIN fórmulas y no avisa)
 → pac solution export → swap de los .msapp → DatabaseReferences/CdsDependencies desde LocalDatabaseReferences de cada app
-→ pac solution import --publish-changes. Usa el perfil activo de pac (SP de DEV). Después: paso3_reconciliar.py --aplicar.
+→ pac solution import --publish-changes → restaura el estado de los pasos de plugin de CM y de los flows de la solución
+(verificado 2026-10-04: una importación con --activate-plugins ENCENDIÓ PanGuard y una sin él APAGÓ ClaveDesdeCuenta).
+Usa el perfil activo de pac (SP de DEV). Después: paso3_reconciliar.py --aplicar.
 Uso: python3 scripts/pan/paso7_desplegar.py [--aplicar]"""
 import html, json, os, re, subprocess, sys, tempfile, zipfile
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'seguridad'))
+from dvlib import rq, get
 
 RAIZ = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..')
 PAC = os.path.expanduser('~/.dotnet/tools/pac')
@@ -70,5 +74,24 @@ with zipfile.ZipFile(deploy, 'w') as zout:
         zout.writestr(zi, data)
 print('deploy.zip listo en', deploy)
 if not APLICAR: print('Nada importado. Repetir con --aplicar.'); sys.exit()
+def estados():
+    pasos = {x['sdkmessageprocessingstepid']: (x['name'], x['statecode']) for x in
+             get("sdkmessageprocessingsteps?$select=name,statecode&$filter=startswith(name,'Sanic.CobranzaMovil.Plugins.')")['value']}
+    sol = get("solutions?$select=solutionid&$filter=uniquename eq 'cm_core_cobranzamovil'")['value'][0]['solutionid']
+    ids = {c['objectid'] for c in get(f"solutioncomponents?$select=objectid&$filter=_solutionid_value eq {sol} and componenttype eq 29")['value']}
+    flows = {w['workflowid']: (w['name'], w['statecode']) for w in get("workflows?$select=name,statecode&$filter=category eq 5")['value'] if w['workflowid'] in ids}
+    return pasos, flows
+pasos_antes, flows_antes = estados()
+print(f'estado previo: {sum(v[1] == 0 for v in pasos_antes.values())} pasos activos de {len(pasos_antes)}, '
+      f'{sum(v[1] == 1 for v in flows_antes.values())} flows encendidos de {len(flows_antes)}')
 for l in pac('solution', 'import', '--path', deploy, '--force-overwrite', '--publish-changes')[-3:]: print(' ', l)
+pasos_desp, flows_desp = estados()
+for i, (nombre, st) in pasos_antes.items():
+    if pasos_desp.get(i, (nombre, st))[1] != st:
+        r = rq('PATCH', f'sdkmessageprocessingsteps({i})', {'statecode': st, 'statuscode': 1 if st == 0 else 2})
+        print(f"  restaurado paso {nombre}: {'activo' if st == 0 else 'desactivado'} → {r[0]}")
+for i, (nombre, st) in flows_antes.items():
+    if flows_desp.get(i, (nombre, st))[1] != st:
+        r = rq('PATCH', f'workflows({i})', {'statecode': st, 'statuscode': 2 if st == 1 else 1})
+        print(f"  restaurado flow {nombre}: {'encendido' if st == 1 else 'apagado'} → {r[0]}")
 print('Importado. Falta: python3 scripts/seguridad/paso3_reconciliar.py --aplicar')
