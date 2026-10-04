@@ -18,3 +18,12 @@ for rol, depth in [('SR | CM | Localizador', 'Basic'), ('SR | CM | BackOffice', 
 for rol in ['SR | CM | Admin', 'SR | CM | Solicitante', 'SR | CM | Supervisor']:
     rid = get(f"roles?$select=roleid&$filter=name eq '{rol}'")['value'][0]['roleid']
     print(f'{rol}: Read bóveda', {p['PrivilegeId']: p['Depth'] for p in get(f'RetrieveRolePrivilegesRole(RoleId={rid})')['RolePrivileges']}.get(pv, '— (ninguno, correcto)'))
+# System Customizer recibe privilegios automáticos sobre toda tabla nueva (verificado 2026-10-04: tenía Read de la bóveda).
+# Lo tienen identidades de servicio y equipos de desarrollo: no debe leer números de tarjeta. Se le quita todo sobre la bóveda.
+# Support User también los recibe, pero la plataforma no deja modificar ese rol (lo usa el soporte de Microsoft).
+sc = get("roles?$select=roleid&$filter=name eq 'System Customizer' and _parentroleid_value eq null")['value'][0]['roleid']
+for p in get(f"roles({sc})/roleprivileges_association?$select=name,privilegeid&$filter=contains(name,'sanic_cm_tbl_cuentapan')")['value']:
+    print(('APLICAR ' if APLICAR else 'PLAN    ') + f"System Customizer: quitar {p['name']}")
+    if APLICAR:
+        st, b = rq('POST', f'roles({sc})/Microsoft.Dynamics.CRM.RemovePrivilegeRole', {'Privilege': {'@odata.type': 'Microsoft.Dynamics.CRM.privilege', 'privilegeid': p['privilegeid']}})
+        print('   ', '✓' if st < 300 else f'✗ {st} {b}')
