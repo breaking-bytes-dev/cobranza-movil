@@ -138,6 +138,68 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
 
         // ---------- rechazos ----------
 
+        // ---------- cuenta referenciada por clave alternativa (upsert de Smelter) ----------
+        // La doc no garantiza que la referencia ya traiga el Id en PreOperation: con Id vacío se usa la clave de la referencia.
+
+        private static EntityReference CuentaPorClave(string clave) =>
+            new EntityReference(Cuenta, new KeyAttributeCollection { { ColClaveCt, clave } });
+
+        [Theory]
+        [InlineData("Create")]
+        [InlineData("Update")]
+        public void Cuenta_por_clave_alternativa_sin_Id_completa_la_clave_sin_leer_la_cuenta(string mensaje)
+        {
+            var target = new Entity(Asignacion, Guid.NewGuid());
+            target[ColCuentaId] = CuentaPorClave(ClaveA);
+            var h = Preparar(mensaje, target, null);
+
+            h.Ejecutar(new ClaveDesdeCuenta());
+
+            Assert.Equal(ClaveA, target.GetAttributeValue<string>(ColClaveAs));
+            Assert.Equal(0, h.RetrievesAlServicio());
+        }
+
+        [Fact]
+        public void Cuenta_por_clave_alternativa_sin_Id_con_la_misma_clave_en_el_Target_pasa()
+        {
+            var target = new Entity(Asignacion, Guid.NewGuid());
+            target[ColCuentaId] = CuentaPorClave(ClaveA);
+            target[ColClaveAs] = ClaveA;
+            var h = Preparar("Create", target, null);
+
+            h.Ejecutar(new ClaveDesdeCuenta());
+
+            Assert.Equal(ClaveA, target.GetAttributeValue<string>(ColClaveAs));
+            Assert.Equal(0, h.RetrievesAlServicio());
+        }
+
+        [Fact]
+        public void Cuenta_por_clave_alternativa_sin_Id_con_otra_clave_en_el_Target_se_rechaza()
+        {
+            var target = new Entity(Asignacion, Guid.NewGuid());
+            target[ColCuentaId] = CuentaPorClave(ClaveA);
+            target[ColClaveAs] = ClaveB;
+            var h = Preparar("Create", target, null);
+
+            var ex = Assert.Throws<InvalidPluginExecutionException>(() => h.Ejecutar(new ClaveDesdeCuenta()));
+
+            Assert.DoesNotContain(ClaveA, ex.Message);
+            Assert.DoesNotContain(ClaveB, ex.Message);
+        }
+
+        [Fact]
+        public void Cuenta_sin_Id_y_sin_la_clave_HMAC_en_la_referencia_no_lee_ni_cambia_nada()
+        {
+            var target = new Entity(Asignacion, Guid.NewGuid());
+            target[ColCuentaId] = new EntityReference(Cuenta, new KeyAttributeCollection { { "sanic_cm_ct_numerodecuenta", "x" } });
+            var h = Preparar("Create", target, null);
+
+            h.Ejecutar(new ClaveDesdeCuenta());
+
+            Assert.False(target.Contains(ColClaveAs));
+            Assert.Equal(0, h.RetrievesAlServicio());
+        }
+
         [Theory]
         [InlineData("Create")]
         [InlineData("Update")]

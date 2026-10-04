@@ -37,9 +37,7 @@ namespace Sanic.CobranzaMovil.Plugins
                 return;
             }
 
-            // Una sola lectura, de una sola columna.
-            var fila = local.Service.Retrieve(Esquema.Cuenta, cuenta.Id, new ColumnSet(Esquema.CuentaClavePan));
-            var claveCuenta = fila == null ? null : fila.GetAttributeValue<string>(Esquema.CuentaClavePan);
+            var claveCuenta = ClaveDeLaCuenta(local, cuenta);
             if (string.IsNullOrEmpty(claveCuenta))
             {
                 // Cuenta sin clave (aun sin backfill): no se puede copiar ni comparar. No se bloquea el alta.
@@ -72,6 +70,24 @@ namespace Sanic.CobranzaMovil.Plugins
         /// Cuenta contra la que validar. Prioriza la del Target; en un Update que solo toca as_clavepan usa
         /// la de la imagen previa. Devuelve null si no hay cuenta o si el Target la esta borrando.
         /// </summary>
+        // El upsert de Smelter referencia la cuenta por su clave alternativa (ct_clavepan). La doc no garantiza que en
+        // PreOperation la referencia ya traiga el Id: si no lo trae, la clave de la cuenta ES el valor de la referencia.
+        private static string ClaveDeLaCuenta(LocalContext local, EntityReference cuenta)
+        {
+            if (cuenta.Id == Guid.Empty)
+            {
+                object valor;
+                if (cuenta.KeyAttributes != null && cuenta.KeyAttributes.TryGetValue(Esquema.CuentaClavePan, out valor))
+                    return valor as string;
+                local.Trace("cuenta referenciada sin Id ni {0}; sin cambios.", Esquema.CuentaClavePan);
+                return null;
+            }
+
+            // Una sola lectura, de una sola columna.
+            var fila = local.Service.Retrieve(Esquema.Cuenta, cuenta.Id, new ColumnSet(Esquema.CuentaClavePan));
+            return fila == null ? null : fila.GetAttributeValue<string>(Esquema.CuentaClavePan);
+        }
+
         private static EntityReference ResolverCuenta(LocalContext local, Entity target)
         {
             if (target.Contains(Esquema.AsignacionCuentaId))
