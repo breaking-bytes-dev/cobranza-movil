@@ -239,10 +239,7 @@ Screens:
                                     BorderThickness: =1
                                     DropShadow: =DropShadow.None
                                     Fill: =gblC.chipBg
-                                    FillPortions: =1
-                                    LayoutAlignItems: =LayoutAlignItems.Start
                                     LayoutDirection: =LayoutDirection.Vertical
-                                    LayoutJustifyContent: =LayoutJustifyContent.Start
                                     LayoutGap: =2
                                     LayoutMinHeight: =16
                                     LayoutMinWidth: =16
@@ -283,10 +280,7 @@ Screens:
                                     BorderThickness: =1
                                     DropShadow: =DropShadow.None
                                     Fill: =gblC.chipBg
-                                    FillPortions: =1
-                                    LayoutAlignItems: =LayoutAlignItems.Start
                                     LayoutDirection: =LayoutDirection.Vertical
-                                    LayoutJustifyContent: =LayoutJustifyContent.Start
                                     LayoutGap: =2
                                     LayoutMinHeight: =16
                                     LayoutMinWidth: =16
@@ -592,13 +586,6 @@ Screens:
                         Height: =Parent.TemplateHeight
                         LayoutAlignItems: =LayoutAlignItems.Stretch
                         LayoutDirection: =LayoutDirection.Vertical
-                        LayoutGap: =0
-                        LayoutMinHeight: =16
-                        LayoutMinWidth: =16
-                        PaddingBottom: =0
-                        PaddingLeft: =0
-                        PaddingRight: =0
-                        PaddingTop: =0
                         RadiusBottomLeft: =16
                         RadiusBottomRight: =16
                         RadiusTopLeft: =16
@@ -610,7 +597,6 @@ Screens:
                             Variant: AutoLayout
                             Properties:
                               DropShadow: =DropShadow.None
-                              FillPortions: =1
                               LayoutAlignItems: =LayoutAlignItems.Stretch
                               LayoutDirection: =LayoutDirection.Vertical
                               LayoutMinHeight: =16
@@ -633,10 +619,7 @@ Screens:
                                     LayoutJustifyContent: =LayoutJustifyContent.SpaceBetween
                                     LayoutMinHeight: =16
                                     LayoutMinWidth: =16
-                                    LayoutWrap: =false
                                     PaddingBottom: =4
-                                    PaddingLeft: =0
-                                    PaddingRight: =0
                                     PaddingTop: =4
                                   Children:
                                     - avatarBox:
@@ -663,27 +646,17 @@ Screens:
                                                 Color: =gblC.accentInk2
                                                 FontWeight: =FontWeight.Bold
                                                 Height: =Parent.Height
-                                                LayoutMinHeight: =16
-                                                LayoutMinWidth: =16
                                                 Size: =gblT.fmd
                                                 Text: =Upper(Left(ThisItem.cliNom,1) & Mid(ThisItem.cliNom, Find(" ", ThisItem.cliNom & " ") + 1, 1))
-                                                VerticalAlign: =VerticalAlign.Middle
                                                 Width: =Parent.Width
                                     - conNameBlock:
                                         Control: GroupContainer@1.5.0
                                         Variant: AutoLayout
                                         Properties:
                                           DropShadow: =DropShadow.None
-                                          FillPortions: =1
-                                          LayoutAlignItems: =LayoutAlignItems.Start
                                           LayoutDirection: =LayoutDirection.Vertical
-                                          LayoutGap: =0
                                           LayoutMinHeight: =16
                                           LayoutMinWidth: =16
-                                          PaddingBottom: =0
-                                          PaddingLeft: =0
-                                          PaddingRight: =0
-                                          PaddingTop: =0
                                         Children:
                                           - lblNombre:
                                               Control: Label@2.5.1
@@ -762,21 +735,22 @@ Screens:
                                     PaddingRight: =0
                                     PaddingTop: =8
                                     Size: =gblT.fbase
-                                    Text: =If(IsBlank(ThisItem.dirCasa), "🏠  Sin dirección registrada", "🏠  " & ThisItem.dirCasa)
+                                    Text: |-
+                                      =If(IsBlank(ThisItem.dirCasa), "🏠  Sin dirección registrada", "🏠  " & ThisItem.dirCasa)
                               - lblCartTrabajo:
                                   Control: Label@2.5.1
                                   Properties:
                                     AlignInContainer: =AlignInContainer.Stretch
                                     AutoHeight: =true
                                     Color: =gblC.ink2
-                                    FontWeight: =FontWeight.Normal
                                     LayoutMinHeight: =16
                                     LayoutMinWidth: =16
                                     PaddingLeft: =0
                                     PaddingRight: =0
                                     PaddingTop: =3
                                     Size: =gblT.fbase
-                                    Text: ="💼  " & ThisItem.dirTrab
+                                    Text: |-
+                                      ="💼  " & ThisItem.dirTrab
                                     Visible: =!IsBlank(ThisItem.dirTrab)
                         - conFooter:
                             Control: GroupContainer@1.5.0
@@ -804,16 +778,10 @@ Screens:
                                   Variant: AutoLayout
                                   Properties:
                                     DropShadow: =DropShadow.None
-                                    FillPortions: =1
-                                    LayoutAlignItems: =LayoutAlignItems.Start
                                     LayoutDirection: =LayoutDirection.Vertical
                                     LayoutGap: =1
                                     LayoutMinHeight: =16
                                     LayoutMinWidth: =16
-                                    PaddingBottom: =0
-                                    PaddingLeft: =0
-                                    PaddingRight: =0
-                                    PaddingTop: =0
                                   Children:
                                     - lblSaldoLbl:
                                         Control: Label@2.5.1
@@ -848,10 +816,6 @@ Screens:
                                     LayoutGap: =8
                                     LayoutMinHeight: =16
                                     LayoutMinWidth: =16
-                                    PaddingBottom: =0
-                                    PaddingLeft: =0
-                                    PaddingRight: =0
-                                    PaddingTop: =0
                                     Width: =If(gblScale = 1, 84,gblScale = 1.2,94,gblScale = 1.45,112,124)
                                   Children:
                                     - icoUp:

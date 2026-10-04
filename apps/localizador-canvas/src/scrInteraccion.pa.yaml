@@ -21,6 +21,12 @@ Screens:
         Reset(inDirEC);
         Reset(inDirTrab);
         Reset(inCorreo);
+      OnVisible: |-
+        =ClearCollect(colProdInt,
+            AddColumns(
+                Filter(colAsig, cid = varCuenta.'CIF Cliente' && '[AS] Estado' = true),
+                esActual, '[AS] NumeroCuenta' = varCuenta.'[CT] Numero de cuenta',
+                sel,      '[AS] NumeroCuenta' = varCuenta.'[CT] Numero de cuenta'))
     Children:
       - conMaster_4:
           Control: GroupContainer@1.5.0
@@ -135,7 +141,7 @@ Screens:
                       Control: Label@2.5.1
                       Properties:
                         AutoHeight: =true
-                        Color: =gblC.teal
+                        Color: =gblC.accent
                         FontWeight: =FontWeight.Bold
                         LayoutMinHeight: =16
                         LayoutMinWidth: =16
@@ -145,7 +151,7 @@ Screens:
                       Control: Label@2.5.1
                       Properties:
                         AutoHeight: =true
-                        Color: =gblC.teal
+                        Color: =gblC.accent
                         FontWeight: =FontWeight.Bold
                         LayoutMinHeight: =16
                         LayoutMinWidth: =16
@@ -156,7 +162,7 @@ Screens:
                       Control: Label@2.5.1
                       Properties:
                         AutoHeight: =true
-                        Color: =gblC.teal
+                        Color: =gblC.accent
                         FontWeight: =FontWeight.Bold
                         LayoutMinHeight: =16
                         LayoutMinWidth: =16
@@ -167,7 +173,7 @@ Screens:
                       Control: Label@2.5.1
                       Properties:
                         AutoHeight: =true
-                        Color: =gblC.teal
+                        Color: =gblC.accent
                         FontWeight: =FontWeight.Bold
                         LayoutMinHeight: =16
                         LayoutMinWidth: =16
@@ -194,7 +200,7 @@ Screens:
                   BorderThickness: =1
                   Color: =gblC.ink
                   Default: =varCom
-                  Fill: =gblC.white
+                  Fill: =gblC.surface
                   Height: =160
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
@@ -223,7 +229,7 @@ Screens:
                       Control: Classic/Button@2.2.0
                       Properties:
                         BorderThickness: =0
-                        Color: =gblC.teal
+                        Color: =gblC.accent
                         DisabledFill: =RGBA(244, 244, 244, 0)
                         Fill: =Color.Transparent
                         Height: =Parent.TemplateHeight
@@ -239,11 +245,153 @@ Screens:
                         Size: =gblT.fxs
                         Text: =ThisItem.Value
                         Width: =Parent.TemplateWidth
+            - cardSelProd:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  BorderColor: =gblC.cardBorder
+                  BorderThickness: =1
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.surface
+                  FillPortions: =0
+                  Height: =lblSelTitulo.Height + galProd.Height + lblSelNota.Height + 26
+                  LayoutAlignItems: =LayoutAlignItems.Stretch
+                  LayoutDirection: =LayoutDirection.Vertical
+                  LayoutGap: =6
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  PaddingBottom: =10
+                  PaddingLeft: =14
+                  PaddingRight: =14
+                  PaddingTop: =12
+                  RadiusBottomLeft: =14
+                  RadiusBottomRight: =14
+                  RadiusTopLeft: =14
+                  RadiusTopRight: =14
+                Children:
+                  - lblSelTitulo:
+                      Control: Label@2.5.1
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Stretch
+                        AutoHeight: =true
+                        Color: =gblC.muted2
+                        FontWeight: =FontWeight.Bold
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Size: =gblT.fxs
+                        Text: ="APLICAR A ESTOS PRODUCTOS"
+                  - galProd:
+                      Control: Gallery@2.15.0
+                      Variant: Vertical
+                      Properties:
+                        FillPortions: =0
+                        Height: =CountRows(colProdInt) * If(gblScale = 1, 52,gblScale = 1.2,58,gblScale = 1.45,66,74)
+                        Items: =colProdInt
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        ShowScrollbar: =false
+                        TemplatePadding: =0
+                        TemplateSize: =If(gblScale = 1, 52,gblScale = 1.2,58,gblScale = 1.45,66,74)
+                      Children:
+                        - conProdRow:
+                            Control: GroupContainer@1.5.0
+                            Variant: AutoLayout
+                            Properties:
+                              DropShadow: =DropShadow.None
+                              Height: =Parent.TemplateHeight
+                              LayoutAlignItems: =LayoutAlignItems.Center
+                              LayoutDirection: =LayoutDirection.Horizontal
+                              LayoutGap: =11
+                              PaddingLeft: =2
+                              PaddingRight: =2
+                              Width: =Parent.TemplateWidth
+                            Children:
+                              - icoChk:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    Align: =Align.Center
+                                    Color: =If(ThisItem.sel, gblC.accent, gblC.muted)
+                                    Height: =Parent.Height
+                                    Size: =20*gblScale
+                                    Text: =If(ThisItem.sel, "☑", "☐")
+                                    Width: =If(gblScale = 1 , 30, 50)
+                              - conProdInfo:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: AutoLayout
+                                  Properties:
+                                    DropShadow: =DropShadow.None
+                                    LayoutDirection: =LayoutDirection.Vertical
+                                    LayoutGap: =1
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                  Children:
+                                    - lblProdName:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Stretch
+                                          AutoHeight: =true
+                                          Color: =gblC.ink
+                                          FillPortions: =1
+                                          FontWeight: =FontWeight.Bold
+                                          LayoutMinHeight: =20
+                                          LayoutMinWidth: =16
+                                          Size: =gblT.fbase
+                                          Text: =ThisItem.cta.sanic_cm_ct_tipoproducto
+                                    - lblProdNum:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Stretch
+                                          AutoHeight: =true
+                                          Color: =gblC.muted
+                                          FillPortions: =1
+                                          LayoutMinHeight: =16
+                                          LayoutMinWidth: =16
+                                          Size: =gblT.fxs
+                                          Text: =ThisItem.'[AS] NumeroCuenta'
+                              - lblActBadge:
+                                  Control: ModernText@1.0.0
+                                  Properties:
+                                    Align: =Align.Center
+                                    Color: =gblC.accentInk
+                                    Fill: =gblC.accentBg
+                                    FontWeight: =FontWeight.Bold
+                                    RadiusBottomLeft: =12
+                                    RadiusBottomRight: =12
+                                    RadiusTopLeft: =12
+                                    RadiusTopRight: =12
+                                    Size: =gblT.f2xs
+                                    Text: ="ACTUAL"
+                                    Visible: =ThisItem.esActual
+                                    Width: =90
+                        - btnRow:
+                            Control: ModernButton@1.0.0
+                            Properties:
+                              Appearance: =ButtonAppearance.Transparent
+                              DisplayMode: =If(ThisItem.esActual || tpPago.Value || tgDatos.Value, DisplayMode.Disabled, DisplayMode.Edit)
+                              Height: =Parent.TemplateHeight
+                              OnSelect: |-
+                                =With(
+                                    { tn: ThisItem.'[AS] NumeroCuenta', ts: ThisItem.sel },
+                                    UpdateIf(colProdInt, '[AS] NumeroCuenta' = tn, { sel: !ts }))
+                              Text: =
+                              Width: =Parent.TemplateWidth
+                  - lblSelNota:
+                      Control: Label@2.5.1
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Stretch
+                        AutoHeight: =true
+                        Color: =gblC.muted
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingTop: =2
+                        Size: =gblT.f2xs
+                        Text: |-
+                          =If(tpPago.Value || tgDatos.Value, "🔒 Con pago o datos, solo aplica a esta cuenta.", If(CountRows(Filter(colProdInt, sel)) > 1, "Pago y actualización de datos quedan deshabilitados (son por 1 cuenta).", CountRows(Filter(colProdInt, sel)) & " producto(s) seleccionado(s)."))
             - Container16_4:
                 Control: GroupContainer@1.5.0
                 Variant: AutoLayout
                 Properties:
-                  Fill: =gblC.white
+                  Fill: =gblC.surface
                   FillPortions: =0
                   Height: =lblPagoT.Height + conFila_DiasMora_3.Height + If(secPago.Visible, secPago.Height) +  16
                   LayoutAlignItems: =LayoutAlignItems.Center
@@ -290,8 +438,11 @@ Screens:
                             Control: Classic/Toggle@2.1.0
                             Properties:
                               AlignInContainer: =AlignInContainer.Stretch
+                              DisplayMode: =If(CountRows(Filter(colProdInt, sel)) > 1, DisplayMode.Disabled, DisplayMode.Edit)
                               LayoutMinHeight: =16
                               LayoutMinWidth: =16
+                              OnCheck: |-
+                                =UpdateIf(colProdInt, !esActual, {sel: false})
                               ShowLabel: =false
                               Width: =70
                   - lblPagoD:
@@ -309,7 +460,7 @@ Screens:
                       Control: GroupContainer@1.5.0
                       Variant: AutoLayout
                       Properties:
-                        BorderColor: =gblC.teal
+                        BorderColor: =gblC.accent
                         BorderStyle: =BorderStyle.None
                         BorderThickness: =3
                         DropShadow: =DropShadow.None
@@ -330,7 +481,7 @@ Screens:
                             Properties:
                               AlignInContainer: =AlignInContainer.Stretch
                               AutoHeight: =true
-                              Color: =gblC.teal
+                              Color: =gblC.accent
                               FontWeight: =FontWeight.Bold
                               LayoutMinHeight: =16
                               LayoutMinWidth: =16
@@ -358,7 +509,7 @@ Screens:
                                     BorderColor: =gblC.cardBorder
                                     BorderThickness: =2
                                     DropShadow: =DropShadow.None
-                                    Fill: =gblC.white
+                                    Fill: =gblC.surface
                                     Height: =Parent.TemplateHeight - 10
                                     LayoutAlignItems: =LayoutAlignItems.Center
                                     LayoutDirection: =LayoutDirection.Vertical
@@ -453,9 +604,9 @@ Screens:
                             Control: Classic/Button@2.2.0
                             Properties:
                               AlignInContainer: =AlignInContainer.Center
-                              BorderColor: =ColorValue("#A7C4C4")
+                              BorderColor: =gblC.cardBorder
                               BorderStyle: =BorderStyle.Dashed
-                              Color: =gblC.teal
+                              Color: =gblC.accent
                               Fill: =gblC.chipBg
                               Height: =60
                               LayoutMinHeight: =16
@@ -470,7 +621,7 @@ Screens:
                 Control: GroupContainer@1.5.0
                 Variant: AutoLayout
                 Properties:
-                  Fill: =gblC.white
+                  Fill: =gblC.surface
                   FillPortions: =0
                   Height: =lblPagoT_1.Height + conFila_DiasMora_4.Height + If(secDatos.Visible, secDatos.Height) +  48
                   LayoutAlignItems: =LayoutAlignItems.Center
@@ -516,8 +667,11 @@ Screens:
                             Control: Classic/Toggle@2.1.0
                             Properties:
                               AlignInContainer: =AlignInContainer.Stretch
+                              DisplayMode: =If(CountRows(Filter(colProdInt, sel)) > 1, DisplayMode.Disabled, DisplayMode.Edit)
                               LayoutMinHeight: =16
                               LayoutMinWidth: =16
+                              OnCheck: |-
+                                =UpdateIf(colProdInt, !esActual, {sel: false})
                               ShowLabel: =false
                               Width: =70
                   - lblPagoD_1:
@@ -535,7 +689,7 @@ Screens:
                       Control: GroupContainer@1.5.0
                       Variant: AutoLayout
                       Properties:
-                        BorderColor: =gblC.teal
+                        BorderColor: =gblC.accent
                         BorderStyle: =BorderStyle.None
                         BorderThickness: =3
                         DropShadow: =DropShadow.None
@@ -556,7 +710,7 @@ Screens:
                             Properties:
                               AlignInContainer: =AlignInContainer.Stretch
                               AutoHeight: =true
-                              Color: =gblC.teal
+                              Color: =gblC.accent
                               FontWeight: =FontWeight.Bold
                               LayoutMinHeight: =16
                               LayoutMinWidth: =16
@@ -901,7 +1055,7 @@ Screens:
                   AlignInContainer: =AlignInContainer.Stretch
                   BorderStyle: =BorderStyle.None
                   Color: =gblC.white
-                  DisplayMode: |+
+                  DisplayMode: |
                     =If(!IsBlank(txtComentario.Text)
                           && (!tpPago.Value || CountRows(Filter(colLineasPago, monto>0 && !IsBlank(Trim(recibo))))>0)
                           && (!tgDatos.Value || Or(!IsBlank(inTelCasa.Text), !IsBlank(inTelCel.Text), !IsBlank(inTelTrab.Text),
@@ -914,83 +1068,58 @@ Screens:
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
                   OnSelect: |-
-                    =Set(
-                        varInt,
-                        Patch(
-                            'CM | TBL | Interaccions',
-                            Defaults('CM | TBL | Interaccions'),
-                            {
-                                '[IN] Cuenta': varCuenta,
+                    =If(tpPago.Value || tgDatos.Value,
+                        /* UNA cuenta (pago o datos) */
+                        Set(varInt, Patch('CM | TBL | Interaccions', Defaults('CM | TBL | Interaccions'), {
+                            '[IN] Cuenta': varCuenta,
+                            '[IN] Agente': gblAgente,
+                            '[IN] Comentario': txtComentario.Text,
+                            '[IN] Aplica pago': tpPago.Value,
+                            '[IN] Actualiza info': tgDatos.Value,
+                            '[IN] Latitud': Location.Latitude,
+                            '[IN] Longitud': Location.Longitude,
+                            '[IN] Numerocuenta': varCuenta.'[CT] Numero de cuenta',
+                            'Fecha de captura': Now(),
+                            '[IN] NombreAgente': Coalesce(gblAgente.'[AG] Nombre', "Sin nombre") }));
+                        If(tpPago.Value, ForAll(Filter(colLineasPago, monto > 0) As L,
+                            Patch('CM | TBL | Pagos', Defaults('CM | TBL | Pagos'), {
+                                '[PG] Interaccion': varInt,
+                                '[PG] Numero Interaccion': varInt.'[IN] Numero de Interaccion',
+                                '[PG] Numero Cuenta': varCuenta.'[CT] Numero de cuenta',
+                                '[PG] Monto': L.monto,
+                                '[PG] Moneda': Switch(L.moneda, "USD", 'Choice | CM | Monedas en Pago'.USD, 'Choice | CM | Monedas en Pago'.NIO),
+                                '[PG] Numero recibo': L.recibo })));
+                        If(tgDatos.Value, Patch('CM | TBL | Actualizacion de datos', Defaults('CM | TBL | Actualizacion de datos'), {
+                            '[AD] Interaccion': varInt,
+                            '[AD] Telefono Casa': inTelCasa.Text,
+                            '[AD] Telefono Celular': inTelCel.Text,
+                            '[AD] Telefono trabajo': inTelTrab.Text,
+                            '[AD] Direccion casa': inDirCasa.Text,
+                            '[AD] Direccion EC': inDirEC.Text,
+                            '[AD] Direccion trabajo': inDirTrab.Text,
+                            '[AD] Correo electronico': inCorreo.Text })),
+                        /* MULTI: una interacción por producto tildado, sin pago/datos */
+                        ForAll(Filter(colProdInt, sel) As P,
+                            Patch('CM | TBL | Interaccions', Defaults('CM | TBL | Interaccions'), {
+                                '[IN] Cuenta': P.cta,
                                 '[IN] Agente': gblAgente,
                                 '[IN] Comentario': txtComentario.Text,
-                                '[IN] Aplica pago': tpPago.Value,
-                                '[IN] Actualiza info': tgDatos.Value,
+                                '[IN] Aplica pago': false,
+                                '[IN] Actualiza info': false,
                                 '[IN] Latitud': Location.Latitude,
                                 '[IN] Longitud': Location.Longitude,
-                                '[IN] Numerocuenta': varCuenta.'[CT] Numero de cuenta',
+                                '[IN] Numerocuenta': P.'[AS] NumeroCuenta',
                                 'Fecha de captura': Now(),
-                                '[IN] NombreAgente': Coalesce(gblAgente.'[AG] Nombre', "Sin nombre")
-                            }
-                        )
-                    );
-                    If(
-                        tpPago.Value,
-                        ForAll(
-                            Filter(
-                                colLineasPago,
-                                monto > 0
-                            ) As L,
-                            Patch(
-                                'CM | TBL | Pagos',
-                                Defaults('CM | TBL | Pagos'),
-                                {
-                                    '[PG] Interaccion': varInt,
-                                    '[PG] Numero Interaccion': varInt.'[IN] Numero de Interaccion',
-                                    '[PG] Numero Cuenta': varCuenta.'[CT] Numero de cuenta',
-                                    '[PG] Monto': L.monto,
-                                    '[PG] Moneda': Switch(
-                                        L.moneda,
-                                        "USD",
-                                        'Choice | CM | Monedas en Pago'.USD,
-                                        'Choice | CM | Monedas en Pago'.NIO
-                                    ),
-                                    '[PG] Numero recibo': L.recibo
-                                }
-                            )
-                        )
-                    );
-                    If(
-                        tgDatos.Value,
-                        Patch(
-                            'CM | TBL | Actualizacion de datos',
-                            Defaults('CM | TBL | Actualizacion de datos'),
-                            {
-                                '[AD] Interaccion': varInt,
-                                '[AD] Telefono Casa': inTelCasa.Text,
-                                '[AD] Telefono Celular': inTelCel.Text,
-                                '[AD] Telefono trabajo': inTelTrab.Text,
-                                '[AD] Direccion casa': inDirCasa.Text,
-                                '[AD] Direccion EC': inDirEC.Text,
-                                '[AD] Direccion trabajo': inDirTrab.Text,
-                                '[AD] Correo electronico': inCorreo.Text
-                            }
-                        )
-                    );
-                    Set(
-                        varCom,
-                        ""
-                    );
-                    Notify(
-                        "✓ Guardado offline. Se sincroniza al volver la señal.",
-                        NotificationType.Success
-                    );
+                                '[IN] NombreAgente': Coalesce(gblAgente.'[AG] Nombre', "Sin nombre") })));
+                    Set(varCom, "");
+                    Notify("✓ Guardado offline. Se sincroniza al volver la señal.", NotificationType.Success);
                     Back()
                   PaddingBottom: =14
                   PaddingLeft: =14
                   PaddingRight: =14
                   PaddingTop: =14
                   Size: =gblT.fmd
-                  Text: = "Guardar interacción" & If(tpPago.Value," + pago","") & If(tgDatos.Value," + datos","")
+                  Text: =If(tpPago.Value || tgDatos.Value, "Guardar interacción" & If(tpPago.Value," + pago","") & If(tgDatos.Value," + datos",""), "Guardar en " & CountRows(Filter(colProdInt, sel)) & " producto" & If(CountRows(Filter(colProdInt, sel))>1,"s",""))
             - lblHint:
                 Control: Label@2.5.1
                 Properties:

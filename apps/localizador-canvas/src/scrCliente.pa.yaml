@@ -45,8 +45,8 @@ Screens:
                       ComponentName: cmpHeaderBack
                       Properties:
                         Height: =Parent.Height
-                        Subtitulo: =LookUp(colClientes, '[CL] CIF' = varCliente).'[CL] Departamento' & " · " & LookUp(colClientes, '[CL] CIF' = varCliente).'[CL] Trabajo'
-                        Titulo: =LookUp(colClientes, '[CL] CIF' = varCliente).'[CL] Nombre'
+                        Subtitulo: ="CIF  " & varCliente
+                        Titulo: =LookUp(colClientes, cid = varCliente).cliNom
                         Width: =Parent.Width
                   - Button1_3:
                       Control: Classic/Button@2.2.0
@@ -74,7 +74,7 @@ Screens:
                 Control: GroupContainer@1.5.0
                 Variant: AutoLayout
                 Properties:
-                  Fill: =gblC.white
+                  Fill: =gblC.surface
                   FillPortions: =0
                   Height: =48
                   LayoutAlignItems: =LayoutAlignItems.Center
@@ -91,8 +91,8 @@ Screens:
                       Properties:
                         AlignInContainer: =AlignInContainer.Stretch
                         BorderStyle: =BorderStyle.None
-                        Color: =gblC.white
-                        Fill: =If(varCliTab="cuentas", gblC.teal, gblC.muted)
+                        Color: =If(varCliTab="cuentas", gblC.white, gblC.ink2)
+                        Fill: =If(varCliTab="cuentas", gblC.teal, gblC.chipBg)
                         FillPortions: =1
                         HoverBorderColor: =Self.BorderColor
                         HoverColor: =Self.Color
@@ -111,8 +111,8 @@ Screens:
                       Properties:
                         AlignInContainer: =AlignInContainer.Stretch
                         BorderStyle: =BorderStyle.None
-                        Color: =gblC.white
-                        Fill: =If(varCliTab="inter", gblC.teal, gblC.muted)
+                        Color: =If(varCliTab="cuentas", gblC.white, gblC.ink2)
+                        Fill: =If(varCliTab="inter", gblC.teal, gblC.chipBg)
                         FillPortions: =1
                         HoverBorderColor: =Self.BorderColor
                         HoverColor: =Self.Color
@@ -164,7 +164,7 @@ Screens:
                       Control: Label@2.5.1
                       Properties:
                         AutoHeight: =true
-                        Color: =gblC.teal
+                        Color: =gblC.accent
                         FontWeight: =FontWeight.Bold
                         LayoutMinHeight: =16
                         LayoutMinWidth: =16
@@ -174,9 +174,9 @@ Screens:
                 Control: GroupContainer@1.5.0
                 Variant: AutoLayout
                 Properties:
-                  Fill: =gblC.white
+                  Fill: =gblC.surface
                   FillPortions: =0
-                  Height: =lblSecTel.Height + galTels.Height + lblSecDir.Height + galDirs.Height + 16
+                  Height: =lblSecTel.Height + galTels.Height + lblSecDir.Height + galDirs.Height + If(galTels.AllItemsCount = 0, 28, 0) + If(galDirs.AllItemsCount = 0, 28, 0) + 16
                   LayoutAlignItems: =LayoutAlignItems.Center
                   LayoutDirection: =LayoutDirection.Vertical
                   LayoutMinHeight: =16
@@ -261,6 +261,19 @@ Screens:
                                     Size: =gblT.fsm
                                     Text: ="Llamar"
                                     Width: =120
+                  - lblSinTel:
+                      Control: Label@2.5.1
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Stretch
+                        AutoHeight: =true
+                        Color: =gblC.muted
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingBottom: =6
+                        PaddingTop: =4
+                        Size: =gblT.fxs
+                        Text: ="Sin teléfonos registrados"
+                        Visible: =galTels.AllItemsCount = 0
                   - lblSecDir:
                       Control: Label@2.5.1
                       Properties:
@@ -283,7 +296,7 @@ Screens:
                         LayoutMinHeight: =16
                         LayoutMinWidth: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
                         TemplatePadding: =
-                        TemplateSize: =If(gblScale = 1, 80,gblScale = 1.2,90,gblScale = 1.45,100,120)
+                        TemplateSize: =If(gblScale = 1, 158,gblScale = 1.2,176,gblScale = 1.45,204,228)
                       Children:
                         - conFilaDir:
                             Control: GroupContainer@1.5.0
@@ -325,7 +338,7 @@ Screens:
                                   Properties:
                                     AlignInContainer: =AlignInContainer.Center
                                     BorderStyle: =BorderStyle.None
-                                    Color: =gblC.teal
+                                    Color: =gblC.accent
                                     Fill: =gblC.chipBg
                                     Height: =If(gblScale = 1, 60,gblScale = 1.2,65,gblScale = 1.45,70,70)
                                     LayoutMinHeight: =16
@@ -338,6 +351,19 @@ Screens:
                                     Size: =gblT.fsm
                                     Text: ="Mapa"
                                     Width: =90
+                  - lblSinDir:
+                      Control: Label@2.5.1
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Stretch
+                        AutoHeight: =true
+                        Color: =gblC.muted
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingBottom: =6
+                        PaddingTop: =4
+                        Size: =gblT.fxs
+                        Text: ="Sin direcciones registradas"
+                        Visible: =galDirs.AllItemsCount = 0
             - lblSecCtas:
                 Control: Label@2.5.1
                 Properties:
@@ -369,7 +395,7 @@ Screens:
                       Properties:
                         BorderColor: =gblC.cardBorder
                         BorderThickness: =1
-                        Fill: =gblC.white
+                        Fill: =gblC.surface
                         Height: =lblITime_1.Height + lblIAcct_1.Height + lblICom_1.Height + If(lblTagPago_1.Visible,lblTagPago_1.Height + 10) + If(lblTagDatos_1.Visible,lblTagDatos_1.Height + 10) + Label7_1.Height + 45
                         LayoutAlignItems: =LayoutAlignItems.Center
                         LayoutDirection: =LayoutDirection.Vertical
@@ -446,6 +472,7 @@ Screens:
                                   Control: Label@2.5.1
                                   Properties:
                                     AutoHeight: =true
+                                    Color: =gblC.accentInk
                                     Fill: =gblC.accentBg
                                     FontWeight: =FontWeight.Semibold
                                     LayoutMinHeight: =16
@@ -501,7 +528,7 @@ Screens:
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
                   TemplatePadding: =
-                  TemplateSize: =If(gblScale = 1, 140,gblScale = 1.2,150,gblScale = 1.45,160,170)
+                  TemplateSize: =If(gblScale = 1, 150,gblScale = 1.2,165,gblScale = 1.45,185,205)
                   Visible: =varCliTab = "cuentas"
                   Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
                 Children:
@@ -509,143 +536,164 @@ Screens:
                       Control: GroupContainer@1.5.0
                       Variant: AutoLayout
                       Properties:
-                        BorderStyle: =BorderStyle.None
-                        BorderThickness: =3
-                        DropShadow: =DropShadow.None
-                        Fill: =RGBA(255, 255, 255, 1)
-                        Height: =Parent.TemplateHeight - 20
-                        LayoutDirection: =LayoutDirection.Horizontal
-                        LayoutJustifyContent: =LayoutJustifyContent.SpaceBetween
-                        LayoutWrap: =true
-                        PaddingBottom: =12
-                        PaddingLeft: =14
-                        PaddingRight: =14
-                        PaddingTop: =12
-                        RadiusBottomLeft: =12
-                        RadiusBottomRight: =12
-                        RadiusTopLeft: =12
-                        RadiusTopRight: =12
+                        BorderColor: =gblC.cardBorder
+                        BorderThickness: =1
+                        DropShadow: =DropShadow.Regular
+                        Fill: =gblC.surface
+                        Height: =conMiniBody.Height + conMiniFoot.Height
+                        LayoutAlignItems: =LayoutAlignItems.Stretch
+                        LayoutDirection: =LayoutDirection.Vertical
+                        RadiusBottomLeft: =14
+                        RadiusBottomRight: =14
+                        RadiusTopLeft: =14
+                        RadiusTopRight: =14
                         Width: =Parent.TemplateWidth - 20
                         X: =10
                         Y: =10
                       Children:
-                        - Container19:
+                        - conMiniBody:
                             Control: GroupContainer@1.5.0
                             Variant: AutoLayout
                             Properties:
-                              AlignInContainer: =AlignInContainer.Center
-                              BorderStyle: =BorderStyle.None
-                              BorderThickness: =3
                               DropShadow: =DropShadow.None
-                              FillPortions: =5
-                              Height: =Parent.Height - 16
-                              LayoutAlignItems: =LayoutAlignItems.Stretch
-                              LayoutDirection: =LayoutDirection.Vertical
+                              FillPortions: =0
+                              Height: =If(gblScale = 1, 66,gblScale = 1.2,74,gblScale = 1.45,90,100)
+                              LayoutAlignItems: =LayoutAlignItems.Center
+                              LayoutDirection: =LayoutDirection.Horizontal
+                              LayoutGap: =8
                               LayoutMinHeight: =16
                               LayoutMinWidth: =16
-                              LayoutWrap: =true
-                              PaddingBottom: =8
-                              PaddingLeft: =8
-                              PaddingRight: =8
-                              PaddingTop: =8
+                              PaddingBottom: =10
+                              PaddingLeft: =15
+                              PaddingRight: =13
+                              PaddingTop: =12
                             Children:
-                              - Container21:
+                              - conName:
                                   Control: GroupContainer@1.5.0
                                   Variant: AutoLayout
                                   Properties:
-                                    AlignInContainer: =AlignInContainer.SetByContainer
-                                    BorderStyle: =BorderStyle.None
-                                    BorderThickness: =3
                                     DropShadow: =DropShadow.None
-                                    FillPortions: =0
-                                    Height: =Max(Label9.Height, Text1.Height) + 16
-                                    LayoutDirection: =LayoutDirection.Horizontal
+                                    LayoutDirection: =LayoutDirection.Vertical
+                                    LayoutGap: =2
                                     LayoutMinHeight: =16
-                                    LayoutMinWidth: =0
-                                    PaddingBottom: =8
-                                    PaddingTop: =8
-                                    Width: =Parent.Width
+                                    LayoutMinWidth: =16
                                   Children:
                                     - Label9:
                                         Control: Label@2.5.1
                                         Properties:
-                                          FillPortions: =1
-                                          FontWeight: =FontWeight.Bold
-                                          Height: =30
-                                          LayoutMinHeight: =16
-                                          LayoutMinWidth: =16
-                                          Size: =gblT.fxs
-                                          Text: =ThisItem.cta.'Tipo Producto'
-                                    - Text1:
-                                        Control: ModernText@1.0.0
-                                        Properties:
-                                          Align: =Align.Center
+                                          AlignInContainer: =AlignInContainer.Stretch
                                           AutoHeight: =true
-                                          Color: =Switch(Text(ThisItem.'[AS] Tipo'), "Diaria",gblC.diariaInk, "Incobrable",gblC.incobInk, gblC.espInk)
-                                          Fill: =Switch(Text(ThisItem.'[AS] Tipo'), "Diaria",gblC.diariaBg, "Incobrable",gblC.incobBg, gblC.espBg)
+                                          Color: =gblC.ink
                                           FontWeight: =FontWeight.Bold
                                           LayoutMinHeight: =16
                                           LayoutMinWidth: =16
-                                          RadiusBottomLeft: =10
-                                          RadiusBottomRight: =10
-                                          RadiusTopLeft: =10
-                                          RadiusTopRight: =10
+                                          PaddingBottom: =0
+                                          Size: =gblT.fbase
+                                          Text: =ThisItem.cta.'Tipo Producto'
+                                    - Label10:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Stretch
+                                          AutoHeight: =true
+                                          Color: =gblC.muted
+                                          FontWeight: =FontWeight.Semibold
+                                          LayoutMinHeight: =16
+                                          LayoutMinWidth: =16
+                                          PaddingTop: =0
                                           Size: =gblT.fxs
-                                          Text: =ThisItem.'[AS] Tipo'
-                                          Width: =100
-                              - Label10:
-                                  Control: Label@2.5.1
+                                          Text: =ThisItem.'[AS] NumeroCuenta'
+                              - Text1:
+                                  Control: ModernText@1.0.0
                                   Properties:
-                                    Color: =gblC.muted
-                                    Height: =40
+                                    Align: =Align.Center
+                                    AlignInContainer: =AlignInContainer.Center
+                                    AutoHeight: =true
+                                    Color: =Switch(Text(ThisItem.'[AS] Tipo'), "Diaria",gblC.diariaInk, "Incobrable",gblC.incobInk, gblC.espInk)
+                                    Fill: =Switch(Text(ThisItem.'[AS] Tipo'), "Diaria",gblC.diariaBg, "Incobrable",gblC.incobBg, gblC.espBg)
+                                    FontWeight: =FontWeight.Bold
                                     LayoutMinHeight: =16
                                     LayoutMinWidth: =16
-                                    Size: =gblT.fxs
-                                    Text: =ThisItem.'[AS] NumeroCuenta'
-                                    Width: =Parent.Width
-                                    X: =40
-                                    Y: =40
-                        - Container20:
+                                    RadiusBottomLeft: =20
+                                    RadiusBottomRight: =20
+                                    RadiusTopLeft: =20
+                                    RadiusTopRight: =20
+                                    Size: =gblT.f2xs
+                                    Text: =ThisItem.'[AS] Tipo'
+                                    Width: =If(gblScale = 1, 92,gblScale = 1.2,104,gblScale = 1.45,120,132)
+                        - conMiniFoot:
                             Control: GroupContainer@1.5.0
                             Variant: AutoLayout
                             Properties:
-                              AlignInContainer: =AlignInContainer.Center
-                              BorderStyle: =BorderStyle.None
-                              BorderThickness: =3
                               DropShadow: =DropShadow.None
-                              FillPortions: =3
-                              Height: =Parent.Height - 16
-                              LayoutAlignItems: =LayoutAlignItems.Stretch
-                              LayoutDirection: =LayoutDirection.Vertical
+                              Fill: =gblC.chipBg
+                              FillPortions: =0
+                              Height: =If(gblScale = 1, 64,gblScale = 1.2,72,gblScale = 1.45,84,96)
+                              LayoutAlignItems: =LayoutAlignItems.Center
+                              LayoutDirection: =LayoutDirection.Horizontal
+                              LayoutGap: =8
                               LayoutMinHeight: =16
                               LayoutMinWidth: =16
                               PaddingBottom: =8
-                              PaddingLeft: =8
-                              PaddingRight: =8
+                              PaddingLeft: =15
+                              PaddingRight: =13
                               PaddingTop: =8
+                              RadiusBottomLeft: =14
+                              RadiusBottomRight: =14
+                              RadiusTopLeft: =0
+                              RadiusTopRight: =0
                             Children:
-                              - Label11:
-                                  Control: Label@2.5.1
+                              - conSaldo:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: AutoLayout
                                   Properties:
-                                    Align: =Align.Right
-                                    Color: =gblC.teal
+                                    DropShadow: =DropShadow.None
+                                    LayoutDirection: =LayoutDirection.Vertical
+                                    LayoutGap: =1
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                  Children:
+                                    - lblSaldoLblCta:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Stretch
+                                          AutoHeight: =true
+                                          Color: =gblC.muted2
+                                          FontWeight: =FontWeight.Bold
+                                          LayoutMinHeight: =16
+                                          LayoutMinWidth: =16
+                                          PaddingBottom: =0
+                                          Size: =gblT.f2xs
+                                          Text: ="SALDO VENCIDO"
+                                    - Label11:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Stretch
+                                          AutoHeight: =true
+                                          Color: =gblC.ink
+                                          FontWeight: =FontWeight.Bold
+                                          LayoutMinHeight: =16
+                                          LayoutMinWidth: =16
+                                          PaddingTop: =0
+                                          Size: =gblT.fmd
+                                          Text: =Moneda(ThisItem.cta.'[CT] Saldo Vencido NIO', ThisItem.cta.'[CT] Saldo Vencido USD')
+                              - moraBadge:
+                                  Control: ModernText@1.0.0
+                                  Properties:
+                                    Align: =Align.Center
+                                    AlignInContainer: =AlignInContainer.Center
+                                    AutoHeight: =true
+                                    Color: =If(ThisItem.cta.'[CT] Dias Mora' <= 15, gblC.accentInk, ThisItem.cta.'[CT] Dias Mora' <= 60, gblC.incobInk, gblC.redInk)
+                                    Fill: =If(ThisItem.cta.'[CT] Dias Mora' <= 15, gblC.accentBg, ThisItem.cta.'[CT] Dias Mora' <= 60, gblC.incobBg, gblC.redBg)
                                     FontWeight: =FontWeight.Bold
-                                    Height: =If(gblScale = 1, 45,gblScale = 1.2,50,gblScale = 1.45,55,60)
                                     LayoutMinHeight: =16
-                                    LayoutMinWidth: =Parent.Width - 16
-                                    Size: =gblT.fbase
-                                    Text: =Moneda(ThisItem.cta.'[CT] Saldo Vencido NIO', ThisItem.cta.'[CT] Saldo Vencido USD')
-                                    Width: =Parent.Width
-                              - Label12:
-                                  Control: Label@2.5.1
-                                  Properties:
-                                    Align: =Align.Right
-                                    Color: =gblC.muted
-                                    LayoutMinHeight: =16
-                                    LayoutMinWidth: =Parent.Width - 16
+                                    LayoutMinWidth: =16
+                                    RadiusBottomLeft: =20
+                                    RadiusBottomRight: =20
+                                    RadiusTopLeft: =20
+                                    RadiusTopRight: =20
                                     Size: =gblT.fxs
                                     Text: =ThisItem.cta.'[CT] Dias Mora' & " días"
-                                    Width: =Parent.Width
+                                    Width: =If(gblScale = 1, 92,gblScale = 1.2,104,gblScale = 1.45,120,132)
                   - Button8:
                       Control: ModernButton@1.0.0
                       Properties:

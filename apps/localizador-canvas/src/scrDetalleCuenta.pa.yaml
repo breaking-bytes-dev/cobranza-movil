@@ -89,7 +89,7 @@ Screens:
                 Control: GroupContainer@1.5.0
                 Variant: AutoLayout
                 Properties:
-                  Fill: =gblC.white
+                  Fill: =gblC.surface
                   FillPortions: =0
                   Height: =48
                   LayoutAlignItems: =LayoutAlignItems.Center
@@ -106,8 +106,8 @@ Screens:
                       Properties:
                         AlignInContainer: =AlignInContainer.Stretch
                         BorderStyle: =BorderStyle.None
-                        Color: =gblC.white
-                        Fill: =If(varCliTab="cuentas", gblC.teal, gblC.muted)
+                        Color: =If(varCliTab="cuentas", gblC.white, gblC.ink2)
+                        Fill: =If(varCliTab="cuentas", gblC.teal, gblC.chipBg)
                         FillPortions: =1
                         HoverBorderColor: =Self.BorderColor
                         HoverColor: =Self.Color
@@ -126,8 +126,8 @@ Screens:
                       Properties:
                         AlignInContainer: =AlignInContainer.Stretch
                         BorderStyle: =BorderStyle.None
-                        Color: =gblC.white
-                        Fill: =If(varCliTab="inter", gblC.teal, gblC.muted)
+                        Color: =If(varCliTab="inter", gblC.white, gblC.ink2)
+                        Fill: =If(varCliTab="inter", gblC.teal, gblC.chipBg)
                         FillPortions: =1
                         HoverBorderColor: =Self.BorderColor
                         HoverColor: =Self.Color
@@ -179,7 +179,7 @@ Screens:
                       Control: Label@2.5.1
                       Properties:
                         AutoHeight: =true
-                        Color: =gblC.teal
+                        Color: =gblC.accent
                         FontWeight: =FontWeight.Bold
                         LayoutMinHeight: =16
                         LayoutMinWidth: =16
@@ -189,7 +189,7 @@ Screens:
                       Control: Label@2.5.1
                       Properties:
                         AutoHeight: =true
-                        Color: =gblC.teal
+                        Color: =gblC.accent
                         FontWeight: =FontWeight.Bold
                         LayoutMinHeight: =16
                         LayoutMinWidth: =16
@@ -200,7 +200,7 @@ Screens:
                       Control: Label@2.5.1
                       Properties:
                         AutoHeight: =true
-                        Color: =gblC.teal
+                        Color: =gblC.accent
                         FontWeight: =FontWeight.Bold
                         LayoutMinHeight: =16
                         LayoutMinWidth: =16
@@ -211,7 +211,7 @@ Screens:
                       Control: Label@2.5.1
                       Properties:
                         AutoHeight: =true
-                        Color: =gblC.teal
+                        Color: =gblC.accent
                         FontWeight: =FontWeight.Bold
                         LayoutMinHeight: =16
                         LayoutMinWidth: =16
@@ -222,7 +222,7 @@ Screens:
                 Control: GroupContainer@1.5.0
                 Variant: AutoLayout
                 Properties:
-                  Fill: =gblC.white
+                  Fill: =gblC.surface
                   FillPortions: =0
                   Height: =lblSecTel_1.Height + conFila_DiasMora.Height + conFila_FechaPago.Height + conFila_UltimoPago.Height + conFila_Ciclo.Height +  16
                   LayoutAlignItems: =LayoutAlignItems.Center
@@ -398,7 +398,7 @@ Screens:
                 Control: GroupContainer@1.5.0
                 Variant: AutoLayout
                 Properties:
-                  Fill: =gblC.white
+                  Fill: =gblC.surface
                   FillPortions: =0
                   Height: =lblSecTel_2.Height + conFila_DiasMora_1.Height + conFila_FechaPago_1.Height +  16
                   LayoutAlignItems: =LayoutAlignItems.Center
@@ -502,7 +502,7 @@ Screens:
                 Control: GroupContainer@1.5.0
                 Variant: AutoLayout
                 Properties:
-                  Fill: =gblC.white
+                  Fill: =gblC.surface
                   FillPortions: =0
                   Height: =lblSecTel_3.Height + conFila_DiasMora_2.Height + conFila_FechaPago_2.Height + conFila_Ciclo_1.Height +  16
                   LayoutAlignItems: =LayoutAlignItems.Center
@@ -655,7 +655,7 @@ Screens:
                       Properties:
                         BorderColor: =gblC.cardBorder
                         BorderThickness: =1
-                        Fill: =gblC.white
+                        Fill: =gblC.surface
                         Height: =lblITime_2.Height + lblIAcct_2.Height + lblICom_2.Height + If(lblTagPago_2.Visible,lblTagPago_2.Height + 10) + If(lblTagDatos_2.Visible,lblTagDatos_2.Height + 10) + Label7_2.Height + 45
                         LayoutAlignItems: =LayoutAlignItems.Center
                         LayoutDirection: =LayoutDirection.Vertical
@@ -731,6 +731,7 @@ Screens:
                                   Control: Label@2.5.1
                                   Properties:
                                     AutoHeight: =true
+                                    Color: =gblC.accentInk
                                     Fill: =gblC.accentBg
                                     FontWeight: =FontWeight.Semibold
                                     LayoutMinHeight: =16

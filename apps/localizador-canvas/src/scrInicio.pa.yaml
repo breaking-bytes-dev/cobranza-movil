@@ -10,7 +10,7 @@ Screens:
   scrInicio:
     Properties:
       Fill: =gblC.screen
-      OnVisible: |+
+      OnVisible: |
         =
          ClearCollect(colIntHoy, Filter('CM | TBL | Interaccions', 'Created On' >= Today() && 'Created On' <= Now()));
         Set(colPagHoy, Filter('CM | TBL | Pagos', 'Created On' >= Today() && 'Created On' <= Now()));
@@ -215,7 +215,7 @@ Screens:
                               PaddingBottom: =0
                               PaddingTop: =0
                               Size: =gblT.fbig
-                              Text: ="C$   "&Text(colCobN,"#,###.00")
+                              Text: ="C$   "&Text(Coalesce(colCobN,0),"#,##0.00")
                         - lblCobradoUSD:
                             Control: Label@2.5.1
                             Properties:
@@ -230,7 +230,7 @@ Screens:
                               PaddingBottom: =0
                               PaddingTop: =0
                               Size: =gblT.fbig
-                              Text: ="US$ "&Text(colCobU,"#,###.00")
+                              Text: ="US$ "&Text(Coalesce(colCobU,0),"#,##0.00")
                         - lblSub_4:
                             Control: Label@2.5.1
                             Properties:
@@ -279,7 +279,7 @@ Screens:
                         AlignInContainer: =AlignInContainer.Start
                         BorderColor: =gblC.cardBorder
                         BorderThickness: =1
-                        Fill: =gblC.white
+                        Fill: =gblC.surface
                         Height: =If(gblScale = 1, 60,gblScale = 1.2,65,gblScale = 1.45,70,75)
                         LayoutAlignItems: =LayoutAlignItems.Center
                         LayoutDirection: =LayoutDirection.Vertical
@@ -327,7 +327,7 @@ Screens:
                         AlignInContainer: =AlignInContainer.Start
                         BorderColor: =gblC.cardBorder
                         BorderThickness: =1
-                        Fill: =gblC.white
+                        Fill: =gblC.surface
                         Height: =If(gblScale = 1, 60,gblScale = 1.2,65,gblScale = 1.45,70,75)
                         LayoutAlignItems: =LayoutAlignItems.Center
                         LayoutDirection: =LayoutDirection.Vertical
@@ -375,7 +375,7 @@ Screens:
                         AlignInContainer: =AlignInContainer.Start
                         BorderColor: =gblC.cardBorder
                         BorderThickness: =1
-                        Fill: =gblC.white
+                        Fill: =gblC.surface
                         Height: =If(gblScale = 1, 60,gblScale = 1.2,65,gblScale = 1.45,70,75)
                         LayoutAlignItems: =LayoutAlignItems.Center
                         LayoutDirection: =LayoutDirection.Vertical
@@ -471,8 +471,8 @@ Screens:
                             Properties:
                               AlignInContainer: =AlignInContainer.Stretch
                               BorderStyle: =BorderStyle.None
-                              Color: =If(varInicioModo="cliente", gblC.teal, gblC.ink3)
-                              Fill: =If(varInicioModo="cliente", gblC.white, Color.Transparent)
+                              Color: =If(varInicioModo="cliente", gblC.accent, gblC.ink3)
+                              Fill: =If(varInicioModo="cliente", gblC.surface, Color.Transparent)
                               FillPortions: =1
                               FontWeight: =If(varInicioModo="cliente", FontWeight.Bold, FontWeight.Normal)
                               LayoutMinHeight: =16
@@ -488,8 +488,8 @@ Screens:
                             Properties:
                               AlignInContainer: =AlignInContainer.Stretch
                               BorderStyle: =BorderStyle.None
-                              Color: =If(varInicioModo="cuenta", gblC.teal, gblC.ink3)
-                              Fill: =If(varInicioModo="cuenta", gblC.white, Color.Transparent)
+                              Color: =If(varInicioModo="cuenta", gblC.accent, gblC.ink3)
+                              Fill: =If(varInicioModo="cuenta", gblC.surface, Color.Transparent)
                               FillPortions: =1
                               FontWeight: =If(varInicioModo="cuenta", FontWeight.Bold, FontWeight.Normal)
                               LayoutMinHeight: =16
@@ -529,7 +529,7 @@ Screens:
                       Properties:
                         BorderColor: =gblC.cardBorder
                         BorderThickness: =1
-                        Fill: =gblC.white
+                        Fill: =gblC.surface
                         Height: =Parent.TemplateHeight
                         LayoutAlignItems: =LayoutAlignItems.Center
                         LayoutDirection: =LayoutDirection.Horizontal
@@ -564,6 +564,7 @@ Screens:
                                   Properties:
                                     AlignInContainer: =AlignInContainer.Stretch
                                     AutoHeight: =true
+                                    Color: =gblC.ink
                                     FontWeight: =FontWeight.Semibold
                                     LayoutMinHeight: =16
                                     LayoutMinWidth: =16
@@ -618,7 +619,7 @@ Screens:
                                         Control: Label@2.5.1
                                         Properties:
                                           Align: =Align.Center
-                                          Color: =gblC.teal
+                                          Color: =gblC.accent
                                           Fill: =gblC.accentBg
                                           FontWeight: =FontWeight.Bold
                                           Height: =Parent.Height
@@ -681,7 +682,7 @@ Screens:
                       Properties:
                         BorderColor: =gblC.cardBorder
                         BorderThickness: =1
-                        Fill: =gblC.white
+                        Fill: =gblC.surface
                         Height: =Parent.TemplateHeight
                         LayoutAlignItems: =LayoutAlignItems.Center
                         LayoutDirection: =LayoutDirection.Horizontal
@@ -714,6 +715,7 @@ Screens:
                                   Properties:
                                     AlignInContainer: =AlignInContainer.Stretch
                                     AutoHeight: =true
+                                    Color: =gblC.ink
                                     FontWeight: =FontWeight.Semibold
                                     LayoutMinHeight: =16
                                     LayoutMinWidth: =16
@@ -771,7 +773,7 @@ Screens:
                                         Control: Label@2.5.1
                                         Properties:
                                           Align: =Align.Center
-                                          Color: =gblC.teal
+                                          Color: =gblC.accent
                                           Fill: =gblC.accentBg
                                           FontWeight: =FontWeight.Bold
                                           Height: =Parent.Height
