@@ -90,9 +90,35 @@ Revisé por mi cuenta, fuera de los agentes, las afirmaciones más graves:
 5. **App del cobrador (F-1…F-6, F-8…F-12, F-14):** leer por las relaciones de la asignación en lugar de colecciones de tablas enteras; guardado transaccional con manejo de errores; vínculo pago↔interacción por lookup; escribir "Fecha del pago"; Especial desde la asignación.
 6. **Calidad (Q-2…Q-5).**
 
-## Decisiones que necesitan al dueño del producto
+## Decisiones del dueño del producto (2026-10-03)
 
-- **¿El "número de cuenta" en PROD es el número real de la tarjeta (PAN)?** Si es así, la solución entra en alcance **PCI DSS** y hay que enmascarar o tokenizar antes de llevarlo al teléfono.
-- **¿Hay Intune disponible para los teléfonos de los cobradores** (dispositivos corporativos o BYOD)? Define si S-3 se resuelve con MAM, MDM o ambos.
-- **Modelo de lectura "solo su cartera"** para cuentas y clientes: el informe de seguridad trae 4 alternativas con sus costos.
-- **Identidad del flow**: usuario de aplicación (service principal) o cuenta de servicio dedicada.
+| Tema | Decisión | Consecuencia |
+|---|---|---|
+| ¿El número de cuenta es el PAN? | **Sí, es el PAN real** | Alcance **PCI DSS** |
+| ¿Qué usa el backoffice para grabar en el core? | **El PAN completo** | El PAN tiene que existir en Dataverse |
+| ¿Qué trae la carga diaria? | **Solo el PAN** | No hay otra clave natural; la plantilla de Cobranza Móvil lo recibe |
+| ¿El cobrador necesita el PAN? | **Sí, lo escribe a mano en la factura de papel**, también **sin señal** | Visible completo para el cobrador, offline, solo de su cartera |
+| Modelo "solo su cartera" | **A: compartir desde el flow** (GrantAccess y RevokeAccess) + lectura Basic en el rol Localizador | Hay que mantener el revoke al reasignar o cerrar; crece la tabla POA |
+| Dispositivos | **Corporativos con Intune** | MDM + MAM: Power Apps (`com.microsoft.msapps`) está en la lista oficial de [apps protegidas por Intune](https://learn.microsoft.com/intune/app-management/ref-protected-apps) |
+| Identidad del flow | **Se mantiene la cuenta actual en DEV** | Pendiente obligatorio antes de PRD (S-7) |
+
+### Diseño PCI acordado (Fase 2)
+
+PCI DSS distingue **mostrar** el PAN (req. 3.4.1: enmascarado salvo para quien tiene necesidad legítima) de **guardarlo** (req. 3.5.1: ilegible donde se almacene). El cobrador tiene necesidad legítima de verlo; el control está en cuántos PAN hay en el teléfono y cómo se protegen:
+
+1. **Fila:** el cobrador lee solo su cartera (opción A). En el teléfono quedan pocas tarjetas, no el padrón.
+2. **Columna:** el PAN pasa a una columna con **seguridad de columna**, legible por Localizador, BackOffice y Admin. Solicitante, Supervisor y las exportaciones no la ven. El número visible por defecto es **enmascarado**.
+3. **Pantalla:** enmascarado por defecto, con un botón "Ver número" para escribir la factura.
+4. **Dispositivo (Intune, lo configura TI del banco):**
+   - MDM con cifrado del dispositivo obligatorio por cumplimiento;
+   - MAM sobre Power Apps: cifrado de datos de la app, PIN o biometría, bloqueo de capturas y de copiar/pegar hacia apps no administradas, borrado selectivo y borrado tras N días sin conexión;
+   - Conditional Access que exija app protegida.
+5. **Servidor:** auditoría de lecturas y cambios en las tablas sensibles, DLP y sin exportación masiva. El acceso se revoca al cerrar o reasignar, y la sincronización saca el registro del teléfono.
+6. **Claves de unión:** asignación, interacción, pago y carga dejan de usar el PAN como texto de unión. Pasan a usar el lookup de cuenta y una clave sustituta calculada en servidor.
+
+**A verificar antes de implementar** (restricciones de plataforma, no asumidas):
+- La columna de nombre principal no admite seguridad de columna.
+- Restricciones de las claves alternativas sobre columnas protegidas, en relación con el upsert de la carga.
+- Que el cifrado MAM cubra la base offline de Power Apps (se pide confirmación a Microsoft o a TI).
+
+**Riesgo a elevar a cumplimiento del banco:** la **factura de papel con el PAN completo** también es almacenamiento de datos de tarjeta en medio físico (PCI req. 9: custodia y destrucción). Conviene evaluar si la factura puede llevar solo los últimos 4 dígitos.
