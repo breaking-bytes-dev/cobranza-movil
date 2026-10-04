@@ -278,7 +278,7 @@ Los upserts de Smelter disparan estos pasos porque internamente llaman a Create 
 
 Documentación a actualizar: `docs/referencia/cobranza-import-config.md` (17 usos) y `docs/guias/02-import-configuracion.md`.
 
-### 3.3 App del cobrador (`apps/localizador-canvas/src`)
+### 3.3 App del cobrador (`apps/localizador-canvas/Src`)
 
 | Archivo:línea | Hoy | Cambio |
 |---|---|---|

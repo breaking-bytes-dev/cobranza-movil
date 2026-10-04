@@ -24,6 +24,12 @@ pac canvas pack --sources apps/localizador-canvas --msapp app.msapp --overwrite
 #    (el workflow exporta la solución vigente y swapea el .msapp para no chocar con el perfil offline)
 ```
 
+## ⚠ La carpeta se llama `Src` (con mayúscula)
+`pac canvas pack` en Linux busca `Src` y, si no la encuentra, **empaqueta igual sin ningún `.pa.yaml` y sin avisar**
+(`packed.json` dice `LoadFromYaml: true` pero no hay YAML). Esa app publicada no tiene fórmulas y el servicio regenera
+el perfil offline autogenerado con **0 tablas** (pasó el 2026-10-04). Verificar siempre antes de subir:
+`python3 -c "import zipfile,sys;print(sum(n.endswith('.pa.yaml') for n in zipfile.ZipFile(sys.argv[1]).namelist()))" app.msapp` → 13.
+
 ## Checks pre-deploy (pac NO los valida; Studio sí)
 - colon-space `: ` dentro de valores inline (usar bloque `|-`)
 - nombres de control únicos app-wide (PA2110)
