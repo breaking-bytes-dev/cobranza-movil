@@ -16,6 +16,12 @@ name: pan-plugin-cm
 #   Ver plugins/Sanic.CobranzaMovil.Plugins/README.md.
 
 on:
+  # push a la rama: compila, prueba y deja la dll FIRMADA como artefacto (nunca registra). Sirve mientras el
+  # workflow no este en main (workflow_dispatch solo se ve desde la rama por defecto): el registro se hace
+  # en local con scripts/pan/paso5_plugins.py --dll <artefacto>.
+  push:
+    branches: [feat/pan-plugin-cm]
+    paths: ['plugins/**', '.github/workflows/pan-plugin-cm.yml']
   workflow_dispatch:
     inputs:
       registrar:
@@ -80,9 +86,9 @@ jobs:
           path: out/pruebas
           if-no-files-found: ignore
 
-      - name: Compilar firmado (solo si se va a registrar)
+      - name: Compilar firmado (para registrar, o en push para dejar el artefacto)
         id: firmado
-        if: ${{ inputs.registrar }}
+        if: ${{ inputs.registrar || github.event_name == 'push' }}
         shell: pwsh
         env:
           SNK_B64: ${{ secrets.PLUGIN_SNK_BASE64 }}
@@ -106,7 +112,7 @@ jobs:
           "token=$token" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Subir la dll firmada
-        if: ${{ inputs.registrar }}
+        if: ${{ inputs.registrar || github.event_name == 'push' }}
         uses: actions/upload-artifact@v4
         with:
           name: plugin-dll
