@@ -12,11 +12,14 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         private const string PgCuenta = "sanic_cm_pg_cuentaid";
         private const string PgInteraccion = "sanic_cm_pg_interaccion";
         private const string InCuenta = "sanic_cm_in_cuentaid";
+        private const string InNumero = "sanic_cm_in_numerointeraccion";
+        private const string PgNumero = "sanic_cm_pg_numerointeraccion";
 
-        private static Entity InteraccionConCuenta(Guid id, Guid? cuentaId)
+        private static Entity InteraccionConCuenta(Guid id, Guid? cuentaId, string numero = null)
         {
             var i = new Entity(Interaccion, id);
             if (cuentaId.HasValue) i[InCuenta] = new EntityReference(Cuenta, cuentaId.Value);
+            if (numero != null) i[InNumero] = numero;
             return i;
         }
 
@@ -28,7 +31,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             var target = new Entity(Pago, Guid.NewGuid());
             target[PgInteraccion] = new EntityReference(Interaccion, interaccionId);
             var h = new Harness("Create", Pago).ConTarget(target)
-                .RetrieveDevuelve(InteraccionConCuenta(interaccionId, cuentaId), InCuenta);
+                .RetrieveDevuelve(InteraccionConCuenta(interaccionId, cuentaId), InCuenta, InNumero);
 
             h.Ejecutar(new CuentaDesdeInteraccion());
 
@@ -36,7 +39,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             Assert.NotNull(er);
             Assert.Equal(Cuenta, er.LogicalName);
             Assert.Equal(cuentaId, er.Id);
-            Assert.Equal(1, h.RetrievesAlServicio()); // una sola lectura, de una sola columna
+            Assert.Equal(1, h.RetrievesAlServicio()); // una sola lectura, solo de las columnas que faltan
         }
 
         [Fact]
@@ -48,7 +51,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             target[PgInteraccion] = new EntityReference(Interaccion, interaccionId);
             target[PgCuenta] = null;
             var h = new Harness("Create", Pago).ConTarget(target)
-                .RetrieveDevuelve(InteraccionConCuenta(interaccionId, cuentaId), InCuenta);
+                .RetrieveDevuelve(InteraccionConCuenta(interaccionId, cuentaId), InCuenta, InNumero);
 
             h.Ejecutar(new CuentaDesdeInteraccion());
 
@@ -56,12 +59,13 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         }
 
         [Fact]
-        public void No_hace_nada_si_el_pago_ya_trae_cuenta()
+        public void No_hace_nada_si_el_pago_ya_trae_cuenta_y_numero()
         {
             var cuentaExistente = Guid.NewGuid();
             var target = new Entity(Pago, Guid.NewGuid());
             target[PgInteraccion] = new EntityReference(Interaccion, Guid.NewGuid());
             target[PgCuenta] = new EntityReference(Cuenta, cuentaExistente);
+            target[PgNumero] = "IN-1001";
             var h = new Harness("Create", Pago).ConTarget(target);
 
             h.Ejecutar(new CuentaDesdeInteraccion());
@@ -102,7 +106,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             var target = new Entity(Pago, Guid.NewGuid());
             target[PgInteraccion] = new EntityReference(Interaccion, interaccionId);
             var h = new Harness("Create", Pago).ConTarget(target)
-                .RetrieveDevuelve(InteraccionConCuenta(interaccionId, null), InCuenta);
+                .RetrieveDevuelve(InteraccionConCuenta(interaccionId, null), InCuenta, InNumero);
 
             h.Ejecutar(new CuentaDesdeInteraccion());
 
@@ -116,11 +120,78 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             var target = new Entity(Pago, Guid.NewGuid());
             target[PgInteraccion] = new EntityReference(Interaccion, interaccionId);
             var h = new Harness("Create", Pago).ConTarget(target)
-                .RetrieveDevuelve(InteraccionConCuenta(interaccionId, Guid.NewGuid()), InCuenta);
+                .RetrieveDevuelve(InteraccionConCuenta(interaccionId, Guid.NewGuid()), InCuenta, InNumero);
 
             h.Ejecutar(new CuentaDesdeInteraccion());
 
             h.Factory.Verify(f => f.CreateOrganizationService(Harness.UsuarioLlamador), Moq.Times.Once);
+        }
+
+        // APP-05: la app (sobre todo offline) manda la cuenta pero no el N° de interacción, que lo asigna el servidor.
+        [Fact]
+        public void Con_cuenta_y_sin_numero_completa_solo_el_numero()
+        {
+            var interaccionId = Guid.NewGuid();
+            var cuentaExistente = Guid.NewGuid();
+            var target = new Entity(Pago, Guid.NewGuid());
+            target[PgInteraccion] = new EntityReference(Interaccion, interaccionId);
+            target[PgCuenta] = new EntityReference(Cuenta, cuentaExistente);
+            var h = new Harness("Create", Pago).ConTarget(target)
+                .RetrieveDevuelve(InteraccionConCuenta(interaccionId, null, "IN-1042"), InNumero);
+
+            h.Ejecutar(new CuentaDesdeInteraccion());
+
+            Assert.Equal("IN-1042", target.GetAttributeValue<string>(PgNumero));
+            Assert.Equal(cuentaExistente, target.GetAttributeValue<EntityReference>(PgCuenta).Id);
+            Assert.Equal(1, h.RetrievesAlServicio());
+        }
+
+        [Fact]
+        public void Un_numero_en_blanco_cuenta_como_faltante()
+        {
+            var interaccionId = Guid.NewGuid();
+            var target = new Entity(Pago, Guid.NewGuid());
+            target[PgInteraccion] = new EntityReference(Interaccion, interaccionId);
+            target[PgCuenta] = new EntityReference(Cuenta, Guid.NewGuid());
+            target[PgNumero] = "  ";
+            var h = new Harness("Create", Pago).ConTarget(target)
+                .RetrieveDevuelve(InteraccionConCuenta(interaccionId, null, "IN-1043"), InNumero);
+
+            h.Ejecutar(new CuentaDesdeInteraccion());
+
+            Assert.Equal("IN-1043", target.GetAttributeValue<string>(PgNumero));
+        }
+
+        [Fact]
+        public void Sin_cuenta_ni_numero_completa_ambos_con_una_lectura()
+        {
+            var interaccionId = Guid.NewGuid();
+            var cuentaId = Guid.NewGuid();
+            var target = new Entity(Pago, Guid.NewGuid());
+            target[PgInteraccion] = new EntityReference(Interaccion, interaccionId);
+            var h = new Harness("Create", Pago).ConTarget(target)
+                .RetrieveDevuelve(InteraccionConCuenta(interaccionId, cuentaId, "IN-1044"), InCuenta, InNumero);
+
+            h.Ejecutar(new CuentaDesdeInteraccion());
+
+            Assert.Equal(cuentaId, target.GetAttributeValue<EntityReference>(PgCuenta).Id);
+            Assert.Equal("IN-1044", target.GetAttributeValue<string>(PgNumero));
+            Assert.Equal(1, h.RetrievesAlServicio());
+        }
+
+        [Fact]
+        public void Si_la_interaccion_aun_no_tiene_numero_no_lo_escribe()
+        {
+            var interaccionId = Guid.NewGuid();
+            var target = new Entity(Pago, Guid.NewGuid());
+            target[PgInteraccion] = new EntityReference(Interaccion, interaccionId);
+            target[PgCuenta] = new EntityReference(Cuenta, Guid.NewGuid());
+            var h = new Harness("Create", Pago).ConTarget(target)
+                .RetrieveDevuelve(InteraccionConCuenta(interaccionId, null), InNumero);
+
+            h.Ejecutar(new CuentaDesdeInteraccion());
+
+            Assert.False(target.Contains(PgNumero));
         }
 
         [Theory]
