@@ -84,6 +84,33 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             return true;
         }
 
+        /// <summary>
+        /// Roles de seguridad del llamador: cualquier RetrieveMultiple devuelve filas de "role" con esos nombres
+        /// (los roles directos y los que llegan por equipos se consultan igual).
+        /// </summary>
+        public Harness RolesDelLlamador(params string[] nombres)
+        {
+            var filas = new EntityCollection();
+            foreach (var n in nombres)
+            {
+                var r = new Entity("role", Guid.NewGuid());
+                r["name"] = n;
+                filas.Entities.Add(r);
+            }
+            Service.Setup(s => s.RetrieveMultiple(It.IsAny<Microsoft.Xrm.Sdk.Query.QueryBase>())).Returns(filas);
+            return this;
+        }
+
+        public int ConsultasAlServicio()
+        {
+            var n = 0;
+            foreach (var inv in Service.Invocations)
+            {
+                if (inv.Method.Name == "RetrieveMultiple") n++;
+            }
+            return n;
+        }
+
         public void Ejecutar(IPlugin plugin)
         {
             plugin.Execute(Provider.Object);

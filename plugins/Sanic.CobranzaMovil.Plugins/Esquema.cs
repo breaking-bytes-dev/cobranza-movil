@@ -13,6 +13,8 @@ namespace Sanic.CobranzaMovil.Plugins
         public const string Asignacion = "sanic_cm_tbl_asignacion";
         public const string Interaccion = "sanic_cm_tbl_interaccion";
         public const string Pago = "sanic_cm_tbl_pago";
+        public const string ActualizacionDatos = "sanic_cm_tbl_actualizaciondatos";
+        public const string Rol = "role";
 
         // Columnas de texto donde un PAN en claro esta prohibido (el valor valido es el enmascarado)
         public const string CuentaNumero = "sanic_cm_ct_numerodecuenta";
@@ -33,6 +35,18 @@ namespace Sanic.CobranzaMovil.Plugins
         public const string PagoCuentaId = "sanic_cm_pg_cuentaid";
         public const string InteraccionNumero = "sanic_cm_in_numerointeraccion";
         public const string PagoNumeroInteraccion = "sanic_cm_pg_numerointeraccion";
+        public const string ActualizacionInteraccion = "sanic_cm_ad_interaccionid";
+
+        // Aprobacion de la asignacion Especial (S-6)
+        public const string AsignacionTipo = "sanic_cm_as_tipo";
+        public const string AsignacionEstadoAprobacion = "sanic_cm_as_estadoaprobacion";
+        public const string AsignacionAgente = "sanic_cm_as_agenteid";
+        public const int TipoEspecial = 3;          // sanic_choice_cm_tipoasignacion; tambien es el valor por defecto
+        public const int AprobacionAprobado = 3;    // sanic_choice_cm_estadoaprobacionespecial
+        public const int AprobacionRechazada = 4;
+
+        // Roles de seguridad de CM: los de personas empiezan con este prefijo
+        public const string PrefijoRolCm = "SR | CM | ";
 
         // Mensajes y etapas del pipeline
         public const string MensajeCreate = "Create";
