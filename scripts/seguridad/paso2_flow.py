@@ -1,4 +1,5 @@
 """Fase 1 · Paso 2: el flow de owner comparte (lectura) cuenta/cliente/fiador con el cobrador y revoca al anterior/al cerrar.
+Una Especial sin aprobar no se comparte ni cambia de dueño (S-6).
 Uso: python3 paso2_flow.py [--aplicar]   (sin --aplicar guarda el JSON y muestra el resumen)"""
 import copy, json, os, sys
 from dvlib import rq, get
@@ -106,10 +107,16 @@ d['actions'] = {
     'Obtener_cuenta': obtener_cuenta,
     'Segun_estado_de_la_asignacion': {'runAfter': {'Obtener_cuenta': ['Succeeded']}, 'type': 'If',
         'expression': {'equals': [f"@{T('sanic_cm_as_estado')}", True]},
-        'actions': {'Verificar_que_el_agente_tenga_asignado_un_usuario': rama},
+        # S-6 / APP-08: una Especial sin aprobar (Borrador, Pendiente o Rechazada) no se comparte ni cambia de dueño,
+        # venga del backoffice o del CSV de Smelter. Al aprobarla, el Supervisor pone el agente y el flow corre.
+        'actions': {'Solo_si_no_es_Especial_sin_aprobar': {'runAfter': {}, 'type': 'If',
+            'expression': {'or': [{'not': {'equals': [f"@{T('sanic_cm_as_tipo')}", 3]}},
+                                  {'equals': [f"@{T('sanic_cm_as_estadoaprobacion')}", 3]}]},
+            'actions': {'Verificar_que_el_agente_tenga_asignado_un_usuario': rama},
+            'else': {'actions': {}}}},
         'else': {'actions': rev_cierre}},
 }
-trig['inputs']['parameters']['subscriptionRequest/filteringattributes'] = 'sanic_cm_as_agenteid,sanic_cm_as_estado'
+trig['inputs']['parameters']['subscriptionRequest/filteringattributes'] = 'sanic_cm_as_agenteid,sanic_cm_as_estado,sanic_cm_as_estadoaprobacion'
 json.dump(cd, open('flow-nuevo.json', 'w'), indent=1)
 print('acciones raíz:', list(d['actions']))
 print('rama activa → else (agente con usuario):', list(else_acts))
