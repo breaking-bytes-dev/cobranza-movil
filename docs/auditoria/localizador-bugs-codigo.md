@@ -431,3 +431,19 @@ Ver la sección siguiente.
 - **Perfil offline:** el curado `App - Cobranza Movil Profile` pone Agente en "All records", y la guía 13 dice "Organization rows". Con lectura Global da lo mismo, pero conviene alinearlo. Tampoco incluye `Actualizacion de datos`, que la app sí escribe.
 - **Agentes:** 16 de 20 no tienen `Email Usuario`. Cualquier cobrador nuevo va a caer en "Sin nombre" mientras `gblAgente` dependa de ese campo denormalizado y no del lookup `[AG] Usuario`.
 - **Asignaciones:** 1 activa tiene `[AS] Tipo` vacío. Solo aparece con el filtro "Todos".
+
+## Encontrados en la prueba en dispositivo (2026-10-04) — corregidos y verificados
+
+Prueba en el Android del VPS con User5, con la app publicada después de la Fase 2. Cada corrección se verificó en el teléfono, y en Dataverse cuando corresponde.
+
+| # | Bug | Corrección | Verificación |
+|---|---|---|---|
+| D-1 | El buscador de la Cartera traía "Buscar cliente o cuenta…" como **texto real** (`Default`) y filtraba recién al pulsar Enter o salir del campo (`OnChange`) | `HintText` + `Default` vacío; filtro en vivo sobre `txtBuscar.Text` (`DelayOutput`) | "3649" sin Enter → 1 cliente; vacío → todos |
+| D-2 | El botón ↻ no recargaba `colCuentas`, `colDirecciones` ni `colTelefonos`: una asignación nueva aparecía como tarjeta vacía hasta reiniciar la app | El ↻ recarga esas tres colecciones | Cliente nuevo asignado con la app abierta → aparece completo tras ↻ |
+| D-3 | Las flechas de reordenar no hacían nada con clientes sin `[AS] Orden` (207 de 1.006 asignaciones activas en DEV). `Min()` de órdenes vacíos devuelve 0 | Los clientes con orden 0 o vacío reciben un orden único al final (alfabético) y quedan `dirty` | Orden asignado; ↑ funciona y se persiste (DOS 4, TRES 3) |
+| D-4 | Pantalla Sincronización: nota de desarrollo visible; la ayuda nombraba un botón inexistente ("Actualizar"); "Buscar actualizaciones" deshabilitado salvo que hubiera pendientes y solo refrescaba 3 tablas; "Última sincronización" fija en "—" | Texto para el cobrador; ayuda con "Buscar actualizaciones (Check for updates)"; botón activo en línea, refresca también asignaciones, cuentas y bóveda; la hora remite al estado del dispositivo (Power Fx no la expone) | Botón activo; bajó un cliente nuevo |
+| D-5 | "Último pago" mostraba **un día menos** (medianoche UTC vista en Managua) y otro formato que "Fecha de pago" | `DateAdd(…, TimeZoneOffset(…))` y `dd/mm/yyyy` en las dos fechas | 15/09/2026 y 15/10/2026 |
+| D-6 | "Total dolarizado: U$42.1" (sin espacio, 1 decimal) | `US$ 0.00`, y "—" si está vacío | "US$ 42.10", "US$ 15.50" |
+| D-7 | En tamaño Máximo la insignia de tipo se partía ("Diari / a") y "Ver número" quedaba apretado | La insignia crece con la escala; "Ver número" va debajo de ella | Máximo: una línea, sin superposición |
+
+Además: la **sincronización completa** ("Check for updates") **borra del teléfono lo que el cobrador ya no debe ver**. Al cerrar una asignación, la bóveda, las cuentas y los clientes bajaron de 3→2, 3→2 y 2→1. La sincronización automática tardó más de 5 minutos en traer un cambio del servidor; "Check for updates" lo trajo al instante.

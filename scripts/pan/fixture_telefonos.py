@@ -27,9 +27,10 @@ def crear(s, cuerpo):
 # (prefijo, email, clientes [(n, nombre, dirección, teléfono)], cuentas [(cliente, n, tipo, nio, usd, mora, especial)])
 FIXTURES = [
     ('QA-E2E-LOC', 'User5@', [('001', 'CLIENTE MOVIL', 'Del semáforo 2c al lago, Managua', '2222-1111'),
-                              ('002', 'CLIENTE DOS', 'Bello Horizonte, de la rotonda 1c al sur', '2222-2222')],
+                              ('002', 'CLIENTE DOS', 'Bello Horizonte, de la rotonda 1c al sur', '2222-2222'),
+                              ('003', 'CLIENTE TRES', 'Linda Vista, del supermercado 2c al norte', '2222-3333')],
      [('001', '0001', 1, 2350.75, 0, 45, None), ('001', '0002', 3, 0, 120.5, 95, (500, 'Retiro urgente — prueba app nativa')),
-      ('002', '0003', 1, 980.00, 0, 15, None)]),
+      ('002', '0003', 1, 980.00, 0, 15, None), ('003', '0004', 1, 640.00, 0, 10, None)]),
     ('QA-E2E-LOC6', 'User6@', [('001', 'MARIA QA LOPEZ', 'Barrio Monseñor Lezcano, de la iglesia 2c al sur', '8888-1111'),
                                ('002', 'JOSE QA MARTINEZ', 'Altamira, del BDF 1c abajo', '8888-2222')],
      [('001', '0001', 1, 1850.40, 0, 35, None), ('001', '0002', 2, 12500, 0, 190, None), ('002', '0003', 1, 0, 85.75, 20, None),
