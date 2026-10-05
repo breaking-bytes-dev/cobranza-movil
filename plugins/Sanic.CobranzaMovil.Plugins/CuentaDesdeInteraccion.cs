@@ -1,12 +1,15 @@
+using System.Collections.Generic;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Query;
 
 namespace Sanic.CobranzaMovil.Plugins
 {
     /// <summary>
-    /// En el Create de un pago, si pg_cuentaid viene vacio y pg_interaccion esta informado, completa
-    /// pg_cuentaid con in_cuentaid de la interaccion. Hace falta porque el modo offline solo admite un
-    /// nivel de lookup (pago -> interaccion -> cuenta no funciona).
+    /// En el Create de un pago con pg_interaccion informado, completa lo que falte de la interaccion:
+    /// - pg_cuentaid con in_cuentaid: el modo offline solo admite un nivel de lookup (pago -> interaccion -> cuenta no funciona).
+    /// - pg_numerointeraccion con in_numerointeraccion (APP-05): es un autonumerico que asigna el servidor; offline la app
+    ///   no lo conoce, y el backoffice busca los pagos de una interaccion por ese numero.
+    /// Una sola lectura de la interaccion, solo de las columnas que faltan; si no falta nada, no lee.
     ///
     /// Registro: PreOperation sincrono, solo Create de sanic_cm_tbl_pago.
     /// </summary>
@@ -23,9 +26,11 @@ namespace Sanic.CobranzaMovil.Plugins
 
             var target = local.ObtenerTarget();
 
-            if (target.GetAttributeValue<EntityReference>(Esquema.PagoCuentaId) != null)
+            var faltaCuenta = target.GetAttributeValue<EntityReference>(Esquema.PagoCuentaId) == null;
+            var faltaNumero = string.IsNullOrWhiteSpace(target.GetAttributeValue<string>(Esquema.PagoNumeroInteraccion));
+            if (!faltaCuenta && !faltaNumero)
             {
-                local.Trace("el pago ya trae {0}; sin cambios.", Esquema.PagoCuentaId);
+                local.Trace("el pago ya trae cuenta y numero de interaccion; sin cambios.");
                 return;
             }
 
@@ -36,17 +41,32 @@ namespace Sanic.CobranzaMovil.Plugins
                 return;
             }
 
-            // Una sola lectura, de una sola columna.
-            var fila = local.Service.Retrieve(Esquema.Interaccion, interaccion.Id, new ColumnSet(Esquema.InteraccionCuentaId));
-            var cuenta = fila == null ? null : fila.GetAttributeValue<EntityReference>(Esquema.InteraccionCuentaId);
-            if (cuenta == null)
-            {
-                local.Trace("la interaccion no tiene {0}; sin cambios.", Esquema.InteraccionCuentaId);
-                return;
-            }
+            var columnas = new List<string>();
+            if (faltaCuenta) columnas.Add(Esquema.InteraccionCuentaId);
+            if (faltaNumero) columnas.Add(Esquema.InteraccionNumero);
+            var fila = local.Service.Retrieve(Esquema.Interaccion, interaccion.Id, new ColumnSet(columnas.ToArray()));
+            if (fila == null) return;
 
-            target[Esquema.PagoCuentaId] = new EntityReference(cuenta.LogicalName, cuenta.Id);
-            local.Trace("{0} completada desde la interaccion.", Esquema.PagoCuentaId);
+            if (faltaCuenta)
+            {
+                var cuenta = fila.GetAttributeValue<EntityReference>(Esquema.InteraccionCuentaId);
+                if (cuenta != null)
+                {
+                    target[Esquema.PagoCuentaId] = new EntityReference(cuenta.LogicalName, cuenta.Id);
+                    local.Trace("{0} completada desde la interaccion.", Esquema.PagoCuentaId);
+                }
+                else local.Trace("la interaccion no tiene {0}.", Esquema.InteraccionCuentaId);
+            }
+            if (faltaNumero)
+            {
+                var numero = fila.GetAttributeValue<string>(Esquema.InteraccionNumero);
+                if (!string.IsNullOrWhiteSpace(numero))
+                {
+                    target[Esquema.PagoNumeroInteraccion] = numero;
+                    local.Trace("{0} completado desde la interaccion.", Esquema.PagoNumeroInteraccion);
+                }
+                else local.Trace("la interaccion aun no tiene {0}.", Esquema.InteraccionNumero);
+            }
         }
     }
 }

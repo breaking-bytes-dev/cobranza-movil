@@ -31,6 +31,8 @@ namespace Sanic.CobranzaMovil.Plugins
         public const string InteraccionCuentaId = "sanic_cm_in_cuentaid";
         public const string PagoInteraccion = "sanic_cm_pg_interaccion";
         public const string PagoCuentaId = "sanic_cm_pg_cuentaid";
+        public const string InteraccionNumero = "sanic_cm_in_numerointeraccion";
+        public const string PagoNumeroInteraccion = "sanic_cm_pg_numerointeraccion";
 
         // Mensajes y etapas del pipeline
         public const string MensajeCreate = "Create";
