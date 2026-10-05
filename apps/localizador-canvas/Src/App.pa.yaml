@@ -23,6 +23,19 @@ App:
             If(IsBlank(i), Coalesce(notas, ""), Trim(Mid(notas, i + 3))));
       // APP-27: el agente es una fórmula con nombre: se recalcula sola cuando llegan los datos (el OnStart no bloquea).
       gblAgente = LookUp('CM | TBL | Agentes', 'Email Usuario' = User().Email);
+      // APP-14: estado de sincronización del dispositivo. Es una señal: se recalcula sola. En el navegador no hay
+      // sincronización (Connection.Sync vacío): ahí solo se distingue con o sin conexión.
+      gblSync = If(IsBlank(Connection.Sync), If(Connection.Connected, "ok", "off"),
+          Switch(Connection.Sync,
+              ConnectionSync.Connected, "ok",
+              ConnectionSync.ConnectedRefresh, "sync",
+              ConnectionSync.ConnectedPendingUpsync, "pend",
+              ConnectionSync.NotConnectedPendingUpsync, "pend",
+              ConnectionSync.ConnectedWithWarning, "warn",
+              ConnectionSync.NotConnectedWithWarning, "warn",
+              ConnectionSync.ConnectedError, "error",
+              ConnectionSync.NotConnectedSyncError, "error",
+              "off"));
     OnStart: |-
       =// ===================== PREFERENCIAS PERSISTIDAS (accesibilidad, offline-safe) =====================
       Set(gblFont, Font.'Segoe UI');

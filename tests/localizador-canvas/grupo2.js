@@ -26,8 +26,14 @@ async function hoyManagua() { const d = new Date(Date.now() - 6 * 3600e3); retur
   const t0 = new Date().toISOString();
 
   // ---- formato numérico (es-NI mostraba "160,00") ----
-  const cob = await txt(app, 'lblCobradoNIO');
+  // ---- APP-21 + formato: "Cobrado hoy" por fecha del pago = suma en Dataverse (se espera a que cargue) ----
+  const desde0 = await hoyManagua();
+  const pagosHoy = await dv.getAll(`sanic_cm_tbl_pagos?$select=sanic_cm_pg_monto&$filter=_createdby_value eq ${USER5} and sanic_cm_pg_moneda eq 1 and sanic_cm_pg_fecha ge ${desde0}`);
+  const esperado = pagosHoy.reduce((t, p) => t + Number(p.sanic_cm_pg_monto), 0).toFixed(2);
+  let cob = '';
+  for (let i = 0; i < 20 && !cob.endsWith(esperado); i++) { cob = await txt(app, 'lblCobradoNIO'); if (!cob.endsWith(esperado)) await a.esperar(app, 1000); }
   ok('FORMATO', /\d\.\d{2}\s*$/.test(cob), `Cobrado hoy = "${cob}" (punto decimal con el navegador en es-NI)`);
+  ok('APP-21 web', cob.endsWith(esperado), `Cobrado hoy (por fecha del pago) = "${cob}"; suma en Dataverse = ${esperado}`);
 
   // ---- APP-15: "Clientes" de hoy por CIF ----
   const desde = await hoyManagua();

@@ -12,8 +12,8 @@ Screens:
       Fill: =gblC.screen
       OnVisible: |
         =
-         ClearCollect(colIntHoy, Filter('CM | TBL | Interaccions', 'Created On' >= Today() && 'Created On' <= Now()));
-        Set(colPagHoy, Filter('CM | TBL | Pagos', 'Created On' >= Today() && 'Created On' <= Now()));
+         ClearCollect(colIntHoy, Filter('CM | TBL | Interaccions', 'Fecha de captura' >= Today() && 'Fecha de captura' < DateAdd(Today(), 1)));
+        Set(colPagHoy, Filter('CM | TBL | Pagos', 'Fecha del pago' >= Today() && 'Fecha del pago' < DateAdd(Today(), 1)));
            Set(colCobN, Sum(Filter(colPagHoy, '[PG] Moneda' = 'Choice | CM | Monedas en Pago'.NIO ), '[PG] Monto'));
            Set(colCobU, Sum(Filter(colPagHoy, '[PG] Moneda'= 'Choice | CM | Monedas en Pago'.USD), '[PG] Monto'));
     Children:

@@ -39,7 +39,7 @@ ComponentDefinitions:
                 Control: Circle@2.3.0
                 Properties:
                   AlignInContainer: =AlignInContainer.Center
-                  Fill: =If(Connection.Connected, gblC.green, gblC.amberOff)
+                  Fill: =Switch(gblSync, "ok", gblC.green, "sync", gblC.green, "error", gblC.redInk, gblC.amberOff)
                   Height: =8
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
@@ -58,7 +58,7 @@ ComponentDefinitions:
                   PaddingRight: =0
                   PaddingTop: =0
                   Size: =gblT.fxs
-                  Text: =If(Connection.Connected,"Sincronizado","Sin conexión")
+                  Text: =Switch(gblSync, "ok", "Sincronizado", "sync", "Sincronizando…", "pend", "Pendiente de subir", "warn", "Sincronizado con avisos", "error", "Error al sincronizar", "Sin conexión")
                   Width: =180
       - Button9:
           Control: Classic/Button@2.2.0

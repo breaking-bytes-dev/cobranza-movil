@@ -398,7 +398,7 @@ Screens:
                   AlignInContainer: =AlignInContainer.Center
                   BorderStyle: =BorderStyle.None
                   BorderThickness: =3
-                  Items: =Sort(colCliInt, 'Created On', SortOrder.Descending)
+                  Items: =Sort(colCliInt, Coalesce('Fecha de captura', 'Created On'), SortOrder.Descending)
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
                   Visible: =varCliTab = "inter"
@@ -457,7 +457,7 @@ Screens:
                                     LayoutMinWidth: =16
                                     Size: =gblT.fxs
                                     Text: |-
-                                      ="🕘 " & Text(ThisItem.'Created On',"dd/mm · hh:mm")
+                                      ="🕘 " & Text(Coalesce(ThisItem.'Fecha de captura', ThisItem.'Created On'), "dd/mm · hh:mm")
                                     Width: =Parent.Width - 16
                               - lblIAcct_1:
                                   Control: Label@2.5.1
@@ -521,6 +521,7 @@ Screens:
                               - Label7_1:
                                   Control: Label@2.5.1
                                   Properties:
+                                    Visible: =!IsBlank(ThisItem.'[IN] Latitud')
                                     AutoHeight: =true
                                     Color: =gblC.muted
                                     Fill: =gblC.screen
@@ -533,7 +534,7 @@ Screens:
                                     PaddingTop: =4
                                     Size: =gblT.fxs
                                     Text: |-
-                                      ="📍 Ubicación"
+                                      ="📍 " & Text(ThisItem.'[IN] Latitud', "0.00000", "en-US") & ", " & Text(ThisItem.'[IN] Longitud', "0.00000", "en-US")
                                     Width: =Parent.Width - 16
             - galMini:
                 Control: Gallery@2.15.0

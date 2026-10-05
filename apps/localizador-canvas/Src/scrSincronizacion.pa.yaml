@@ -13,8 +13,9 @@ Screens:
       OnVisible: |-
         =Set(varPend, CountRows(Filter('CM | TBL | Interaccions', IsBlank('[IN] Numero de Interaccion')))
                       + CountRows(Filter('CM | TBL | Pagos', IsBlank('[PG] Numero'))));
-           Set(varEstado, If(!Connection.Connected, "off", If(varPend>0, "pend", "ok")));
-           Set(varCapHoy, Filter('CM | TBL | Interaccions', 'Created On' = Today()))
+           // APP-20: capturas de hoy por la fecha de CAPTURA (la pone el teléfono; 'Created On' de un registro offline
+           // lo pone el servidor al sincronizar, y comparar fecha y hora contra Today() solo matcheaba las 00:00).
+           Set(varCapHoy, Filter('CM | TBL | Interaccions', 'Fecha de captura' >= Today() && 'Fecha de captura' < DateAdd(Today(), 1)))
     Children:
       - conMaster_6:
           Control: GroupContainer@1.5.0
@@ -79,7 +80,7 @@ Screens:
                 Control: GroupContainer@1.5.0
                 Variant: AutoLayout
                 Properties:
-                  Fill: =Switch(varEstado, "ok",gblC.teal, "pend",gblC.incobInk, gblC.offGray)
+                  Fill: =Switch(gblSync, "ok", gblC.teal, "sync", gblC.teal, "pend", gblC.incobInk, "warn", gblC.incobInk, "error", gblC.redInk, gblC.offGray)
                   FillPortions: =0
                   Height: =Max(lblEico.Height,lblE1.Height + Label19.Height + 28)
                   LayoutAlignItems: =LayoutAlignItems.Center
@@ -103,7 +104,7 @@ Screens:
                         LayoutMinWidth: =16
                         Size: =28*gblScale
                         Text: |-
-                          =Switch(varEstado,"ok","✓","pend","🔼","📴")
+                          =Switch(gblSync, "ok", "✓", "sync", "⟳", "pend", "🔼", "warn", "⚠", "error", "⚠", "📴")
                         Width: =55
                   - conEst:
                       Control: GroupContainer@1.5.0
@@ -130,7 +131,7 @@ Screens:
                               LayoutMinWidth: =16
                               PaddingBottom: =0
                               Size: =gblT.flg
-                              Text: =Switch(varEstado,"ok","Sincronizado","pend","Pendiente de subir","Sin conexión")
+                              Text: =Switch(gblSync, "ok", "Sincronizado", "sync", "Sincronizando…", "pend", "Pendiente de subir", "warn", "Sincronizado con avisos", "error", "Error al sincronizar", "Sin conexión")
                               VerticalAlign: =VerticalAlign.Bottom
                         - Label19:
                             Control: Label@2.5.1
@@ -142,7 +143,7 @@ Screens:
                               LayoutMinWidth: =16
                               PaddingTop: =0
                               Size: =gblT.fsm
-                              Text: =Switch(varEstado,"ok","Todo al día con el servidor","pend", varPend & " captura(s) por subir", varPend & " captura(s) en el dispositivo")
+                              Text: =Switch(gblSync, "ok", "Todo al día con el servidor", "sync", "Intercambiando datos con el servidor…", "pend", "Hay capturas por subir", "warn", "Tocá «Sincronización completa» para ver el aviso", "error", "Tocá «Sincronización completa» para ver el error", "Se suben cuando vuelva la señal")
                               VerticalAlign: =VerticalAlign.Top
             - cardDet:
                 Control: GroupContainer@1.5.0
@@ -402,7 +403,7 @@ Screens:
                                     LayoutMinHeight: =16
                                     LayoutMinWidth: =16
                                     Size: =gblT.fxs
-                                    Text: =Text(ThisItem.'Created On',"hh:mm")
+                                    Text: =Text(ThisItem.'Fecha de captura', "hh:mm")
                                     Width: =Parent.Width
                         - Container26:
                             Control: GroupContainer@1.5.0

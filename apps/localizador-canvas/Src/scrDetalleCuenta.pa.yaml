@@ -701,7 +701,7 @@ Screens:
                 Variant: VariableHeight
                 Properties:
                   AlignInContainer: =AlignInContainer.Center
-                  Items: =Sort(Filter('CM | TBL | Interaccions', '[IN] Cuenta'.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta'), 'Created On', SortOrder.Descending)
+                  Items: =Sort(Filter('CM | TBL | Interaccions', '[IN] Cuenta'.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta'), 'Fecha de captura', SortOrder.Descending)
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
                   Visible: =varDetTab = "inter"
@@ -759,7 +759,7 @@ Screens:
                                     LayoutMinWidth: =16
                                     Size: =gblT.fxs
                                     Text: |-
-                                      ="🕘 " & Text(ThisItem.'Created On',"dd/mm · hh:mm")
+                                      ="🕘 " & Text(Coalesce(ThisItem.'Fecha de captura', ThisItem.'Created On'), "dd/mm · hh:mm")
                                     Width: =Parent.Width - 16
                               - lblIAcct_2:
                                   Control: Label@2.5.1
@@ -822,6 +822,7 @@ Screens:
                               - Label7_2:
                                   Control: Label@2.5.1
                                   Properties:
+                                    Visible: =!IsBlank(ThisItem.'[IN] Latitud')
                                     AutoHeight: =true
                                     Color: =gblC.muted
                                     Fill: =gblC.screen
@@ -834,7 +835,7 @@ Screens:
                                     PaddingTop: =4
                                     Size: =gblT.fxs
                                     Text: |-
-                                      ="📍 Ubicación"
+                                      ="📍 " & Text(ThisItem.'[IN] Latitud', "0.00000", "en-US") & ", " & Text(ThisItem.'[IN] Longitud', "0.00000", "en-US")
                                     Width: =Parent.Width - 16
             - btnRegistrar:
                 Control: Classic/Button@2.2.0

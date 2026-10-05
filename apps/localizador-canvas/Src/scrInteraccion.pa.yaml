@@ -24,7 +24,7 @@ Screens:
         Reset(inDirTrab);
         Reset(inCorreo);
       OnVisible: |-
-        =UpdateContext({locPan: Blank(), locGuardando: false, locIntCreada: Blank(), locADGuardada: false, locConfirmaExceso: false});
+        =UpdateContext({locPan: Blank(), locGuardando: false, locIntCreada: Blank(), locADGuardada: false, locConfirmaExceso: false, locConfirmaSinGps: false});
         Clear(colPagosGuardados);
         Clear(colIntGuardadas);
         // APP-02: los productos salen del origen y no de colAsig (que solo existe si antes se pasó por la Cartera).
@@ -1067,9 +1067,9 @@ Screens:
                 Control: GroupContainer@1.5.0
                 Variant: AutoLayout
                 Properties:
-                  BorderColor: =gblC.accentBorder
+                  BorderColor: =If(IsBlank(Location.Latitude), gblC.incobInk, gblC.accentBorder)
                   BorderThickness: =1
-                  Fill: =gblC.accentBg
+                  Fill: =If(IsBlank(Location.Latitude), gblC.incobBg, gblC.accentBg)
                   FillPortions: =0
                   Height: =Max(lblGeoIco.Height, conGeoTxt.Height) + 24
                   LayoutAlignItems: =LayoutAlignItems.Center
@@ -1124,7 +1124,8 @@ Screens:
                               LayoutMinHeight: =16
                               LayoutMinWidth: =16
                               Size: =gblT.fbase
-                              Text: ="Ubicación capturada"
+                              Text: |-
+                                =If(IsBlank(Location.Latitude), "Sin ubicación: activá el GPS", "Ubicación capturada")
                         - Label8:
                             Control: Label@2.5.1
                             Properties:
@@ -1133,7 +1134,7 @@ Screens:
                               LayoutMinHeight: =16
                               LayoutMinWidth: =16
                               Size: =gblT.fxs
-                              Text: =Text(Location.Latitude,"0.0000", "en-US") & ", " & Text(Location.Longitude,"0.0000", "en-US") & " · automática"
+                              Text: =If(IsBlank(Location.Latitude), "Al guardar te va a pedir confirmación", Text(Location.Latitude, "0.00000", "en-US") & ", " & Text(Location.Longitude, "0.00000", "en-US") & " · automática")
             - btnRegistrar_1:
                 Control: Classic/Button@2.2.0
                 Properties:
@@ -1178,6 +1179,10 @@ Screens:
                                                 && Cuenta.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta' && '[PG] Moneda' = mon))))) > 0
                       },
                       If(
+                        /* APP-11: sin coordenadas del GPS → se avisa y hay que confirmarlo con un segundo toque */
+                        IsBlank(Location.Latitude) && !locConfirmaSinGps,
+                            UpdateContext({locGuardando: false, locConfirmaSinGps: true});
+                            Notify("No hay ubicación del GPS. Activalo y esperá unos segundos; si igual querés guardar, tocá «Guardar sin ubicación».", NotificationType.Warning),
                         /* APP-10: monto mayor que el saldo vencido → hay que confirmarlo con un segundo toque */
                         (excesoNio || excesoUsd) && !locConfirmaExceso,
                             UpdateContext({locGuardando: false, locConfirmaExceso: true});
@@ -1214,7 +1219,8 @@ Screens:
                                             Cuenta: varCuenta,
                                             '[PG] Monto': L.monto,
                                             '[PG] Moneda': Switch(L.moneda, "USD", 'Choice | CM | Monedas en Pago'.USD, 'Choice | CM | Monedas en Pago'.NIO),
-                                            '[PG] Numero recibo': Trim(L.recibo) }),
+                                            '[PG] Numero recibo': Trim(L.recibo),
+                        'Fecha del pago': Now() }),
                                         Error(FirstError),
                                         Collect(colPagosGuardados, {id: L.id})))),
                                 UpdateContext({locGuardando: false});
@@ -1269,6 +1275,7 @@ Screens:
                   Size: =gblT.fmd
                   Text: |-
                     =If(locGuardando, "Guardando…",
+                        locConfirmaSinGps && IsBlank(Location.Latitude), "Guardar sin ubicación",
                         locConfirmaExceso, "Confirmar pago",
                         tpPago.Value || tgDatos.Value, "Guardar interacción" & If(tpPago.Value," + pago","") & If(tgDatos.Value," + datos",""),
                         "Guardar en " & CountRows(Filter(colProdInt, sel)) & " producto" & If(CountRows(Filter(colProdInt, sel))>1,"s",""))

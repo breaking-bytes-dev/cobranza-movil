@@ -217,7 +217,7 @@ Screens:
                                           LayoutMinWidth: =16
                                           PaddingTop: =0
                                           Size: =gblT.f2xs
-                                          Text: ="Recibo " & ThisItem.'[PG] Numero recibo' & " · " & Text(ThisItem.'Created On',"hh:mm")
+                                          Text: ="Recibo " & ThisItem.'[PG] Numero recibo' & " · " & Text(ThisItem.'Fecha del pago', "hh:mm")
                                           VerticalAlign: =VerticalAlign.Top
                                           Width: =Parent.Width - 16
       - cmpSheet_6:
