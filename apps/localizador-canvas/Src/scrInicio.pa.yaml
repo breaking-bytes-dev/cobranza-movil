@@ -114,7 +114,7 @@ Screens:
                                     LayoutMinHeight: =16
                                     LayoutMinWidth: =16
                                     Size: =gblT.fsm
-                                    Text: =Text(Today(),"mmmm, dddd dd")
+                                    Text: =Text(Today(), "dddd dd", "es") & " de " & Text(Today(), "mmmm", "es")
                         - Container3:
                             Control: GroupContainer@1.5.0
                             Variant: AutoLayout
@@ -136,7 +136,7 @@ Screens:
                                   Control: CanvasComponent
                                   ComponentName: cmpSyncPill
                                   Properties:
-                                    Height: =30
+                                    Height: =If(gblScale = 1, 30,gblScale = 1.2,34,gblScale = 1.45,40,46)
                                     LayoutMinWidth: =180
                                     Width: =If(gblScale = 1, 120,gblScale = 1.2,140,gblScale = 1.45,160,180)
                               - Button1:
@@ -146,7 +146,7 @@ Screens:
                                     Color: =gblC.white
                                     Fill: =RGBA(255,255,255,0.18)
                                     FontWeight: =FontWeight.Bold
-                                    Height: =30
+                                    Height: =If(gblScale = 1, 30,gblScale = 1.2,34,gblScale = 1.45,40,46)
                                     LayoutMinHeight: =16
                                     LayoutMinWidth: =16
                                     OnSelect: =Set(varSheetEscala, true)

@@ -60,7 +60,7 @@ Screens:
                         Color: =gblC.white
                         Fill: =RGBA(255,255,255,0.18)
                         FontWeight: =FontWeight.Bold
-                        Height: =30
+                        Height: =If(gblScale = 1, 30,gblScale = 1.2,34,gblScale = 1.45,40,46)
                         OnSelect: =Set(varSheetEscala, true)
                         PaddingBottom: =7
                         PaddingLeft: =11
@@ -433,7 +433,7 @@ Screens:
                                     LayoutMinHeight: =16
                                     LayoutMinWidth: =16
                                     Size: =gblT.fxs
-                                    Text: =If(IsBlank(ThisItem.'[IN] Numero de Interaccion'),"sin Nº aún","Nº asignado")
+                                    Text: =If(IsBlank(ThisItem.'[IN] Numero de Interaccion'),"pendiente de subir","subida")
             - cardNota:
                 Control: GroupContainer@1.5.0
                 Variant: AutoLayout
@@ -465,7 +465,7 @@ Screens:
                         LayoutMinHeight: =16
                         LayoutMinWidth: =16
                         Size: =gblT.fxs
-                        Text: ="El número de interacción (INT-) y de pago (PAG-) lo asigna el servidor cuando la captura se sube. Hasta entonces se ve «sin Nº aún»."
+                        Text: ="El número de interacción (INT-) y de pago (PAG-) lo asigna el servidor cuando la captura se sube. Hasta entonces se ve «pendiente de subir»."
       - cmpSheet_7:
           Control: CanvasComponent
           ComponentName: cmpSheet

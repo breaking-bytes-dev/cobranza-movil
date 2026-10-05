@@ -55,7 +55,7 @@ Screens:
                         Color: =gblC.white
                         Fill: =RGBA(255,255,255,0.18)
                         FontWeight: =FontWeight.Bold
-                        Height: =30
+                        Height: =If(gblScale = 1, 30,gblScale = 1.2,34,gblScale = 1.45,40,46)
                         OnSelect: =Set(varSheetEscala, true)
                         PaddingBottom: =7
                         PaddingLeft: =11
@@ -324,7 +324,7 @@ Screens:
                                     LayoutMinWidth: =16
                                     Size: =gblT.f2xs
                                     Text: =ThisItem.'[DR] Tipo'
-                                    Width: =90
+                                    Width: =If(gblScale = 1, 90,gblScale = 1.2,104,gblScale = 1.45,122,140)
                               - lblDirVal:
                                   Control: Label@2.5.1
                                   Properties:

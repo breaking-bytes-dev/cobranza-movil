@@ -22,6 +22,11 @@ Screens:
       OnVisible: |-
         =  If(!varCarteraLista || varRecargarCartera,
           UpdateContext({varshowLoader: true});
+         // APP-12: al recargar (p. ej. al volver de Sincronización) también las maestras que se cargaron en el inicio.
+         If(varRecargarCartera,
+            ClearCollect(colCuentas, 'CM | TBL | Cuentas');
+            ClearCollect(colDirecciones, Filter('CM | TBL | Direccions', '[DR] Tipo' = "Casa" || '[DR] Tipo' = "Trabajo"));
+            ClearCollect(colTelefonos, 'CM | TBL | Telefonos'));
          ClearCollect(colAsigRaw, Filter('CM | TBL | Asignacions', '[AS] Estado' = true));
          ClearCollect(colAsig,
              AddColumns(
@@ -47,12 +52,14 @@ Screens:
                 dirCasa,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'="Casa").'[DR] Direccion',
                 dirTrab,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'="Trabajo").'[DR] Direccion',
                 dirty,   false));
-          // Clientes sin [AS] Orden (asignaciones nuevas de la carga; Min() de vacíos da 0): se les asigna un orden único al final de la lista,
-          // si no las flechas no tienen con quién intercambiar. dirty → se guarda en Dataverse al salir (OnHidden).
-          With({ base: Coalesce(Max(colClientes, orden), 0),
-                 sinOrden: SortByColumns(Filter(colClientes, Coalesce(orden, 0) <= 0), "cliNom", SortOrder.Ascending) },
-             ForAll(Sequence(CountRows(sinOrden)) As N,
-                Patch(colClientes, LookUp(colClientes, cid = Index(sinOrden, N.Value).cid), { orden: base + N.Value, dirty: true })));
+          // Orden 1..n sin empates ni vacíos (APP-23). Los que no tienen orden (asignaciones nuevas; Min() de vacíos da 0)
+          // van al final, alfabéticos. Solo los que cambian quedan dirty y se guardan en Dataverse al salir (OnHidden).
+          With({ lista: SortByColumns(AddColumns(colClientes, sinOrden, Coalesce(orden, 0) <= 0),
+                                      "sinOrden", SortOrder.Ascending, "orden", SortOrder.Ascending, "cliNom", SortOrder.Ascending) },
+             ForAll(Sequence(CountRows(lista)) As N,
+                With({ r: Index(lista, N.Value) },
+                   If(Coalesce(r.orden, 0) <> N.Value,
+                      Patch(colClientes, LookUp(colClientes, cid = r.cid), { orden: N.Value, dirty: true })))));
             Set(varCarteraLista, true);
              Set(varRecargarCartera, false);
              Set(varFechaUltimaActualizacion, Now());
@@ -117,7 +124,7 @@ Screens:
                               Color: =gblC.tealSub
                               Height: =10
                               Size: =gblT.f2xs
-                              Text: =varFechaUltimaActualizacion
+                              Text: =Text(varFechaUltimaActualizacion, "dd/mm/yyyy hh:mm")
                               Y: =lblTitulo_3.Y + lblTitulo_3.Height
                         - lblSub_6:
                             Control: Label@2.5.1
@@ -149,8 +156,8 @@ Screens:
                               Fill: =RGBA(255,255,255,0.18)
                               Font: =
                               FontWeight: =FontWeight.Normal
-                              Height: =30
-                              OnSelect: "=UpdateContext({varshowLoader: true});\r\n\r\nForAll(Filter(colClientes, dirty) As C,\r\n     ForAll(Filter(colAsig, cid = C.cid) As A,\r\n        UpdateIf('CM | TBL | Asignacions',\r\n           'CM | TBL | Asignacion' = A.'CM | TBL | Asignacion',\r\n           { '[AS] Orden': C.orden })));\r\n\r\nClearCollect(colCuentas, 'CM | TBL | Cuentas');\r\nClearCollect(colDirecciones, Filter('CM | TBL | Direccions', '[DR] Tipo' = \"Casa\" || '[DR] Tipo' = \"Trabajo\"));\r\nClearCollect(colTelefonos, 'CM | TBL | Telefonos');\r\nClearCollect(colAsigRaw, Filter('CM | TBL | Asignacions', '[AS] Estado' = true));\r\nClearCollect(colAsig,\r\n     AddColumns(\r\n        AddColumns(colAsigRaw,\r\n           cta, LookUp(colCuentas, 'CM | TBL | Cuenta' = '[AS] Cuenta'.'CM | TBL | Cuenta')),\r\n        cid,      cta.'CIF Cliente',\r\n        cliNom,   cta.'Nombre Cliente',\r\n        ult4,     cta.'Últimos 4',\r\n        saldoNio, cta.'[CT] Saldo Vencido NIO',\r\n        saldoUsd, cta.'[CT] Saldo Vencido USD',\r\n        diasMora, cta.'[CT] Dias Mora',\r\n        ord,      '[AS] Orden'));\r\n\r\n  ClearCollect(colClientes,\r\n     AddColumns(\r\n        GroupBy(colAsig, cid, cliNom, Asigs),\r\n        orden,    Min(Asigs, ord),\r\n        totNio,   Sum(Asigs, saldoNio),\r\n        totUsd,   Sum(Asigs, saldoUsd),\r\n        maxDias,  Max(Asigs, diasMora),\r\n        nCuentas, CountRows(Asigs),\r\n        dirCasa,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'=\"Casa\").'[DR] Direccion',\r\n        dirTrab,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'=\"Trabajo\").'[DR] Direccion',\r\n        dirty,   false));\r\n          // Clientes sin [AS] Orden (asignaciones nuevas de la carga; Min() de vacíos da 0): se les asigna un orden único al final de la lista,\r\n          // si no las flechas no tienen con quién intercambiar. dirty → se guarda en Dataverse al salir (OnHidden).\r\n          With({ base: Coalesce(Max(colClientes, orden), 0),\r\n                 sinOrden: SortByColumns(Filter(colClientes, Coalesce(orden, 0) <= 0), \"cliNom\", SortOrder.Ascending) },\r\n             ForAll(Sequence(CountRows(sinOrden)) As N,\r\n                Patch(colClientes, LookUp(colClientes, cid = Index(sinOrden, N.Value).cid), { orden: base + N.Value, dirty: true })));\r\n    Set(varCarteraLista, true);\r\n     Set(varRecargarCartera, false);\r\n     Set(varFechaUltimaActualizacion, Now());\r\n     UpdateContext({varshowLoader: false});\r\n        "
+                              Height: =If(gblScale = 1, 30,gblScale = 1.2,34,gblScale = 1.45,40,46)
+                              OnSelect: "=UpdateContext({varshowLoader: true});\r\n\r\nUpdateContext({okOrden: IfError(ForAll(Filter(colClientes, dirty) As C,\r\n     ForAll(Filter(colAsig, cid = C.cid) As A,\r\n        UpdateIf('CM | TBL | Asignacions',\r\n           'CM | TBL | Asignacion' = A.'CM | TBL | Asignacion',\r\n           { '[AS] Orden': C.orden }))); true, false)});\r\n\r\n// APP-13: si no se pudo guardar el orden, no se recarga (se perderia) y se avisa.\r\nIf(okOrden,\r\nClearCollect(colCuentas, 'CM | TBL | Cuentas');\r\nClearCollect(colDirecciones, Filter('CM | TBL | Direccions', '[DR] Tipo' = \"Casa\" || '[DR] Tipo' = \"Trabajo\"));\r\nClearCollect(colTelefonos, 'CM | TBL | Telefonos');\r\nClearCollect(colAsigRaw, Filter('CM | TBL | Asignacions', '[AS] Estado' = true));\r\nClearCollect(colAsig,\r\n     AddColumns(\r\n        AddColumns(colAsigRaw,\r\n           cta, LookUp(colCuentas, 'CM | TBL | Cuenta' = '[AS] Cuenta'.'CM | TBL | Cuenta')),\r\n        cid,      cta.'CIF Cliente',\r\n        cliNom,   cta.'Nombre Cliente',\r\n        ult4,     cta.'Últimos 4',\r\n        saldoNio, cta.'[CT] Saldo Vencido NIO',\r\n        saldoUsd, cta.'[CT] Saldo Vencido USD',\r\n        diasMora, cta.'[CT] Dias Mora',\r\n        ord,      '[AS] Orden'));\r\n\r\n  ClearCollect(colClientes,\r\n     AddColumns(\r\n        GroupBy(colAsig, cid, cliNom, Asigs),\r\n        orden,    Min(Asigs, ord),\r\n        totNio,   Sum(Asigs, saldoNio),\r\n        totUsd,   Sum(Asigs, saldoUsd),\r\n        maxDias,  Max(Asigs, diasMora),\r\n        nCuentas, CountRows(Asigs),\r\n        dirCasa,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'=\"Casa\").'[DR] Direccion',\r\n        dirTrab,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'=\"Trabajo\").'[DR] Direccion',\r\n        dirty,   false));\r\n          // Orden 1..n sin empates ni vacíos (APP-23). Los que no tienen orden (asignaciones nuevas; Min() de vacíos da 0)\r\n          // van al final, alfabéticos. Solo los que cambian quedan dirty y se guardan en Dataverse al salir (OnHidden).\r\n          With({ lista: SortByColumns(AddColumns(colClientes, sinOrden, Coalesce(orden, 0) <= 0),\r\n                                      \"sinOrden\", SortOrder.Ascending, \"orden\", SortOrder.Ascending, \"cliNom\", SortOrder.Ascending) },\r\n             ForAll(Sequence(CountRows(lista)) As N,\r\n                With({ r: Index(lista, N.Value) },\r\n                   If(Coalesce(r.orden, 0) <> N.Value,\r\n                      Patch(colClientes, LookUp(colClientes, cid = r.cid), { orden: N.Value, dirty: true })))));\r\n    Set(varCarteraLista, true);\r\n     Set(varRecargarCartera, false);\r\n     Set(varFechaUltimaActualizacion, Now()),\r\n   Notify(\"No se pudo guardar el orden de la cartera; no se recargó para no perderlo. Reintentá con señal.\", NotificationType.Warning));\r\n     UpdateContext({varshowLoader: false});\r\n        "
                               PaddingBottom: =7
                               PaddingLeft: =11
                               PaddingRight: =11
@@ -171,7 +178,7 @@ Screens:
                               Color: =gblC.white
                               Fill: =RGBA(255,255,255,0.18)
                               FontWeight: =FontWeight.Bold
-                              Height: =30
+                              Height: =If(gblScale = 1, 30,gblScale = 1.2,34,gblScale = 1.45,40,46)
                               OnSelect: =Set(varSheetEscala, true)
                               PaddingBottom: =7
                               PaddingLeft: =11
@@ -190,7 +197,7 @@ Screens:
                             Control: CanvasComponent
                             ComponentName: cmpSyncPill
                             Properties:
-                              Height: =30
+                              Height: =If(gblScale = 1, 30,gblScale = 1.2,34,gblScale = 1.45,40,46)
                               Width: =If(gblScale = 1, 120,gblScale = 1.2,140,gblScale = 1.45,160,180)
                               X: =App.ActiveScreen.Width - Self.Width - 50
                               Y: =20
@@ -227,7 +234,7 @@ Screens:
                               LayoutMinHeight: =16
                               LayoutMinWidth: =16
                               Size: =gblT.fxs
-                              Text: ="A COBRAR HOY"
+                              Text: ="SALDO VENCIDO TOTAL"
                         - conBoxes:
                             Control: GroupContainer@1.5.0
                             Variant: AutoLayout
@@ -281,7 +288,7 @@ Screens:
                                           LayoutMinHeight: =16
                                           LayoutMinWidth: =16
                                           Size: =gblT.flg
-                                          Text: =Text(Sum(colAsig, saldoNio),"#,##0")
+                                          Text: =Text(Sum(colAsig, saldoNio),"#,##0.00")
                               - boxlblTotalAUSD:
                                   Control: GroupContainer@1.5.0
                                   Variant: AutoLayout
@@ -322,7 +329,7 @@ Screens:
                                           LayoutMinHeight: =16
                                           LayoutMinWidth: =16
                                           Size: =gblT.flg
-                                          Text: =Text(Sum(colAsig, saldoUsd),"#,##0")
+                                          Text: =Text(Sum(colAsig, saldoUsd),"#,##0.00")
                         - lblTotalMeta:
                             Control: Label@2.5.1
                             Properties:
@@ -717,7 +724,7 @@ Screens:
                                                 AutoHeight: =true
                                                 Color: =gblC.accentInk2
                                                 Fill: =gblC.accentBg
-                                                Height: =30
+                                                Height: =If(gblScale = 1, 30,gblScale = 1.2,34,gblScale = 1.45,40,46)
                                                 PaddingBottom: =0
                                                 PaddingLeft: =9
                                                 PaddingRight: =9
@@ -840,12 +847,12 @@ Screens:
                                           LayoutMinHeight: =16
                                           LayoutMinWidth: =16
                                           OnSelect: |-
-                                            =With(
-                                                { miCid: ThisItem.cid, mio: ThisItem.orden,
-                                                  obj:   Max(Filter(colClientes, orden < ThisItem.orden), orden) },
-                                                If(!IsBlank(obj),
-                                                   UpdateIf(colClientes, orden = obj, { orden: mio, dirty: true });
-                                                   UpdateIf(colClientes, cid = miCid, { orden: obj, dirty: true })))
+                                            =// APP-23: intercambia con el vecino VISIBLE inmediato (lista filtrada y ordenada), por cliente y no por valor de orden.
+                                            With({ vec: Last(Filter(galCartera_clientes.AllItems, orden < ThisItem.orden)) },
+                                                If(!IsBlank(vec),
+                                                   With({ mio: ThisItem.orden, suyo: vec.orden, miCid: ThisItem.cid, suCid: vec.cid },
+                                                      Patch(colClientes, LookUp(colClientes, cid = suCid), { orden: mio, dirty: true });
+                                                      Patch(colClientes, LookUp(colClientes, cid = miCid), { orden: suyo, dirty: true }))))
                                           Width: =If(gblScale = 1, 34,gblScale = 1.2,38,gblScale = 1.45,46,52)
                                     - icoDown:
                                         Control: Classic/Icon@2.5.0
@@ -857,12 +864,12 @@ Screens:
                                           LayoutMinHeight: =16
                                           LayoutMinWidth: =16
                                           OnSelect: |-
-                                            =With(
-                                                { miCid: ThisItem.cid, mio: ThisItem.orden,
-                                                  obj:   Min(Filter(colClientes, orden > ThisItem.orden), orden) },
-                                                If(!IsBlank(obj),
-                                                   UpdateIf(colClientes, orden = obj, { orden: mio, dirty: true });
-                                                   UpdateIf(colClientes, cid = miCid, { orden: obj, dirty: true })))
+                                            =// APP-23: intercambia con el vecino VISIBLE inmediato (lista filtrada y ordenada), por cliente y no por valor de orden.
+                                            With({ vec: First(Filter(galCartera_clientes.AllItems, orden > ThisItem.orden)) },
+                                                If(!IsBlank(vec),
+                                                   With({ mio: ThisItem.orden, suyo: vec.orden, miCid: ThisItem.cid, suCid: vec.cid },
+                                                      Patch(colClientes, LookUp(colClientes, cid = suCid), { orden: mio, dirty: true });
+                                                      Patch(colClientes, LookUp(colClientes, cid = miCid), { orden: suyo, dirty: true }))))
                                           Width: =If(gblScale = 1, 34,gblScale = 1.2,38,gblScale = 1.45,46,52)
                   - Button5:
                       Control: ModernButton@1.0.0
