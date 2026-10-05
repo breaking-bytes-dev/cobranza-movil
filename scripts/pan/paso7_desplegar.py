@@ -9,7 +9,7 @@ Pasos: pac canvas pack de cada app (con chequeo de YAML: con la carpeta mal nomb
 (verificado 2026-10-04: una importación con --activate-plugins ENCENDIÓ PanGuard y una sin él APAGÓ ClaveDesdeCuenta).
 Usa el perfil activo de pac (SP de DEV). Después: paso3_reconciliar.py --aplicar.
 Uso: python3 scripts/pan/paso7_desplegar.py [--aplicar]"""
-import html, json, os, re, subprocess, sys, tempfile, zipfile
+import html, json, os, re, subprocess, sys, tempfile, time, zipfile
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'seguridad'))
 from dvlib import rq, get
 
@@ -89,14 +89,24 @@ def estados():
 pasos_antes, flows_antes = estados()
 print(f'estado previo: {sum(v[1] == 0 for v in pasos_antes.values())} pasos activos de {len(pasos_antes)}, '
       f'{sum(v[1] == 1 for v in flows_antes.values())} flows encendidos de {len(flows_antes)}')
-for l in pac('solution', 'import', '--path', deploy, '--force-overwrite', '--publish-changes')[-3:]: print(' ', l)
-pasos_desp, flows_desp = estados()
-for i, (nombre, st) in pasos_antes.items():
-    if pasos_desp.get(i, (nombre, st))[1] != st:
-        r = rq('PATCH', f'sdkmessageprocessingsteps({i})', {'statecode': st, 'statuscode': 1 if st == 0 else 2})
-        print(f"  restaurado paso {nombre}: {'activo' if st == 0 else 'desactivado'} → {r[0]}")
-for i, (nombre, st) in flows_antes.items():
-    if flows_desp.get(i, (nombre, st))[1] != st:
-        r = rq('PATCH', f'workflows({i})', {'statecode': st, 'statuscode': 2 if st == 1 else 1})
-        print(f"  restaurado flow {nombre}: {'encendido' if st == 1 else 'apagado'} → {r[0]}")
+try:
+    for intento in range(10):
+        try:
+            for l in pac('solution', 'import', '--path', deploy, '--force-overwrite', '--publish-changes')[-3:]: print(' ', l)
+            break
+        except SystemExit as e:
+            # Studio (también una sesión de solo lectura abierta en modo edición) deja la app "locked for editing" unos minutos.
+            if 'AppLeaseConflict' in str(e) and intento < 9:
+                print('  la app está tomada en Studio (AppLeaseConflict); reintento en 60 s'); time.sleep(60); continue
+            raise
+finally:  # aunque la importación falle, los estados de pasos y flows vuelven a como estaban
+    pasos_desp, flows_desp = estados()
+    for i, (nombre, st) in pasos_antes.items():
+        if pasos_desp.get(i, (nombre, st))[1] != st:
+            r = rq('PATCH', f'sdkmessageprocessingsteps({i})', {'statecode': st, 'statuscode': 1 if st == 0 else 2})
+            print(f"  restaurado paso {nombre}: {'activo' if st == 0 else 'desactivado'} → {r[0]}")
+    for i, (nombre, st) in flows_antes.items():
+        if flows_desp.get(i, (nombre, st))[1] != st:
+            r = rq('PATCH', f'workflows({i})', {'statecode': st, 'statuscode': 2 if st == 1 else 1})
+            print(f"  restaurado flow {nombre}: {'encendido' if st == 1 else 'apagado'} → {r[0]}")
 print('Importado. Falta: python3 scripts/seguridad/paso3_reconciliar.py --aplicar')

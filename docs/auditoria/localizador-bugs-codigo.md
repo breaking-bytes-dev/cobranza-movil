@@ -464,3 +464,15 @@ y la app abrió al primer intento.
 | APP-31 | En **Máximo**: fecha del Inicio sin cortar la "g" (al contenedor le faltaban los 16 px de relleno); "Ver número" entra en el encabezado (el encabezado crece hasta contenerlo); tarjeta de ubicación en una fila; "ACTUAL" pasó a la línea del número ("•••• 3440 · ACTUAL") porque la pastilla al costado le quitaba el ancho al nombre del producto |
 
 Pendiente detectado: la tarjeta dice "Ubicación capturada" aunque el GPS no haya devuelto nada (", · automática"). Es **APP-11**, sigue abierto.
+
+## Botón Guardar: APP-02, 04, 09 y 10 corregidos y verificados en el teléfono (2026-10-05)
+
+| # | Corrección | Verificación en el teléfono (User5) y en Dataverse |
+|---|---|---|
+| APP-02 | Los productos salen del origen (`Cuentas` del cliente → sus `Asignacions` activas), no de `colAsig`. El botón exige al menos un producto | Inicio → cuenta → Registrar (el camino que daba "Guardar en 0 productos"): "Guardar en 1 producto" y se guardó. MOVIL muestra sus 2 cuentas |
+| APP-04 | Guardado con `IfError`: si falla la interacción no se crean pagos ni datos; si falla un pago se avisa cuál y **el reintento solo guarda lo que falta** (el rol no puede borrar, así que no se puede deshacer) | Pago de 2e11 (> tope de la columna): "La interacción se guardó, pero no todos los pagos (Value must be between 0 and 100000000000)". Se corrigió el monto y se reintentó: **1 interacción y 2 pagos**, sin duplicar |
+| APP-09 | Bandera `locGuardando`: el botón se deshabilita y dice "Guardando…" mientras escribe; el `OnSelect` no hace nada si ya está guardando | Triple toque → 1 interacción. Doble toque en "Guardar en 2 productos" → 2 interacciones (una por cuenta) |
+| APP-10 | Cada línea necesita monto > 0 y recibo; recibos sin repetir (recibo + moneda); recibo ≤ 30; recibo ya usado en la cuenta → bloquea; monto mayor que el saldo vencido → hay que tocar «Confirmar pago». Las líneas tienen `id` (antes editar una pisaba la otra). Respaldo en el servidor: clave alternativa (recibo, cuenta, moneda) con `scripts/localizador/clave_recibo_pago.py` | "Falta: monto y recibo en cada pago", "Falta: recibos sin repetir", "Ese número de recibo ya está registrado en esta cuenta", aviso y «Confirmar pago» con monto > saldo. La segunda línea se editó sin tocar la primera |
+
+No verificado: un fallo del Patch de la **interacción** (no hubo forma de provocarlo desde el teléfono; el comentario de 2.050 caracteres llegó con 1.254 y se guardó sin error). La rama usa el mismo `IfError` que sí se probó con los pagos.
+Visto de paso: un chip de comentario (APP-18) **reemplaza** el texto escrito, y "Atrás" de más saca de la app (APP-30). Siguen abiertos.

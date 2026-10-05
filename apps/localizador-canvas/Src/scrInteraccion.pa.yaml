@@ -23,12 +23,19 @@ Screens:
         Reset(inDirTrab);
         Reset(inCorreo);
       OnVisible: |-
-        =UpdateContext({locPan: Blank()});
-        ClearCollect(colProdInt,
-            AddColumns(
-                Filter(colAsig, cid = varCuenta.'CIF Cliente' && '[AS] Estado' = true),
-                esActual, '[AS] Cuenta'.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta',
-                sel,      '[AS] Cuenta'.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta'))
+        =UpdateContext({locPan: Blank(), locGuardando: false, locIntCreada: Blank(), locADGuardada: false, locConfirmaExceso: false});
+        Clear(colPagosGuardados);
+        Clear(colIntGuardadas);
+        // APP-02: los productos salen del origen y no de colAsig (que solo existe si antes se pasó por la Cartera).
+        // Una consulta por cuenta del cliente, con igualdad sobre el lookup: delegable (sin tope de filas).
+        Clear(colProdInt);
+        ForAll(Filter('CM | TBL | Cuentas', 'CIF Cliente' = varCuenta.'CIF Cliente') As C,
+            Collect(colProdInt,
+                AddColumns(
+                    Filter('CM | TBL | Asignacions', '[AS] Estado' = true && '[AS] Cuenta'.'CM | TBL | Cuenta' = C.'CM | TBL | Cuenta'),
+                    cta,      C,
+                    esActual, C.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta',
+                    sel,      C.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta')))
     Children:
       - conMaster_4:
           Control: GroupContainer@1.5.0
@@ -577,7 +584,7 @@ Screens:
                                                 LayoutMinHeight: =16
                                                 LayoutMinWidth: =16
                                                 OnChange: |-
-                                                  =Patch(colLineasPago, ThisItem, {monto: Value(Self.Value)})
+                                                  =Patch(colLineasPago, LookUp(colLineasPago, id = ThisItem.id), {monto: Value(Self.Value)}); UpdateContext({locConfirmaExceso: false})
                                           - Dropdown1:
                                               Control: ModernDropdown@1.0.2
                                               Properties:
@@ -590,7 +597,7 @@ Screens:
                                                 LayoutMinHeight: =16
                                                 LayoutMinWidth: =16
                                                 OnChange: |-
-                                                  =Patch(colLineasPago, ThisItem, {moneda: Self.Selected.Value})
+                                                  =Patch(colLineasPago, LookUp(colLineasPago, id = ThisItem.id), {moneda: Self.Selected.Value}); UpdateContext({locConfirmaExceso: false})
                                     - fila 2:
                                         Control: GroupContainer@1.5.0
                                         Variant: AutoLayout
@@ -615,7 +622,7 @@ Screens:
                                                 LayoutMinHeight: =16
                                                 LayoutMinWidth: =16
                                                 OnChange: |-
-                                                  =Patch(colLineasPago, ThisItem, {recibo: Self.Text})
+                                                  =Patch(colLineasPago, LookUp(colLineasPago, id = ThisItem.id), {recibo: Self.Text})
                                                 Placeholder: ="N° de recibo"
                                           - btnQuitar:
                                               Control: Classic/Button@2.2.0
@@ -626,7 +633,8 @@ Screens:
                                                 Fill: =gblC.redBg
                                                 LayoutMinHeight: =16
                                                 LayoutMinWidth: =16
-                                                OnSelect: =Remove(colLineasPago, ThisItem)
+                                                OnSelect: |-
+                                                  =Remove(colLineasPago, LookUp(colLineasPago, id = ThisItem.id)); UpdateContext({locConfirmaExceso: false})
                                                 Text: ="✕"
                                                 Width: =42
                         - btnAddPago:
@@ -640,7 +648,8 @@ Screens:
                               Height: =60
                               LayoutMinHeight: =16
                               LayoutMinWidth: =16
-                              OnSelect: =Collect(colLineasPago, {monto:0, moneda:"NIO", recibo:""})
+                              OnSelect: |-
+                                =Collect(colLineasPago, {id: GUID(), monto: 0, moneda: "NIO", recibo: ""}); UpdateContext({locConfirmaExceso: false})
                               PaddingBottom: =11
                               PaddingLeft: =11
                               PaddingRight: =11
@@ -1083,69 +1092,133 @@ Screens:
                   AlignInContainer: =AlignInContainer.Stretch
                   BorderStyle: =BorderStyle.None
                   Color: =gblC.white
-                  DisplayMode: |
-                    =If(!IsBlank(txtComentario.Text)
-                          && (!tpPago.Value || CountRows(Filter(colLineasPago, monto>0 && !IsBlank(Trim(recibo))))>0)
-                          && (!tgDatos.Value || Or(!IsBlank(inTelCasa.Text), !IsBlank(inTelCel.Text), !IsBlank(inTelTrab.Text),
-                                                   !IsBlank(inDirCasa.Text), !IsBlank(inDirEC.Text), !IsBlank(inDirTrab.Text),
-                                                   !IsBlank(inCorreo.Text))),
-                          DisplayMode.Edit, DisplayMode.Disabled)
+                  DisplayMode: |-
+                    =// APP-02/09/10: todo pago con monto y recibo válido, recibos sin repetir, al menos un producto, y no mientras se guarda.
+                    With({
+                        faltaComent:   IsBlank(Trim(txtComentario.Text)),
+                        sinLineas:     tpPago.Value && CountRows(colLineasPago) = 0,
+                        lineaIncompl:  tpPago.Value && CountRows(Filter(colLineasPago, monto <= 0 || IsBlank(Trim(recibo)))) > 0,
+                        reciboLargo:   tpPago.Value && CountRows(Filter(colLineasPago, Len(Trim(recibo)) > 30)) > 0,
+                        reciboRepet:   tpPago.Value && CountRows(colLineasPago) <> CountRows(Distinct(colLineasPago, Upper(Trim(recibo)) & "|" & moneda)),
+                        faltaDato:     tgDatos.Value && And(IsBlank(inTelCasa.Text), IsBlank(inTelCel.Text), IsBlank(inTelTrab.Text),
+                                                            IsBlank(inDirCasa.Text), IsBlank(inDirEC.Text), IsBlank(inDirTrab.Text), IsBlank(inCorreo.Text)),
+                        sinProducto:   If(tpPago.Value || tgDatos.Value, IsBlank(varCuenta), CountRows(Filter(colProdInt, sel)) = 0)
+                      },
+                      If(!locGuardando && !faltaComent && !sinLineas && !lineaIncompl && !reciboLargo && !reciboRepet && !faltaDato && !sinProducto,
+                         DisplayMode.Edit, DisplayMode.Disabled))
                   Fill: =gblC.teal
                   FontWeight: =FontWeight.Bold
                   Height: =If(gblScale = 1, 54,gblScale = 1.2,60,gblScale = 1.45,68,76)
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
                   OnSelect: |-
-                    =If(tpPago.Value || tgDatos.Value,
+                    =// APP-04/09: guardado con manejo de errores, una sola ejecución a la vez, y reintento idempotente:
+                    // el rol del cobrador no puede borrar, así que lo ya guardado (interacción, pagos, datos) no se vuelve a crear al reintentar.
+                    If(!locGuardando,
+                    UpdateContext({locGuardando: true});
+                    With({
+                        excesoNio:   tpPago.Value && Sum(Filter(colLineasPago, moneda = "NIO"), monto) > Coalesce(varCuenta.'[CT] Saldo Vencido NIO', 0),
+                        excesoUsd:   tpPago.Value && Sum(Filter(colLineasPago, moneda = "USD"), monto) > Coalesce(varCuenta.'[CT] Saldo Vencido USD', 0),
+                        reciboUsado: tpPago.Value && CountRows(Filter(colLineasPago As Lx, !(Lx.id in colPagosGuardados.id) &&
+                                        With({ rec: Trim(Lx.recibo), mon: If(Lx.moneda = "USD", 'Choice | CM | Monedas en Pago'.USD, 'Choice | CM | Monedas en Pago'.NIO) },
+                                            !IsBlank(LookUp('CM | TBL | Pagos', '[PG] Numero recibo' = rec
+                                                && Cuenta.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta' && '[PG] Moneda' = mon))))) > 0
+                      },
+                      If(
+                        /* APP-10: monto mayor que el saldo vencido → hay que confirmarlo con un segundo toque */
+                        (excesoNio || excesoUsd) && !locConfirmaExceso,
+                            UpdateContext({locGuardando: false, locConfirmaExceso: true});
+                            Notify("El pago es mayor que el saldo vencido de la cuenta. Revisá el monto; si está bien, tocá «Confirmar pago».", NotificationType.Warning),
+                        /* APP-10: el mismo recibo (y moneda) ya está registrado en esta cuenta */
+                        reciboUsado,
+                            UpdateContext({locGuardando: false});
+                            Notify("Ese número de recibo ya está registrado en esta cuenta. Revisalo antes de guardar.", NotificationType.Error),
                         /* UNA cuenta (pago o datos) */
-                        Set(varInt, Patch('CM | TBL | Interaccions', Defaults('CM | TBL | Interaccions'), {
-                            '[IN] Cuenta': varCuenta,
-                            '[IN] Agente': gblAgente,
-                            '[IN] Comentario': txtComentario.Text,
-                            '[IN] Aplica pago': tpPago.Value,
-                            '[IN] Actualiza info': tgDatos.Value,
-                            '[IN] Latitud': Location.Latitude,
-                            '[IN] Longitud': Location.Longitude,
-                            'Fecha de captura': Now(),
-                            '[IN] NombreAgente': Coalesce(gblAgente.'[AG] Nombre', "Sin nombre") }));
-                        If(tpPago.Value, ForAll(Filter(colLineasPago, monto > 0) As L,
-                            Patch('CM | TBL | Pagos', Defaults('CM | TBL | Pagos'), {
-                                '[PG] Interaccion': varInt,
-                                '[PG] Numero Interaccion': varInt.'[IN] Numero de Interaccion',
-                                Cuenta: varCuenta,
-                                '[PG] Monto': L.monto,
-                                '[PG] Moneda': Switch(L.moneda, "USD", 'Choice | CM | Monedas en Pago'.USD, 'Choice | CM | Monedas en Pago'.NIO),
-                                '[PG] Numero recibo': L.recibo })));
-                        If(tgDatos.Value, Patch('CM | TBL | Actualizacion de datos', Defaults('CM | TBL | Actualizacion de datos'), {
-                            '[AD] Interaccion': varInt,
-                            '[AD] Telefono Casa': inTelCasa.Text,
-                            '[AD] Telefono Celular': inTelCel.Text,
-                            '[AD] Telefono trabajo': inTelTrab.Text,
-                            '[AD] Direccion casa': inDirCasa.Text,
-                            '[AD] Direccion EC': inDirEC.Text,
-                            '[AD] Direccion trabajo': inDirTrab.Text,
-                            '[AD] Correo electronico': inCorreo.Text })),
-                        /* MULTI: una interacción por producto tildado, sin pago/datos */
-                        ForAll(Filter(colProdInt, sel) As P,
-                            Patch('CM | TBL | Interaccions', Defaults('CM | TBL | Interaccions'), {
-                                '[IN] Cuenta': P.cta,
-                                '[IN] Agente': gblAgente,
-                                '[IN] Comentario': txtComentario.Text,
-                                '[IN] Aplica pago': false,
-                                '[IN] Actualiza info': false,
-                                '[IN] Latitud': Location.Latitude,
-                                '[IN] Longitud': Location.Longitude,
-                                'Fecha de captura': Now(),
-                                '[IN] NombreAgente': Coalesce(gblAgente.'[AG] Nombre', "Sin nombre") })));
-                    Set(varCom, "");
-                    Notify(If(Connection.Connected, "✓ Guardado. Se sube en la próxima sincronización.", "✓ Guardado en el teléfono. Se sube cuando vuelva la señal."), NotificationType.Success);
-                    Back()
+                        tpPago.Value || tgDatos.Value,
+                            ClearCollect(colPagosPend, Filter(colLineasPago, !(id in colPagosGuardados.id)));
+                            IfError(
+                                If(IsBlank(locIntCreada),
+                                    With({ r: Patch('CM | TBL | Interaccions', Defaults('CM | TBL | Interaccions'), {
+                                        '[IN] Cuenta': varCuenta,
+                                        '[IN] Agente': gblAgente,
+                                        '[IN] Comentario': txtComentario.Text,
+                                        '[IN] Aplica pago': tpPago.Value,
+                                        '[IN] Actualiza info': tgDatos.Value,
+                                        '[IN] Latitud': Location.Latitude,
+                                        '[IN] Longitud': Location.Longitude,
+                                        'Fecha de captura': Now(),
+                                        '[IN] NombreAgente': Coalesce(gblAgente.'[AG] Nombre', "Sin nombre")
+                                        }) },
+                                        IfError(r, Error(FirstError), UpdateContext({locIntCreada: r})))),
+                                UpdateContext({locGuardando: false});
+                                Notify("No se pudo guardar la interacción: " & FirstError.Message, NotificationType.Error),
+
+                                If(tpPago.Value, ForAll(colPagosPend As L,
+                                    IfError(
+                                        Patch('CM | TBL | Pagos', Defaults('CM | TBL | Pagos'), {
+                                            '[PG] Interaccion': locIntCreada,
+                                            '[PG] Numero Interaccion': locIntCreada.'[IN] Numero de Interaccion',
+                                            Cuenta: varCuenta,
+                                            '[PG] Monto': L.monto,
+                                            '[PG] Moneda': Switch(L.moneda, "USD", 'Choice | CM | Monedas en Pago'.USD, 'Choice | CM | Monedas en Pago'.NIO),
+                                            '[PG] Numero recibo': Trim(L.recibo) }),
+                                        Error(FirstError),
+                                        Collect(colPagosGuardados, {id: L.id})))),
+                                UpdateContext({locGuardando: false});
+                                Notify("La interacción se guardó, pero no todos los pagos (" & FirstError.Message & "). Corregí y tocá Guardar: solo se guardan los que faltan.", NotificationType.Error),
+
+                                If(tgDatos.Value && !locADGuardada,
+                                    IfError(
+                                        Patch('CM | TBL | Actualizacion de datos', Defaults('CM | TBL | Actualizacion de datos'), {
+                                            '[AD] Interaccion': locIntCreada,
+                                            '[AD] Telefono Casa': inTelCasa.Text,
+                                            '[AD] Telefono Celular': inTelCel.Text,
+                                            '[AD] Telefono trabajo': inTelTrab.Text,
+                                            '[AD] Direccion casa': inDirCasa.Text,
+                                            '[AD] Direccion EC': inDirEC.Text,
+                                            '[AD] Direccion trabajo': inDirTrab.Text,
+                                            '[AD] Correo electronico': inCorreo.Text }),
+                                        Error(FirstError),
+                                        UpdateContext({locADGuardada: true}))),
+                                UpdateContext({locGuardando: false});
+                                Notify("La interacción se guardó, pero no la actualización de datos (" & FirstError.Message & "). Tocá Guardar de nuevo.", NotificationType.Error),
+
+                                Set(varCom, "");
+                                Notify(If(Connection.Connected, "✓ Guardado. Se sube en la próxima sincronización.", "✓ Guardado en el teléfono. Se sube cuando vuelva la señal."), NotificationType.Success);
+                                Back()),
+                        /* MULTI: una interacción por producto tildado, sin pago ni datos */
+                            ClearCollect(colIntPend, Filter(colProdInt, sel && !('CM | TBL | Asignacion' in colIntGuardadas.aid)));
+                            IfError(
+                                ForAll(colIntPend As P,
+                                    IfError(
+                                        Patch('CM | TBL | Interaccions', Defaults('CM | TBL | Interaccions'), {
+                                            '[IN] Cuenta': P.cta,
+                                            '[IN] Agente': gblAgente,
+                                            '[IN] Comentario': txtComentario.Text,
+                                            '[IN] Aplica pago': false,
+                                            '[IN] Actualiza info': false,
+                                            '[IN] Latitud': Location.Latitude,
+                                            '[IN] Longitud': Location.Longitude,
+                                            'Fecha de captura': Now(),
+                                            '[IN] NombreAgente': Coalesce(gblAgente.'[AG] Nombre', "Sin nombre") }),
+                                        Error(FirstError),
+                                        Collect(colIntGuardadas, {aid: P.'CM | TBL | Asignacion'}))),
+                                UpdateContext({locGuardando: false});
+                                Notify("No se pudieron guardar todas las interacciones (" & FirstError.Message & "). Tocá Guardar de nuevo: solo se guardan las que faltan.", NotificationType.Error),
+                                Set(varCom, "");
+                                Notify(If(Connection.Connected, "✓ Guardado. Se sube en la próxima sincronización.", "✓ Guardado en el teléfono. Se sube cuando vuelva la señal."), NotificationType.Success);
+                                Back())
+                      )))
                   PaddingBottom: =14
                   PaddingLeft: =14
                   PaddingRight: =14
                   PaddingTop: =14
                   Size: =gblT.fmd
-                  Text: =If(tpPago.Value || tgDatos.Value, "Guardar interacción" & If(tpPago.Value," + pago","") & If(tgDatos.Value," + datos",""), "Guardar en " & CountRows(Filter(colProdInt, sel)) & " producto" & If(CountRows(Filter(colProdInt, sel))>1,"s",""))
+                  Text: |-
+                    =If(locGuardando, "Guardando…",
+                        locConfirmaExceso, "Confirmar pago",
+                        tpPago.Value || tgDatos.Value, "Guardar interacción" & If(tpPago.Value," + pago","") & If(tgDatos.Value," + datos",""),
+                        "Guardar en " & CountRows(Filter(colProdInt, sel)) & " producto" & If(CountRows(Filter(colProdInt, sel))>1,"s",""))
             - lblHint:
                 Control: Label@2.5.1
                 Properties:
@@ -1156,53 +1229,25 @@ Screens:
                   LayoutMinWidth: =16
                   Size: =gblT.fxs
                   Text: |-
-                    =With(
-                        {
-                            varCondicionPago: ((tpPago.Value && CountRows(
-                                Filter(
-                                    colLineasPago,
-                                    monto <= 0 || IsBlank(Trim(recibo))
-                                )
-                            ) > 0) || (tpPago.Value && CountRows(colLineasPago) = 0)),
-                            varCondicionInteracion: IsBlank(txtComentario.Text),
-                            varCondicionActualizacion: tgDatos.Value && And(
-                                IsBlank(inTelCasa.Text),
-                                IsBlank(inTelCel.Text),
-                                IsBlank(inTelTrab.Text),
-                                IsBlank(inDirCasa.Text),
-                                IsBlank(inDirEC.Text),
-                                IsBlank(inDirTrab.Text),
-                                IsBlank(inCorreo.Text)
-                            )
-                        },
-                        If(
-                            varCondicionPago || varCondicionInteracion || varCondicionActualizacion,
-                            "Falta: "
-                        ) & If(
-                            IsBlank(txtComentario.Text),
-                            "comentario ",
-                            ""
-                        ) & If(
-                            ((tpPago.Value && CountRows(
-                                Filter(
-                                    colLineasPago,
-                                    monto <= 0 || IsBlank(Trim(recibo))
-                                )
-                            ) > 0) || (tpPago.Value && CountRows(colLineasPago) = 0)),
-                            "· Información de pago "
-                        ) & If(
-                            tgDatos.Value && And(
-                                IsBlank(inTelCasa.Text),
-                                IsBlank(inTelCel.Text),
-                                IsBlank(inTelTrab.Text),
-                                IsBlank(inDirCasa.Text),
-                                IsBlank(inDirEC.Text),
-                                IsBlank(inDirTrab.Text),
-                                IsBlank(inCorreo.Text)
-                            ),
-                            "· Información personal a actualizar"
-                        )
-                    )
+                    =With({
+                        faltaComent:   IsBlank(Trim(txtComentario.Text)),
+                        sinLineas:     tpPago.Value && CountRows(colLineasPago) = 0,
+                        lineaIncompl:  tpPago.Value && CountRows(Filter(colLineasPago, monto <= 0 || IsBlank(Trim(recibo)))) > 0,
+                        reciboLargo:   tpPago.Value && CountRows(Filter(colLineasPago, Len(Trim(recibo)) > 30)) > 0,
+                        reciboRepet:   tpPago.Value && CountRows(colLineasPago) <> CountRows(Distinct(colLineasPago, Upper(Trim(recibo)) & "|" & moneda)),
+                        faltaDato:     tgDatos.Value && And(IsBlank(inTelCasa.Text), IsBlank(inTelCel.Text), IsBlank(inTelTrab.Text),
+                                                            IsBlank(inDirCasa.Text), IsBlank(inDirEC.Text), IsBlank(inDirTrab.Text), IsBlank(inCorreo.Text)),
+                        sinProducto:   If(tpPago.Value || tgDatos.Value, IsBlank(varCuenta), CountRows(Filter(colProdInt, sel)) = 0)
+                      },
+                      With({ falta: Concat(Filter(Table(
+                                  {c: faltaComent,  t: "comentario"},
+                                  {c: sinLineas,    t: "un pago"},
+                                  {c: lineaIncompl, t: "monto y recibo en cada pago"},
+                                  {c: reciboLargo,  t: "recibo de hasta 30 caracteres"},
+                                  {c: reciboRepet,  t: "recibos sin repetir"},
+                                  {c: faltaDato,    t: "un dato del cliente"},
+                                  {c: sinProducto,  t: "un producto"}), c), t, " · ") },
+                          If(IsBlank(falta), "", "Falta: " & falta)))
       - cmpSheet_5:
           Control: CanvasComponent
           ComponentName: cmpSheet
