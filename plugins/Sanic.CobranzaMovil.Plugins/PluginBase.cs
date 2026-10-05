@@ -49,6 +49,7 @@ namespace Sanic.CobranzaMovil.Plugins
         private readonly ITracingService tracing;
         private readonly IOrganizationServiceFactory factory;
         private IOrganizationService service;
+        private IOrganizationService servicioSistema;
 
         public LocalContext(string nombre, IPluginExecutionContext context, ITracingService tracing, IOrganizationServiceFactory factory)
         {
@@ -72,6 +73,19 @@ namespace Sanic.CobranzaMovil.Plugins
             }
         }
 
+        /// <summary>
+        /// Servicio del SISTEMA. Solo para lecturas de configuracion que el llamador no tiene por que poder hacer
+        /// (por ejemplo, sus propios roles). Nunca para escribir datos de negocio.
+        /// </summary>
+        public IOrganizationService ServicioSistema
+        {
+            get
+            {
+                if (servicioSistema == null) servicioSistema = factory.CreateOrganizationService(null);
+                return servicioSistema;
+            }
+        }
+
         public void Trace(string formato, params object[] args)
         {
             if (tracing != null) tracing.Trace(nombre + ": " + formato, args);
@@ -92,6 +106,18 @@ namespace Sanic.CobranzaMovil.Plugins
                 if (target != null) return target;
             }
             throw Error("el contexto no trae un Target de tipo entidad.");
+        }
+
+        /// <summary>Imagen previa "PreImage". Falla cerrado si el paso se registro sin ella.</summary>
+        public Entity ObtenerImagenPrevia()
+        {
+            var imagenes = Context.PreEntityImages;
+            if (imagenes != null && imagenes.Contains(Esquema.NombreImagenPrevia))
+            {
+                var previa = imagenes[Esquema.NombreImagenPrevia];
+                if (previa != null) return previa;
+            }
+            throw Error("el paso Update no trae la imagen previa " + Esquema.NombreImagenPrevia + ".");
         }
 
         /// <summary>Exige entidad, etapa y alguno de los mensajes esperados; un registro mal configurado se detecta de inmediato.</summary>

@@ -9,7 +9,7 @@ REGLA DE PanGuard (paso 8 del plan):
   pasos se crean DESACTIVADOS. Un paso PanGuard que ya existe conserva su estado, salvo que se pida:
     --activar-panguard      activa los pasos PanGuard (paso 8)
     --desactivar-panguard   los desactiva (rollback)
-  Los pasos de ClaveDesdeCuenta y CuentaDesdeInteraccion quedan activos.
+  Los pasos de ClaveDesdeCuenta, CuentaDesdeInteraccion, AprobacionEspecial y ActualizacionConInteraccion quedan activos.
 
 Credenciales: variables de entorno DATAVERSE_URL, PP_CLIENT_ID, PP_CLIENT_SECRET, PP_TENANT_ID (las mismas
 secrets del repo). En local, si faltan, se leen de pp_secrets.env (gitignored). Nunca se imprimen.
@@ -68,6 +68,21 @@ def definir_pasos():
         tipo=NS + 'CuentaDesdeInteraccion', mensaje='Create', entidad=P + 'pago', panguard=False, filtro=[],
         columnas=['sanic_cm_pg_cuentaid', 'sanic_cm_pg_interaccion'], legacy=False, imagen=None,
         descripcion='Completa pg_cuentaid desde la interaccion'))
+    # AprobacionEspecial (S-6): solo Supervisor/Admin aprueban, rechazan o ponen agente a una Especial
+    for mensaje in ('Create', 'Update'):
+        cols = ['sanic_cm_as_agenteid', 'sanic_cm_as_estadoaprobacion', 'sanic_cm_as_tipo']
+        pasos.append(dict(
+            tipo=NS + 'AprobacionEspecial', mensaje=mensaje, entidad=P + 'asignacion', panguard=False,
+            filtro=cols if mensaje == 'Update' else [], columnas=cols, legacy=False,
+            imagen=dict(nombre=IMAGEN_PREVIA, atributos=cols) if mensaje == 'Update' else None,
+            descripcion='S-6: solo Supervisor/Admin aprueban, rechazan o asignan agente a una Especial'))
+    # ActualizacionConInteraccion (APP-24): la actualizacion de datos cuelga de una interaccion con cuenta
+    for mensaje in ('Create', 'Update'):
+        pasos.append(dict(
+            tipo=NS + 'ActualizacionConInteraccion', mensaje=mensaje, entidad=P + 'actualizaciondatos', panguard=False,
+            filtro=['sanic_cm_ad_interaccionid'] if mensaje == 'Update' else [],
+            columnas=['sanic_cm_ad_interaccionid'], legacy=False, imagen=None,
+            descripcion='APP-24: exige interaccion con cuenta'))
     for p in pasos:
         p['nombre'] = '%s: %s of %s' % (p['tipo'], p['mensaje'], p['entidad'])
     return pasos
@@ -301,7 +316,7 @@ def main():
         if paso_id:
             accion('asegurar el paso en la solucion: ' + p['nombre'], 'POST', 'AddSolutionComponent',
                    {'ComponentId': paso_id, 'ComponentType': COMPONENTE_PASO, 'SolutionUniqueName': a.solucion, 'AddRequiredComponents': False})
-            # Imagen previa (solo ClaveDesdeCuenta/Update): una, con las columnas justas.
+            # Imagen previa (ClaveDesdeCuenta y AprobacionEspecial, en Update): una, con las columnas justas.
             if p['imagen']:
                 imgs = dv.get("sdkmessageprocessingstepimages?$select=sdkmessageprocessingstepimageid,attributes,entityalias,imagetype"
                               "&$filter=_sdkmessageprocessingstepid_value eq %s and name eq '%s'" % (paso_id, p['imagen']['nombre']))['value']
