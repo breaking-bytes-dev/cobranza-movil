@@ -36,17 +36,20 @@ for carpeta, nombre, minimo in APPS:
     z = zipfile.ZipFile(destino)
     yamls = [n for n in z.namelist() if n.endswith('.pa.yaml')]
     texto = b''.join(z.read(n) for n in yamls)
-    ldr = json.loads(json.loads(z.read('Properties.json'))['LocalDatabaseReferences'])['default.cds']['dataSources']
-    print(f"{nombre}: {len(yamls)} .pa.yaml, {len(ldr)} fuentes de Dataverse, usa la bóveda en fórmulas: {b'PAN de cuentas' in texto}")
+    props = json.loads(z.read('Properties.json'))
+    ldr = json.loads(props['LocalDatabaseReferences'])['default.cds']['dataSources']
+    perfil = props.get('ManualOfflineProfileId') or None  # perfil offline personalizado (paso7_perfil_offline.py)
+    print(f"{nombre}: {len(yamls)} .pa.yaml, {len(ldr)} fuentes de Dataverse, usa la bóveda en fórmulas: {b'PAN de cuentas' in texto}, "
+          f"perfil offline: {perfil or 'autogenerado'}")
     if len(yamls) < minimo: raise SystemExit(f'{nombre}: el .msapp tiene {len(yamls)} .pa.yaml (mínimo {minimo}). ¿Carpeta Src mal nombrada?')
-    msapps[nombre] = (open(destino, 'rb').read(), ldr)
+    msapps[nombre] = (open(destino, 'rb').read(), ldr, perfil)
 
 fresco = os.path.join(tmp, 'fresh.zip')
 pac('solution', 'export', '--name', 'cm_core_cobranzamovil', '--path', fresco, '--managed', 'false', '--overwrite')
 zin = zipfile.ZipFile(fresco)
 cust = zin.read('customizations.xml').decode('utf-8')
 
-def actualizar_app(cust, nombre, ldr):
+def actualizar_app(cust, nombre, ldr, perfil):
     i = cust.index(f'<Name>{nombre}</Name>'); ini = cust.rindex('<CanvasApp>', 0, i); fin = cust.index('</CanvasApp>', i)
     bloque = cust[ini:fin]
     m = re.search(r'<DatabaseReferences>(.*?)</DatabaseReferences>', bloque, re.S)
@@ -58,17 +61,19 @@ def actualizar_app(cust, nombre, ldr):
     dep = json.loads(html.unescape(m2.group(1))); tablas = {d['logicalname'] for d in dep['cdsdependencies'] if d.get('componenttype') == 1}
     for v in ldr.values():
         if v['logicalName'] not in tablas: dep['cdsdependencies'].append({'componenttype': 1, 'logicalname': v['logicalName']})
+    if perfil:  # la dependencia 161 (perfil offline) apunta al personalizado, no al autogenerado
+        dep['cdsdependencies'] = [d for d in dep['cdsdependencies'] if d.get('componenttype') != 161] + [{'dependencyid': perfil, 'componenttype': 161}]
     bloque = bloque.replace(m2.group(0), '<CdsDependencies>' + html.escape(json.dumps(dep, separators=(',', ':')), quote=False) + '</CdsDependencies>')
     print(f"  {nombre}: DatabaseReferences + {sorted(set(db['default.cds']['dataSources']) - antes) or 'sin cambios'}")
     return cust[:ini] + bloque + cust[fin:]
 
-for nombre, (_, ldr) in msapps.items(): cust = actualizar_app(cust, nombre, ldr)
+for nombre, (_, ldr, perfil) in msapps.items(): cust = actualizar_app(cust, nombre, ldr, perfil)
 deploy = os.path.join(tmp, 'deploy.zip')
 with zipfile.ZipFile(deploy, 'w') as zout:
     for it in zin.infolist():
         data = zin.read(it.filename)
         if it.filename == 'customizations.xml': data = cust.encode('utf-8')
-        for nombre, (bytes_app, _) in msapps.items():
+        for nombre, (bytes_app, _, _) in msapps.items():
             if it.filename == f'CanvasApps/{nombre}_DocumentUri.msapp': data = bytes_app
         zi = zipfile.ZipInfo(it.filename, date_time=it.date_time); zi.compress_type = it.compress_type; zi.external_attr = it.external_attr
         zout.writestr(zi, data)

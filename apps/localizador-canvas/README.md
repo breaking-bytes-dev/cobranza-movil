@@ -20,6 +20,21 @@ tablas nuevas) y **restaura el estado de los pasos de plugin y de los flows**. L
 (en `main`) importan con `--activate-plugins`: el 2026-10-04 eso **encendió PanGuard** (debe seguir apagado hasta el paso 8).
 No usarlos mientras exista PanGuard apagado.
 
+## Perfil offline: personalizado "Cobranza Movil - Cobrador" (desde 2026-10-04)
+La app usa un perfil offline **propio** (`ManualOfflineProfileId` en `Properties.json` del `.msapr`), no el autogenerado.
+El autogenerado lo rearma el servicio en cada publicación de la app. El 2026-10-04 se trabó
+("The auto-generated offline profile ... failed to publish. Error: 0x80071151") y la app no abría en el teléfono.
+Además no soporta ALM.
+- Lo crea/publica `python3 scripts/pan/paso7_perfil_offline.py --aplicar` (idempotente). El script también lo agrega a la
+  solución y escribe el id en el `.msapr`. `paso7_desplegar.py` lleva ese id a la dependencia 161 de `CdsDependencies`.
+- Tablas: las 10 que la app consulta. Regla "Todas las filas": el teléfono baja lo que el usuario **puede leer**; lo que
+  recorta es la seguridad por fila (rol Basic + compartidos), no el perfil. Pendiente (S-1): filtrar por las asignaciones
+  del cobrador ("filas relacionadas").
+- Si la app usa una tabla nueva, **agregarla al perfil** (sumarla a `TABLAS` en el script y correrlo). Con perfil
+  personalizado el servicio ya no la agrega solo.
+- Publicar el perfil: `publishedon` no cambia (un perfil nuevo nace publicado). La prueba de que se publicó es que se
+  regeneran sus `mobileofflineprofileitemfilters`; el script lo verifica.
+
 ## Build + deploy (Dev) — histórico
 ```bash
 # 1) empaquetar
