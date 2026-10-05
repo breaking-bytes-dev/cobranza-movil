@@ -1,5 +1,5 @@
 // Pruebas web (Playwright, User5, DEV) de los hallazgos del cobrador que NO necesitan el teléfono:
-// APP-07, 15, 16, 17, 18, 19, 24, 25 (parcial), 27, 30 (parcial), 32, formato numérico y la vista de pagos de APP-05.
+// APP-07, 08, 15, 16, 17, 18, 19, 24, 25, 27, 30 (parcial), 32, formato numérico y la vista de pagos de APP-05.
 // El web player corre la app EN LÍNEA: lo offline (sincronización, N° de interacción vacío) se verifica en el teléfono.
 // Datos: solo las carteras QA-E2E-LOC de User5. Crea 1 interacción QA (APP-27). Nunca imprime números de tarjeta.
 // Uso: NODE_PATH=../backoffice-canvas/node_modules node grupo2.js
@@ -7,6 +7,7 @@ const a = require('./lib/app');
 const dv = require('../backoffice-canvas/lib/dataverse.js');
 
 const USER5 = '539834c4-6116-f111-8342-000d3a316609';
+const RESUMEN_CARTERA = 'lblTotalMeta';   // etiqueta "N cuentas · M clientes" de scrCartera
 const res = [];
 const ok = (id, cond, detalle) => { res.push({ id, ok: !!cond, detalle }); console.log(cond ? '✓' : '✗', id.padEnd(10), detalle); };
 const txt = async (app, c) => a.texto(app, c).catch(() => '');
@@ -57,9 +58,26 @@ async function hoyManagua() { const d = new Date(Date.now() - 6 * 3600e3); retur
   ok('APP-16/28', sinFiltro.length === 0, `consultas a interacciones/asignaciones sin $filter al abrir Cliente: ${sinFiltro.length}`);
   ok('APP-05 vista', (await app.frame.getByText('rec. QA-R1').count()) > 0, 'el pago QA-R1 aparece en la tarjeta de su interacción (búsqueda por la relación)');
 
-  // ---- APP-07: varAsig sucio. Cartera → MOVIL → cuenta Especial (desde Cliente) → Inicio → cuenta Diaria (desde Inicio) ----
+  // ---- APP-25: nombres y rol de botón en el Inicio (íconos de la barra, "Aa", píldora) ----
   await a.tocar(app, 'Icon1');                                  // ← a Inicio
+  const botones = ['Inicio', 'Cartera', 'Ajustes de tema y tamaño de letra'];
+  const hayB = []; for (const n of botones) if (await app.frame.getByRole('button', { name: n, exact: true }).count()) hayB.push(n);
+  const pildora = await app.frame.getByRole('button', { name: /^Estado de sincronización: / }).count();
+  ok('APP-25 rol', hayB.length === botones.length && pildora > 0,
+     `botones con nombre: ${hayB.join(', ')}; píldora con nombre: ${pildora > 0 ? 'sí' : 'NO'} (antes: íconos como imagen, "Aa" y píldora sin nombre)`);
+
+  // ---- APP-08: la Cartera no muestra Especiales sin aprobar (dato QA: Especial en Borrador cuyo dueño es User5) ----
   await a.tocar(app, 'icoLedger');                              // barra: Cartera
+  const asigs = await dv.getAll(`sanic_cm_tbl_asignacions?$select=sanic_cm_as_tipo,sanic_cm_as_estadoaprobacion&$filter=_ownerid_value eq ${USER5} and sanic_cm_as_estado eq true`);
+  const visibles = asigs.filter(x => x.sanic_cm_as_tipo !== 3 || x.sanic_cm_as_estadoaprobacion === 3).length;
+  const resumen = await txt(app, RESUMEN_CARTERA);
+  ok('APP-08', resumen.startsWith(`${visibles} cuentas`) && visibles < asigs.length,
+     `Cartera: "${resumen}"; en Dataverse ${asigs.length} activas de User5, ${asigs.length - visibles} Especial(es) sin aprobar fuera`);
+  const filtros = []; for (const n of ['Todos', 'Diaria', 'Incobrable', 'Especial']) if (await app.frame.getByRole('button', { name: n, exact: true }).count()) filtros.push(n);
+  ok('APP-25 filtros', filtros.length === 4 && await app.frame.getByRole('button', { name: 'Actualizar la cartera' }).count() > 0,
+     `filtros como botones: ${filtros.join(', ')}; "↻" con nombre "Actualizar la cartera"`);
+
+  // ---- APP-07: varAsig sucio. Cartera → MOVIL → cuenta Especial (desde Cliente) → Inicio → cuenta Diaria (desde Inicio) ----
   await clicTexto(app, 'QA-E2E-LOC CLIENTE MOVIL');
   await clicTexto(app, '5498');                                 // cuenta Especial (por sus últimos 4)
   const tipoEsp = await txt(app, 'Text1_1');
@@ -98,6 +116,7 @@ async function hoyManagua() { const d = new Date(Date.now() - 6 * 3600e3); retur
   await a.tocar(app, 'tpPago'); await a.tocar(app, 'btnAddPago');
   const monU = await valor(app, 'Dropdown1');
   ok('APP-32 USD', /USD/.test(monU), `cuenta solo en dólares: moneda ${monU}`);
+  ok('APP-25 quitar', await app.frame.getByRole('button', { name: 'Quitar este pago' }).count() > 0, 'el "✕" de la línea de pago se anuncia "Quitar este pago"');
   await a.tocar(app, 'tpPago');
 
   // ---- APP-25 (parcial): etiquetas y contraste ----

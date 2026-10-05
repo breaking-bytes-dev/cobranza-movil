@@ -27,7 +27,8 @@ Screens:
             ClearCollect(colCuentas, 'CM | TBL | Cuentas');
             ClearCollect(colDirecciones, Filter('CM | TBL | Direccions', '[DR] Tipo' = "Casa" || '[DR] Tipo' = "Trabajo"));
             ClearCollect(colTelefonos, 'CM | TBL | Telefonos'));
-         ClearCollect(colAsigRaw, Filter('CM | TBL | Asignacions', '[AS] Estado' = true));
+         // APP-08: las Especiales solo se gestionan aprobadas (el servidor tampoco deja asignar agente antes).
+         ClearCollect(colAsigRaw, Filter('CM | TBL | Asignacions', '[AS] Estado' = true && ('[AS] Tipo' <> 'Choice | CM | Tipo asignacion'.Especial || '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado)));
          ClearCollect(colAsig,
              AddColumns(
                 AddColumns(colAsigRaw,
@@ -152,15 +153,17 @@ Screens:
                               Size: =gblT.fxl
                               Text: ="Hola, "&User().FullName
                         - Button1_2:
-                            Control: Classic/Button@2.2.0
+                            Control: ModernButton@1.0.0
                             Properties:
-                              BorderStyle: =BorderStyle.None
+                              AccessibleLabel: ="Actualizar la cartera"
+                              Appearance: =ButtonAppearance.Transparent
+                              BorderColor: =RGBA(255,255,255,0.45)
+                              BorderStyle: =BorderStyle.Solid
+                              BorderThickness: =1
                               Color: =gblC.white
-                              Fill: =RGBA(255,255,255,0.18)
-                              Font: =
                               FontWeight: =FontWeight.Normal
                               Height: =If(gblScale = 1, 30,gblScale = 1.2,34,gblScale = 1.45,40,46)
-                              OnSelect: "=UpdateContext({varshowLoader: true});\r\n\r\nUpdateContext({okOrden: IfError(ForAll(Filter(colClientes, dirty) As C,\r\n     ForAll(Filter(colAsig, cid = C.cid) As A,\r\n        UpdateIf('CM | TBL | Asignacions',\r\n           'CM | TBL | Asignacion' = A.'CM | TBL | Asignacion',\r\n           { '[AS] Orden': C.orden }))); true, false)});\r\n\r\n// APP-13: si no se pudo guardar el orden, no se recarga (se perderia) y se avisa.\r\nIf(okOrden,\r\nClearCollect(colCuentas, 'CM | TBL | Cuentas');\r\nClearCollect(colDirecciones, Filter('CM | TBL | Direccions', '[DR] Tipo' = \"Casa\" || '[DR] Tipo' = \"Trabajo\"));\r\nClearCollect(colTelefonos, 'CM | TBL | Telefonos');\r\nClearCollect(colAsigRaw, Filter('CM | TBL | Asignacions', '[AS] Estado' = true));\r\nClearCollect(colAsig,\r\n     AddColumns(\r\n        AddColumns(colAsigRaw,\r\n           cta, LookUp(colCuentas, 'CM | TBL | Cuenta' = '[AS] Cuenta'.'CM | TBL | Cuenta')),\r\n        cid,      cta.'CIF Cliente',\r\n        cliNom,   cta.'Nombre Cliente',\r\n        ult4,     cta.'Últimos 4',\r\n        saldoNio, cta.'[CT] Saldo Vencido NIO',\r\n        saldoUsd, cta.'[CT] Saldo Vencido USD',\r\n        diasMora, cta.'[CT] Dias Mora',\r\n        ord,      '[AS] Orden'));\r\n\r\n  ClearCollect(colClientes,\r\n     AddColumns(\r\n        GroupBy(Filter(colAsig, !IsBlank(cid)), cid, cliNom, Asigs),\r\n        orden,    Min(Asigs, ord),\r\n        totNio,   Sum(Asigs, saldoNio),\r\n        totUsd,   Sum(Asigs, saldoUsd),\r\n        maxDias,  Max(Asigs, diasMora),\r\n        nCuentas, CountRows(Asigs),\r\n        dirCasa,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'=\"Casa\").'[DR] Direccion',\r\n        dirTrab,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'=\"Trabajo\").'[DR] Direccion',\r\n        dirty,   false));\r\n          // Orden 1..n sin empates ni vacíos (APP-23). Los que no tienen orden (asignaciones nuevas; Min() de vacíos da 0)\r\n          // van al final, alfabéticos. Solo los que cambian quedan dirty y se guardan en Dataverse al salir (OnHidden).\r\n          With({ lista: SortByColumns(AddColumns(colClientes, sinOrden, Coalesce(orden, 0) <= 0),\r\n                                      \"sinOrden\", SortOrder.Ascending, \"orden\", SortOrder.Ascending, \"cliNom\", SortOrder.Ascending) },\r\n             ForAll(Sequence(CountRows(lista)) As N,\r\n                With({ r: Index(lista, N.Value) },\r\n                   If(Coalesce(r.orden, 0) <> N.Value,\r\n                      Patch(colClientes, LookUp(colClientes, cid = r.cid), { orden: N.Value, dirty: true })))));\r\n    Set(varCarteraLista, true);\r\n     Set(varRecargarCartera, false);\r\n     Set(varFechaUltimaActualizacion, Now()),\r\n   Notify(\"No se pudo guardar el orden de la cartera; no se recargó para no perderlo. Reintentá con señal.\", NotificationType.Warning));\r\n     UpdateContext({varshowLoader: false});\r\n        "
+                              OnSelect: "=UpdateContext({varshowLoader: true});\r\n\r\nUpdateContext({okOrden: IfError(ForAll(Filter(colClientes, dirty) As C,\r\n     ForAll(Filter(colAsig, cid = C.cid) As A,\r\n        UpdateIf('CM | TBL | Asignacions',\r\n           'CM | TBL | Asignacion' = A.'CM | TBL | Asignacion',\r\n           { '[AS] Orden': C.orden }))); true, false)});\r\n\r\n// APP-13: si no se pudo guardar el orden, no se recarga (se perderia) y se avisa.\r\nIf(okOrden,\r\nClearCollect(colCuentas, 'CM | TBL | Cuentas');\r\nClearCollect(colDirecciones, Filter('CM | TBL | Direccions', '[DR] Tipo' = \"Casa\" || '[DR] Tipo' = \"Trabajo\"));\r\nClearCollect(colTelefonos, 'CM | TBL | Telefonos');\r\nClearCollect(colAsigRaw, Filter('CM | TBL | Asignacions', '[AS] Estado' = true && ('[AS] Tipo' <> 'Choice | CM | Tipo asignacion'.Especial || '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado)));\r\nClearCollect(colAsig,\r\n     AddColumns(\r\n        AddColumns(colAsigRaw,\r\n           cta, LookUp(colCuentas, 'CM | TBL | Cuenta' = '[AS] Cuenta'.'CM | TBL | Cuenta')),\r\n        cid,      cta.'CIF Cliente',\r\n        cliNom,   cta.'Nombre Cliente',\r\n        ult4,     cta.'Últimos 4',\r\n        saldoNio, cta.'[CT] Saldo Vencido NIO',\r\n        saldoUsd, cta.'[CT] Saldo Vencido USD',\r\n        diasMora, cta.'[CT] Dias Mora',\r\n        ord,      '[AS] Orden'));\r\n\r\n  ClearCollect(colClientes,\r\n     AddColumns(\r\n        GroupBy(Filter(colAsig, !IsBlank(cid)), cid, cliNom, Asigs),\r\n        orden,    Min(Asigs, ord),\r\n        totNio,   Sum(Asigs, saldoNio),\r\n        totUsd,   Sum(Asigs, saldoUsd),\r\n        maxDias,  Max(Asigs, diasMora),\r\n        nCuentas, CountRows(Asigs),\r\n        dirCasa,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'=\"Casa\").'[DR] Direccion',\r\n        dirTrab,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'=\"Trabajo\").'[DR] Direccion',\r\n        dirty,   false));\r\n          // Orden 1..n sin empates ni vacíos (APP-23). Los que no tienen orden (asignaciones nuevas; Min() de vacíos da 0)\r\n          // van al final, alfabéticos. Solo los que cambian quedan dirty y se guardan en Dataverse al salir (OnHidden).\r\n          With({ lista: SortByColumns(AddColumns(colClientes, sinOrden, Coalesce(orden, 0) <= 0),\r\n                                      \"sinOrden\", SortOrder.Ascending, \"orden\", SortOrder.Ascending, \"cliNom\", SortOrder.Ascending) },\r\n             ForAll(Sequence(CountRows(lista)) As N,\r\n                With({ r: Index(lista, N.Value) },\r\n                   If(Coalesce(r.orden, 0) <> N.Value,\r\n                      Patch(colClientes, LookUp(colClientes, cid = r.cid), { orden: N.Value, dirty: true })))));\r\n    Set(varCarteraLista, true);\r\n     Set(varRecargarCartera, false);\r\n     Set(varFechaUltimaActualizacion, Now()),\r\n   Notify(\"No se pudo guardar el orden de la cartera; no se recargó para no perderlo. Reintentá con señal.\", NotificationType.Warning));\r\n     UpdateContext({varshowLoader: false});\r\n        "
                               PaddingBottom: =7
                               PaddingLeft: =11
                               PaddingRight: =11
@@ -175,11 +178,14 @@ Screens:
                               X: =Button1_1.X - Self.Width - 8
                               Y: =Button1_1.Y
                         - Button1_1:
-                            Control: Classic/Button@2.2.0
+                            Control: ModernButton@1.0.0
                             Properties:
-                              BorderStyle: =BorderStyle.None
+                              AccessibleLabel: ="Ajustes de tema y tamaño de letra"
+                              Appearance: =ButtonAppearance.Transparent
+                              BorderColor: =RGBA(255,255,255,0.45)
+                              BorderStyle: =BorderStyle.Solid
+                              BorderThickness: =1
                               Color: =gblC.white
-                              Fill: =RGBA(255,255,255,0.18)
                               FontWeight: =FontWeight.Bold
                               Height: =If(gblScale = 1, 30,gblScale = 1.2,34,gblScale = 1.45,40,46)
                               OnSelect: =Set(varSheetEscala, true)
@@ -376,58 +382,110 @@ Screens:
                         PaddingTop: =8
                       Children:
                         - lblOpt_1:
-                            Control: Label@2.5.1
+                            Control: Classic/Button@2.2.0
                             Properties:
                               Align: =Align.Center
+                              BorderStyle: =BorderStyle.None
                               Color: =If(varFiltro=Self.Text, gblC.accent, gblC.ink3)
                               Fill: =If(varFiltro=Self.Text, gblC.surface, Color.Transparent)
                               FillPortions: =1
                               FontWeight: =If(varFiltro=Self.Text, FontWeight.Bold, FontWeight.Normal)
                               Height: =Parent.Height
+                              HoverColor: =Self.Color
+                              HoverFill: =Self.Fill
                               LayoutMinWidth: =0
                               OnSelect: =Set(varFiltro, Self.Text)
+                              PaddingBottom: =0
+                              PaddingLeft: =2
+                              PaddingRight: =2
+                              PaddingTop: =0
+                              PressedColor: =Self.Color
+                              PressedFill: =Self.Fill
+                              RadiusBottomLeft: =8
+                              RadiusBottomRight: =8
+                              RadiusTopLeft: =8
+                              RadiusTopRight: =8
                               Size: =gblT.fxs
                               Text: ="Todos"
                               Width: =
                         - lblOpt_2:
-                            Control: Label@2.5.1
+                            Control: Classic/Button@2.2.0
                             Properties:
                               Align: =Align.Center
+                              BorderStyle: =BorderStyle.None
                               Color: =If(varFiltro=Self.Text, gblC.accent, gblC.ink3)
                               Fill: =If(varFiltro=Self.Text, gblC.surface, Color.Transparent)
                               FillPortions: =1
                               FontWeight: =If(varFiltro=Self.Text, FontWeight.Bold, FontWeight.Normal)
                               Height: =Parent.Height
+                              HoverColor: =Self.Color
+                              HoverFill: =Self.Fill
                               LayoutMinWidth: =0
                               OnSelect: =Set(varFiltro, Self.Text)
+                              PaddingBottom: =0
+                              PaddingLeft: =2
+                              PaddingRight: =2
+                              PaddingTop: =0
+                              PressedColor: =Self.Color
+                              PressedFill: =Self.Fill
+                              RadiusBottomLeft: =8
+                              RadiusBottomRight: =8
+                              RadiusTopLeft: =8
+                              RadiusTopRight: =8
                               Size: =gblT.fxs
                               Text: ="Diaria"
                               Width: =
                         - lblOpt_3:
-                            Control: Label@2.5.1
+                            Control: Classic/Button@2.2.0
                             Properties:
                               Align: =Align.Center
+                              BorderStyle: =BorderStyle.None
                               Color: =If(varFiltro=Self.Text, gblC.accent, gblC.ink3)
                               Fill: =If(varFiltro=Self.Text, gblC.surface, Color.Transparent)
                               FillPortions: =1
                               FontWeight: =If(varFiltro=Self.Text, FontWeight.Bold, FontWeight.Normal)
                               Height: =Parent.Height
+                              HoverColor: =Self.Color
+                              HoverFill: =Self.Fill
                               LayoutMinWidth: =0
                               OnSelect: =Set(varFiltro, Self.Text)
+                              PaddingBottom: =0
+                              PaddingLeft: =2
+                              PaddingRight: =2
+                              PaddingTop: =0
+                              PressedColor: =Self.Color
+                              PressedFill: =Self.Fill
+                              RadiusBottomLeft: =8
+                              RadiusBottomRight: =8
+                              RadiusTopLeft: =8
+                              RadiusTopRight: =8
                               Size: =gblT.fxs
                               Text: ="Incobrable"
                               Width: =
                         - lblOpt_4:
-                            Control: Label@2.5.1
+                            Control: Classic/Button@2.2.0
                             Properties:
                               Align: =Align.Center
+                              BorderStyle: =BorderStyle.None
                               Color: =If(varFiltro="Especial", gblC.accent, gblC.ink3)
                               Fill: =If(varFiltro="Especial", gblC.surface, Color.Transparent)
                               FillPortions: =1
                               FontWeight: =If(varFiltro="Especial", FontWeight.Bold, FontWeight.Normal)
                               Height: =Parent.Height
+                              HoverColor: =Self.Color
+                              HoverFill: =Self.Fill
                               LayoutMinWidth: =0
                               OnSelect: =Set(varFiltro, Self.Text)
+                              PaddingBottom: =0
+                              PaddingLeft: =2
+                              PaddingRight: =2
+                              PaddingTop: =0
+                              PressedColor: =Self.Color
+                              PressedFill: =Self.Fill
+                              RadiusBottomLeft: =8
+                              RadiusBottomRight: =8
+                              RadiusTopLeft: =8
+                              RadiusTopRight: =8
                               Size: =gblT.fxs
                               Text: ="Especial"
                               Width: =
@@ -849,14 +907,6 @@ Screens:
                                         Properties:
                                           AccessibleLabel: |-
                                             ="Subir a " & ThisItem.cliNom
-                                          PaddingRight: |-
-                                            =12 * gblScale
-                                          PaddingLeft: |-
-                                            =12 * gblScale
-                                          PaddingBottom: |-
-                                            =12 * gblScale
-                                          PaddingTop: |-
-                                            =12 * gblScale
                                           Color: =gblC.accent
                                           Fill: =gblC.surface
                                           Height: =If(gblScale = 1, 56,gblScale = 1.2,62,gblScale = 1.45,72,80)
@@ -870,20 +920,21 @@ Screens:
                                                    With({ mio: ThisItem.orden, suyo: vec.orden, miCid: ThisItem.cid, suCid: vec.cid },
                                                       Patch(colClientes, LookUp(colClientes, cid = suCid), { orden: mio, dirty: true });
                                                       Patch(colClientes, LookUp(colClientes, cid = miCid), { orden: suyo, dirty: true }))))
+                                          PaddingBottom: |-
+                                            =12 * gblScale
+                                          PaddingLeft: |-
+                                            =12 * gblScale
+                                          PaddingRight: |-
+                                            =12 * gblScale
+                                          PaddingTop: |-
+                                            =12 * gblScale
+                                          TabIndex: =0
                                           Width: =If(gblScale = 1, 56,gblScale = 1.2,62,gblScale = 1.45,72,80)
                                     - icoDown:
                                         Control: Classic/Icon@2.5.0
                                         Properties:
                                           AccessibleLabel: |-
                                             ="Bajar a " & ThisItem.cliNom
-                                          PaddingRight: |-
-                                            =12 * gblScale
-                                          PaddingLeft: |-
-                                            =12 * gblScale
-                                          PaddingBottom: |-
-                                            =12 * gblScale
-                                          PaddingTop: |-
-                                            =12 * gblScale
                                           Color: =gblC.accent
                                           Fill: =gblC.surface
                                           Height: =If(gblScale = 1, 56,gblScale = 1.2,62,gblScale = 1.45,72,80)
@@ -897,6 +948,15 @@ Screens:
                                                    With({ mio: ThisItem.orden, suyo: vec.orden, miCid: ThisItem.cid, suCid: vec.cid },
                                                       Patch(colClientes, LookUp(colClientes, cid = suCid), { orden: mio, dirty: true });
                                                       Patch(colClientes, LookUp(colClientes, cid = miCid), { orden: suyo, dirty: true }))))
+                                          PaddingBottom: |-
+                                            =12 * gblScale
+                                          PaddingLeft: |-
+                                            =12 * gblScale
+                                          PaddingRight: |-
+                                            =12 * gblScale
+                                          PaddingTop: |-
+                                            =12 * gblScale
+                                          TabIndex: =0
                                           Width: =If(gblScale = 1, 56,gblScale = 1.2,62,gblScale = 1.45,72,80)
                   - Button5:
                       Control: ModernButton@1.0.0

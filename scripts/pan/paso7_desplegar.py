@@ -10,6 +10,7 @@ Pasos: pac canvas pack de cada app (con chequeo de YAML: con la carpeta mal nomb
 Usa el perfil activo de pac (SP de DEV). Después: paso3_reconciliar.py --aplicar.
 Uso: python3 scripts/pan/paso7_desplegar.py [--aplicar]"""
 import html, json, os, re, subprocess, sys, tempfile, time, zipfile
+import yaml
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'seguridad'))
 from dvlib import rq, get
 
@@ -38,6 +39,11 @@ def revisar_yaml(carpeta):
     for raiz, _, archivos in os.walk(os.path.join(RAIZ, carpeta, 'Src')):
         for a in archivos:
             if not a.endswith('.pa.yaml'): continue
+            # YAML válido: pac empaqueta igual un archivo que no parsea (p. ej. ": " dentro de una fórmula inline) y
+            # Studio no abre la app; el servicio sigue sirviendo la versión anterior sin avisar (2026-10-05).
+            try: yaml.compose(open(os.path.join(raiz, a), encoding='utf-8'), Loader=yaml.SafeLoader)  # solo estructura ('=' no es un tag)
+            except yaml.YAMLError as e:
+                errores.append(f'{a}: YAML inválido ({str(e).splitlines()[0]}; una fórmula con ": " va en bloque |-)'); continue
             ctl = None
             for n, l in enumerate(open(os.path.join(raiz, a), encoding='utf-8'), 1):
                 m = re.match(r'^\s+Control: (\S+?)@', l)
@@ -45,7 +51,7 @@ def revisar_yaml(carpeta):
                 m = re.match(r'^\s+(\w+): ', l)
                 if m and ctl and m.group(1) in PROHIBIDAS.get(ctl, ()):
                     errores.append(f'{a}:{n} {ctl} no admite {m.group(1)}')
-    if errores: raise SystemExit('Propiedades que Studio rechaza (la app no abriría):\n  ' + '\n  '.join(errores))
+    if errores: raise SystemExit('YAML que Studio rechaza (la app no abriría):\n  ' + '\n  '.join(errores))
 
 msapps = {}
 for carpeta, nombre, minimo in APPS:

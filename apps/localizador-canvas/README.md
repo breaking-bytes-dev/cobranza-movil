@@ -70,5 +70,15 @@ sí devuelven unidades (640). Medido el 2026-10-05 con una etiqueta temporal en 
 
 ## Validación en Studio
 `pac canvas pack` acepta YAML que Studio rechaza (por ejemplo, `AccessibleLabel` en `Classic/Button`): la app publicada
-queda que no abre en Studio. `paso7_desplegar.py` frena ante las propiedades prohibidas conocidas. Después de cada despliegue,
-revisar el App Checker; abrir Studio deja la app "modificada" (actualiza los controles modernos), pero no se publica nada desde ahí.
+queda que no abre en Studio. `paso7_desplegar.py` frena ante las propiedades prohibidas conocidas y ante un `.pa.yaml` que no
+parsea (`yaml.compose`). Después de cada despliegue, revisar el App Checker; abrir Studio deja la app "modificada" (actualiza
+los controles modernos), pero no se publica nada desde ahí.
+
+**Síntoma de un YAML roto:** la importación "sale bien" y `lastpublishtime` cambia, pero el player sigue mostrando la versión
+**anterior** (los `Controls/*.json` del `.msapp` nunca traen los cambios: el servicio arma la app desde el YAML). Pasó el
+2026-10-05 con `AccessibleLabel: ="Estado de sincronización: " & …` en una sola línea (PA1001). Las fórmulas con `: ` van en
+bloque `|-`.
+
+**Nombre accesible de un botón:** el `Classic/Button` se anuncia por su `Text` y no admite `AccessibleLabel`. Si el texto es solo
+un símbolo ("Aa", "↻", "✕"), usar `ModernButton@1.0.0` con `AccessibleLabel`. Un `Classic/Icon` que actúa como botón necesita
+`TabIndex: =0`; si no, el lector lo anuncia como imagen.

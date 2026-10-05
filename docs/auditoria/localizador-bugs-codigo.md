@@ -518,3 +518,23 @@ Android sigue creyendo que tiene red (es el caso real de "señal sin datos") y `
 Visto de paso: "Conexión: En línea" con la ruta cortada. Es `Connection.Connected` (red del dispositivo, no acceso al servidor); por eso la píldora usa `Connection.Sync`.
 
 APP-30 confirmado en el teléfono: tras alternar Inicio ↔ Cartera tres veces, **un** Atrás físico desde Inicio sale de la app (la barra ya no apila pantallas).
+
+## Cierre: APP-25, 24, 16, 08/S-6 y S-1 (2026-10-05)
+
+Decisiones del dueño del producto (2026-10-05):
+- **APP-16:** el cobrador ve **solo sus** interacciones y pagos (lectura Básica). No ve las que otros localizadores registraron sobre la misma cuenta. No hay cambio de código; queda documentado.
+- **APP-08/S-6:** toda Especial pasa por el Supervisor, también las que llegan en el CSV del banco. La carga de Smelter no se toca ni se frena: sus Especiales no llegan al cobrador hasta que se aprueban. Las 47 Especiales activas en Borrador con agente (carga del 2026-06-22) quedan ocultas; sus datos no se modifican.
+- **S-1:** además de la seguridad por fila, al teléfono bajan solo las asignaciones activas y el historial de los últimos 90 días.
+- **APP-24:** no se agrega ninguna columna. El cliente se obtiene por actualización → interacción → cuenta → CIF, y el servidor exige ese camino.
+
+| # | Corrección | Verificación |
+|---|---|---|
+| APP-24 | Plugin `ActualizacionConInteraccion` (1.0.2.0; PreOperation sobre Create y Update de la actualización de datos): rechaza una actualización sin interacción, o con una interacción sin cuenta | En vivo, como User5: sin interacción → 400 "tiene que estar vinculada a una interaccion"; con su interacción IN-1075 → 201 (registro QA borrado). Tests 7/7 |
+| S-6 | Plugin `AprobacionEspecial` (1.0.2.0; Create y Update de asignación; el Update filtrado por agente, aprobación y tipo, con imagen previa). Sobre una Especial, solo Supervisor, Admin o Servicio pueden aprobar, rechazar, poner o cambiar el agente, o convertir en Especial una asignación que ya tiene agente. Frena a las personas con roles `SR \| CM \|`. Los roles se leen **directos y por equipo**: en DEV llegan por equipo ("CM · Localizadores · DEV"); si solo se miraran los directos, nadie tendría rol de CM y la regla no frenaría a nadie. SYSTEM (la carga de Smelter) no tiene roles y no se frena | En vivo: User5 (Localizador por equipo) intenta aprobar AS-2077 → 400 "solo un Supervisor…" y sigue en Borrador. Una identidad sin roles de CM (como Smelter) crea una Especial en Borrador con agente → 201. Tests 22/22 (CI 162/162) |
+| S-6 | Flow "Cambio de Owner en Asignaciones": una Especial sin aprobar no se comparte ni cambia de dueño. El disparador escucha además el estado de aprobación (`scripts/seguridad/paso2_flow.py`) | Especial QA Pendiente con agente: a los 180 s sigue del SP. Al aprobarla pasa a User5 en 15 s (QA borrada) |
+| S-1 | Perfil offline con "Custom data filter" (FetchXML): asignaciones `estado = true`; interacciones, pagos y actualizaciones de datos `modifiedon` en los últimos 90 días (`scripts/pan/paso7_perfil_offline.py`) | Perfil publicado: consultas de sincronización regeneradas para las 10 tablas |
+| APP-08 | La app solo muestra Especiales aprobadas (Cartera, Cliente, Detalle e Interacción) | Web: Cartera "4 cuentas" con 5 activas de User5 en Dataverse (AS-2134, QA en Borrador con dueño User5, fuera). AS-2077 (QA) se aprobó para que APP-07 siga probando una Especial |
+| APP-25 | Filtros de Cartera como botones; "Aa", "↻", "✕" y la píldora como `ModernButton` con nombre accesible; íconos de navegación con `TabIndex 0` (antes se anunciaban como imagen) | Web 23/23 (`grupo2.js`). Teléfono: "Ajustes de tema y tamaño de letra" y "Estado de sincronización: Sincronizado…" en el árbol accesible de Android. App Checker sin errores |
+| S-1 (teléfono) | — | Con el perfil nuevo la app abre, sincroniza y avisa "This app may now be used without an internet connection" |
+
+Tropiezo: el primer despliegue llevaba `AccessibleLabel: ="Estado de sincronización: " & …` en una sola línea. El YAML no parseaba, Studio no abría la app y el player seguía sirviendo la versión anterior, sin avisar. Desde ahora `paso7_desplegar.py` valida el YAML con `yaml.compose` antes de empaquetar.

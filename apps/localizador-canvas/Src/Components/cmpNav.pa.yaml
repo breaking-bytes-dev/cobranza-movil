@@ -55,6 +55,7 @@ ComponentDefinitions:
                         LayoutMinHeight: =16
                         LayoutMinWidth: =16
                         OnSelect: =If(App.ActiveScreen = scrCartera, Back(), App.ActiveScreen <> scrInicio, Navigate(scrInicio))
+                        TabIndex: =0
                   - lblHome:
                       Control: Label@2.5.1
                       Properties:
@@ -96,6 +97,7 @@ ComponentDefinitions:
                         LayoutMinHeight: =16
                         LayoutMinWidth: =16
                         OnSelect: =If(App.ActiveScreen <> scrCartera, Navigate(scrCartera))
+                        TabIndex: =0
                   - lblLedger:
                       Control: Label@2.5.1
                       Properties:

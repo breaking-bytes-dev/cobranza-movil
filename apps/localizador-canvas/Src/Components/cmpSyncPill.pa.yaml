@@ -61,12 +61,12 @@ ComponentDefinitions:
                   Text: =Switch(gblSync, "ok", "Sincronizado", "sync", "Sincronizando…", "pend", "Pendiente de subir", "warn", "Sincronizado con avisos", "error", "Error al sincronizar", "Sin conexión")
                   Width: =180
       - Button9:
-          Control: Classic/Button@2.2.0
+          Control: ModernButton@1.0.0
           Properties:
-            BorderStyle: =BorderStyle.None
-            Fill: =Color.Transparent
+            AccessibleLabel: |-
+              ="Estado de sincronización: " & lblSync.Text & ". Abrir la pantalla de sincronización"
+            Appearance: =ButtonAppearance.Transparent
             Height: =Container2.Height
-            HoverFill: =Self.Fill
             OnSelect: =Set(varSyncBack, App.ActiveScreen); Navigate(scrSincronizacion)
             Text: =
             Width: =Container2.Width

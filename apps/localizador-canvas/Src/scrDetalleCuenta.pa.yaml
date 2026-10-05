@@ -15,13 +15,14 @@ Screens:
         =// locPan: número completo (se oculta solo). locEsp: Especial activa de ESTA cuenta (retiro y nota viven en la asignación).
         UpdateContext({
             locPan: Blank(),
+            // APP-08: una Especial sin aprobar no existe para el cobrador (Borrador, Pendiente o Rechazada).
             locEsp: LookUp('CM | TBL | Asignacions',
                 '[AS] Cuenta'.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta'
                 && '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
-                && '[AS] Estado' = true)
+                && '[AS] Estado' = true && ('[AS] Tipo' <> 'Choice | CM | Tipo asignacion'.Especial || '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado))
         });
         If(varDetSrc <> "cliente",
-            Set(varAsig, First(AddColumns(Filter('CM | TBL | Asignacions', '[AS] Estado' = true && '[AS] Cuenta'.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta'),
+            Set(varAsig, First(AddColumns(Filter('CM | TBL | Asignacions', '[AS] Estado' = true && ('[AS] Tipo' <> 'Choice | CM | Tipo asignacion'.Especial || '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado) && '[AS] Cuenta'.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta'),
                 cta, LookUp(colCuentas, 'CM | TBL | Cuenta' = '[AS] Cuenta'.'CM | TBL | Cuenta')))))
     Children:
       - conMaster_3:
@@ -62,11 +63,14 @@ Screens:
                         Titulo: =varCuenta.'Nombre Cliente'
                         Width: =Parent.Width
                   - Button1_4:
-                      Control: Classic/Button@2.2.0
+                      Control: ModernButton@1.0.0
                       Properties:
-                        BorderStyle: =BorderStyle.None
+                        AccessibleLabel: ="Ajustes de tema y tamaño de letra"
+                        Appearance: =ButtonAppearance.Transparent
+                        BorderColor: =RGBA(255,255,255,0.45)
+                        BorderStyle: =BorderStyle.Solid
+                        BorderThickness: =1
                         Color: =gblC.white
-                        Fill: =RGBA(255,255,255,0.18)
                         FontWeight: =FontWeight.Bold
                         Height: =If(gblScale = 1, 30,gblScale = 1.2,34,gblScale = 1.45,40,46)
                         OnSelect: =Set(varSheetEscala, true)

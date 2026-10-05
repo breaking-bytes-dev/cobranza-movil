@@ -66,6 +66,7 @@ ComponentDefinitions:
                         Height: =Parent.Height
                         Icon: =Icon.ArrowLeft
                         OnSelect: =Back()
+                        TabIndex: =0
                         Width: =Parent.Width
             - Container8:
                 Control: GroupContainer@1.5.0

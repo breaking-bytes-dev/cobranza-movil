@@ -140,11 +140,14 @@ Screens:
                                     LayoutMinWidth: =180
                                     Width: =If(gblScale = 1, 120,gblScale = 1.2,140,gblScale = 1.45,160,180)
                               - Button1:
-                                  Control: Classic/Button@2.2.0
+                                  Control: ModernButton@1.0.0
                                   Properties:
-                                    BorderStyle: =BorderStyle.None
+                                    AccessibleLabel: ="Ajustes de tema y tamaño de letra"
+                                    Appearance: =ButtonAppearance.Transparent
+                                    BorderColor: =RGBA(255,255,255,0.45)
+                                    BorderStyle: =BorderStyle.Solid
+                                    BorderThickness: =1
                                     Color: =gblC.white
-                                    Fill: =RGBA(255,255,255,0.18)
                                     FontWeight: =FontWeight.Bold
                                     Height: =If(gblScale = 1, 30,gblScale = 1.2,34,gblScale = 1.45,40,46)
                                     LayoutMinHeight: =16

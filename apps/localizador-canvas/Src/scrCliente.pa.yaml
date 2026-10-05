@@ -16,7 +16,7 @@ Screens:
             Clear(colCliCuentas);
             ForAll(Filter('CM | TBL | Cuentas', 'CIF Cliente' = varCliente) As C,
                 Collect(colCliCuentas,
-                    AddColumns(Filter('CM | TBL | Asignacions', '[AS] Estado' = true && '[AS] Cuenta'.'CM | TBL | Cuenta' = C.'CM | TBL | Cuenta'),
+                    AddColumns(Filter('CM | TBL | Asignacions', '[AS] Estado' = true && ('[AS] Tipo' <> 'Choice | CM | Tipo asignacion'.Especial || '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado) && '[AS] Cuenta'.'CM | TBL | Cuenta' = C.'CM | TBL | Cuenta'),
                         cta, LookUp(colCuentas, 'CM | TBL | Cuenta' = C.'CM | TBL | Cuenta'))));
             Set(varCliCargado, varCliente));
         // APP-16: interacciones de TODAS las cuentas del cliente, delegable; se recalcula en cada visita (puede haber nuevas).
@@ -62,11 +62,14 @@ Screens:
                         Titulo: =LookUp('CM | TBL | Clientes', '[CL] CIF' = varCliente).'[CL] Nombre'
                         Width: =Parent.Width
                   - Button1_3:
-                      Control: Classic/Button@2.2.0
+                      Control: ModernButton@1.0.0
                       Properties:
-                        BorderStyle: =BorderStyle.None
+                        AccessibleLabel: ="Ajustes de tema y tamaño de letra"
+                        Appearance: =ButtonAppearance.Transparent
+                        BorderColor: =RGBA(255,255,255,0.45)
+                        BorderStyle: =BorderStyle.Solid
+                        BorderThickness: =1
                         Color: =gblC.white
-                        Fill: =RGBA(255,255,255,0.18)
                         FontWeight: =FontWeight.Bold
                         Height: =If(gblScale = 1, 30,gblScale = 1.2,34,gblScale = 1.45,40,46)
                         OnSelect: =Set(varSheetEscala, true)
