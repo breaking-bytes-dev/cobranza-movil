@@ -9,7 +9,20 @@
 Screens:
   scrCliente:
     Properties:
-      OnVisible: =Set(varCliCuentas, AddColumns(Filter('CM | TBL | Asignacions', LookUp(colCuentas, 'CM | TBL | Cuenta' = '[AS] Cuenta'.'CM | TBL | Cuenta').'CIF Cliente' = varCliente, '[AS] Estado'=true), cta, LookUp(colCuentas, 'CM | TBL | Cuenta' = '[AS] Cuenta'.'CM | TBL | Cuenta')))
+      OnVisible: |-
+        =// APP-28: las cuentas del cliente se buscan UNA vez por cliente y con consultas delegables (igualdad sobre el lookup).
+        // Clear + ForAll/Collect y no Ungroup(ForAll(…)): con Ungroup, Studio pierde el tipo de las columnas.
+        If(varCliCargado <> varCliente,
+            Clear(colCliCuentas);
+            ForAll(Filter('CM | TBL | Cuentas', 'CIF Cliente' = varCliente) As C,
+                Collect(colCliCuentas,
+                    AddColumns(Filter('CM | TBL | Asignacions', '[AS] Estado' = true && '[AS] Cuenta'.'CM | TBL | Cuenta' = C.'CM | TBL | Cuenta'),
+                        cta, LookUp(colCuentas, 'CM | TBL | Cuenta' = C.'CM | TBL | Cuenta'))));
+            Set(varCliCargado, varCliente));
+        // APP-16: interacciones de TODAS las cuentas del cliente, delegable; se recalcula en cada visita (puede haber nuevas).
+        Clear(colCliInt);
+        ForAll(Filter('CM | TBL | Cuentas', 'CIF Cliente' = varCliente) As C,
+            Collect(colCliInt, Filter('CM | TBL | Interaccions', '[IN] Cuenta'.'CM | TBL | Cuenta' = C.'CM | TBL | Cuenta')))
     Children:
       - conMaster_2:
           Control: GroupContainer@1.5.0
@@ -46,7 +59,7 @@ Screens:
                       Properties:
                         Height: =Parent.Height
                         Subtitulo: ="CIF  " & varCliente
-                        Titulo: =LookUp(colClientes, cid = varCliente).cliNom
+                        Titulo: =LookUp('CM | TBL | Clientes', '[CL] CIF' = varCliente).'[CL] Nombre'
                         Width: =Parent.Width
                   - Button1_3:
                       Control: Classic/Button@2.2.0
@@ -105,13 +118,13 @@ Screens:
                         RadiusTopLeft: =
                         RadiusTopRight: =
                         Size: =gblT.fsm
-                        Text: ="Cuentas (" & CountRows(varCliCuentas) & ")"
+                        Text: ="Cuentas (" & CountRows(colCliCuentas) & ")"
                   - Button6_1:
                       Control: Classic/Button@2.2.0
                       Properties:
                         AlignInContainer: =AlignInContainer.Stretch
                         BorderStyle: =BorderStyle.None
-                        Color: =If(varCliTab="cuentas", gblC.white, gblC.ink2)
+                        Color: =If(varCliTab="inter", gblC.white, gblC.ink2)
                         Fill: =If(varCliTab="inter", gblC.teal, gblC.chipBg)
                         FillPortions: =1
                         HoverBorderColor: =Self.BorderColor
@@ -125,7 +138,7 @@ Screens:
                         RadiusTopLeft: =
                         RadiusTopRight: =
                         Size: =gblT.fsm
-                        Text: ="Interacciones (" & CountRows(Filter('CM | TBL | Interaccions', LookUp(colCuentas, 'CM | TBL | Cuenta' = '[IN] Cuenta'.'CM | TBL | Cuenta').'CIF Cliente' = varCliente)) &")"
+                        Text: ="Interacciones (" & CountRows(colCliInt) & ")"
             - cardTotalCli:
                 Control: GroupContainer@1.5.0
                 Variant: AutoLayout
@@ -169,7 +182,7 @@ Screens:
                         LayoutMinHeight: =16
                         LayoutMinWidth: =16
                         Size: =gblT.fbig
-                        Text: =Moneda(Sum(varCliCuentas, cta.'[CT] Saldo Vencido NIO'), Sum(varCliCuentas, cta.'[CT] Saldo Vencido USD'))
+                        Text: =Moneda(Sum(colCliCuentas, cta.'[CT] Saldo Vencido NIO'), Sum(colCliCuentas, cta.'[CT] Saldo Vencido USD'))
             - Container16:
                 Control: GroupContainer@1.5.0
                 Variant: AutoLayout
@@ -376,7 +389,7 @@ Screens:
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
                   Size: =gblT.fxs
-                  Text: ="CUENTAS A COBRAR (" & CountRows(varCliCuentas) & ")"
+                  Text: ="CUENTAS A COBRAR (" & CountRows(colCliCuentas) & ")"
                   Visible: =varCliTab = "cuentas"
             - galInterCli:
                 Control: Gallery@2.15.0
@@ -385,7 +398,7 @@ Screens:
                   AlignInContainer: =AlignInContainer.Center
                   BorderStyle: =BorderStyle.None
                   BorderThickness: =3
-                  Items: =Sort(Filter('CM | TBL | Interaccions', LookUp(colCuentas, 'CM | TBL | Cuenta' = '[IN] Cuenta'.'CM | TBL | Cuenta').'CIF Cliente' = varCliente), 'Created On', SortOrder.Descending)
+                  Items: =Sort(colCliInt, 'Created On', SortOrder.Descending)
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
                   Visible: =varCliTab = "inter"
@@ -482,9 +495,11 @@ Screens:
                                     LayoutMinWidth: =16
                                     Size: =gblT.fxs
                                     Text: |-
-                                      ="💵 " & Concat(Filter('CM | TBL | Pagos', Not(IsBlank('[PG] Numero Interaccion')) && '[PG] Numero Interaccion' = ThisItem.'[IN] Numero de Interaccion'),If(Text('[PG] Moneda')="USD","US$ ","C$ ") & Text('[PG] Monto',"#,##0.00") &
-                                                  " (rec. " & '[PG] Numero recibo' & ")", " · ")
-                                    Visible: =CountRows(Filter('CM | TBL | Pagos', Not(IsBlank('[PG] Numero Interaccion')) && '[PG] Numero Interaccion' = ThisItem.'[IN] Numero de Interaccion'))>0
+                                      =// APP-05/16: los pagos se buscan por la relación con la interacción (el N° de interacción está vacío offline).
+                                      With({ p: Filter('CM | TBL | Pagos', '[PG] Interaccion'.'CM | TBL | Interaccion' = ThisItem.'CM | TBL | Interaccion') },
+                                          If(IsEmpty(p), "", "💵 " & Concat(p, If(Text('[PG] Moneda')="USD","US$ ","C$ ") & Text('[PG] Monto',"#,##0.00", "en-US") &
+                                                  " (rec. " & '[PG] Numero recibo' & ")", " · ")))
+                                    Visible: =!IsBlank(Self.Text)
                                     Width: =Parent.Width - 16
                               - lblTagDatos_1:
                                   Control: Label@2.5.1
@@ -527,7 +542,7 @@ Screens:
                   AlignInContainer: =AlignInContainer.Center
                   FillPortions: =0
                   Height: =Self.TemplateHeight * Self.AllItemsCount
-                  Items: =varCliCuentas
+                  Items: =colCliCuentas
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
                   TemplatePadding: =
@@ -700,6 +715,8 @@ Screens:
                   - Button8:
                       Control: ModernButton@1.0.0
                       Properties:
+                        AccessibleLabel: |-
+                          ="Abrir cuenta " & ThisItem.cta.'Tipo Producto' & " " & PanMasc(ThisItem.cta.'Últimos 4')
                         Appearance: =ButtonAppearance.Transparent
                         Height: =conMini.Height
                         OnSelect: =Set(varAsig, ThisItem); Set(varCuenta, ThisItem.cta); Set(varDetTab,"detalle"); Set(varDetSrc,"cliente"); Navigate(scrDetalleCuenta, ScreenTransition.Cover)

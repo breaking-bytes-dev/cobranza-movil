@@ -10,8 +10,8 @@ App:
   Properties:
     Formulas: |-
       =Moneda(nio:Number, usd:Number): Text =
-         With({ pn: If(nio>0, "C$ " & Text(nio, "#,##0.00"), ""),
-                pu: If(usd>0, "US$ " & Text(usd, "#,##0.00"), "") },
+         With({ pn: If(nio>0, "C$ " & Text(nio, "#,##0.00", "en-US"), ""),
+                pu: If(usd>0, "US$ " & Text(usd, "#,##0.00", "en-US"), "") },
             Coalesce(pn & If(!IsBlank(pn) && !IsBlank(pu), " · ", "") & pu, "C$ 0.00"));
       PanMasc(u4:Text): Text =
          If(IsBlank(u4), "", "•••• " & u4);
@@ -21,6 +21,8 @@ App:
       EspNota(notas:Text): Text =
          With({ i: Find(" — ", Coalesce(notas, "")) },
             If(IsBlank(i), Coalesce(notas, ""), Trim(Mid(notas, i + 3))));
+      // APP-27: el agente es una fórmula con nombre: se recalcula sola cuando llegan los datos (el OnStart no bloquea).
+      gblAgente = LookUp('CM | TBL | Agentes', 'Email Usuario' = User().Email);
     OnStart: |-
       =// ===================== PREFERENCIAS PERSISTIDAS (accesibilidad, offline-safe) =====================
       Set(gblFont, Font.'Segoe UI');
@@ -43,7 +45,7 @@ App:
           hairline:    ColorValue("#F6F7F9"),  white:      ColorValue("#FFFFFF"),
           ink:         ColorValue("#101828"),  ink2:       ColorValue("#344054"),
           ink3:        ColorValue("#475467"),  muted:      ColorValue("#667085"),
-          muted2:      ColorValue("#98A2B3"),  green:      ColorValue("#34D399"),
+          muted2:      ColorValue("#5F6B7E"),  green:      ColorValue("#34D399"),
           accentBg:    ColorValue("#ECFDF5"),  accentBorder:ColorValue("#A7F3D0"),
           accentInk:   ColorValue("#065F46"),  accentInk2: ColorValue("#059669"),
           diariaBg:    ColorValue("#DBEAFE"),  diariaInk:  ColorValue("#2563EB"),
@@ -53,7 +55,7 @@ App:
           chipBg:      ColorValue("#EEF2F6"),  datosBg:    ColorValue("#EFF6FF"),
           amber:       ColorValue("#FBBF24"),  amberOff:   ColorValue("#F59E0B"),
           offGray:     ColorValue("#475467"),  phoneBorder:ColorValue("#CBD2D9"),
-          noteBg:      ColorValue("#F8FAFC"),  hint:       ColorValue("#D97706")
+          noteBg:      ColorValue("#F8FAFC"),  hint:       ColorValue("#B45309")
       });
 
       // ===================== TEMA NOCHE (mismas claves; teal-identity oscuro, alto contraste) =====================
@@ -66,7 +68,7 @@ App:
           hairline:    ColorValue("#0F1B1D"),  white:      ColorValue("#FFFFFF"),
           ink:         ColorValue("#EAF4F3"),  ink2:       ColorValue("#C5D6D5"),
           ink3:        ColorValue("#A9C0BF"),  muted:      ColorValue("#7F9998"),
-          muted2:      ColorValue("#5E7877"),  green:      ColorValue("#3FD08B"),
+          muted2:      ColorValue("#8AA3A2"),  green:      ColorValue("#3FD08B"),
           accentBg:    ColorValue("#123027"),  accentBorder:ColorValue("#1E5A46"),
           accentInk:   ColorValue("#7DE9B8"),  accentInk2: ColorValue("#4FD6A0"),
           diariaBg:    ColorValue("#14263F"),  diariaInk:  ColorValue("#7FB2F0"),
@@ -89,14 +91,9 @@ App:
 
       // ===================== COLECCIONES BASE (carga simple y rápida — el scoping lo hace el PERFIL OFFLINE) =====================
       ClearCollect(colCuentas, 'CM | TBL | Cuentas');
-      ClearCollect(colAgentes, 'CM | TBL | Agentes');
       // Direcciones Casa+Trabajo con Filter DELEGABLE (el server trae todas las que matchean, sin tope 500)
       ClearCollect(colDirecciones, Filter('CM | TBL | Direccions', '[DR] Tipo' = "Casa" || '[DR] Tipo' = "Trabajo"));
       ClearCollect(colTelefonos, 'CM | TBL | Telefonos');
-      ClearCollect(colClientes, 'CM | TBL | Clientes');
-
-      // ===================== EL AGENTE ACTUAL (offline: match por email denormalizado, sin navegar) =====================
-      Set(gblAgente, LookUp(colAgentes, 'Email Usuario' = User().Email));
 
       // ===================== ESTADO DE NAVEGACIÓN =====================
       Set(varModo, "cliente");      // Cartera: "cliente" o "cuenta"

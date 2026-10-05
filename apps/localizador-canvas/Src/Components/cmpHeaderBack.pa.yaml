@@ -59,6 +59,8 @@ ComponentDefinitions:
                   - Icon1:
                       Control: Classic/Icon@2.5.0
                       Properties:
+                        AccessibleLabel: |-
+                          ="Volver"
                         Color: =gblC.white
                         Fill: =RGBA(255,255,255,0.16)
                         Height: =Parent.Height

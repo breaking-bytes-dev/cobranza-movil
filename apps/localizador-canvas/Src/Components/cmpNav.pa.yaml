@@ -47,12 +47,14 @@ ComponentDefinitions:
                   - icoHome:
                       Control: Classic/Icon@2.5.0
                       Properties:
+                        AccessibleLabel: |-
+                          ="Inicio"
                         Color: =If(App.ActiveScreen = scrInicio, gblC.teal, gblC.muted2)
                         FillPortions: =1
                         Icon: =Icon.Home
                         LayoutMinHeight: =16
                         LayoutMinWidth: =16
-                        OnSelect: =Navigate(scrInicio)
+                        OnSelect: =If(App.ActiveScreen = scrCartera, Back(), App.ActiveScreen <> scrInicio, Navigate(scrInicio))
                   - lblHome:
                       Control: Label@2.5.1
                       Properties:
@@ -64,7 +66,7 @@ ComponentDefinitions:
                         Height: =12
                         LayoutMinHeight: =0
                         LayoutMinWidth: =16
-                        OnSelect: =Navigate(scrInicio)
+                        OnSelect: =If(App.ActiveScreen = scrCartera, Back(), App.ActiveScreen <> scrInicio, Navigate(scrInicio))
                         PaddingBottom: =0
                         PaddingTop: =0
                         Size: =gblT.f2xs
@@ -86,12 +88,14 @@ ComponentDefinitions:
                   - icoLedger:
                       Control: Classic/Icon@2.5.0
                       Properties:
+                        AccessibleLabel: |-
+                          ="Cartera"
                         Color: =If(App.ActiveScreen = scrCartera, gblC.teal, gblC.muted2)
                         FillPortions: =1
                         Icon: =Icon.Hamburger
                         LayoutMinHeight: =16
                         LayoutMinWidth: =16
-                        OnSelect: =Navigate(scrCartera)
+                        OnSelect: =If(App.ActiveScreen <> scrCartera, Navigate(scrCartera))
                   - lblLedger:
                       Control: Label@2.5.1
                       Properties:
@@ -103,7 +107,7 @@ ComponentDefinitions:
                         Height: =12
                         LayoutMinHeight: =0
                         LayoutMinWidth: =16
-                        OnSelect: =Navigate(scrCartera)
+                        OnSelect: =If(App.ActiveScreen <> scrCartera, Navigate(scrCartera))
                         PaddingBottom: =0
                         PaddingTop: =0
                         Size: =gblT.f2xs

@@ -11,6 +11,7 @@ Screens:
     Properties:
       OnHidden: |-
         =UpdateContext({locPan: Blank()});
+        Set(varCom, "");
         Reset(txtComentario);
         Reset(tpPago);
         Clear(colLineasPago);
@@ -218,7 +219,7 @@ Screens:
                         LayoutMinWidth: =16
                         Size: =gblT.fxs
                         Text: |-
-                          ="Total dolarizado: " & If(IsBlank(varCuenta.'[CT] Total saldo vencido'), "—", "US$ " & Text(varCuenta.'[CT] Total saldo vencido', "#,##0.00"))
+                          ="Total dolarizado: " & If(IsBlank(varCuenta.'[CT] Total saldo vencido'), "—", "US$ " & Text(varCuenta.'[CT] Total saldo vencido', "#,##0.00", "en-US"))
                   - lblContagiado_1:
                       Control: Label@2.5.1
                       Properties:
@@ -229,7 +230,7 @@ Screens:
                         LayoutMinWidth: =16
                         Size: =gblT.fxs
                         Text: |-
-                          ="En riesgo (contagiado): " & If(IsBlank(varCuenta.'[CT] Contagiado USD'), "—", "US$ " & Text(varCuenta.'[CT] Contagiado USD', "#,##0.00"))
+                          ="En riesgo (contagiado): " & If(IsBlank(varCuenta.'[CT] Contagiado USD'), "—", "US$ " & Text(varCuenta.'[CT] Contagiado USD', "#,##0.00", "en-US"))
             - lblComL:
                 Control: Label@2.5.1
                 Properties:
@@ -244,6 +245,10 @@ Screens:
             - txtComentario:
                 Control: ModernTextInput@1.1.1
                 Properties:
+                  AccessibleLabel: |-
+                    ="Comentario de la interacción"
+                  MaxLength: |-
+                    =2000
                   AlignInContainer: =AlignInContainer.Stretch
                   BorderColor: =gblC.borderSoft
                   BorderStyle: =BorderStyle.Solid
@@ -283,7 +288,8 @@ Screens:
                         DisabledFill: =RGBA(244, 244, 244, 0)
                         Fill: =Color.Transparent
                         Height: =Parent.TemplateHeight
-                        OnSelect: =Set(varCom, If(IsBlank(varCom), ThisItem.Value, Trim(varCom) & ". " & ThisItem.Value))
+                        OnSelect: |-
+                          =Set(varCom, With({ t: Trim(txtComentario.Text) }, If(IsBlank(t), ThisItem.Value, t & ". " & ThisItem.Value)))
                         PaddingBottom: =7
                         PaddingLeft: =13
                         PaddingRight: =13
@@ -402,6 +408,8 @@ Screens:
                         - btnRow:
                             Control: ModernButton@1.0.0
                             Properties:
+                              AccessibleLabel: |-
+                                ="Aplicar a " & ThisItem.cta.sanic_cm_ct_tipoproducto & " " & PanMasc(ThisItem.cta.sanic_cm_ct_ultimos4)
                               Appearance: =ButtonAppearance.Transparent
                               DisplayMode: =If(ThisItem.esActual || tpPago.Value || tgDatos.Value, DisplayMode.Disabled, DisplayMode.Edit)
                               Height: =Parent.TemplateHeight
@@ -473,6 +481,8 @@ Screens:
                         - tpPago:
                             Control: Classic/Toggle@2.1.0
                             Properties:
+                              AccessibleLabel: |-
+                                ="Aplica pago"
                               AlignInContainer: =AlignInContainer.Stretch
                               DisplayMode: =If(CountRows(Filter(colProdInt, sel)) > 1, DisplayMode.Disabled, DisplayMode.Edit)
                               LayoutMinHeight: =16
@@ -578,6 +588,8 @@ Screens:
                                           - txtMonto:
                                               Control: ModernNumberInput@1.1.1
                                               Properties:
+                                                AccessibleLabel: |-
+                                                  ="Monto del pago"
                                                 AlignInContainer: =AlignInContainer.Stretch
                                                 Default: =ThisItem.monto
                                                 FillPortions: =1
@@ -588,6 +600,8 @@ Screens:
                                           - Dropdown1:
                                               Control: ModernDropdown@1.0.2
                                               Properties:
+                                                AccessibleLabel: |-
+                                                  ="Moneda del pago"
                                                 AlignInContainer: =AlignInContainer.Stretch
                                                 Default: |-
                                                   ={Value: ThisItem.moneda}
@@ -616,6 +630,10 @@ Screens:
                                           - txtRecibo:
                                               Control: ModernTextInput@1.1.1
                                               Properties:
+                                                AccessibleLabel: |-
+                                                  ="Número de recibo"
+                                                MaxLength: |-
+                                                  =30
                                                 AlignInContainer: =AlignInContainer.Stretch
                                                 Default: =ThisItem.recibo
                                                 FillPortions: =1
@@ -649,7 +667,7 @@ Screens:
                               LayoutMinHeight: =16
                               LayoutMinWidth: =16
                               OnSelect: |-
-                                =Collect(colLineasPago, {id: GUID(), monto: 0, moneda: "NIO", recibo: ""}); UpdateContext({locConfirmaExceso: false})
+                                =Collect(colLineasPago, {id: GUID(), monto: If(false, 0), moneda: If(Coalesce(varCuenta.'[CT] Saldo Vencido NIO', 0) <= 0 && Coalesce(varCuenta.'[CT] Saldo Vencido USD', 0) > 0, "USD", "NIO"), recibo: ""}); UpdateContext({locConfirmaExceso: false})
                               PaddingBottom: =11
                               PaddingLeft: =11
                               PaddingRight: =11
@@ -704,6 +722,8 @@ Screens:
                         - tgDatos:
                             Control: Classic/Toggle@2.1.0
                             Properties:
+                              AccessibleLabel: |-
+                                ="Actualizar datos del cliente"
                               AlignInContainer: =AlignInContainer.Stretch
                               DisplayMode: =If(CountRows(Filter(colProdInt, sel)) > 1, DisplayMode.Disabled, DisplayMode.Edit)
                               LayoutMinHeight: =16
@@ -785,6 +805,10 @@ Screens:
                               - inTelCasa:
                                   Control: ModernTextInput@1.1.1
                                   Properties:
+                                    AccessibleLabel: |-
+                                      ="Teléfono de casa"
+                                    MaxLength: |-
+                                      =20
                                     AlignInContainer: =AlignInContainer.Stretch
                                     Appearance: =Appearance.Outline
                                     FillPortions: =1
@@ -822,6 +846,10 @@ Screens:
                               - inTelCel:
                                   Control: ModernTextInput@1.1.1
                                   Properties:
+                                    AccessibleLabel: |-
+                                      ="Teléfono celular"
+                                    MaxLength: |-
+                                      =20
                                     AlignInContainer: =AlignInContainer.Stretch
                                     Appearance: =Appearance.Outline
                                     FillPortions: =1
@@ -859,6 +887,10 @@ Screens:
                               - inTelTrab:
                                   Control: ModernTextInput@1.1.1
                                   Properties:
+                                    AccessibleLabel: |-
+                                      ="Teléfono del trabajo"
+                                    MaxLength: |-
+                                      =20
                                     AlignInContainer: =AlignInContainer.Stretch
                                     Appearance: =Appearance.Outline
                                     FillPortions: =1
@@ -896,6 +928,10 @@ Screens:
                               - inDirCasa:
                                   Control: ModernTextInput@1.1.1
                                   Properties:
+                                    AccessibleLabel: |-
+                                      ="Dirección de casa"
+                                    MaxLength: |-
+                                      =1000
                                     AlignInContainer: =AlignInContainer.Stretch
                                     Appearance: =Appearance.Outline
                                     FillPortions: =1
@@ -933,6 +969,10 @@ Screens:
                               - inDirEC:
                                   Control: ModernTextInput@1.1.1
                                   Properties:
+                                    AccessibleLabel: |-
+                                      ="Dirección de estado de cuenta"
+                                    MaxLength: |-
+                                      =1000
                                     AlignInContainer: =AlignInContainer.Stretch
                                     Appearance: =Appearance.Outline
                                     FillPortions: =1
@@ -971,6 +1011,10 @@ Screens:
                               - inDirTrab:
                                   Control: ModernTextInput@1.1.1
                                   Properties:
+                                    AccessibleLabel: |-
+                                      ="Dirección del trabajo"
+                                    MaxLength: |-
+                                      =1000
                                     AlignInContainer: =AlignInContainer.Stretch
                                     Appearance: =Appearance.Outline
                                     FillPortions: =1
@@ -1009,6 +1053,10 @@ Screens:
                               - inCorreo:
                                   Control: ModernTextInput@1.1.1
                                   Properties:
+                                    AccessibleLabel: |-
+                                      ="Correo electrónico"
+                                    MaxLength: |-
+                                      =100
                                     AlignInContainer: =AlignInContainer.Stretch
                                     Appearance: =Appearance.Outline
                                     FillPortions: =1
@@ -1085,7 +1133,7 @@ Screens:
                               LayoutMinHeight: =16
                               LayoutMinWidth: =16
                               Size: =gblT.fxs
-                              Text: =Text(Location.Latitude,"0.0000") & ", " & Text(Location.Longitude,"0.0000") & " · automática"
+                              Text: =Text(Location.Latitude,"0.0000", "en-US") & ", " & Text(Location.Longitude,"0.0000", "en-US") & " · automática"
             - btnRegistrar_1:
                 Control: Classic/Button@2.2.0
                 Properties:
@@ -1102,9 +1150,14 @@ Screens:
                         reciboRepet:   tpPago.Value && CountRows(colLineasPago) <> CountRows(Distinct(colLineasPago, Upper(Trim(recibo)) & "|" & moneda)),
                         faltaDato:     tgDatos.Value && And(IsBlank(inTelCasa.Text), IsBlank(inTelCel.Text), IsBlank(inTelTrab.Text),
                                                             IsBlank(inDirCasa.Text), IsBlank(inDirEC.Text), IsBlank(inDirTrab.Text), IsBlank(inCorreo.Text)),
+                        datoInval:     tgDatos.Value && Or(
+                                           !IsBlank(Trim(inTelCasa.Text)) && !IsMatch(Trim(inTelCasa.Text), "^[0-9 +()-]{7,20}$"),
+                                           !IsBlank(Trim(inTelCel.Text))  && !IsMatch(Trim(inTelCel.Text),  "^[0-9 +()-]{7,20}$"),
+                                           !IsBlank(Trim(inTelTrab.Text)) && !IsMatch(Trim(inTelTrab.Text), "^[0-9 +()-]{7,20}$"),
+                                           !IsBlank(Trim(inCorreo.Text))  && !IsMatch(Trim(inCorreo.Text), Match.Email)),
                         sinProducto:   If(tpPago.Value || tgDatos.Value, IsBlank(varCuenta), CountRows(Filter(colProdInt, sel)) = 0)
                       },
-                      If(!locGuardando && !faltaComent && !sinLineas && !lineaIncompl && !reciboLargo && !reciboRepet && !faltaDato && !sinProducto,
+                      If(!locGuardando && !faltaComent && !sinLineas && !lineaIncompl && !reciboLargo && !reciboRepet && !faltaDato && !datoInval && !sinProducto,
                          DisplayMode.Edit, DisplayMode.Disabled))
                   Fill: =gblC.teal
                   FontWeight: =FontWeight.Bold
@@ -1237,6 +1290,11 @@ Screens:
                         reciboRepet:   tpPago.Value && CountRows(colLineasPago) <> CountRows(Distinct(colLineasPago, Upper(Trim(recibo)) & "|" & moneda)),
                         faltaDato:     tgDatos.Value && And(IsBlank(inTelCasa.Text), IsBlank(inTelCel.Text), IsBlank(inTelTrab.Text),
                                                             IsBlank(inDirCasa.Text), IsBlank(inDirEC.Text), IsBlank(inDirTrab.Text), IsBlank(inCorreo.Text)),
+                        datoInval:     tgDatos.Value && Or(
+                                           !IsBlank(Trim(inTelCasa.Text)) && !IsMatch(Trim(inTelCasa.Text), "^[0-9 +()-]{7,20}$"),
+                                           !IsBlank(Trim(inTelCel.Text))  && !IsMatch(Trim(inTelCel.Text),  "^[0-9 +()-]{7,20}$"),
+                                           !IsBlank(Trim(inTelTrab.Text)) && !IsMatch(Trim(inTelTrab.Text), "^[0-9 +()-]{7,20}$"),
+                                           !IsBlank(Trim(inCorreo.Text))  && !IsMatch(Trim(inCorreo.Text), Match.Email)),
                         sinProducto:   If(tpPago.Value || tgDatos.Value, IsBlank(varCuenta), CountRows(Filter(colProdInt, sel)) = 0)
                       },
                       With({ falta: Concat(Filter(Table(
@@ -1246,6 +1304,7 @@ Screens:
                                   {c: reciboLargo,  t: "recibo de hasta 30 caracteres"},
                                   {c: reciboRepet,  t: "recibos sin repetir"},
                                   {c: faltaDato,    t: "un dato del cliente"},
+                    {c: datoInval,    t: "teléfonos de 7 a 20 dígitos y un correo válido"},
                                   {c: sinProducto,  t: "un producto"}), c), t, " · ") },
                           If(IsBlank(falta), "", "Falta: " & falta)))
       - cmpSheet_5:

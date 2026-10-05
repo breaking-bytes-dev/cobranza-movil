@@ -291,7 +291,7 @@ Screens:
                   Height: =54
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
-                  OnSelect: =Refresh('CM | TBL | Interaccions'); Refresh('CM | TBL | Pagos'); Refresh('CM | TBL | Actualizacion de datos'); Refresh('CM | TBL | Asignacions'); Refresh('CM | TBL | Cuentas'); Refresh('CM | TBL | PAN de cuentas'); Set(varRecargarCartera, true); Set(varPend, CountRows(Filter('CM | TBL | Interaccions', IsBlank('[IN] Numero de Interaccion')))); Notify("Actualizando…", NotificationType.Information)
+                  OnSelect: =Refresh('CM | TBL | Interaccions'); Refresh('CM | TBL | Pagos'); Refresh('CM | TBL | Actualizacion de datos'); Refresh('CM | TBL | Asignacions'); Refresh('CM | TBL | Cuentas'); Refresh('CM | TBL | PAN de cuentas'); Set(varRecargarCartera, true); Set(varCliCargado, Blank()); Set(varPend, CountRows(Filter('CM | TBL | Interaccions', IsBlank('[IN] Numero de Interaccion')))); Notify("Actualizando…", NotificationType.Information)
                   RadiusBottomLeft: =14
                   RadiusBottomRight: =14
                   RadiusTopLeft: =14

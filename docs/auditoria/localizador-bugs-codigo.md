@@ -476,3 +476,27 @@ Pendiente detectado: la tarjeta dice "Ubicación capturada" aunque el GPS no hay
 
 No verificado: un fallo del Patch de la **interacción** (no hubo forma de provocarlo desde el teléfono; el comentario de 2.050 caracteres llegó con 1.254 y se guardó sin error). La rama usa el mismo `IfError` que sí se probó con los pagos.
 Visto de paso: un chip de comentario (APP-18) **reemplaza** el texto escrito, y "Atrás" de más saca de la app (APP-30). Siguen abiertos.
+
+## Grupo 2: corregidos y verificados en el navegador (2026-10-05)
+
+Suite `tests/localizador-canvas/grupo2.js` (Playwright, User5, web player): **18/18**. El App Checker quedó sin errores
+y sin las 9 advertencias de delegación de `scrCliente`.
+
+| # | Corrección | Verificación |
+|---|---|---|
+| APP-07 | Detalle busca la asignación de SU cuenta si se entra desde Inicio. Se quitó "PEDIDO ESPECIAL" del resumen de pagos | Especial desde Cliente → después, otra cuenta desde Inicio, muestra "Diaria" |
+| APP-15 | Las asignaciones sin cuenta resuelta no forman un grupo vacío (se avisa); "Clientes" del Inicio se cuenta por CIF | KPI = clientes distintos en Dataverse (2) |
+| APP-16 | Interacciones del cliente: consulta delegable por cuenta; pagos por la relación con la interacción (1 consulta por tarjeta) | Pestaña "(5)" = Dataverse; 0 consultas sin `$filter`; el pago QA-R1 aparece |
+| APP-17 | Detalle usa `varDetTab`; la pestaña "Interacciones" de Cliente tenía el color de la otra (no se leía) | Texto blanco sobre la pestaña activa, en Cliente y en Detalle |
+| APP-18 | El chip suma al texto escrito; el comentario se limpia al salir | "Hola QA. Promesa de pago"; otra cuenta abre vacío |
+| APP-19 | Ya no se carga la tabla Clientes al inicio; el título sale del origen | Desde Inicio, sin pasar por Cartera: "QA-E2E-LOC CLIENTE TRES" |
+| APP-24 | Teléfonos 7–20 caracteres (dígitos, espacio, + - ( )), correo válido, largo máximo en todos los campos | "12ab" bloquea con aviso; "8888-1234" habilita |
+| APP-25 (parcial) | `AccessibleLabel` en íconos, campos, interruptores y botones modernos; contraste de `muted2`/`hint` ≥ 4,5:1; flechas de orden de 56 en vez de 34 | Etiquetas presentes; texto secundario #5F6B7E |
+| APP-27 | El agente es una fórmula con nombre (se recalcula sola) | La interacción guardada lleva el agente vinculado |
+| APP-28 | Cuentas del cliente: consulta delegable, una vez por cliente (se invalida al sincronizar) | 0 consultas sin `$filter` |
+| APP-30 (parcial) | Desde Cartera, la barra vuelve a Inicio con `Back()` (no apila) | Llega a Inicio; el Atrás físico se confirma en el teléfono |
+| APP-32 | Monto vacío y moneda según el saldo de la cuenta | NIO en cuenta en córdobas, USD en cuenta en dólares |
+| Nuevo | Montos con `Text(…, "en-US")`: con el dispositivo en es-NI salían con coma decimal ("160,00") | "C$ 160.00" con el navegador en es-NI |
+
+Pendiente de APP-25: los filtros de Cartera son etiquetas con `OnSelect` (no botones) y los botones clásicos no admiten etiqueta accesible.
+Pendiente de APP-30 y APP-05: confirmar en el teléfono (Atrás físico; pago creado offline visible en el historial).

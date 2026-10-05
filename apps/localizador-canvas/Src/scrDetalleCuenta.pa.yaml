@@ -19,7 +19,10 @@ Screens:
                 '[AS] Cuenta'.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta'
                 && '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
                 && '[AS] Estado' = true)
-        })
+        });
+        If(varDetSrc <> "cliente",
+            Set(varAsig, First(AddColumns(Filter('CM | TBL | Asignacions', '[AS] Estado' = true && '[AS] Cuenta'.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta'),
+                cta, LookUp(colCuentas, 'CM | TBL | Cuenta' = '[AS] Cuenta'.'CM | TBL | Cuenta')))))
     Children:
       - conMaster_3:
           Control: GroupContainer@1.5.0
@@ -159,15 +162,15 @@ Screens:
                       Properties:
                         AlignInContainer: =AlignInContainer.Stretch
                         BorderStyle: =BorderStyle.None
-                        Color: =If(varCliTab="cuentas", gblC.white, gblC.ink2)
-                        Fill: =If(varCliTab="cuentas", gblC.teal, gblC.chipBg)
+                        Color: =If(varDetTab="detalle", gblC.white, gblC.ink2)
+                        Fill: =If(varDetTab="detalle", gblC.teal, gblC.chipBg)
                         FillPortions: =1
                         HoverBorderColor: =Self.BorderColor
                         HoverColor: =Self.Color
                         HoverFill: =Self.Fill
                         LayoutMinHeight: =16
                         LayoutMinWidth: =16
-                        OnSelect: =Set(varCliTab,"cuentas")
+                        OnSelect: =Set(varDetTab,"detalle")
                         RadiusBottomLeft: =
                         RadiusBottomRight: =
                         RadiusTopLeft: =
@@ -179,15 +182,15 @@ Screens:
                       Properties:
                         AlignInContainer: =AlignInContainer.Stretch
                         BorderStyle: =BorderStyle.None
-                        Color: =If(varCliTab="inter", gblC.white, gblC.ink2)
-                        Fill: =If(varCliTab="inter", gblC.teal, gblC.chipBg)
+                        Color: =If(varDetTab="inter", gblC.white, gblC.ink2)
+                        Fill: =If(varDetTab="inter", gblC.teal, gblC.chipBg)
                         FillPortions: =1
                         HoverBorderColor: =Self.BorderColor
                         HoverColor: =Self.Color
                         HoverFill: =Self.Fill
                         LayoutMinHeight: =16
                         LayoutMinWidth: =16
-                        OnSelect: =Set(varCliTab,"inter")
+                        OnSelect: =Set(varDetTab,"inter")
                         RadiusBottomLeft: =
                         RadiusBottomRight: =
                         RadiusTopLeft: =
@@ -215,7 +218,7 @@ Screens:
                   RadiusBottomRight: =14
                   RadiusTopLeft: =14
                   RadiusTopRight: =14
-                  Visible: =varCliTab = "cuentas"
+                  Visible: =varDetTab = "detalle"
                   X: =40
                   Y: =40
                 Children:
@@ -259,7 +262,7 @@ Screens:
                         LayoutMinWidth: =16
                         Size: =gblT.fxs
                         Text: |-
-                          ="Total dolarizado: " & If(IsBlank(varCuenta.'[CT] Total saldo vencido'), "—", "US$ " & Text(varCuenta.'[CT] Total saldo vencido', "#,##0.00"))
+                          ="Total dolarizado: " & If(IsBlank(varCuenta.'[CT] Total saldo vencido'), "—", "US$ " & Text(varCuenta.'[CT] Total saldo vencido', "#,##0.00", "en-US"))
                   - lblContagiado:
                       Control: Label@2.5.1
                       Properties:
@@ -270,7 +273,7 @@ Screens:
                         LayoutMinWidth: =16
                         Size: =gblT.fxs
                         Text: |-
-                          ="En riesgo (contagiado): " & If(IsBlank(varCuenta.'[CT] Contagiado USD'), "—", "US$ " & Text(varCuenta.'[CT] Contagiado USD', "#,##0.00"))
+                          ="En riesgo (contagiado): " & If(IsBlank(varCuenta.'[CT] Contagiado USD'), "—", "US$ " & Text(varCuenta.'[CT] Contagiado USD', "#,##0.00", "en-US"))
             - Container16_1:
                 Control: GroupContainer@1.5.0
                 Variant: AutoLayout
@@ -290,7 +293,7 @@ Screens:
                   RadiusBottomRight: =14
                   RadiusTopLeft: =14
                   RadiusTopRight: =14
-                  Visible: =varCliTab = "cuentas"
+                  Visible: =varDetTab = "detalle"
                 Children:
                   - lblSecTel_1:
                       Control: Label@2.5.1
@@ -468,7 +471,7 @@ Screens:
                   RadiusBottomRight: =14
                   RadiusTopLeft: =14
                   RadiusTopRight: =14
-                  Visible: =varCliTab = "cuentas"
+                  Visible: =varDetTab = "detalle"
                 Children:
                   - lblSecTel_2:
                       Control: Label@2.5.1
@@ -701,7 +704,7 @@ Screens:
                   Items: =Sort(Filter('CM | TBL | Interaccions', '[IN] Cuenta'.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta'), 'Created On', SortOrder.Descending)
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
-                  Visible: =varCliTab = "inter"
+                  Visible: =varDetTab = "inter"
                   Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
                 Children:
                   - conICard_2:
@@ -793,9 +796,11 @@ Screens:
                                     LayoutMinWidth: =16
                                     Size: =gblT.fxs
                                     Text: |-
-                                      ="💵 " & Concat(Filter('CM | TBL | Pagos', Not(IsBlank('[PG] Numero Interaccion')) && '[PG] Numero Interaccion' = ThisItem.'[IN] Numero de Interaccion'),If(Text('[PG] Moneda')="USD","US$ ","C$ ") & Text('[PG] Monto',"#,##0.00") &
-                                                  " (rec. " & '[PG] Numero recibo' & ")", " · ")
-                                    Visible: =CountRows(Filter('CM | TBL | Pagos', Not(IsBlank('[PG] Numero Interaccion')) && '[PG] Numero Interaccion' = ThisItem.'[IN] Numero de Interaccion'))>0
+                                      =// APP-05/16: los pagos se buscan por la relación con la interacción (el N° de interacción está vacío offline).
+                                      With({ p: Filter('CM | TBL | Pagos', '[PG] Interaccion'.'CM | TBL | Interaccion' = ThisItem.'CM | TBL | Interaccion') },
+                                          If(IsEmpty(p), "", "💵 " & Concat(p, If(Text('[PG] Moneda')="USD","US$ ","C$ ") & Text('[PG] Monto',"#,##0.00", "en-US") &
+                                                  " (rec. " & '[PG] Numero recibo' & ")", " · ")))
+                                    Visible: =!IsBlank(Self.Text)
                                     Width: =Parent.Width - 16
                               - lblTagDatos_2:
                                   Control: Label@2.5.1
@@ -841,7 +846,7 @@ Screens:
                   FontWeight: =FontWeight.Bold
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
-                  OnSelect: =Set(varDetSrc,"detalle"); Navigate(scrInteraccion, ScreenTransition.Cover)
+                  OnSelect: =Navigate(scrInteraccion, ScreenTransition.Cover)
                   PaddingBottom: =14
                   PaddingLeft: =14
                   PaddingRight: =14

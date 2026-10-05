@@ -43,7 +43,7 @@ Screens:
 
           ClearCollect(colClientes,
              AddColumns(
-                GroupBy(colAsig, cid, cliNom, Asigs),
+                GroupBy(Filter(colAsig, !IsBlank(cid)), cid, cliNom, Asigs),
                 orden,    Min(Asigs, ord),
                 totNio,   Sum(Asigs, saldoNio),
                 totUsd,   Sum(Asigs, saldoUsd),
@@ -52,6 +52,9 @@ Screens:
                 dirCasa,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'="Casa").'[DR] Direccion',
                 dirTrab,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'="Trabajo").'[DR] Direccion',
                 dirty,   false));
+          // APP-15: una asignación cuya cuenta no llegó al teléfono no se agrupa con otras; se avisa.
+          If(CountRows(Filter(colAsig, IsBlank(cid))) > 0,
+             Notify(CountRows(Filter(colAsig, IsBlank(cid))) & " asignación(es) sin datos de la cuenta. Sincronizá para completarlas.", NotificationType.Warning));
           // Orden 1..n sin empates ni vacíos (APP-23). Los que no tienen orden (asignaciones nuevas; Min() de vacíos da 0)
           // van al final, alfabéticos. Solo los que cambian quedan dirty y se guardan en Dataverse al salir (OnHidden).
           With({ lista: SortByColumns(AddColumns(colClientes, sinOrden, Coalesce(orden, 0) <= 0),
@@ -157,7 +160,7 @@ Screens:
                               Font: =
                               FontWeight: =FontWeight.Normal
                               Height: =If(gblScale = 1, 30,gblScale = 1.2,34,gblScale = 1.45,40,46)
-                              OnSelect: "=UpdateContext({varshowLoader: true});\r\n\r\nUpdateContext({okOrden: IfError(ForAll(Filter(colClientes, dirty) As C,\r\n     ForAll(Filter(colAsig, cid = C.cid) As A,\r\n        UpdateIf('CM | TBL | Asignacions',\r\n           'CM | TBL | Asignacion' = A.'CM | TBL | Asignacion',\r\n           { '[AS] Orden': C.orden }))); true, false)});\r\n\r\n// APP-13: si no se pudo guardar el orden, no se recarga (se perderia) y se avisa.\r\nIf(okOrden,\r\nClearCollect(colCuentas, 'CM | TBL | Cuentas');\r\nClearCollect(colDirecciones, Filter('CM | TBL | Direccions', '[DR] Tipo' = \"Casa\" || '[DR] Tipo' = \"Trabajo\"));\r\nClearCollect(colTelefonos, 'CM | TBL | Telefonos');\r\nClearCollect(colAsigRaw, Filter('CM | TBL | Asignacions', '[AS] Estado' = true));\r\nClearCollect(colAsig,\r\n     AddColumns(\r\n        AddColumns(colAsigRaw,\r\n           cta, LookUp(colCuentas, 'CM | TBL | Cuenta' = '[AS] Cuenta'.'CM | TBL | Cuenta')),\r\n        cid,      cta.'CIF Cliente',\r\n        cliNom,   cta.'Nombre Cliente',\r\n        ult4,     cta.'Últimos 4',\r\n        saldoNio, cta.'[CT] Saldo Vencido NIO',\r\n        saldoUsd, cta.'[CT] Saldo Vencido USD',\r\n        diasMora, cta.'[CT] Dias Mora',\r\n        ord,      '[AS] Orden'));\r\n\r\n  ClearCollect(colClientes,\r\n     AddColumns(\r\n        GroupBy(colAsig, cid, cliNom, Asigs),\r\n        orden,    Min(Asigs, ord),\r\n        totNio,   Sum(Asigs, saldoNio),\r\n        totUsd,   Sum(Asigs, saldoUsd),\r\n        maxDias,  Max(Asigs, diasMora),\r\n        nCuentas, CountRows(Asigs),\r\n        dirCasa,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'=\"Casa\").'[DR] Direccion',\r\n        dirTrab,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'=\"Trabajo\").'[DR] Direccion',\r\n        dirty,   false));\r\n          // Orden 1..n sin empates ni vacíos (APP-23). Los que no tienen orden (asignaciones nuevas; Min() de vacíos da 0)\r\n          // van al final, alfabéticos. Solo los que cambian quedan dirty y se guardan en Dataverse al salir (OnHidden).\r\n          With({ lista: SortByColumns(AddColumns(colClientes, sinOrden, Coalesce(orden, 0) <= 0),\r\n                                      \"sinOrden\", SortOrder.Ascending, \"orden\", SortOrder.Ascending, \"cliNom\", SortOrder.Ascending) },\r\n             ForAll(Sequence(CountRows(lista)) As N,\r\n                With({ r: Index(lista, N.Value) },\r\n                   If(Coalesce(r.orden, 0) <> N.Value,\r\n                      Patch(colClientes, LookUp(colClientes, cid = r.cid), { orden: N.Value, dirty: true })))));\r\n    Set(varCarteraLista, true);\r\n     Set(varRecargarCartera, false);\r\n     Set(varFechaUltimaActualizacion, Now()),\r\n   Notify(\"No se pudo guardar el orden de la cartera; no se recargó para no perderlo. Reintentá con señal.\", NotificationType.Warning));\r\n     UpdateContext({varshowLoader: false});\r\n        "
+                              OnSelect: "=UpdateContext({varshowLoader: true});\r\n\r\nUpdateContext({okOrden: IfError(ForAll(Filter(colClientes, dirty) As C,\r\n     ForAll(Filter(colAsig, cid = C.cid) As A,\r\n        UpdateIf('CM | TBL | Asignacions',\r\n           'CM | TBL | Asignacion' = A.'CM | TBL | Asignacion',\r\n           { '[AS] Orden': C.orden }))); true, false)});\r\n\r\n// APP-13: si no se pudo guardar el orden, no se recarga (se perderia) y se avisa.\r\nIf(okOrden,\r\nClearCollect(colCuentas, 'CM | TBL | Cuentas');\r\nClearCollect(colDirecciones, Filter('CM | TBL | Direccions', '[DR] Tipo' = \"Casa\" || '[DR] Tipo' = \"Trabajo\"));\r\nClearCollect(colTelefonos, 'CM | TBL | Telefonos');\r\nClearCollect(colAsigRaw, Filter('CM | TBL | Asignacions', '[AS] Estado' = true));\r\nClearCollect(colAsig,\r\n     AddColumns(\r\n        AddColumns(colAsigRaw,\r\n           cta, LookUp(colCuentas, 'CM | TBL | Cuenta' = '[AS] Cuenta'.'CM | TBL | Cuenta')),\r\n        cid,      cta.'CIF Cliente',\r\n        cliNom,   cta.'Nombre Cliente',\r\n        ult4,     cta.'Últimos 4',\r\n        saldoNio, cta.'[CT] Saldo Vencido NIO',\r\n        saldoUsd, cta.'[CT] Saldo Vencido USD',\r\n        diasMora, cta.'[CT] Dias Mora',\r\n        ord,      '[AS] Orden'));\r\n\r\n  ClearCollect(colClientes,\r\n     AddColumns(\r\n        GroupBy(Filter(colAsig, !IsBlank(cid)), cid, cliNom, Asigs),\r\n        orden,    Min(Asigs, ord),\r\n        totNio,   Sum(Asigs, saldoNio),\r\n        totUsd,   Sum(Asigs, saldoUsd),\r\n        maxDias,  Max(Asigs, diasMora),\r\n        nCuentas, CountRows(Asigs),\r\n        dirCasa,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'=\"Casa\").'[DR] Direccion',\r\n        dirTrab,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'=\"Trabajo\").'[DR] Direccion',\r\n        dirty,   false));\r\n          // Orden 1..n sin empates ni vacíos (APP-23). Los que no tienen orden (asignaciones nuevas; Min() de vacíos da 0)\r\n          // van al final, alfabéticos. Solo los que cambian quedan dirty y se guardan en Dataverse al salir (OnHidden).\r\n          With({ lista: SortByColumns(AddColumns(colClientes, sinOrden, Coalesce(orden, 0) <= 0),\r\n                                      \"sinOrden\", SortOrder.Ascending, \"orden\", SortOrder.Ascending, \"cliNom\", SortOrder.Ascending) },\r\n             ForAll(Sequence(CountRows(lista)) As N,\r\n                With({ r: Index(lista, N.Value) },\r\n                   If(Coalesce(r.orden, 0) <> N.Value,\r\n                      Patch(colClientes, LookUp(colClientes, cid = r.cid), { orden: N.Value, dirty: true })))));\r\n    Set(varCarteraLista, true);\r\n     Set(varRecargarCartera, false);\r\n     Set(varFechaUltimaActualizacion, Now()),\r\n   Notify(\"No se pudo guardar el orden de la cartera; no se recargó para no perderlo. Reintentá con señal.\", NotificationType.Warning));\r\n     UpdateContext({varshowLoader: false});\r\n        "
                               PaddingBottom: =7
                               PaddingLeft: =11
                               PaddingRight: =11
@@ -288,7 +291,7 @@ Screens:
                                           LayoutMinHeight: =16
                                           LayoutMinWidth: =16
                                           Size: =gblT.flg
-                                          Text: =Text(Sum(colAsig, saldoNio),"#,##0.00")
+                                          Text: =Text(Sum(colAsig, saldoNio),"#,##0.00", "en-US")
                               - boxlblTotalAUSD:
                                   Control: GroupContainer@1.5.0
                                   Variant: AutoLayout
@@ -329,7 +332,7 @@ Screens:
                                           LayoutMinHeight: =16
                                           LayoutMinWidth: =16
                                           Size: =gblT.flg
-                                          Text: =Text(Sum(colAsig, saldoUsd),"#,##0.00")
+                                          Text: =Text(Sum(colAsig, saldoUsd),"#,##0.00", "en-US")
                         - lblTotalMeta:
                             Control: Label@2.5.1
                             Properties:
@@ -453,6 +456,8 @@ Screens:
                         - icoBuscar:
                             Control: Classic/Icon@2.5.0
                             Properties:
+                              AccessibleLabel: |-
+                                ="Buscar"
                               AlignInContainer: =AlignInContainer.Stretch
                               Color: =gblC.muted2
                               Icon: =Icon.Search
@@ -462,6 +467,8 @@ Screens:
                         - txtBuscar:
                             Control: Classic/TextInput@2.3.2
                             Properties:
+                              AccessibleLabel: |-
+                                ="Buscar cliente o últimos 4 de la tarjeta"
                               AlignInContainer: =AlignInContainer.Stretch
                               BorderThickness: =0
                               Color: =gblC.ink
@@ -832,17 +839,27 @@ Screens:
                                     FillPortions: =0
                                     LayoutAlignItems: =LayoutAlignItems.Center
                                     LayoutDirection: =LayoutDirection.Horizontal
-                                    LayoutGap: =8
+                                    LayoutGap: =16
                                     LayoutMinHeight: =16
                                     LayoutMinWidth: =16
-                                    Width: =If(gblScale = 1, 84,gblScale = 1.2,94,gblScale = 1.45,112,124)
+                                    Width: =If(gblScale = 1, 128,gblScale = 1.2,140,gblScale = 1.45,160,176)
                                   Children:
                                     - icoUp:
                                         Control: Classic/Icon@2.5.0
                                         Properties:
+                                          AccessibleLabel: |-
+                                            ="Subir a " & ThisItem.cliNom
+                                          PaddingRight: |-
+                                            =12 * gblScale
+                                          PaddingLeft: |-
+                                            =12 * gblScale
+                                          PaddingBottom: |-
+                                            =12 * gblScale
+                                          PaddingTop: |-
+                                            =12 * gblScale
                                           Color: =gblC.accent
                                           Fill: =gblC.surface
-                                          Height: =If(gblScale = 1, 34,gblScale = 1.2,38,gblScale = 1.45,46,52)
+                                          Height: =If(gblScale = 1, 56,gblScale = 1.2,62,gblScale = 1.45,72,80)
                                           Icon: =Icon.ChevronUp
                                           LayoutMinHeight: =16
                                           LayoutMinWidth: =16
@@ -853,13 +870,23 @@ Screens:
                                                    With({ mio: ThisItem.orden, suyo: vec.orden, miCid: ThisItem.cid, suCid: vec.cid },
                                                       Patch(colClientes, LookUp(colClientes, cid = suCid), { orden: mio, dirty: true });
                                                       Patch(colClientes, LookUp(colClientes, cid = miCid), { orden: suyo, dirty: true }))))
-                                          Width: =If(gblScale = 1, 34,gblScale = 1.2,38,gblScale = 1.45,46,52)
+                                          Width: =If(gblScale = 1, 56,gblScale = 1.2,62,gblScale = 1.45,72,80)
                                     - icoDown:
                                         Control: Classic/Icon@2.5.0
                                         Properties:
+                                          AccessibleLabel: |-
+                                            ="Bajar a " & ThisItem.cliNom
+                                          PaddingRight: |-
+                                            =12 * gblScale
+                                          PaddingLeft: |-
+                                            =12 * gblScale
+                                          PaddingBottom: |-
+                                            =12 * gblScale
+                                          PaddingTop: |-
+                                            =12 * gblScale
                                           Color: =gblC.accent
                                           Fill: =gblC.surface
-                                          Height: =If(gblScale = 1, 34,gblScale = 1.2,38,gblScale = 1.45,46,52)
+                                          Height: =If(gblScale = 1, 56,gblScale = 1.2,62,gblScale = 1.45,72,80)
                                           Icon: =Icon.ChevronDown
                                           LayoutMinHeight: =16
                                           LayoutMinWidth: =16
@@ -870,10 +897,12 @@ Screens:
                                                    With({ mio: ThisItem.orden, suyo: vec.orden, miCid: ThisItem.cid, suCid: vec.cid },
                                                       Patch(colClientes, LookUp(colClientes, cid = suCid), { orden: mio, dirty: true });
                                                       Patch(colClientes, LookUp(colClientes, cid = miCid), { orden: suyo, dirty: true }))))
-                                          Width: =If(gblScale = 1, 34,gblScale = 1.2,38,gblScale = 1.45,46,52)
+                                          Width: =If(gblScale = 1, 56,gblScale = 1.2,62,gblScale = 1.45,72,80)
                   - Button5:
                       Control: ModernButton@1.0.0
                       Properties:
+                        AccessibleLabel: |-
+                          ="Abrir cliente " & ThisItem.cliNom
                         Appearance: =ButtonAppearance.Transparent
                         Height: =Parent.TemplateHeight - If(gblScale = 1, 66,gblScale = 1.2,76,gblScale = 1.45,98,112) - 16
                         OnSelect: |-

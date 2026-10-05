@@ -30,6 +30,8 @@ ComponentDefinitions:
             - Button2:
                 Control: ModernButton@1.0.0
                 Properties:
+                  AccessibleLabel: |-
+                    ="Cerrar"
                   AlignInContainer: =AlignInContainer.Stretch
                   Appearance: =ButtonAppearance.Transparent
                   FillPortions: =1

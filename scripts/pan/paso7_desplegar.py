@@ -29,8 +29,27 @@ def pac(*args):
         raise SystemExit(f"pac {' '.join(args[:2])} falló:\n" + '\n'.join(salida[-8:]))
     return salida
 
+# Propiedades que Studio rechaza (PA2108) pero `pac canvas pack` acepta sin avisar: la app publicada queda que NO abre en
+# Studio ("Error opening file"). `pac canvas validate` ya no existe, así que se frena acá. Ampliar al encontrar otra.
+PROHIBIDAS = {'Classic/Button': {'AccessibleLabel'}, 'Label': {'RadiusTopLeft', 'RadiusTopRight', 'RadiusBottomLeft', 'RadiusBottomRight'},
+              'Classic/Icon': {'RadiusTopLeft', 'RadiusTopRight', 'RadiusBottomLeft', 'RadiusBottomRight'}}
+def revisar_yaml(carpeta):
+    errores = []
+    for raiz, _, archivos in os.walk(os.path.join(RAIZ, carpeta, 'Src')):
+        for a in archivos:
+            if not a.endswith('.pa.yaml'): continue
+            ctl = None
+            for n, l in enumerate(open(os.path.join(raiz, a), encoding='utf-8'), 1):
+                m = re.match(r'^\s+Control: (\S+?)@', l)
+                if m: ctl = m.group(1); continue
+                m = re.match(r'^\s+(\w+): ', l)
+                if m and ctl and m.group(1) in PROHIBIDAS.get(ctl, ()):
+                    errores.append(f'{a}:{n} {ctl} no admite {m.group(1)}')
+    if errores: raise SystemExit('Propiedades que Studio rechaza (la app no abriría):\n  ' + '\n  '.join(errores))
+
 msapps = {}
 for carpeta, nombre, minimo in APPS:
+    revisar_yaml(carpeta)
     destino = os.path.join(tmp, nombre + '.msapp')
     pac('canvas', 'pack', '--sources', os.path.join(RAIZ, carpeta), '--msapp', destino)
     z = zipfile.ZipFile(destino)

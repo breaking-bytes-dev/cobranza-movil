@@ -215,7 +215,7 @@ Screens:
                               PaddingBottom: =0
                               PaddingTop: =0
                               Size: =gblT.fbig
-                              Text: ="C$   "&Text(Coalesce(colCobN,0),"#,##0.00")
+                              Text: ="C$   "&Text(Coalesce(colCobN,0),"#,##0.00", "en-US")
                         - lblCobradoUSD:
                             Control: Label@2.5.1
                             Properties:
@@ -230,7 +230,7 @@ Screens:
                               PaddingBottom: =0
                               PaddingTop: =0
                               Size: =gblT.fbig
-                              Text: ="US$ "&Text(Coalesce(colCobU,0),"#,##0.00")
+                              Text: ="US$ "&Text(Coalesce(colCobU,0),"#,##0.00", "en-US")
                         - lblSub_4:
                             Control: Label@2.5.1
                             Properties:
@@ -245,6 +245,8 @@ Screens:
                   - Button3:
                       Control: ModernButton@1.0.0
                       Properties:
+                        AccessibleLabel: |-
+                          ="Ver el detalle de lo cobrado hoy"
                         Appearance: =ButtonAppearance.Transparent
                         Height: =Parent.Height
                         OnSelect: =Navigate(scrPagos)
@@ -403,7 +405,7 @@ Screens:
                               LayoutMinWidth: =16
                               PaddingBottom: =0
                               Size: =gblT.flg
-                              Text: =CountRows(Distinct(AddColumns(colIntHoy, cliJoin, LookUp(colCuentas, 'CM | TBL | Cuenta' = '[IN] Cuenta'.'CM | TBL | Cuenta').'Nombre Cliente'), cliJoin))
+                              Text: =CountRows(Distinct(AddColumns(colIntHoy, cliJoin, LookUp(colCuentas, 'CM | TBL | Cuenta' = '[IN] Cuenta'.'CM | TBL | Cuenta').'CIF Cliente'), cliJoin))
                         - lblSl_2:
                             Control: Label@2.5.1
                             Properties:
@@ -641,6 +643,8 @@ Screens:
                   - Button4_1:
                       Control: ModernButton@1.0.0
                       Properties:
+                        AccessibleLabel: |-
+                          ="Abrir cliente " & ThisItem.cliNom
                         Appearance: =ButtonAppearance.Transparent
                         Height: =Parent.TemplateHeight
                         OnSelect: =Set(varCliente, ThisItem.cid); Set(varCliTab,"inter"); Navigate(scrCliente, ScreenTransition.Cover)
@@ -795,6 +799,8 @@ Screens:
                   - Button4:
                       Control: ModernButton@1.0.0
                       Properties:
+                        AccessibleLabel: |-
+                          ="Abrir cuenta de " & ThisItem.cliNom
                         Appearance: =ButtonAppearance.Transparent
                         Height: =Parent.TemplateHeight
                         OnSelect: =Set(varCuenta, ThisItem.ctaRec); Set(varDetTab,"inter"); Set(varDetSrc,"inicio"); Navigate(scrDetalleCuenta, ScreenTransition.Cover)
