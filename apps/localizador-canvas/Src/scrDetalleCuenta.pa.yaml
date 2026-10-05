@@ -94,7 +94,7 @@ Screens:
                         RadiusTopRight: =10
                         Size: =gblT.fxs
                         Text: =varAsig.'[AS] Tipo'
-                        Width: =80
+                        Width: =If(gblScale = 1, 80,gblScale = 1.2,96,gblScale = 1.45,118,136)
                         X: =Parent.Width - 18  - Self.Width
                         Y: =Button1_4.Y + Button1_4.Height + 20
                   - btnVerPan_DC:
@@ -127,7 +127,7 @@ Screens:
                         Text: =If(IsBlank(locPan), "Ver número", "Ocultar")
                         Width: =If(gblScale = 1, 84,gblScale = 1.2,96,gblScale = 1.45,112,124)
                         X: =Parent.Width - Self.Width - 14
-                        Y: =Parent.Height - Self.Height - 6
+                        Y: =Max(Parent.Height - Self.Height - 6, Text1_1.Y + Text1_1.Height + 4)
                   - tmrVerPan_DC:
                       Control: Timer@2.1.0
                       Properties:
@@ -259,7 +259,7 @@ Screens:
                         LayoutMinWidth: =16
                         Size: =gblT.fxs
                         Text: |-
-                          ="Total dolarizado: U$"&varCuenta.'[CT] Total saldo vencido'
+                          ="Total dolarizado: " & If(IsBlank(varCuenta.'[CT] Total saldo vencido'), "—", "US$ " & Text(varCuenta.'[CT] Total saldo vencido', "#,##0.00"))
                   - lblContagiado:
                       Control: Label@2.5.1
                       Properties:
@@ -270,7 +270,7 @@ Screens:
                         LayoutMinWidth: =16
                         Size: =gblT.fxs
                         Text: |-
-                          ="En riesgo (contagiado): U$"&varCuenta.'[CT] Contagiado USD'
+                          ="En riesgo (contagiado): " & If(IsBlank(varCuenta.'[CT] Contagiado USD'), "—", "US$ " & Text(varCuenta.'[CT] Contagiado USD', "#,##0.00"))
             - Container16_1:
                 Control: GroupContainer@1.5.0
                 Variant: AutoLayout
@@ -374,7 +374,7 @@ Screens:
                               LayoutMinHeight: =16
                               LayoutMinWidth: =16
                               Size: =gblT.fbase
-                              Text: =varCuenta.'[CT] Fecha Pago'
+                              Text: =IfError(Text(DateValue(varCuenta.'[CT] Fecha Pago'), "dd/mm/yyyy"), varCuenta.'[CT] Fecha Pago')
                   - conFila_UltimoPago:
                       Control: GroupContainer@1.5.0
                       Variant: AutoLayout
@@ -410,7 +410,9 @@ Screens:
                               LayoutMinHeight: =16
                               LayoutMinWidth: =16
                               Size: =gblT.fbase
-                              Text: =varCuenta.'[CT] Fecha Ultimo Pago'
+                              Text: |-
+                                =// Fecha sin hora guardada como medianoche UTC: se vuelve a UTC para no mostrar el día anterior en Managua.
+                                If(IsBlank(varCuenta.'[CT] Fecha Ultimo Pago'), "", Text(DateAdd(varCuenta.'[CT] Fecha Ultimo Pago', TimeZoneOffset(varCuenta.'[CT] Fecha Ultimo Pago'), TimeUnit.Minutes), "dd/mm/yyyy"))
                   - conFila_Ciclo:
                       Control: GroupContainer@1.5.0
                       Variant: AutoLayout

@@ -241,7 +241,7 @@ Screens:
                               LayoutMinHeight: =16
                               LayoutMinWidth: =16
                               Size: =gblT.fbase
-                              Text: ="—"
+                              Text: ="ver en «Sincronización completa»"
                   - cmpKV_2:
                       Control: GroupContainer@1.5.0
                       Variant: AutoLayout
@@ -286,12 +286,12 @@ Screens:
                   AlignInContainer: =AlignInContainer.Stretch
                   BorderStyle: =BorderStyle.None
                   Color: =gblC.white
-                  DisplayMode: =If(Connection.Connected && varPend>0, DisplayMode.Edit, DisplayMode.Disabled)
+                  DisplayMode: =If(Connection.Connected, DisplayMode.Edit, DisplayMode.Disabled)
                   Fill: =gblC.teal
                   Height: =54
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
-                  OnSelect: =Refresh('CM | TBL | Interaccions'); Refresh('CM | TBL | Pagos');Refresh('CM | TBL | Actualizacion de datos'); Notify("Actualizando…", NotificationType.Information)
+                  OnSelect: =Refresh('CM | TBL | Interaccions'); Refresh('CM | TBL | Pagos'); Refresh('CM | TBL | Actualizacion de datos'); Refresh('CM | TBL | Asignacions'); Refresh('CM | TBL | Cuentas'); Refresh('CM | TBL | PAN de cuentas'); Set(varRecargarCartera, true); Set(varPend, CountRows(Filter('CM | TBL | Interaccions', IsBlank('[IN] Numero de Interaccion')))); Notify("Actualizando…", NotificationType.Information)
                   RadiusBottomLeft: =14
                   RadiusBottomRight: =14
                   RadiusTopLeft: =14
@@ -323,7 +323,7 @@ Screens:
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
                   Size: =gblT.fxs
-                  Text: ="Abre el estado del dispositivo. Tocá Actualizar para revisar toda tu cartera y quitar lo que ya no te corresponde."
+                  Text: ="Abre el estado del dispositivo. Ahí tocá «Buscar actualizaciones» (Check for updates) para revisar toda tu cartera y quitar lo que ya no te corresponde."
                   Visible: =Host.OfflineEnabled
             - lblCapTit:
                 Control: Label@2.5.1
@@ -465,7 +465,7 @@ Screens:
                         LayoutMinHeight: =16
                         LayoutMinWidth: =16
                         Size: =gblT.fxs
-                        Text: ="INT-/PAG- los asigna el servidor al sincronizar (por eso 'sin Nº aún') y que el conteo real y el forzado viven en el ícono de globo del player (Device Status); esta pantalla es el complemento"
+                        Text: ="El número de interacción (INT-) y de pago (PAG-) lo asigna el servidor cuando la captura se sube. Hasta entonces se ve «sin Nº aún»."
       - cmpSheet_7:
           Control: CanvasComponent
           ComponentName: cmpSheet
