@@ -26,8 +26,10 @@ def crear(s, cuerpo):
 
 # (prefijo, email, clientes [(n, nombre, dirección, teléfono)], cuentas [(cliente, n, tipo, nio, usd, mora, especial)])
 FIXTURES = [
-    ('QA-E2E-LOC', 'User5@', [('001', 'CLIENTE MOVIL', 'Del semáforo 2c al lago, Managua', '2222-1111')],
-     [('001', '0001', 1, 2350.75, 0, 45, None), ('001', '0002', 3, 0, 120.5, 95, (500, 'Retiro urgente — prueba app nativa'))]),
+    ('QA-E2E-LOC', 'User5@', [('001', 'CLIENTE MOVIL', 'Del semáforo 2c al lago, Managua', '2222-1111'),
+                              ('002', 'CLIENTE DOS', 'Bello Horizonte, de la rotonda 1c al sur', '2222-2222')],
+     [('001', '0001', 1, 2350.75, 0, 45, None), ('001', '0002', 3, 0, 120.5, 95, (500, 'Retiro urgente — prueba app nativa')),
+      ('002', '0003', 1, 980.00, 0, 15, None)]),
     ('QA-E2E-LOC6', 'User6@', [('001', 'MARIA QA LOPEZ', 'Barrio Monseñor Lezcano, de la iglesia 2c al sur', '8888-1111'),
                                ('002', 'JOSE QA MARTINEZ', 'Altamira, del BDF 1c abajo', '8888-2222')],
      [('001', '0001', 1, 1850.40, 0, 35, None), ('001', '0002', 2, 12500, 0, 190, None), ('002', '0003', 1, 0, 85.75, 20, None),
@@ -44,8 +46,11 @@ def borrar(pre):
 
 for pre, email, clientes, cuentas in FIXTURES:
     if BORRAR: borrar(pre); continue
-    existentes = get(f"{P}clientes?$select=sanic_cm_cl_cif&$filter=startswith(sanic_cm_cl_cif,'{pre}-CIF-')")['value']
-    if existentes: print(f'{pre}: ya existe ({len(existentes)} clientes); usar --borrar para recrear'); continue
+    # Idempotente por cliente: solo crea los clientes (y sus cuentas) que falten.
+    existentes = {x['sanic_cm_cl_cif'] for x in get(f"{P}clientes?$select=sanic_cm_cl_cif&$filter=startswith(sanic_cm_cl_cif,'{pre}-CIF-')")['value']}
+    clientes = [c for c in clientes if f'{pre}-CIF-{c[0]}' not in existentes]
+    cuentas = [c for c in cuentas if any(c[0] == x[0] for x in clientes)]
+    if not clientes: print(f'{pre}: completo ({len(existentes)} clientes); usar --borrar para recrear'); continue
     uid = get(f"systemusers?$select=systemuserid&$filter=startswith(internalemailaddress,'{email}')")['value'][0]['systemuserid']
     ag = get(f"{P}agentes?$select={P}agenteid,sanic_cm_ag_nombre&$filter=_sanic_cm_ag_usuarioid_value eq {uid}")['value'][0]
     prod = get(f"{P}productos?$select={P}productoid,sanic_cm_pr_tipo&$filter=sanic_cm_pr_codigo eq 'TC001'")['value'][0]
@@ -62,8 +67,9 @@ for pre, email, clientes, cuentas in FIXTURES:
     for cn, n, tipo, nio, usd, mora, esp in cuentas:
         pan = luhn('9999' + ''.join(random.choice('0123456789') for _ in range(11)))
         clave = hmac.new(K, pan.encode(), hashlib.sha256).hexdigest()
-        nombre = next(x[1] for x in clientes if x[0] == cn)
-        ct = crear('cuentas', {'sanic_cm_ct_numerodecuenta': f'{pre}-CTA-{n}', 'sanic_cm_ct_clavepan': clave, 'sanic_cm_ct_ultimos4': pan[-4:],
+        nombre = next(x[1] for x in clientes if x[0] == cn)  # solo cuentas de clientes nuevos
+        ct = crear('cuentas', {'sanic_cm_ct_numerodecuenta': '****' + pan[-4:],  # paso 8: el nombre principal va enmascarado
+                                'sanic_cm_ct_clavepan': clave, 'sanic_cm_ct_ultimos4': pan[-4:],
                                'sanic_cm_ct_nombrecliente': f'{pre} {nombre}', 'sanic_cm_ct_cifcliente': f'{pre}-CIF-{cn}',
                                'sanic_cm_ct_tipoproducto': prod['sanic_cm_pr_tipo'], 'sanic_cm_ct_saldovencidonio': nio,
                                'sanic_cm_ct_saldovencidousd': usd, 'sanic_cm_ct_diasmora': mora,
