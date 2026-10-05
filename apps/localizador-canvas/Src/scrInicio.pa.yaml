@@ -78,7 +78,7 @@ Screens:
                               AlignInContainer: =AlignInContainer.Start
                               DropShadow: =DropShadow.None
                               FillPortions: =0
-                              Height: =lblTitulo_1.Height + lblSub_1.Height
+                              Height: =lblTitulo_1.Height + lblSub_1.Height + 16
                               LayoutDirection: =LayoutDirection.Vertical
                               LayoutJustifyContent: =LayoutJustifyContent.SpaceBetween
                               LayoutMinHeight: =0

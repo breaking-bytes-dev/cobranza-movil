@@ -45,7 +45,7 @@ Screens:
                   AlignInContainer: =AlignInContainer.Start
                   DropShadow: =DropShadow.None
                   FillPortions: =0
-                  Height: =If(gblScale = 1, 120,gblScale = 1.2,130,gblScale = 1.45,150,170)
+                  Height: =Max(If(gblScale = 1, 120,gblScale = 1.2,130,gblScale = 1.45,150,170), Text1_1.Y + Text1_1.Height + 4 + btnVerPan_DC.Height + 6)
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
                   Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
@@ -125,7 +125,7 @@ Screens:
                         RadiusTopRight: =9
                         Size: =gblT.fxs
                         Text: =If(IsBlank(locPan), "Ver número", "Ocultar")
-                        Width: =If(gblScale = 1, 84,gblScale = 1.2,96,gblScale = 1.45,112,124)
+                        Width: =If(gblScale = 1, 84,gblScale = 1.2,100,gblScale = 1.45,124,144)
                         X: =Parent.Width - Self.Width - 14
                         Y: =Max(Parent.Height - Self.Height - 6, Text1_1.Y + Text1_1.Height + 4)
                   - tmrVerPan_DC:

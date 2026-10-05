@@ -54,7 +54,7 @@ Screens:
                   AlignInContainer: =AlignInContainer.Start
                   DropShadow: =DropShadow.None
                   FillPortions: =0
-                  Height: =If(gblScale = 1, 120,gblScale = 1.2,130,gblScale = 1.45,150,170)
+                  Height: =Max(If(gblScale = 1, 120,gblScale = 1.2,130,gblScale = 1.45,150,170), Text1_2.Y + Text1_2.Height + 4 + btnVerPan_IN.Height + 6)
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
                   Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
@@ -134,7 +134,7 @@ Screens:
                         RadiusTopRight: =9
                         Size: =gblT.fxs
                         Text: =If(IsBlank(locPan), "Ver número", "Ocultar")
-                        Width: =If(gblScale = 1, 84,gblScale = 1.2,96,gblScale = 1.45,112,124)
+                        Width: =If(gblScale = 1, 84,gblScale = 1.2,100,gblScale = 1.45,124,144)
                         X: =Parent.Width - Self.Width - 14
                         Y: =Max(Parent.Height - Self.Height - 6, Text1_2.Y + Text1_2.Height + 4)
                   - tmrVerPan_IN:
@@ -363,6 +363,7 @@ Screens:
                                   Variant: AutoLayout
                                   Properties:
                                     DropShadow: =DropShadow.None
+                                    FillPortions: =1
                                     LayoutDirection: =LayoutDirection.Vertical
                                     LayoutGap: =1
                                     LayoutMinHeight: =16
@@ -390,22 +391,7 @@ Screens:
                                           LayoutMinHeight: =16
                                           LayoutMinWidth: =16
                                           Size: =gblT.fxs
-                                          Text: =PanMasc(ThisItem.cta.sanic_cm_ct_ultimos4)
-                              - lblActBadge:
-                                  Control: ModernText@1.0.0
-                                  Properties:
-                                    Align: =Align.Center
-                                    Color: =gblC.accentInk
-                                    Fill: =gblC.accentBg
-                                    FontWeight: =FontWeight.Bold
-                                    RadiusBottomLeft: =12
-                                    RadiusBottomRight: =12
-                                    RadiusTopLeft: =12
-                                    RadiusTopRight: =12
-                                    Size: =gblT.f2xs
-                                    Text: ="ACTUAL"
-                                    Visible: =ThisItem.esActual
-                                    Width: =90
+                                          Text: =PanMasc(ThisItem.cta.sanic_cm_ct_ultimos4) & If(ThisItem.esActual, "  ·  ACTUAL", "")
                         - btnRow:
                             Control: ModernButton@1.0.0
                             Properties:
@@ -1028,14 +1014,13 @@ Screens:
                   BorderThickness: =1
                   Fill: =gblC.accentBg
                   FillPortions: =0
-                  Height: =lblGeoIco.Height + blGeoT.Height + Label8.Height + 28
+                  Height: =Max(lblGeoIco.Height, conGeoTxt.Height) + 24
                   LayoutAlignItems: =LayoutAlignItems.Center
                   LayoutDirection: =LayoutDirection.Horizontal
                   LayoutGap: =4
-                  LayoutJustifyContent: =LayoutJustifyContent.Center
+                  LayoutJustifyContent: =LayoutJustifyContent.Start
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
-                  LayoutWrap: =true
                   PaddingBottom: =12
                   PaddingLeft: =14
                   PaddingRight: =14
@@ -1061,17 +1046,17 @@ Screens:
                       Properties:
                         AlignInContainer: =AlignInContainer.Center
                         DropShadow: =DropShadow.None
-                        FillPortions: =0
+                        FillPortions: =1
                         Height: =blGeoT.Height + Label8.Height + 16
-                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutAlignItems: =LayoutAlignItems.Stretch
                         LayoutDirection: =LayoutDirection.Vertical
+                        LayoutJustifyContent: =LayoutJustifyContent.Center
                         LayoutMinHeight: =16
                         LayoutMinWidth: =16
                         PaddingBottom: =8
                         PaddingLeft: =8
                         PaddingRight: =8
                         PaddingTop: =8
-                        Width: =Parent.Width - 16
                       Children:
                         - blGeoT:
                             Control: Label@2.5.1
@@ -1083,7 +1068,6 @@ Screens:
                               LayoutMinWidth: =16
                               Size: =gblT.fbase
                               Text: ="Ubicación capturada"
-                              Width: =Parent.Width - 16
                         - Label8:
                             Control: Label@2.5.1
                             Properties:

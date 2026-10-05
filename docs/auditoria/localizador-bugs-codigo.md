@@ -447,3 +447,20 @@ Prueba en el Android del VPS con User5, con la app publicada después de la Fase
 | D-7 | En tamaño Máximo la insignia de tipo se partía ("Diari / a") y "Ver número" quedaba apretado | La insignia crece con la escala; "Ver número" va debajo de ella | Máximo: una línea, sin superposición |
 
 Además: la **sincronización completa** ("Check for updates") **borra del teléfono lo que el cobrador ya no debe ver**. Al cerrar una asignación, la bóveda, las cuentas y los clientes bajaron de 3→2, 3→2 y 2→1. La sincronización automática tardó más de 5 minutos en traer un cambio del servidor; "Check for updates" lo trajo al instante.
+
+## Parciales cerrados y verificados en el teléfono (2026-10-05)
+
+Antes de esta prueba, la app no abría: el perfil offline **autogenerado** se trabó ("failed to publish. Error: 0x80071151").
+Se reemplazó por el perfil personalizado "Cobranza Movil - Cobrador" (`scripts/pan/paso7_perfil_offline.py`, ver README de la app)
+y la app abrió al primer intento.
+
+| # | Verificación en el teléfono (User5) y en Dataverse |
+|---|---|
+| APP-12 | Se cambió una dirección en Dataverse → "Buscar actualizaciones" → la Cartera la mostró al volver (y la hora de actualización se movió) |
+| APP-13 | Con el filtro "4" (MOVIL y DOS visibles, TRES oculto), ↓ en MOVIL intercambió con DOS. Dataverse: DOS 1, TRES 2 (sin tocar), MOVIL 3 |
+| APP-23 | El orden viejo 2, 3, 4 (con hueco) se guardó como 1, 2, 3 al tocar ↻ |
+| APP-26 | "SALDO VENCIDO TOTAL", montos con centavos, "04/10/2026 23:22", "domingo 04 de octubre" |
+| APP-29 | Sincronización dice «pendiente de subir». Con señal, el guardado dice "Se sube en la próxima sincronización" (la app es offline-first); la interacción llegó una sola vez a Dataverse |
+| APP-31 | En **Máximo**: fecha del Inicio sin cortar la "g" (al contenedor le faltaban los 16 px de relleno); "Ver número" entra en el encabezado (el encabezado crece hasta contenerlo); tarjeta de ubicación en una fila; "ACTUAL" pasó a la línea del número ("•••• 3440 · ACTUAL") porque la pastilla al costado le quitaba el ancho al nombre del producto |
+
+Pendiente detectado: la tarjeta dice "Ubicación capturada" aunque el GPS no haya devuelto nada (", · automática"). Es **APP-11**, sigue abierto.
