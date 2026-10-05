@@ -28,11 +28,22 @@ async function abrir(browser, { usuario = 'user5', viewport = { width: 430, heig
   const t0 = Date.now();
   while (Date.now() - t0 < 150000) {
     for (const f of page.frames().filter(esRuntime)) {
-      try { if (await f.locator('[data-control-name="cmpNav_1"]').count()) { app._frame = f; await red.quieta(page, { quietoMs: 6000, maxMs: 60000 }); return app; } } catch (e) {}
+      try { if (await f.locator('[data-control-name="cmpNav_1"]').count()) { app._frame = f; await red.quieta(page, { quietoMs: 6000, maxMs: 60000 }); await cerrarAviso(page); return app; } } catch (e) {}
     }
     await page.waitForTimeout(1000);
   }
   throw new Error('La app del cobrador no terminó de cargar (no apareció cmpNav_1)');
+}
+
+// El player muestra arriba "This app is in a Developer environment", que tapa el encabezado (la píldora).
+async function cerrarAviso(page) {
+  for (const f of [page.mainFrame(), ...page.frames()]) {
+    try {
+      const b = f.locator('[role="alert"] button, [class*="MessageBar"] button, [class*="messageBar"] button').locator('visible=true').first();
+      if (await b.count()) { await b.click({ timeout: 2000 }); await page.waitForTimeout(800); return true; }
+    } catch (e) {}
+  }
+  return false;
 }
 
 async function foto(app, nombre) {

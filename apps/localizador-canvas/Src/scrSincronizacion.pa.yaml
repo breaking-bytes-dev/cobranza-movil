@@ -15,7 +15,7 @@ Screens:
                       + CountRows(Filter('CM | TBL | Pagos', IsBlank('[PG] Numero'))));
            // APP-20: capturas de hoy por la fecha de CAPTURA (la pone el teléfono; 'Created On' de un registro offline
            // lo pone el servidor al sincronizar, y comparar fecha y hora contra Today() solo matcheaba las 00:00).
-           Set(varCapHoy, Filter('CM | TBL | Interaccions', 'Fecha de captura' >= Today() && 'Fecha de captura' < DateAdd(Today(), 1)))
+           Set(varCapHoy, Sort(Filter('CM | TBL | Interaccions', 'Fecha de captura' >= Today() && 'Fecha de captura' < DateAdd(Today(), 1)), 'Fecha de captura', SortOrder.Descending))
     Children:
       - conMaster_6:
           Control: GroupContainer@1.5.0
@@ -343,12 +343,13 @@ Screens:
                 Variant: Vertical
                 Properties:
                   FillPortions: =0
-                  Height: =Self.AllItemsCount * 100
+                  Height: =Self.AllItemsCount * Self.TemplateHeight
                   Items: =varCapHoy
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
                   TemplatePadding: =
-                  TemplateSize: =100
+                  TemplateSize: =If(gblScale = 1, 100,gblScale = 1.2,116,gblScale = 1.45,136,156)
+                  Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
                 Children:
                   - conCapRow:
                       Control: GroupContainer@1.5.0
@@ -366,7 +367,7 @@ Screens:
                         PaddingLeft: =14
                         PaddingRight: =14
                         PaddingTop: =12
-                        Width: =Parent.TemplateWidth - 20
+                        Width: =scrSincronizacion.Width - 36
                         X: =10
                         Y: =10
                       Children:
@@ -375,8 +376,10 @@ Screens:
                             Variant: AutoLayout
                             Properties:
                               DropShadow: =DropShadow.None
-                              LayoutAlignItems: =LayoutAlignItems.Center
+                              FillPortions: =1
+                              LayoutAlignItems: =LayoutAlignItems.Stretch
                               LayoutDirection: =LayoutDirection.Vertical
+                              LayoutJustifyContent: =LayoutJustifyContent.Center
                               LayoutMinHeight: =16
                               LayoutMinWidth: =16
                               PaddingBottom: =8

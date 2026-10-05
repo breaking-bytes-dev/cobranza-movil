@@ -57,3 +57,18 @@ el perfil offline autogenerado con **0 tablas** (pasó el 2026-10-04). Verificar
 - `Radius*` solo en GroupContainer, NO en Label/Icon (PA2108)
 
 > Nota: `pac canvas pack` requiere `--overwrite` si el destino existe.
+
+## ⚠ Anchos dentro de contenedores con diseño automático
+Leer `.Width` de un control que está dentro de un contenedor auto-layout (también `Parent.Width` o `Parent.TemplateWidth`
+dentro de una galería) devuelve el ancho **dibujado en píxeles**, no en unidades de diseño. `App.Width` y `scrX.Width`
+sí devuelven unidades (640). Medido el 2026-10-05 con una etiqueta temporal en el web player: `App.Width=640`,
+`galCap.Width=419` (los px de la galería). Un hijo dimensionado así queda a ~63% del ancho (en el Android, ~387 de 640).
+- Para dimensionar contenido de una galería o de un contenedor manual: calcular desde la pantalla, por ejemplo
+  `Width: =scrSincronizacion.Width - 36`.
+- Para diagnosticar: etiqueta temporal con los valores y medir el DOM con Playwright (`getBoundingClientRect`).
+  No probar fórmulas a ciegas.
+
+## Validación en Studio
+`pac canvas pack` acepta YAML que Studio rechaza (por ejemplo, `AccessibleLabel` en `Classic/Button`): la app publicada
+queda que no abre en Studio. `paso7_desplegar.py` frena ante las propiedades prohibidas conocidas. Después de cada despliegue,
+revisar el App Checker; abrir Studio deja la app "modificada" (actualiza los controles modernos), pero no se publica nada desde ahí.

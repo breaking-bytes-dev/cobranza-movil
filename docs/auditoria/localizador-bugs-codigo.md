@@ -500,3 +500,21 @@ y sin las 9 advertencias de delegación de `scrCliente`.
 
 Pendiente de APP-25: los filtros de Cartera son etiquetas con `OnSelect` (no botones) y los botones clásicos no admiten etiqueta accesible.
 Pendiente de APP-30 y APP-05: confirmar en el teléfono (Atrás físico; pago creado offline visible en el historial).
+
+## Grupo teléfono: APP-05, 11, 14, 20 y 21 corregidos y verificados en el teléfono (2026-10-05)
+
+Prueba en el Android de User5 **sin acceso al servidor**: se quita la ruta por defecto dentro del contenedor
+(`docker exec redroid ip route del default via 172.17.0.1 dev eth0 table eth0`; se restaura con `ip route add …`).
+Android sigue creyendo que tiene red (es el caso real de "señal sin datos") y `adb` sigue vivo.
+
+| # | Corrección | Verificación |
+|---|---|---|
+| APP-05 | La app busca los pagos por la relación con la interacción. El plugin `CuentaDesdeInteraccion` 1.0.1.0 completa el N° de interacción del pago en el servidor (antes salía sin hacer nada porque el pago ya traía la cuenta). Relleno de los 5 pagos viejos sin número | Pago offline visible en el historial antes de subir ("💵 C$ 25.00 (rec. QA-OFF1)"). Al subir: pago con **IN-1074** = su interacción. Tests del plugin 133/133 en CI |
+| APP-11 | Latitud/longitud con precisión 6 (antes 2 ≈ 1 km) y rango geográfico; tarjeta ámbar "Sin ubicación: activá el GPS"; guardar sin GPS pide confirmación («Guardar sin ubicación»); el historial muestra "📍" con coordenadas solo si las hay | Sin GPS (este Android no tiene): aviso, confirmación y latitud vacía en Dataverse. **Falta**: probar con GPS real (teléfono del usuario) que se guarden 5-6 decimales |
+| APP-14 | `gblSync` a partir de `Connection.Sync` (sincronizado, sincronizando, pendiente, avisos, error, sin conexión), reactivo en la píldora y en Sincronización | Sincronizado → **Pendiente de subir** (con la captura offline) → Sincronizado al volver el servidor |
+| APP-20 | "Capturas de hoy" por fecha de captura (antes `Created On = Today()`: siempre vacía), de la más reciente a la más vieja. Filas a todo el ancho y con la hora (el ancho leído dentro de auto-layout está en px: ver README de la app) | Lista las del día; la offline como "pendiente de subir" y después "subida"; filas a todo el ancho en el navegador (406/419 px) y en el teléfono |
+| APP-21 | "Hoy" por fecha de captura y fecha del pago, que pone el teléfono; la app escribe la fecha del pago (antes nunca). Relleno de 7 pagos sin fecha | "Cobrado hoy" sumó el pago offline al instante (C$ 160 → 185). En el servidor: fecha del pago 19:23:29 (captura) aunque se creó a las 19:28:07 |
+
+Visto de paso: "Conexión: En línea" con la ruta cortada. Es `Connection.Connected` (red del dispositivo, no acceso al servidor); por eso la píldora usa `Connection.Sync`.
+
+APP-30 confirmado en el teléfono: tras alternar Inicio ↔ Cartera tres veces, **un** Atrás físico desde Inicio sale de la app (la barra ya no apila pantallas).
