@@ -808,3 +808,12 @@ Observación menor (no es bug): al buscar, la primera fila de `galCtaNva` / `gal
 ### 11.10 Corrección de B-20 (después de la corrida 4)
 
 `scrNuevaSolicitud`: el tipo de solicitud pasa a ser **obligatorio**. El aviso agrega "tipo" a "Falta: …" cuando `cmbTipoNva.Selected.Value` está vacío, y `btnEnviarNva.DisplayMode` exige `!IsBlank(cmbTipoNva.Selected.Value)`. Así `Notas` nunca se graba como `" — motivo"`. Se mantiene el combo estático porque funciona; lo que se cerró es el hueco de validación.
+
+## 12. Corrida 6 (2026-10-06): regresión de los cambios de servidor del 2026-10-05/06
+
+App probada: publicada 2026-10-06T02:21:56Z. Resultado: **47/47 PASÓ**, 0 fallidos, 0 bloqueados (`resultados/corrida-6`).
+
+Qué cubre de lo nuevo:
+- **F-03 y F-03c:** el Supervisor aprueba con el plugin `AprobacionEspecial` activo. El rol le llega por el equipo "CM · Supervisores · DEV" y el plugin lo reconoce. Después, el flow (con la compuerta S-6) pasa el owner al localizador.
+- **F-02e:** después de aprobar y cerrar, el Solicitante sigue viendo sus Especiales.
+- **F-04c:** la pantalla Agentes con el plugin `EmailDesdeUsuario` activo; abrirla no escribe nada.
