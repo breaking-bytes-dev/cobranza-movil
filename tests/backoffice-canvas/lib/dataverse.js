@@ -81,6 +81,17 @@ const dv = {
     catch (e) { if (e.status === 404) return 404; throw e; }
   },
   raw: req,
+  // Sube bytes a una columna de archivo (PATCH octet-stream + x-ms-file-name). Lo usa tests/integral para
+  // cargar el CSV en el job de Smelter (sanic_smlt_ij_sourcefile). `req` fuerza JSON, por eso va aparte.
+  subirArchivo: async (rel, buffer, nombreArchivo) => {
+    const r = await fetch(`${API}/${rel.replace(/^\//, '')}`, {
+      method: 'PATCH', body: buffer,
+      headers: { Authorization: `Bearer ${await getToken()}`, 'Content-Type': 'application/octet-stream',
+        'x-ms-file-name': nombreArchivo, 'OData-MaxVersion': '4.0', 'OData-Version': '4.0' },
+    });
+    if (!r.ok) { const e = new Error(`PATCH ${rel.slice(0, 120)} → ${r.status}: ${(await r.text()).slice(0, 300)}`); e.status = r.status; throw e; }
+    return r.status;
+  },
 };
 
 module.exports = dv;
