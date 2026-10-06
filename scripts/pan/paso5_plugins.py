@@ -9,7 +9,7 @@ REGLA DE PanGuard (paso 8 del plan):
   pasos se crean DESACTIVADOS. Un paso PanGuard que ya existe conserva su estado, salvo que se pida:
     --activar-panguard      activa los pasos PanGuard (paso 8)
     --desactivar-panguard   los desactiva (rollback)
-  Los pasos de ClaveDesdeCuenta, CuentaDesdeInteraccion, AprobacionEspecial y ActualizacionConInteraccion quedan activos.
+  Los pasos de ClaveDesdeCuenta, CuentaDesdeInteraccion, AprobacionEspecial, ActualizacionConInteraccion y EmailDesdeUsuario quedan activos.
 
 Credenciales: variables de entorno DATAVERSE_URL, PP_CLIENT_ID, PP_CLIENT_SECRET, PP_TENANT_ID (las mismas
 secrets del repo). En local, si faltan, se leen de pp_secrets.env (gitignored). Nunca se imprimen.
@@ -83,6 +83,13 @@ def definir_pasos():
             filtro=['sanic_cm_ad_interaccionid'] if mensaje == 'Update' else [],
             columnas=['sanic_cm_ad_interaccionid'], legacy=False, imagen=None,
             descripcion='APP-24: exige interaccion con cuenta'))
+    # EmailDesdeUsuario: el correo del agente es el UPN en minusculas del usuario vinculado (gblAgente de la app)
+    for mensaje in ('Create', 'Update'):
+        pasos.append(dict(
+            tipo=NS + 'EmailDesdeUsuario', mensaje=mensaje, entidad=P + 'agente', panguard=False,
+            filtro=['sanic_cm_ag_usuarioid'] if mensaje == 'Update' else [],
+            columnas=['sanic_cm_ag_usuarioid', 'sanic_cm_ag_emailusuario'], legacy=False, imagen=None,
+            descripcion='Correo del agente = UPN (minusculas) del usuario vinculado'))
     for p in pasos:
         p['nombre'] = '%s: %s of %s' % (p['tipo'], p['mensaje'], p['entidad'])
     return pasos
