@@ -15,6 +15,8 @@ namespace Sanic.CobranzaMovil.Plugins
         public const string Pago = "sanic_cm_tbl_pago";
         public const string ActualizacionDatos = "sanic_cm_tbl_actualizaciondatos";
         public const string Rol = "role";
+        public const string Agente = "sanic_cm_tbl_agente";
+        public const string Usuario = "systemuser";
 
         // Columnas de texto donde un PAN en claro esta prohibido (el valor valido es el enmascarado)
         public const string CuentaNumero = "sanic_cm_ct_numerodecuenta";
@@ -44,6 +46,11 @@ namespace Sanic.CobranzaMovil.Plugins
         public const int TipoEspecial = 3;          // sanic_choice_cm_tipoasignacion; tambien es el valor por defecto
         public const int AprobacionAprobado = 3;    // sanic_choice_cm_estadoaprobacionespecial
         public const int AprobacionRechazada = 4;
+
+        // Agente <-> usuario (app del cobrador: gblAgente busca por Lower(User().Email), que es el UPN)
+        public const string AgenteUsuario = "sanic_cm_ag_usuarioid";
+        public const string AgenteEmail = "sanic_cm_ag_emailusuario";
+        public const string UsuarioUpn = "domainname";
 
         // Roles de seguridad de CM: los de personas empiezan con este prefijo
         public const string PrefijoRolCm = "SR | CM | ";
