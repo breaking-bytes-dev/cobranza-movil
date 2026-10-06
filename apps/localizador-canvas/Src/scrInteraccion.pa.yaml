@@ -87,10 +87,10 @@ Screens:
                         FontWeight: =FontWeight.Bold
                         Height: =If(gblScale = 1, 30,gblScale = 1.2,34,gblScale = 1.45,40,46)
                         OnSelect: =Set(varSheetEscala, true)
-                        PaddingBottom: =7
-                        PaddingLeft: =11
-                        PaddingRight: =11
-                        PaddingTop: =7
+                        PaddingBottom: =0
+                        PaddingLeft: =0
+                        PaddingRight: =0
+                        PaddingTop: =0
                         RadiusBottomLeft: =9
                         RadiusBottomRight: =9
                         RadiusTopLeft: =9
@@ -659,6 +659,10 @@ Screens:
                                                 LayoutMinWidth: =16
                                                 OnSelect: |-
                                                   =Remove(colLineasPago, LookUp(colLineasPago, id = ThisItem.id)); UpdateContext({locConfirmaExceso: false})
+                                                PaddingBottom: =0
+                                                PaddingLeft: =0
+                                                PaddingRight: =0
+                                                PaddingTop: =0
                                                 RadiusBottomLeft: =8
                                                 RadiusBottomRight: =8
                                                 RadiusTopLeft: =8

@@ -153,10 +153,10 @@ Screens:
                                     LayoutMinHeight: =16
                                     LayoutMinWidth: =16
                                     OnSelect: =Set(varSheetEscala, true)
-                                    PaddingBottom: =7
-                                    PaddingLeft: =11
-                                    PaddingRight: =11
-                                    PaddingTop: =7
+                                    PaddingBottom: =0
+                                    PaddingLeft: =0
+                                    PaddingRight: =0
+                                    PaddingTop: =0
                                     RadiusBottomLeft: =9
                                     RadiusBottomRight: =9
                                     RadiusTopLeft: =9

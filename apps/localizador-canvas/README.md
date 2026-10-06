@@ -81,4 +81,6 @@ bloque `|-`.
 
 **Nombre accesible de un botón:** el `Classic/Button` se anuncia por su `Text` y no admite `AccessibleLabel`. Si el texto es solo
 un símbolo ("Aa", "↻", "✕"), usar `ModernButton@1.0.0` con `AccessibleLabel`. Un `Classic/Icon` que actúa como botón necesita
-`TabIndex: =0`; si no, el lector lo anuncia como imagen.
+`TabIndex: =0`; si no, el lector lo anuncia como imagen. Al pasar de clásico a moderno, el padding pesa distinto: en el
+moderno son px reales (`7px 11px` en un botón de 33,6 px dejaba 11,6 px y "Aa" se veía "A"; el "✕" de 42 de ancho quedaba vacío).
+En botones chicos de un símbolo, padding 0.
