@@ -82,6 +82,30 @@ Revisé por mi cuenta, fuera de los agentes, las afirmaciones más graves:
 | 1 · Exposición (S-1, S-2, S-8) | ✅ en DEV | [scripts/seguridad](../../scripts/seguridad/README.md): cascadas cortadas, auditoría transaccional, el flow comparte y revoca, backfill de 282 compartidos, Localizador en lectura Basic. Teléfono de User5 con primera sincronización limpia: 2 cuentas en vez de 1.004, y tarjetas completas (también resuelve F-1 para cobradores). Pendiente: los teléfonos que ya tenían el padrón lo conservan hasta reiniciarlos (ver README). 2026-10-05: perfil offline propio con asignaciones activas e historial de 90 días |
 | 4 · Integridad: S-6 | ✅ en DEV | Plugin `AprobacionEspecial` (solo Supervisor/Admin aprueban, rechazan o asignan agente a una Especial; la carga de Smelter, sin roles de CM, no se frena), flow que no comparte una Especial sin aprobar y app que no la muestra. Ver [localizador-bugs-codigo.md](localizador-bugs-codigo.md#cierre-app-25-24-16-08s-6-y-s-1-2026-10-05) |
 
+## Estado verificado y recomendaciones de seguridad (2026-10-06)
+
+Revisado contra DEV el 2026-10-06 con consultas a la API: privilegios de los roles, auditoría por tabla, configuración de
+trazas y definición del flow.
+
+| # | Estado en DEV | Qué queda y por qué importa | Recomendación |
+|---|---|---|---|
+| S-1 | ✅ Cerrado | — | Perfil offline propio: solo lo legible por el cobrador, asignaciones activas y 90 días de historial |
+| S-2 | ✅ Cerrado (Localizador) | Solicitante y Supervisor leen todas las cuentas y clientes (Global): lo necesitan para buscar cualquier cuenta al crear y aprobar Especiales. **Decisión de diseño**, no hueco | Mantener; revisarlo si cambia el proceso |
+| S-3 | ❌ Abierto (tenant) | Los datos offline quedan en el teléfono hasta desinstalar: sin borrado remoto, PIN ni cifrado exigido | Intune/MAM + Conditional Access en Entra antes de PROD. Lo hace un administrador del tenant |
+| S-4 | ❌ Abierto | **Todos los roles CM pueden crear flows** (verificado): un flow puede copiar lo que el usuario lee a su OneDrive o correo sin que se note. Los roles CM no dan "Exportar a Excel", pero los usuarios tienen otros roles ("Basic User") que pueden darlo. DLP no verificable con la cuenta de servicio | Quitar `prvCreateWorkflow` a los roles CM operativos; revisar la exportación en **todos** los roles de cada usuario; política DLP del entorno |
+| S-5 | ✅ Cerrado | — | Fase 2 de PAN: el número completo solo vive en la bóveda |
+| S-6 | ✅ Cerrado | — | Plugin `AprobacionEspecial` + compuerta del flow + filtro de la app |
+| S-7 | ❌ Abierto | El flow corre con la **cuenta personal** de su dueño (con permisos de administrador): si esa cuenta cambia, se cae la asignación de Especiales. Además da **lectura, escritura y vínculo** a quien figure en "Solicitado por", un campo que editan Solicitante, Supervisor y Localizador: se puede regalar acceso a un tercero | **Prioridad 1.** Identidad de servicio (SP con rol "Servicio - Cobranza") y compartir con `createdby` (no editable) en lugar de "Solicitado por" |
+| S-8 | ✅ Cerrado | — | Auditoría activa en asignación, interacción, pago y agente |
+| S-9 | ❌ Abierto | El cobrador tiene **escritura sobre sus interacciones y pagos** y puede **reasignar pagos** (verificado): puede cambiar un monto, la fecha o el GPS después de grabar | **Prioridad 2.** Que el rol cree pero no edite, o un plugin que bloquee los campos clave después de grabar. Diseñarlo con la sincronización offline en mente (también actualiza registros) |
+| S-10 | ⚠️ Sin re-verificar | En la auditoría, la app del cobrador estaba compartida con User1 (BackOffice y agente de 66 asignaciones) y User9 (sin rol CM). Ver los compartidos requiere la API de administración de Power Apps | Compartir la app solo con el equipo "CM · Localizadores" |
+| S-11 | ❌ Abierto (mitigado) | El Supervisor escribe **cualquier columna de cualquier asignación** (Global). Desde S-6 lo que aprueba queda controlado, pero puede tocar cuenta, saldo, orden y tipo | Seguridad de columna sobre lo que no le corresponde |
+| S-12 | ❌ Abierto (tenant) | El entorno no es Managed, no tiene grupo de seguridad ni restricción por IP, y tiene 15 System Administrators | Centro de administración de Power Platform antes de PROD |
+| S-13 | ❌ Abierto | Trazas de plugins en "All" (`plugintracelogsetting = 2`) y **todos los roles CM las pueden leer**. Nuestros plugins nunca trazan valores; los de otras soluciones del entorno, no se sabe | Trazas en "Exception" en PROD y quitar `prvReadPluginTraceLog` a los roles operativos |
+
+**Orden recomendado:** S-7 (además de riesgo, es un punto de falla operativo), S-9 (toca la plata), S-4. S-3, S-10 y S-12
+hay que pedírselos al administrador del tenant antes de PROD.
+
 ## Orden de corrección propuesto
 
 1. **Línea base (Q-1):** desempaquetar la versión publicada al repo y commitearla. Sin esto cualquier corrección pisa el multi-producto.
