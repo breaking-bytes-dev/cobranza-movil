@@ -1,7 +1,9 @@
 // Pruebas web (Playwright, User5, DEV) de los hallazgos del cobrador que NO necesitan el teléfono:
 // APP-07, 08, 15, 16, 17, 18, 19, 24, 25, 27, 30 (parcial), 32, formato numérico y la vista de pagos de APP-05.
 // El web player corre la app EN LÍNEA: lo offline (sincronización, N° de interacción vacío) se verifica en el teléfono.
-// Datos: solo las carteras QA-E2E-LOC de User5. Crea 1 interacción QA (APP-27). Nunca imprime números de tarjeta.
+// Datos: solo las carteras QA-E2E-LOC de User5. Crea 3 interacciones QA (2 datos del día y la de APP-27) y las borra al final. Datos fijos: el pago
+// QA-R1 (IN-1065, APP-05 vista), la Especial aprobada AS-2077 (APP-07) y la Especial en Borrador AS-2134 (APP-08).
+// Nunca imprime números de tarjeta.
 // Uso: NODE_PATH=../backoffice-canvas/node_modules node grupo2.js
 const a = require('./lib/app');
 const dv = require('../backoffice-canvas/lib/dataverse.js');
@@ -22,7 +24,27 @@ async function color(app, c, sel = '') {
 async function valor(app, c) { return (await a.visible(app, c)).locator('input,textarea').first().inputValue(); }
 async function hoyManagua() { const d = new Date(Date.now() - 6 * 3600e3); return d.toISOString().slice(0, 10) + 'T06:00:00Z'; }
 
+// Datos del día: Inicio solo lista clientes y cuentas con interacciones de HOY. La suite crea las suyas (como User5, en las
+// cuentas 7113 y 5498) antes de abrir la app y las borra al final; no depende de lo que hayan dejado otras corridas.
+const creadas = [];
+async function datoDelDia() {
+  const ag = (await dv.get(`sanic_cm_tbl_agentes?$select=sanic_cm_tbl_agenteid&$filter=_sanic_cm_ag_usuarioid_value eq ${USER5}`)).value[0].sanic_cm_tbl_agenteid;
+  // AS-2129: cuenta 7113 (Diaria, CLIENTE TRES). AS-2077: cuenta 5498 (Especial aprobada, solo dólares, CLIENTE MOVIL).
+  for (const asig of ['AS-2129', 'AS-2077']) {
+    const cta = (await dv.get(`sanic_cm_tbl_asignacions?$select=_sanic_cm_as_cuentaid_value&$filter=sanic_cm_as_numero eq '${asig}'`)).value[0]._sanic_cm_as_cuentaid_value;
+    const r = await dv.raw('POST', 'sanic_cm_tbl_interaccions', {
+      sanic_cm_in_comentario: 'QA web dato del día', sanic_cm_in_fechacaptura: new Date().toISOString(),
+      'sanic_cm_in_cuentaid@odata.bind': `/sanic_cm_tbl_cuentas(${cta})`, 'sanic_cm_in_agente@odata.bind': `/sanic_cm_tbl_agentes(${ag})`,
+    }, { MSCRMCallerID: USER5, Prefer: 'return=representation' });
+    creadas.push(r.json.sanic_cm_tbl_interaccionid);
+  }
+}
+async function limpiar() {
+  for (const id of creadas.splice(0)) console.log('   limpieza: interacción QA borrada →', await dv.del('sanic_cm_tbl_interaccions', id));
+}
+
 (async () => {
+  await datoDelDia();
   const b = await a.lanzar(); const app = await a.abrir(b);
   const t0 = new Date().toISOString();
 
@@ -133,12 +155,19 @@ async function hoyManagua() { const d = new Date(Date.now() - 6 * 3600e3); retur
   // ---- APP-27: el agente se resuelve con la fórmula con nombre (crea 1 interacción QA) ----
   await a.escribir(app, 'txtComentario', 'QA web APP-27 agente', { tab: true });
   await a.tocar(app, 'btnRegistrar_1', { esperaMs: 6000 });
-  const nueva = (await dv.getAll(`sanic_cm_tbl_interaccions?$select=_sanic_cm_in_agente_value,sanic_cm_in_nombreagente&$filter=_createdby_value eq ${USER5} and createdon ge ${t0} and sanic_cm_in_comentario eq 'QA web APP-27 agente'`));
+  const nueva = (await dv.getAll(`sanic_cm_tbl_interaccions?$select=sanic_cm_tbl_interaccionid,_sanic_cm_in_agente_value,sanic_cm_in_nombreagente&$filter=_createdby_value eq ${USER5} and createdon ge ${t0} and sanic_cm_in_comentario eq 'QA web APP-27 agente'`));
   ok('APP-27', nueva.length === 1 && nueva[0]._sanic_cm_in_agente_value && nueva[0].sanic_cm_in_nombreagente !== 'Sin nombre',
      `interacciones creadas: ${nueva.length}; agente ${nueva[0]?._sanic_cm_in_agente_value ? 'vinculado' : 'VACÍO'}; nombre "${nueva[0]?.sanic_cm_in_nombreagente}"`);
+
+  // Limpieza: el dato del día y la interacción de APP-27 (sin pagos ni actualización de datos) no se acumulan.
+  creadas.push(...nueva.map(n => n.sanic_cm_tbl_interaccionid));
+  await limpiar();
 
   console.log(`\n${res.filter(r => r.ok).length}/${res.length} OK`);
   require('fs').writeFileSync(require('path').join(__dirname, 'resultados', 'grupo2.json'), JSON.stringify(res, null, 2));
   await a.cerrar(app); await b.close();
   process.exit(res.every(r => r.ok) ? 0 : 1);
-})().catch(e => { console.log('ERR', e.message); process.exit(2); });
+})().catch(async e => {
+  console.log('ERR', e.message, '| último chequeo:', res.length ? res[res.length - 1].id : '(ninguno)');
+  await limpiar().catch(() => {}); process.exit(2);
+});
