@@ -806,7 +806,7 @@ Screens:
                           ="Abrir cuenta de " & ThisItem.cliNom
                         Appearance: =ButtonAppearance.Transparent
                         Height: =Parent.TemplateHeight
-                        OnSelect: =Set(varCuenta, ThisItem.ctaRec); Set(varDetTab,"inter"); Set(varDetSrc,"inicio"); Navigate(scrDetalleCuenta, ScreenTransition.Cover)
+                        OnSelect: =Set(varAsig, Blank()); Set(varCuenta, ThisItem.ctaRec); Set(varDetTab,"inter"); Set(varDetSrc,"inicio"); Navigate(scrDetalleCuenta, ScreenTransition.Cover)
                         Text: =
                         Width: =Parent.TemplateWidth
       - cmpSheet_1:

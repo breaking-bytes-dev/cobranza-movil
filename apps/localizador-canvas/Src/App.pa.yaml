@@ -22,7 +22,9 @@ App:
          With({ i: Find(" — ", Coalesce(notas, "")) },
             If(IsBlank(i), Coalesce(notas, ""), Trim(Mid(notas, i + 3))));
       // APP-27: el agente es una fórmula con nombre: se recalcula sola cuando llegan los datos (el OnStart no bloquea).
-      gblAgente = LookUp('CM | TBL | Agentes', 'Email Usuario' = User().Email);
+      // User().Email es el UPN; el correo del agente lo deriva el servidor del usuario vinculado, en minúsculas
+      // (plugin EmailDesdeUsuario). Comparar en minúsculas: offline la comparación la hace la base local del teléfono.
+      gblAgente = LookUp('CM | TBL | Agentes', 'Email Usuario' = Lower(User().Email));
       // APP-14: estado de sincronización del dispositivo. Es una señal: se recalcula sola. En el navegador no hay
       // sincronización (Connection.Sync vacío): ahí solo se distingue con o sin conexión.
       gblSync = If(IsBlank(Connection.Sync), If(Connection.Connected, "ok", "off"),
@@ -102,11 +104,15 @@ App:
           fmd: 15*gblScale,   flg: 17*gblScale,  fxl: 23*gblScale,   fbig: 24*gblScale
       });
 
-      // ===================== COLECCIONES BASE (carga simple y rápida — el scoping lo hace el PERFIL OFFLINE) =====================
+      // ===================== COLECCIONES BASE =====================
+      // APP-01: el recorte lo hace la seguridad por fila (el cobrador lee solo lo compartido con él: hoy, 67 cuentas como
+      // máximo) y el perfil offline. Un ClearCollect trae como mucho el "límite de filas" de la app (2000): si alguna
+      // colección llega al tope, faltan datos y se avisa en lugar de mostrar una cartera incompleta sin decir nada.
       ClearCollect(colCuentas, 'CM | TBL | Cuentas');
-      // Direcciones Casa+Trabajo con Filter DELEGABLE (el server trae todas las que matchean, sin tope 500)
       ClearCollect(colDirecciones, Filter('CM | TBL | Direccions', '[DR] Tipo' = "Casa" || '[DR] Tipo' = "Trabajo"));
       ClearCollect(colTelefonos, 'CM | TBL | Telefonos');
+      If(Max(CountRows(colCuentas), CountRows(colDirecciones), CountRows(colTelefonos)) >= 2000,
+          Notify("Tu cartera supera el límite de 2000 filas y puede faltar información. Avisá a soporte.", NotificationType.Error));
 
       // ===================== ESTADO DE NAVEGACIÓN =====================
       Set(varModo, "cliente");      // Cartera: "cliente" o "cuenta"

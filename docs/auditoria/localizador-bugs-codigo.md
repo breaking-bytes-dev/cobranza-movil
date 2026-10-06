@@ -538,3 +538,19 @@ Decisiones del dueño del producto (2026-10-05):
 | S-1 (teléfono) | — | Con el perfil nuevo la app abre, sincroniza y avisa "This app may now be used without an internet connection" |
 
 Tropiezo: el primer despliegue llevaba `AccessibleLabel: ="Estado de sincronización: " & …` en una sola línea. El YAML no parseaba, Studio no abría la app y el player seguía sirviendo la versión anterior, sin avisar. Desde ahora `paso7_desplegar.py` valida el YAML con `yaml.compose` antes de empaquetar.
+
+## Cierre de los abiertos (2026-10-06)
+
+| # | Corrección | Verificación |
+|---|---|---|
+| Agentes | `gblAgente` compara con `Lower(User().Email)`. `User().Email` devuelve el **UPN, no el SMTP** (documentado por Microsoft), y el backoffice guardaba `Lower('Primary Email')`: si el UPN y el correo difieren, el cobrador queda sin agente. Plugin `EmailDesdeUsuario` (1.0.3.0; Create y Update del agente, filtrado por usuario): el correo es siempre el UPN del usuario vinculado, en minúsculas; desvincular lo vacía; un Create sin usuario (la carga de Smelter) no se toca | Tests 7/7 (CI 169/169). Los 4 agentes vinculados quedaron con el UPN en minúsculas (2 cambiaron). Los otros 16 agentes no tienen correo **ni usuario**: los creó la carga y todavía no están dados de alta, así que no es un error de la app |
+| APP-01 | Las colecciones maestras siguen leyendo la tabla, pero el recorte lo hacen la seguridad por fila y el perfil offline: un cobrador lee solo lo compartido con él (el que más tiene en DEV, 67 asignaciones activas). El límite de filas de la app pasa de 500 a 2000 (el máximo), y si alguna colección llega al tope la app avisa en lugar de mostrar una cartera incompleta sin decir nada | Ver la fila de verificación de la app más abajo |
+| APP-03 | Ya estaba corregido en código: la interacción guarda `'[IN] Cuenta'` y `'[IN] Agente'` (`scrInteraccion.pa.yaml:1214-1215`, `1268-1269`) | Todas las interacciones de User5 desde el 2026-10-04 tienen agente, también las offline (IN-1049, IN-1074) |
+| APP-06 | Ya estaba corregido en código: el Pedido Especial se lee de la asignación (`locEsp`: `Notas`, `Retiro NIO/USD`) | APP-07 en `grupo2.js`: la Especial se ve como "Especial" con sus datos |
+| APP-22 | Ya estaba corregido en código: el buscador arranca vacío (`Default: =""`) y muestra "Buscar cliente o cuenta…" solo como texto de ayuda | Visto en el teléfono (Cartera) |
+| APP-33 | Proceso: el repo refleja lo publicado desde la línea base (`49275f0`, `0f4d491`), y cada despliegue sale del repo (`paso7_desplegar.py`) | — |
+| APP-07 (regresión) | Al abrir el Detalle desde Inicio, el rótulo del tipo mostraba unos **4,5 s** el de la cuenta anterior ("Especial" en una Diaria): la consulta tarda más con el filtro de aprobación y el límite de 2000. Ahora `varAsig` se vacía **antes** de navegar, y el rótulo muestra "…" en color neutro mientras carga | Medido cada 0,5 s antes del cambio ("Especial" hasta los 4500 ms). Después: `grupo2.js` ya no ve en ningún momento el tipo de la cuenta anterior |
+| Botones de un símbolo | Padding 0 en "Aa", "↻" y "✕": el botón moderno aplica el padding en px (con `7px 11px` en 33,6 px de ancho, "Aa" se veía "A" y el "✕" quedaba vacío) | Teléfono: "Aa" y "↻" completos; el "✕" se ve y quita la línea |
+| Verificación de la app | — | App Checker sin errores; web 23/23; conciliación 286/0. En el teléfono, una captura **sin servidor** (IN-1080, capturada 02:37:09, subida 02:38:22) llegó con agente y cuenta: la comparación en minúsculas funciona offline |
+
+Sigue pendiente APP-11 con GPS real: hace falta el teléfono del usuario (el Android de pruebas no tiene GPS).

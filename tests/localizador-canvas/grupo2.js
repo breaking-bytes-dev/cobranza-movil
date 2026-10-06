@@ -86,8 +86,11 @@ async function hoyManagua() { const d = new Date(Date.now() - 6 * 3600e3); retur
   ok('APP-30', (await a.pantalla(app)) === 'scrInicio', 'Cartera → barra "Inicio" vuelve al Inicio (ahora con Back(), sin apilar)');
   await a.tocar(app, 'btnModoCta');
   await clicTexto(app, '7113');
-  const tipoDia = await txt(app, 'Text1_1');
-  ok('APP-07', tipoEsp === 'Especial' && tipoDia === 'Diaria', `desde Cliente: "${tipoEsp}" · después, desde Inicio, otra cuenta: "${tipoDia}" (antes quedaba el tipo de la anterior)`);
+  // Mientras carga la asignación el rótulo dice "…" (antes mostraba unos segundos el tipo de la cuenta anterior).
+  let tipoDia = '', vioViejo = false;
+  for (let i = 0; i < 30; i++) { tipoDia = await txt(app, 'Text1_1'); if (tipoDia === 'Especial') vioViejo = true; if (tipoDia && tipoDia !== '…' && tipoDia !== 'Especial') break; await a.esperar(app, 500); }
+  ok('APP-07', tipoEsp === 'Especial' && tipoDia === 'Diaria' && !vioViejo,
+     `desde Cliente: "${tipoEsp}" · después, desde Inicio, otra cuenta: "${tipoDia}"${vioViejo ? ' (pero mostró un rato "Especial", el tipo de la anterior)' : ' sin mostrar el tipo de la anterior'}`);
   const cDet = await color(app, 'Button6_3');
   ok('APP-17 det', cDet === 'rgb(255, 255, 255)', `Detalle abierto desde Inicio arranca en "Interacciones" (texto ${cDet})`);
 

@@ -92,15 +92,15 @@ Screens:
                       Properties:
                         Align: =Align.Center
                         AutoHeight: =true
-                        Color: =Switch(Text(varAsig.'[AS] Tipo'), "Diaria",gblC.diariaInk, "Incobrable",gblC.incobInk, gblC.espInk)
-                        Fill: =Switch(Text(varAsig.'[AS] Tipo'), "Diaria",gblC.diariaBg, "Incobrable",gblC.incobBg, gblC.espBg)
+                        Color: =Switch(Text(varAsig.'[AS] Tipo'), "Diaria",gblC.diariaInk, "Incobrable",gblC.incobInk, "Especial",gblC.espInk, gblC.muted)
+                        Fill: =Switch(Text(varAsig.'[AS] Tipo'), "Diaria",gblC.diariaBg, "Incobrable",gblC.incobBg, "Especial",gblC.espBg, gblC.borderSoft)
                         FontWeight: =FontWeight.Bold
                         RadiusBottomLeft: =10
                         RadiusBottomRight: =10
                         RadiusTopLeft: =10
                         RadiusTopRight: =10
                         Size: =gblT.fxs
-                        Text: =varAsig.'[AS] Tipo'
+                        Text: =Coalesce(Text(varAsig.'[AS] Tipo'), "…")
                         Width: =If(gblScale = 1, 80,gblScale = 1.2,96,gblScale = 1.45,118,136)
                         X: =Parent.Width - 18  - Self.Width
                         Y: =Button1_4.Y + Button1_4.Height + 20
