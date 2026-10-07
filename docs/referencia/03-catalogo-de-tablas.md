@@ -1,163 +1,391 @@
 # Catálogo de Tablas — Definición, Lifecycle y Borrado
 
-> Referencia **única y consolidada** de cada tabla: definición, campos y tipos, llaves, import, ciclo de
-> vida, cómo borrar y consideraciones al borrar. Se construye **tabla por tabla**.
+> Referencia **única y consolidada** de cada tabla de la solución `cm_core_cobranzamovil`: definición, campos y tipos,
+> llaves, relaciones y cascadas, import, ciclo de vida, cómo borrar y consideraciones al borrar.
 >
-> Reúne lo que estaba repartido entre los componentes (`componentes/`), la config de import
-> (`02-import-configuracion.md`, `cobranza-import-config.md`) y las decisiones (`decisiones/`).
+> **Última actualización: 2026-10-06.** Los campos, llaves, cascadas, pasos de plugin, privilegios, perfil offline y la
+> plantilla de Smelter se **verificaron en vivo contra DEV** con consultas de solo lectura (`EntityDefinitions`,
+> `sdkmessageprocessingsteps`, `RetrieveRolePrivilegesRole`, `mobileofflineprofileitems`, `sanic_tbl_smlt_*`).
+> **Cuando la metadata y un documento discrepan, manda la metadata**, y la discrepancia queda anotada (§D).
+>
+> Fuentes cruzadas: `docs/auditoria/ciclo-de-vida-de-los-datos.md` (2026-10-06), `contrato-de-datos.md`,
+> `fase2-pan-diseno.md`, `00-lista-consolidada.md`, `docs/guias/16-guia-por-rol.md`, `scripts/pan/*`,
+> `scripts/seguridad/*`, `plugins/`. El detalle histórico de diseño sigue en `componentes/` y `decisiones/`.
 
-## Convenciones de borrado (modelo, DEC-023)
+**Cómo leer las columnas "Req."** `Sí` = `ApplicationRequired` en la metadata: lo exigen las apps y formularios, **el
+servidor no lo hace cumplir** (DAT-13); `—` = opcional. Los montos son `Decimal`, no `Money`. Todas las tablas son
+**de propiedad de usuario** (`UserOwned`). No se listan las columnas auxiliares `*name` / `*yominame` de los lookups.
 
-- **`Cascade`** en la cadena de **datos/contacto** (`cliente → direccion/telefono/cuenta`): borrar el padre
-  borra sus datos.
-- **`Restrict`** en el **límite de la historia operativa** (`cuenta → interaccion` y aguas abajo): si hay
-  cobranza registrada, **bloquea** el borrado (y detiene la cascada).
-- **Efecto neto:** *"se borra el cliente y toda su data, salvo que haya interacciones; ahí se bloquea todo".*
-- Borrado de rutina: **no existe** (no hay política). Fin de vida normal = **soft-deactivate**.
+## Convenciones de borrado (modelo, DEC-023, y estado real verificado)
+
+**Intención de diseño (DEC-023):**
+
+- **`Cascade`** en la cadena de **datos/contacto** (`cliente → direccion/telefono/cuenta`): borrar el padre borra sus datos.
+- **`Restrict`** en el **límite de la historia operativa** (`cuenta → interaccion` y aguas abajo): si hay cobranza
+  registrada, **bloquea** el borrado y detiene la cascada.
+- Efecto buscado: *"se borra el cliente y toda su data, salvo que haya interacciones; ahí se bloquea todo"*.
+
+**Estado real en DEV (2026-10-06, `OneToManyRelationships.CascadeConfiguration`):**
+
+- `Cascade` de borrado: `cliente → direccion / telefono / cuenta / cargadiaria`, `cuenta → asignacion / cuentapan`,
+  `interaccion → pago / actualizaciondatos`.
+- `Restrict` de borrado: **solo** los padres de catálogo → hijo: `agente → cuenta / asignacion / interaccion / cargadiaria`,
+  `producto → cuenta`, `fiador → cuenta`.
+- `RemoveLink` (borra el padre y deja el hijo con el lookup vacío): `cuenta → interaccion`, `cuenta → pago`,
+  `cuenta → cargadiaria`, y `systemuser → agente / asignacion (resolutor, solicitado por) / interaccion (grabado por) / usuarioapp`.
+- **El candado `cuenta → interaccion = Restrict` NO existe.** El catálogo anterior lo daba por "confirmado" y es falso:
+  la metadata dice `RemoveLink`. Borrar una cuenta (o un cliente, que cascadea a sus cuentas) **no se bloquea** por tener
+  interacciones: estas y sus pagos sobreviven **sin cuenta**. El comportamiento en ejecución **no se probó** (DEV es de
+  solo lectura para esta revisión): es lectura de metadata.
+- **Borrado de rutina: no existe** (no hay política ni job). Fin de vida normal = **cierre lógico**: asignación
+  `Cerrada`, agente `Activo = No`, interacción `Grabado`; el histórico (carga diaria, pagos) se acumula.
+- **Quién puede borrar:** solo el rol `SR | CM | Admin` (`Delete: Global`) y solo por la API; ninguna app borra
+  (`ciclo-de-vida-de-los-datos.md`, "idea central"; no se recorrieron las apps para re-verificarlo). Los scripts de QA y de migración borran con ese rol. Smelter **nunca** borra
+  (todas sus tablas son upsert: `createifnotexists` y `updateifexists` en `true`, sin mapeos de borrado).
+- **Retención de `cargadiaria` (DEC-019): no implementada.** En DEV no hay ningún job de Bulk Deletion sobre ella (los
+  12 jobs recurrentes existentes son de plataforma y de otras soluciones). La tabla solo crece.
+
+---
+
+## A. Panorama de las 14 tablas
+
+| # | Tabla | Nombre mostrado | Nombre principal | Auditoría de tabla | Perfil offline | Filas en DEV | Origen de las filas |
+|---|-------|-----------------|------------------|:--:|:--:|-----:|---------------------|
+| 1 | `sanic_cm_tbl_cliente` | CM \| TBL \| Cliente | `cl_nombre` | Sí | Sí | 963 | Smelter; Admin (Maestros) |
+| 2 | `sanic_cm_tbl_direccion` | CM \| TBL \| Direccion | `dr_direccion` | Sí | Sí | 2701 | Smelter; Admin agrega |
+| 3 | `sanic_cm_tbl_telefono` | CM \| TBL \| Telefono | `tl_numero` | Sí | Sí | 1063 | Smelter; Admin agrega |
+| 4 | `sanic_cm_tbl_producto` | CM \| TBL \| Producto | `pr_codigo` | **No** | No | 7 | Smelter |
+| 5 | `sanic_cm_tbl_agente` | CM \| TBL \| Agente | `ag_nombre` | Sí | Sí | 20 | Smelter (nombre); Admin (usuario, activo) |
+| 6 | `sanic_cm_tbl_fiador` | CM \| TBL \| Fiador | `fi_nombre` | **No** | No | 2785 | Smelter |
+| 7 | `sanic_cm_tbl_cuenta` | CM \| TBL \| Cuenta | `ct_numerodecuenta` (enmascarado) | Sí | Sí | 1010 | Solo Smelter |
+| 8 | `sanic_cm_tbl_cargadiaria` | CM \| TBL \| Carga diaria | `cd_numerocuenta` (enmascarado) | Sí | No | 1000 | Solo Smelter |
+| 9 | `sanic_cm_tbl_interaccion` | CM \| TBL \| Interaccion | `in_numerointeraccion` | Sí | Sí | 10 | App del cobrador |
+| 10 | `sanic_cm_tbl_pago` | CM \| TBL \| Pago | `pg_numero` | Sí | Sí | 5 | App del cobrador |
+| 11 | `sanic_cm_tbl_asignacion` | CM \| TBL \| Asignacion | `as_numero` | Sí | Sí | 1011 | Smelter; Solicitante; Supervisor/Admin cierran y reasignan |
+| 12 | `sanic_cm_tbl_actualizaciondatos` | CM \| TBL \| Actualizacion de dato | `ad_numero` | Sí | Sí | 2 | App del cobrador |
+| 13 | `sanic_cm_tbl_cuentapan` | CM \| TBL \| PAN de cuenta (**nueva**, bóveda) | `cp_name` (enmascarado) | Sí | Sí | 1010 | Solo Smelter |
+| 14 | `sanic_cm_tbl_usuarioapp` | CM \| TBL \| Usuario App | `ua_nombre` | **No** | No | 0 | Nadie (huérfana) |
+
+Notas:
+- Filas de DEV al 2026-10-06 (`$count`, solo orden de magnitud: son datos ficticios y de QA). `fiador` tiene más filas que `cuenta`
+  (2785 contra 1010): origen **no confirmado**.
+- "Perfil offline" = lista de las 10 tablas del perfil `Cobranza Movil - Cobrador` (§C.5). Todas las tablas tienen `ChangeTracking`
+  activo salvo `cargadiaria` y `usuarioapp`.
+- La numeración 1 a 12 se conserva respecto del catálogo anterior; `cuentapan` y `usuarioapp` se agregan al final como 13 y 14.
+
+## B. Relaciones y cascadas (verificado 2026-10-06)
+
+Cada fila es una relación 1:N real (`OneToManyRelationships` de las tablas CM). `NC` = `NoCascade`.
+
+| Padre → Hijo | Lookup en el hijo | Delete | Assign | Share | Unshare | Reparent |
+|--------------|-------------------|--------|--------|-------|---------|----------|
+| cliente → direccion | `dr_clienteid` | Cascade | Cascade | Cascade | Cascade | Cascade |
+| cliente → telefono | `tl_clienteid` | Cascade | Cascade | Cascade | Cascade | Cascade |
+| cliente → cuenta | `ct_clienteid` | Cascade | Cascade | NC | NC | **NC** |
+| cliente → cargadiaria | `cd_clienteid` | Cascade | Cascade | NC | NC | **NC** |
+| cuenta → cuentapan | `cp_cuentaid` | Cascade | Cascade | Cascade | Cascade | Cascade |
+| cuenta → asignacion | `as_cuentaid` | Cascade | Cascade | NC | NC | **NC** |
+| cuenta → interaccion | `in_cuentaid` | **RemoveLink** | NC | NC | NC | NC |
+| cuenta → pago | `pg_cuentaid` | **RemoveLink** | NC | NC | NC | NC |
+| cuenta → cargadiaria | `cd_cuenta` | **RemoveLink** | NC | NC | NC | NC |
+| interaccion → pago | `pg_interaccion` | Cascade | Cascade | Cascade | Cascade | Cascade |
+| interaccion → actualizaciondatos | `ad_interaccionid` | Cascade | Cascade | Cascade | Cascade | Cascade |
+| agente → cuenta / asignacion / interaccion / cargadiaria | `ct_agenteid`, `as_agenteid`, `in_agente`, `cd_agenteid` | **Restrict** | NC | NC | NC | NC |
+| producto → cuenta | `ct_productoid` | **Restrict** | NC | NC | NC | NC |
+| fiador → cuenta | `ct_fiador` | **Restrict** | NC | NC | NC | NC |
+| systemuser → agente / asignacion (2) / interaccion / usuarioapp | `ag_usuarioid`, `as_resolutorid`, `as_solicitadopor`, `in_grabadopor`, `ua_usuarioid` | RemoveLink | NC | NC | NC | NC |
+
+**Cómo se lee:**
+- **Delete.** `Cascade` borra los hijos con el padre; `Restrict` impide borrar el padre mientras haya hijos; `RemoveLink` borra el
+  padre y deja el lookup del hijo vacío (el hijo **no** se borra).
+- **Share = Cascade** (`cliente → direccion/telefono`, `cuenta → cuentapan`, `interaccion → pago/AD`): compartir el padre comparte
+  los hijos. Es el mecanismo por el que el cobrador, al recibir del flow la cuenta y el cliente, ve también la bóveda, las
+  direcciones y los teléfonos. En `cliente → cuenta`, `cliente → cargadiaria` y `cuenta → asignacion` **no** se propaga (desde
+  la Fase 1, 2026-10-03), para que compartir un cliente no comparta todas sus cuentas.
+- **Reparent: cambio del 2026-10-06 (defecto 2 / S-14).** Estaba en `Cascade` en `cliente → cuenta`, `cliente → cargadiaria` y
+  `cuenta → asignacion`. Cada vez que la carga de Smelter reescribía la cuenta, Dataverse daba **lectura heredada** de todas las
+  cuentas de los clientes del cobrador, **con su bóveda (número completo)** y sus asignaciones, aunque no fueran suyas. Se pasó a
+  `NoCascade` con `scripts/seguridad/paso1_cascadas_auditoria.py`. Sigue en `Cascade`, **a propósito**, en `cuenta → cuentapan`,
+  `cliente → direccion/telefono` e `interaccion → pago/actualizacion`: ahí quien accede al padre es la misma audiencia que el
+  diseño quiere. **Los accesos heredados que ya existían en DEV no se limpiaron** (datos ficticios); en PROD el cambio tiene
+  que estar aplicado antes de la primera carga real.
+- **Assign = Cascade** sigue vigente en `cliente → cuenta / cargadiaria`, `cuenta → asignacion / cuentapan`: reasignar un cliente o
+  una cuenta (por ejemplo, "reasignar los registros de un usuario deshabilitado") baja en cascada y **pisa el dueño que puso el
+  flow** (DAT-18). Riesgo latente: hoy el dueño de cliente, cuenta y carga diaria es `SYSTEM` y nadie los reasigna.
+
+## C. Automatización del servidor, auditoría, perfil offline y privilegios
+
+### C.1 Cómo carga Smelter (resumen; el detalle por tabla está en cada sección)
+
+- **Plantilla `Cobranza movil`** (`sanic_tbl_smlt_importtemplate`): CSV delimitado por `,`, con encabezado, lotes de 50 filas. Smelter
+  corre como **SYSTEM** (sin roles de CM). **13 Table Mappings** y **0 Relationship Mappings**: los lookups se resuelven con
+  *column mappings* de tipo lookup (`lookuptable` + `lookupmatchcolumn`), no con relationship mappings (el catálogo anterior
+  hablaba de "Relationship Mapping": ya no aplica).
+- **Orden de proceso:**
+
+| Orden | Mapeos | Dedup (clave) |
+|:--:|--------|---------------|
+| 1 | Cliente · Producto · Agente · Fiador | `cl_cif` · `pr_codigo` · `ag_nombre` · `fi_nombre` |
+| 2 | Direccion (casa / EC / Trabajo) · Telefono (Celular / Numero casa) | `dr_cif + dr_tipo` · `tl_cif + tl_tipo` |
+| 3 | Cuenta | `ct_clavepan` |
+| 4 | Cuenta PAN (bóveda) | `cp_clavepan` |
+| 5 | Asignacion · Carga Diaria | `as_clavepan + as_tipo` · `cd_clavepan + cd_fechacarga` |
+
+- **Todos** hacen `createifnotexists` + `updateifexists`: son **upsert**, nunca borran ni cierran nada.
+- **El número de tarjeta (PAN).** La plantilla calcula en la propia fila:
+  `clavepan = HMAC(NumeroCuenta, <clave K>)` (HMAC-SHA256 en hex, 64 caracteres; la clave K la lee Smelter de su tabla de claves
+  `sanic_tbl_smlt_hmackey`, que **no se leyó** en esta revisión), `ultimos4 = RIGHT(TRIM(NumeroCuenta), 4)` y el enmascarado
+  `CONCAT("****", RIGHT(TRIM(NumeroCuenta), 4))`. El número completo (`TRIM(NumeroCuenta)`) se escribe **solo** en
+  `cuentapan.cp_pan`. Los lookups a cuenta (bóveda, asignación, carga diaria) se resuelven calculando el mismo HMAC contra
+  `ct_clavepan`.
+- **Columnas del CSV** que usa la plantilla: `Cliente, CIF, Departamento, Distrito, Trabajo, CodigoProducto, TipoProducto, Agente,
+  NombreFianza, DireccionFianza, DireccionCasa/EC/Trabajo, NumeroCelular, NumeroCasa, NumeroCuenta, TotalSaldoVencido,
+  SaldoVencidoNIO/USD, ContagiadoUSD, PagoMinimoNIO/USD, RetiroNIO/USD, DiasMora, NivelMora, FechaPago, FechaUltimoPago, Ciclo,
+  TipoAsignacion, TipoEspecial, Nota, FechaCarga`.
+- **Qué Smelter NO escribe** (queda en el default de la columna o en manos de las apps): `as_estado` (default Activa),
+  `as_estadoaprobacion` (default Pendiente aprobación), `as_orden`, `as_motivo`, `as_fechacierre`, `as_notas`, `as_retironio/usd`,
+  `as_solicitadopor`, `as_resolutorid`, `ag_usuarioid`, `ag_activo`, `ag_emailusuario`, `ct_tipoproducto`.
+- Después de cada carga, los **archivos CSV fuente** del job conservan el número completo: `scripts/pan/paso10_purgar_archivos.py`
+  los borra a mano en DEV; en PROD tiene que ser automático (pendiente).
+
+### C.2 Plugins (ensamblado `Sanic.CobranzaMovil.Plugins`)
+
+**15 pasos, todos activos en DEV** (verificado `statecode = 0`), todos **PreOperation (20)**, **síncronos (0)**, ejecutan como el
+usuario que llama. Ninguno conoce la clave K ni escribe valores en trazas o mensajes de error.
+
+| Plugin | Tabla y mensaje | Filtro de Update | Qué hace |
+|--------|-----------------|------------------|----------|
+| `PanGuard` (6 pasos) | `cuenta`, `cargadiaria`, `cuentapan`: Create y Update | `ct_numerodecuenta`, `cd_numerocuenta`, `cp_name` | Rechaza un valor con **5 o más dígitos seguidos** (tolera espacio, guion o espacio duro entre dígitos). `****1234`, vacío y nulo pasan. Red de seguridad si una plantilla vuelve a escribir el número en claro |
+| `ClaveDesdeCuenta` (2) | `asignacion`: Create y Update | `as_cuentaid`, `as_clavepan` (+ `PreImage` con `as_cuentaid`) | Si hay cuenta, completa `as_clavepan` con la `ct_clavepan` de la cuenta; si viene otra distinta, **rechaza**. Así las apps no escriben la clave |
+| `CuentaDesdeInteraccion` (1) | `pago`: Create | — | Completa `pg_cuentaid` desde `in_cuentaid` de la interacción y `pg_numerointeraccion` desde `in_numerointeraccion` (el modo offline solo admite un nivel de lookup y no conoce el autonumérico) |
+| `AprobacionEspecial` (2) | `asignacion`: Create y Update | `as_agenteid`, `as_estadoaprobacion`, `as_tipo` (+ `PreImage`) | S-6. Sobre una **Especial**, solo Supervisor, Admin o `Servicio - Cobranza` pueden: pasarla a Aprobado o Rechazada, poner o cambiar el agente, o convertir en Especial una asignación que ya tiene agente. Frena a las **personas con algún rol `SR \| CM \|`** que no sean esos; no frena a SYSTEM (Smelter) ni a administradores sin roles de CM |
+| `ActualizacionConInteraccion` (2) | `actualizaciondatos`: Create y Update | `ad_interaccionid` | APP-24. Exige una interacción **con cuenta** |
+| `EmailDesdeUsuario` (2) | `agente`: Create y Update | `ag_usuarioid` | `ag_emailusuario` = UPN del usuario vinculado en minúsculas; vacío si se desvincula |
+
+Los pasos `PanGuard` de las columnas viejas (`as_`, `in_`, `pg_numerocuenta`) se retiraron cuando esas columnas se eliminaron
+(Fase 2, paso 8). Un paso mal registrado **falla cerrado**. Registro: `scripts/pan/paso5_plugins.py`. *(El README del
+ensamblado todavía describe 12 pasos `PanGuard` desactivados y no menciona `AprobacionEspecial`, `ActualizacionConInteraccion` ni
+`EmailDesdeUsuario`: está desactualizado respecto de DEV.)*
+
+### C.3 Flow `Cloud Flow | CM | Cambio de Owner en Asignaciones`
+
+Verificado en vivo: **activo** (`statecode = 1`), última modificación 2026-10-06. Definición: `scripts/seguridad/paso2_flow.py` +
+`flow-owner-base.json`. Disparador: cambios de `as_agenteid`, `as_estado`, `as_estadoaprobacion` (según el script; el disparador
+en vivo no se releyó).
+
+- **Asignación activa, y no es Especial sin aprobar, y el agente tiene usuario:** dueño de la asignación = usuario del agente;
+  `GrantAccess` (**solo lectura**) de **cuenta, cliente y fiador** al cobrador; `RevokeAccess` al dueño anterior si no le queda
+  otra asignación activa que lo justifique. Además comparte la Especial con el **Solicitante** (`as_solicitadopor`). La bóveda, las direcciones y los teléfonos llegan por **Share en cascada**.
+- **Asignación cerrada:** `RevokeAccess` al dueño actual si no tiene otra asignación activa que lo justifique; desaparece del teléfono
+  en la próxima sincronización.
+- **Especial Borrador, Pendiente o Rechazada:** no hace nada (S-6).
+- **Agente sin usuario:** no hace nada, y no se vuelve a evaluar cuando se vincula el usuario después (DAT-07 / DAT-08, abiertos).
+- Corre con la **conexión personal** de su dueño (S-7, abierto). Es la única pieza que reparte acceso: si falla, la asignación no llega
+  al teléfono.
+
+### C.4 Auditoría
+
+- **Auditoría de tabla activa** en 11 de 14 tablas; **apagada** en `producto`, `fiador` y `usuarioapp`. Se encendió en
+  `asignacion`, `interaccion`, `pago`, `agente`, `actualizaciondatos` y `cargadiaria` el 2026-10-06 (S-8,
+  `paso1_cascadas_auditoria.py`); el historial de reasignaciones (DEC-016) vive acá.
+- **Columna `cp_pan`: auditoría apagada y fuera de búsqueda avanzada** (`IsAuditEnabled = false`, `IsValidForAdvancedFind = false`).
+  La auditoría de columna de `ct_numerodecuenta` y `cd_numerocuenta` se apagó durante la migración (para que el enmascarado no dejara
+  el número como valor viejo) y **hoy está otra vez encendida**, porque ya guardan `****1234`. `cuentapan` tiene además auditoría de
+  lectura (`IsRetrieveAuditEnabled` e `IsRetrieveMultipleAuditEnabled` en `true`).
+- El historial de auditoría **anterior** a la Fase 2 contenía el número en claro; en DEV no se purgó (decisión D4, datos ficticios).
+  En PROD el número nunca debe entrar en columnas auditadas: pasos 2 y 8 antes de la primera carga real.
+
+### C.5 Perfil offline `Cobranza Movil - Cobrador`
+
+Perfil **propio** (reemplaza al autogenerado), publicado, creado por `scripts/pan/paso7_perfil_offline.py`. Verificado en vivo: 10 tablas.
+
+| Criterio | Tablas |
+|----------|--------|
+| Todas las filas que el usuario puede leer (la seguridad por fila recorta) | `cliente`, `agente`, `cuenta`, `cuentapan`, `direccion`, `telefono` |
+| Filtro propio: **solo activas** (`as_estado = 1`) | `asignacion` |
+| Filtro propio: **modificado en los últimos 90 días** | `interaccion`, `pago`, `actualizaciondatos` |
+
+Fuera del perfil: `producto`, `fiador`, `cargadiaria`, `usuarioapp`. Con "todas las filas que el usuario puede leer", al teléfono
+baja solo lo que es suyo o se le compartió.
+
+### C.6 Privilegios por rol (verificado 2026-10-06; ver `docs/guias/16-guia-por-rol.md` §3)
+
+C = crear, R = leer, W = escribir, D = borrar, A = vincular (Append), T = ser vinculado (Append To), G = asignar dueño, S = compartir.
+Alcance: **U** = propio o compartido, **G** = toda la organización. Sin entrada = sin privilegios.
+
+| Tabla | Localizador | Solicitante | Supervisor | BackOffice | Admin | Servicio - Cobranza |
+|-------|-------------|-------------|------------|------------|-------|---------------------|
+| cliente | R:U · T:G | R/A/T:G | R:G | R:G | todo:G | C/R/W/A/T:G |
+| direccion, telefono | R:U | R/A/T:G | R:G | R:G | todo:G | C/R/W/A/T:G |
+| producto | R/T:G | R/T:G | R/T:G | R:G | todo:G | C/R/W/A/T:G |
+| fiador | R:U · T:G | R/T:G | R/T:G | R:G | todo:G | C/R/W/A/T:G |
+| agente | R/T:G | R/T:G | R/T:G | R:G | todo:G | C/R/W/A/T:G |
+| cuenta | R:U · T:G | R/A/T:G | R:G | R:G | todo:G | C/R/W/A/T:G |
+| cuentapan (bóveda) | R:U | — | — | **R:G** | **—** | — |
+| asignacion | R/W/A/T:U | **C:G**, R/W:U, A/T:G | R/W/A/T:G | R:G | todo:G | C/R/W/A/T/G:G |
+| interaccion | C/R/W/A/T:U | — | R:G | R/W/A:G | todo:G | — |
+| pago | C/R/W/A/T/G:U | — | R:G | R:G | todo:G | — |
+| actualizaciondatos | C/R/W/A/T:U | — | — | R:G | todo:G | — |
+| cargadiaria | — | — | — | R:G | todo:G | C/R/W/A/T:G |
+| usuarioapp | — | — | — | — | — | — |
+
+(`todo:G` = C, R, W, D, A, T, G y S en alcance Global.) **Solo Admin tiene Delete**, en las 12 tablas de datos de CM (no en `cuentapan` ni
+`usuarioapp`, donde no tiene ningún privilegio). `Solicitante` y `Supervisor` leen todas las cuentas y clientes a propósito (necesitan buscar
+cualquiera: S-2, decisión de diseño).
 
 ---
 
 ## 1. `sanic_cm_tbl_cliente` — Cliente (deudor)
 
 ### Definición
-El **cliente / deudor**: la persona a la que se le cobra. Es la **raíz** del subárbol de cliente — de ella
-cuelgan cuentas, direcciones y teléfonos. Su identidad de negocio es el **CIF**.
+El **cliente / deudor**: la persona a la que se le cobra. Es la **raíz** del subárbol de cliente — de ella cuelgan cuentas,
+direcciones, teléfonos y la carga diaria. Su identidad de negocio es el **CIF**.
 
 ### Campos
 | Campo lógico | Físico | Tipo | Req. | Descripción |
 |--------------|--------|------|:----:|-------------|
-| Nombre | `sanic_cm_cl_nombre` | Text | ✔ | **Primary name.** Del CSV (`Cliente`). |
-| CIF | `sanic_cm_cl_cif` | Text | ✔ | Identificador único interno del cliente. **Alt key.** |
-| Departamento | `sanic_cm_cl_departamento` | Text | — | Departamento geográfico del cliente. |
-| Distrito | `sanic_cm_cl_distrito` | Text | — | Distrito donde trabaja el cliente. |
-| Trabajo | `sanic_cm_cl_trabajo` | Text | — | Nombre del trabajo del cliente. |
+| Nombre | `sanic_cm_cl_nombre` | Text(200) | Sí | **Nombre principal.** Del CSV (`Cliente`). |
+| CIF | `sanic_cm_cl_cif` | Text(20) | Sí | Identificador único interno del cliente. **Alt key.** |
+| Departamento | `sanic_cm_cl_departamento` | Text(100) | — | Departamento geográfico del cliente. |
+| Distrito | `sanic_cm_cl_distrito` | Text(100) | — | Distrito donde trabaja el cliente. |
+| Trabajo | `sanic_cm_cl_trabajo` | Text(200) | — | Nombre del trabajo del cliente. |
+| Propietario | `ownerid` | Owner | Sí | `SYSTEM` para lo que crea Smelter (muestra de 500 filas, 2026-10-06). |
 
-> **Sin correo:** el cliente **no** tiene campo de email. El correo que el cliente quiera actualizar vive
-> **solo** en `actualizaciondatos` (decidido).
+> **Sin correo:** el cliente **no** tiene campo de email. El correo que el cliente quiera actualizar vive **solo** en
+> `actualizaciondatos` (capture-only).
 
 ### Llaves
-- **Alternate Key: `sanic_cm_pk_cliente_cif`** (sobre `sanic_cm_cl_cif`)**.** El import deduplica/upsertea por
-  CIF. **Debe quedar `Active`** antes de importar (sin ella → error `TargetData`).
+- **Alternate Key `sanic_cm_pk_cliente_cif`** (`sanic_cm_cl_cif`). Estado **Active**. El import deduplica y upsertea por CIF.
+
+### Relaciones
+- Hijos: `direccion`, `telefono` (Delete/Assign/Share/Unshare/Reparent = Cascade); `cuenta`, `cargadiaria` (Delete y Assign = Cascade;
+  Share, Unshare y **Reparent = NoCascade**). Ver §B.
 
 ### Import
-- **Origen:** CSV diario. **Table Mapping #1**, processing order **1** (es padre, va primero).
-- **Column Mappings:** `Cliente → sanic_cm_cl_nombre` · `CIF → sanic_cm_cl_cif` · `Departamento → sanic_cm_cl_departamento` ·
-  `Distrito → sanic_cm_cl_distrito` · `Trabajo → sanic_cm_cl_trabajo`.
-- **Dedup:** `CIF`.
+- **Origen:** CSV diario. Table Mapping `Cliente`, **orden 1** (es padre, va primero). Dedup `sanic_cm_cl_cif`.
+- **Columnas:** `Cliente → cl_nombre` · `CIF → cl_cif` · `Departamento → cl_departamento` · `Distrito → cl_distrito` ·
+  `Trabajo → cl_trabajo`. Sin lookups ni transformaciones.
 
 ### Ciclo de vida
-- **Nace:** del **CSV** (upsert por CIF) **o** en la **app** (el rol **Solicitante**, al crear una Especial —
-  DEC-013).
-- **Vive:** cada re-import **pisa** los campos mapeados (upsert por CIF). Es **rastro de auditoría**.
-- **Fin de vida (normal):** **soft** — un cliente sin cuentas queda **dormido**, pero se conserva. No se
-  borra de rutina (no hay política de borrado).
+- **Nace:** del **CSV** (upsert por CIF) **o** en **Maestros** de la app backoffice, por el **Admin** (con anti-duplicado de CIF).
+  El **Solicitante no crea clientes**: tiene `Create` vacío sobre `cliente` (la promesa de DEC-013/014 no se cumplió; DAT-20).
+- **Vive:** cada re-import **pisa** los campos mapeados. Lo que el Admin edita en Maestros (nombre y datos) **lo pisa la carga
+  siguiente**, y las apps leen el nombre desde `cuenta.ct_nombrecliente`, no de acá (DAT-26). Es rastro de auditoría.
+- **Lo ve el cobrador** solo si el flow se lo compartió (junto con la cuenta asignada) y baja al teléfono por el perfil offline.
+- **Fin de vida (normal):** **soft** — un cliente sin cuentas queda dormido y se conserva. No se borra de rutina.
 
 ### Cómo borrar
-- **Relaciones salientes en `Cascade`:** `cliente → direccion`, `cliente → telefono`, `cliente → cuenta`.
-- Borrar un cliente **arrastra** sus direcciones, teléfonos y cuentas (DEC-023).
-- El hard-delete es **deliberado** (no hay job de borrado).
+- **Relaciones salientes en `Cascade` (Delete):** `cliente → direccion`, `cliente → telefono`, `cliente → cuenta`,
+  `cliente → cargadiaria`. Y por la cuenta, a su vez: `asignacion` y `cuentapan` (bóveda).
+- Borrar un cliente **arrastra**: direcciones, teléfonos, cuentas, **sus asignaciones, su bóveda y su carga diaria** (las cargas
+  llegan por `cd_clienteid`). Solo el **Admin** puede, por la API (DAT-18).
 
 ### Consideraciones al borrar
-- **La cascada se BLOQUEA si hay interacciones:** `cuenta → interaccion` es `Restrict` *(a confirmar al
-  revisar `interaccion`)*. Si alguna cuenta del cliente tiene interacciones, Dataverse **rechaza** el borrado
-  completo (rollback). En criollo: *no podés borrar un cliente que tiene cobranza registrada*.
-- **Colisión de CIF (DEC-013):** un cliente creado a mano con un CIF que luego llega por CSV se **fusiona**
-  (bien si el CIF es correcto; **duplica** si está mal).
-- **Caso real de borrado:** un pedido **legal de eliminación de datos** ("derecho al olvido"). Ahí se borra
-  deliberadamente; la `Restrict` aguas abajo obliga a resolver la historia primero, no de un saque.
+- **La cascada NO se bloquea por interacciones** (corrección respecto del catálogo anterior): `cuenta → interaccion` es `RemoveLink`.
+  Si el cliente tiene cuentas con cobranza registrada, el borrado **procede** y las interacciones y pagos quedan **sin cuenta**
+  (y sin camino a su cliente: la interacción no apunta al cliente). Comportamiento en ejecución **no confirmado**.
+- **`cliente → cargadiaria` borra el histórico financiero** del cliente aunque `cuenta → cargadiaria` sea `RemoveLink`.
+- **Colisión de CIF:** un cliente creado a mano con un CIF que luego llega por CSV se **fusiona** (bien si el CIF es correcto;
+  **duplica** si está mal).
+- **Caso real de borrado:** un pedido **legal de eliminación de datos** ("derecho al olvido"). Hoy no hay nada que obligue a
+  resolver primero la cobranza registrada: hay que hacerlo a mano (o poner en `Restrict` la relación `cuenta → interaccion`).
 
 ### Estado de la revisión
-✅ Import · ✅ Llaves · ✅ Lifecycle · ✅ Cómo borrar · ✅ Consideraciones · ⏳ `Restrict` en `interaccion`
-(a confirmar en su tabla).
+**2026-10-06.** Verificado en vivo: campos y longitudes, alt key activa, cascadas, mapeo de Smelter, privilegios. Corrección: el
+bloqueo por interacciones no existe. No confirmado: comportamiento real del borrado en cascada (DEV de solo lectura).
 
 ---
 
 ## 2. `sanic_cm_tbl_direccion` — Dirección del cliente
 
 ### Definición
-Las **direcciones** del cliente, **normalizadas por tipo** (`Casa` / `EC` / `Trabajo`). Cada fila del CSV
-trae 3 direcciones → el import crea **una fila por tipo**. `EC` = dirección donde recibe el estado de cuenta.
+Las **direcciones** del cliente, **normalizadas por tipo** (`Casa` / `EC` / `Trabajo`). Cada fila del CSV trae 3 direcciones → el
+import crea **una fila por tipo**. `EC` = dirección donde recibe el estado de cuenta.
 
 ### Campos
 | Campo lógico | Físico | Tipo | Req. | Descripción |
 |--------------|--------|------|:----:|-------------|
-| Dirección | `sanic_cm_dr_direccion` | Text | ✔ | **Primary name.** `DireccionCasa` / `DireccionEC` / `DireccionTrabajo`. |
-| Cliente | `sanic_cm_dr_clienteid` | Lookup → `sanic_cm_tbl_cliente` | ✔ | Resuelto por `CIF`. |
-| CIF | `sanic_cm_dr_cif` | Text | ✔ | **Copiado** del cliente para la alt key compuesta. |
-| Tipo | `sanic_cm_dr_tipo` | Text | ✔ | `"Casa"` / `"EC"` / `"Trabajo"` (lo fija el import por mapping). |
+| Dirección | `sanic_cm_dr_direccion` | Text(200) | Sí | **Nombre principal.** `DireccionCasa` / `DireccionEC` / `DireccionTrabajo`. |
+| Cliente | `sanic_cm_dr_clienteid` | Lookup → `cliente` | Sí | Resuelto por `CIF`. |
+| CIF | `sanic_cm_dr_cif` | Text(20) | Sí | **Copiado** del cliente para la alt key compuesta. |
+| Tipo | `sanic_cm_dr_tipo` | Text(100) | Sí | `"Casa"` / `"EC"` / `"Trabajo"` (lo fija el mapeo con valor por defecto). |
 
 ### Llaves
-- **Alt key compuesta: `sanic_cm_pk_direccion_cif_tipo`** (`sanic_cm_dr_cif` + `sanic_cm_dr_tipo`)**.** Una
-  dirección por (cliente, tipo). **Debe quedar `Active`.** Va sobre **texto** (CIF copiado), no sobre el lookup
-  — el vínculo lo arma el Relationship Mapping.
+- **Alt key compuesta `sanic_cm_pk_direccion_cif_tipo`** (`dr_cif` + `dr_tipo`). **Active.** Una dirección por (cliente, tipo). Va sobre
+  **texto** (CIF copiado), no sobre el lookup: el vínculo se arma con el lookup del mapeo.
+
+### Relaciones
+- Entrante `cliente → direccion`: Cascade en las cinco acciones (§B). Es **hoja**.
 
 ### Import
-- **Origen:** CSV. **3 Table Mappings** (#5 Casa, #6 EC, #7 Trabajo), processing order **2** (después de cliente).
-- Cada uno: `DireccionX → sanic_cm_dr_direccion`, `CIF → sanic_cm_dr_cif`, `sanic_cm_dr_tipo` = **Default** ("Casa"/"EC"/"Trabajo").
-- **Relationship Mapping:** `Cliente → Direccion` por `CIF`.
+- **3 Table Mappings** (`Direccion (casa)`, `Direccion (EC)`, `Direccion (Trabajo)`), **orden 2**. Dedup `dr_cif + dr_tipo`.
+- Cada uno: `DireccionX → dr_direccion`, `CIF → dr_cif`, `dr_tipo` = **valor por defecto** (`Casa` / `EC` / `Trabajo`), y el lookup
+  `dr_clienteid` por `CIF → cl_cif`.
 
 ### Ciclo de vida
-- **Nace:** del **CSV** (la explosión por tipo) **o** en la **app** (Solicitante, al editar datos del cliente
-  para una Especial).
-- **Vive:** guarda el **dato ACTUAL**. El upsert por `cif+tipo` **pisa** el valor anterior. El histórico de
-  cambios **no** vive acá — lo captura `actualizaciondatos`.
+- **Nace:** del **CSV** (la explosión por tipo) **o** por el **Admin** en Maestros (agrega; **no hay editar ni borrar en las apps**).
+- **Vive:** guarda el **dato ACTUAL**. El upsert por `cif + tipo` **pisa** el valor anterior. El histórico de cambios **no** vive acá:
+  los cambios que pide el cobrador quedan en `actualizaciondatos`, que **nadie aplica** a esta tabla (DAT-19).
+- **Teléfono del cobrador:** baja al teléfono por el Share en cascada del cliente. La app solo carga Casa y Trabajo; **EC** se importa pero
+  no se muestra.
 - **Fin:** soft; se conserva mientras exista el cliente.
 
 ### Cómo borrar
-- **Entrante:** `cliente → direccion` = **`Cascade`** — borrar el cliente borra sus direcciones (DEC-023).
-- Es **hoja** (no tiene hijos) → no arrastra nada, no hay riesgo de huérfano aguas abajo.
+- **Entrante:** `cliente → direccion` = **Cascade** — borrar el cliente borra sus direcciones. Es **hoja**: no arrastra nada.
 
 ### Consideraciones al borrar
-- Se borra **junto con el cliente** (cascada). Por sí sola se puede borrar (es dato de contacto actual), pero
-  no es lo habitual.
-- **Tipos huérfanos (stale):** si el CSV deja de mandar un tipo (ej. el cliente ya no tiene "Trabajo"), la
-  fila vieja **queda** (el import es upsert-only, no borra). Dato de contacto desactualizado, baja prioridad.
+- Se borra **junto con el cliente**. Por sí sola se puede borrar (Admin, API), pero no es lo habitual.
+- **Tipos huérfanos (stale):** si el CSV deja de mandar un tipo, la fila vieja **queda** (el import es upsert-only). Dato de contacto
+  desactualizado, baja prioridad.
 
 ### Estado de la revisión
-✅ Import · ✅ Llaves · ✅ Lifecycle · ✅ Cómo borrar · ✅ Consideraciones.
+**2026-10-06.** Verificado en vivo: campos, alt key activa, cascadas, mapeos (3). Sin discrepancias salvo longitudes y nombres de los
+mapeos, que ahora están documentados.
 
 ---
 
 ## 3. `sanic_cm_tbl_telefono` — Teléfono del cliente
 
 ### Definición
-Los **teléfonos** del cliente, **normalizados por tipo** (`Celular` / `Casa`). Cada fila del CSV trae 2
-teléfonos → el import crea **una fila por tipo**.
+Los **teléfonos** del cliente, **normalizados por tipo** (`Celular` / `Casa`). Cada fila del CSV trae 2 teléfonos → el import crea
+**una fila por tipo**.
 
 ### Campos
 | Campo lógico | Físico | Tipo | Req. | Descripción |
 |--------------|--------|------|:----:|-------------|
-| Número | `sanic_cm_tl_numero` | Text | ✔ | **Primary name.** `NumeroCelular` / `NumeroCasa`. |
-| Cliente | `sanic_cm_tl_clienteid` | Lookup → `sanic_cm_tbl_cliente` | ✔ | Resuelto por `CIF`. |
-| CIF | `sanic_cm_tl_cif` | Text | ✔ | **Copiado** del cliente para la alt key compuesta. |
-| Tipo | `sanic_cm_tl_tipo` | Text | ✔ | `"Celular"` / `"Casa"` (lo fija el import por mapping). |
+| Número | `sanic_cm_tl_numero` | Text(20) | Sí | **Nombre principal.** `NumeroCelular` / `NumeroCasa`. |
+| Cliente | `sanic_cm_tl_clienteid` | Lookup → `cliente` | Sí | Resuelto por `CIF`. |
+| CIF | `sanic_cm_tl_cif` | Text(20) | Sí | **Copiado** del cliente para la alt key compuesta. |
+| Tipo | `sanic_cm_tl_tipo` | Text(20) | Sí | `"Celular"` / `"Casa"` (lo fija el mapeo). |
 
 ### Llaves
-- **Alt key compuesta: `sanic_cm_pk_telefono_cif_tipo`** (`sanic_cm_tl_cif` + `sanic_cm_tl_tipo`)**.** Un
-  teléfono por (cliente, tipo). **Debe quedar `Active`.**
+- **Alt key compuesta `sanic_cm_pk_telefono_cif_tipo`** (`tl_cif` + `tl_tipo`). **Active.** Un teléfono por (cliente, tipo).
+
+### Relaciones
+- Entrante `cliente → telefono`: Cascade en las cinco acciones (§B). Es **hoja**.
 
 ### Import
-- **Origen:** CSV. **2 Table Mappings** (#8 Celular, #9 Casa), processing order **2**.
-- Cada uno: `NumeroX → sanic_cm_tl_numero`, `CIF → sanic_cm_tl_cif`, `sanic_cm_tl_tipo` = **Default** ("Celular"/"Casa").
-- **Relationship Mapping:** `Cliente → Telefono` por `CIF`.
+- **2 Table Mappings** (`Telefono (Celular)`, `Numero (casa)`), **orden 2**. Dedup `tl_cif + tl_tipo`.
+- Cada uno: `NumeroX → tl_numero`, `CIF → tl_cif`, `tl_tipo` = valor por defecto (`Celular` / `Casa`), lookup `tl_clienteid` por `CIF → cl_cif`.
 
 ### Ciclo de vida
-- **Nace:** del **CSV** (la explosión por tipo) **o** en la **app** (Solicitante).
-- **Vive:** dato **ACTUAL**; el upsert por `cif+tipo` **pisa**. Histórico de cambios → `actualizaciondatos`.
+- **Nace:** del **CSV** o por el **Admin** (Maestros, solo agrega).
+- **Vive:** dato **ACTUAL**; el upsert por `cif + tipo` **pisa**. Histórico de cambios → `actualizaciondatos`.
 - **Fin:** soft; se conserva mientras exista el cliente.
 
 ### Cómo borrar
-- **Entrante:** `cliente → telefono` = **`Cascade`** (DEC-023). Es **hoja**, no arrastra nada.
+- **Entrante:** `cliente → telefono` = **Cascade**. Es **hoja**.
 
 ### Consideraciones al borrar
-- `sanic_cm_tl_numero` es **texto** (puede traer ceros a la izquierda, guiones, prefijos).
+- `tl_numero` es **texto** de 20 caracteres (puede traer ceros a la izquierda, guiones, prefijos). La app valida 7 a 20 caracteres
+  al capturar una actualización.
 - Mismas consideraciones de cascada y tipos huérfanos que `direccion`.
-- **Teléfono de trabajo = capture-only (DECIDIDO):** el master `telefono` tiene **solo** `Celular`/`Casa`
-  (= el CSV). El "teléfono de trabajo" que captura `actualizaciondatos` **vive solo ahí** (no se propaga al
-  master); se transcribe al core como las demás interacciones. **Mismo patrón que el correo.**
+- **Teléfono de trabajo = capture-only (decidido):** el master tiene **solo** `Celular` y `Casa`. El "teléfono de trabajo" que captura
+  `actualizaciondatos` **vive solo ahí** (no se propaga al master); se transcribe al core como las demás interacciones. Mismo patrón
+  que el correo.
 
 ### Estado de la revisión
-✅ Import · ✅ Llaves · ✅ Lifecycle · ✅ Cómo borrar · ✅ Consideraciones.
+**2026-10-06.** Verificado en vivo: campos, alt key activa, cascadas, mapeos (2).
 
 ---
 
@@ -169,493 +397,694 @@ Catálogo del **producto en mora** (tarjeta o préstamo). **Clasifica** la cuent
 ### Campos
 | Campo lógico | Físico | Tipo | Req. | Descripción |
 |--------------|--------|------|:----:|-------------|
-| Código | `sanic_cm_pr_codigo` | Text | ✔ | **Primary name.** `CodigoProducto`. **Alt key.** |
-| Tipo | `sanic_cm_pr_tipo` | Text | — | `TipoProducto` — tipo de producto. |
+| Código | `sanic_cm_pr_codigo` | Text(20) | Sí | **Nombre principal.** `CodigoProducto`. **Alt key.** |
+| Tipo | `sanic_cm_pr_tipo` | Text(20) | Sí | `TipoProducto`. |
 
 ### Llaves
-- **Alt key: `sanic_cm_pk_producto_codigo`** (sobre `sanic_cm_pr_codigo`)**.** Upsert por código. **Debe quedar `Active`.**
+- **Alt key `sanic_cm_pk_producto_codigo`** (`pr_codigo`). **Active.** Upsert por código.
+
+### Relaciones
+- `producto → cuenta`: **Restrict** de borrado; nada se propaga (§B).
 
 ### Import
-- **Table Mapping #2**, processing order **1** (catálogo raíz). `CodigoProducto → sanic_cm_pr_codigo` ·
-  `TipoProducto → sanic_cm_pr_tipo`. Dedup `CodigoProducto`.
+- **Table Mapping `Producto`**, **orden 1** (catálogo raíz). `CodigoProducto → pr_codigo` · `TipoProducto → pr_tipo`. Dedup `pr_codigo`.
 
 ### Ciclo de vida
-- **Nace:** del **CSV** (upsert por código). **Vive:** casi **estático**; un código discontinuado se queda
-  (cuentas históricas lo referencian). **Fin:** no se borra.
+- **Nace:** del **CSV** (upsert por código). **Vive:** casi **estático**; un código discontinuado se queda (cuentas históricas lo
+  referencian). **Fin:** no se borra.
+- **No está en el perfil offline** y las apps no lo leen (usan el texto denormalizado de la cuenta); lo ve cualquier rol de persona (R:G),
+  sin tener privilegio de escritura.
+- **Sin auditoría de tabla.**
 
 ### Cómo borrar
-- **`producto → cuenta` = `Restrict`** (catálogo compartido). **Nunca** se cascadea; se **bloquea** si hay
-  cuentas que lo referencian. No hay job de borrado.
+- **`producto → cuenta` = Restrict** (catálogo compartido). **Nunca** se cascadea; se **bloquea** si hay cuentas que lo referencian.
+  No hay job de borrado.
 
 ### Consideraciones al borrar
-- **Nunca hard-delete** (referenciado por cuentas históricas). Discontinuar = simplemente **dejar de usarlo**.
-- No tiene flag de "activo" (si se necesitara distinguir vigentes, se agregaría — hoy no hace falta).
+- **Nunca hard-delete** (referenciado por cuentas históricas). Discontinuar = dejar de usarlo.
+- No tiene flag de "activo".
+- Es la única de las relaciones de catálogo que además es **obligatoria** en la cuenta (`ct_productoid` = Sí).
 
 ### Estado de la revisión
-✅ Import · ✅ Llaves · ✅ Lifecycle · ✅ Cómo borrar · ✅ Consideraciones.
+**2026-10-06.** Verificado en vivo: campos, alt key activa, `Restrict`, mapeo. `pr_tipo` figura como requerido en la metadata
+(el catálogo anterior lo daba opcional).
 
 ---
 
 ## 5. `sanic_cm_tbl_agente` — Agente / Localizador (catálogo + extensión operativa)
 
 ### Definición
-El **Agente** del CSV **es el localizador** (DEC-006). Catálogo poblado por el import **+** la columna
-operativa que lo liga a su identidad AAD. Es **padre** de `cuenta`, `asignacion`, `interaccion`, `cargadiaria`.
+El **Agente** del CSV **es el localizador** (DEC-006). Catálogo poblado por el import **+** las columnas operativas que lo ligan a su
+identidad de Entra. Es **padre** de `cuenta`, `asignacion`, `interaccion` y `cargadiaria`.
 
 ### Campos
 | Campo lógico | Físico | Tipo | Req. | Descripción |
 |--------------|--------|------|:----:|-------------|
-| Nombre | `sanic_cm_ag_nombre` | Text | ✔ | **Primary name.** Del CSV (`Agente`). **Alt key.** |
-| Usuario | `sanic_cm_ag_usuarioid` | Lookup → `systemuser` | — | **Operativo.** Identidad AAD; lo setea el **Admin** (no viene del CSV). |
-| Activo | `sanic_cm_ag_activo` | Yes/No (def. Sí) | — | **Soft-delete:** marca si el localizador está operativo. |
+| Nombre | `sanic_cm_ag_nombre` | Text(200) | Sí | **Nombre principal.** Del CSV (`Agente`). **Alt key.** |
+| Usuario | `sanic_cm_ag_usuarioid` | Lookup → `systemuser` | Sí | **Operativo.** Identidad del cobrador; lo setea el **Admin** (no viene del CSV). Smelter crea agentes sin él, así que el servidor no lo exige. |
+| Email Usuario | `sanic_cm_ag_emailusuario` | Text(250), formato Email | — | **Derivado por el plugin `EmailDesdeUsuario`**: UPN del usuario en minúsculas. La app del cobrador identifica a su agente con `Lower(User().Email)`. |
+| Activo | `sanic_cm_ag_activo` | Yes/No (def. **Sí**) | — | **Soft-delete:** marca si el localizador está operativo. |
 
 ### Llaves
-- **Alt key: `sanic_cm_pk_agente_nombre`** (sobre `sanic_cm_ag_nombre`)**.** Upsert por nombre. **Debe quedar
-  `Active`.** El vínculo `sanic_cm_ag_usuarioid` **NO** va en la alt key (lookup frágil).
+- **Alt key `sanic_cm_pk_agente_nombre`** (`ag_nombre`). **Active.** Upsert por nombre. El vínculo `ag_usuarioid` **no** va en la clave.
+
+### Relaciones
+- Hijos con **Restrict** de borrado: `cuenta`, `asignacion`, `interaccion`, `cargadiaria`. Nada se propaga (§B).
+- `systemuser → agente` (`ag_usuarioid`): `RemoveLink`.
 
 ### Import
-- **Table Mapping #3**, processing order **1**. `Agente → sanic_cm_ag_nombre`. Dedup `Agente`.
-- `sanic_cm_ag_usuarioid` y `sanic_cm_ag_activo` **NO** vienen del CSV: el **Admin** los gestiona.
+- **Table Mapping `Agente`**, **orden 1**. `Agente → ag_nombre`. Dedup `ag_nombre`.
+- `ag_usuarioid`, `ag_emailusuario` y `ag_activo` **no** vienen del CSV: el **Admin** los gestiona (el default de `ag_activo` es Sí).
 
 ### Ciclo de vida
-- **Nace:** del **CSV** (upsert por nombre). El **Admin lo vincula** a un `systemuser` (una vez, alta del localizador).
-- **Vive:** persiste. Ancla la **seguridad row-level** (el localizador ve su cartera vía su `systemuser`).
-- **Fin:** cuando el localizador se va → **`sanic_cm_ag_activo = No`** (soft-delete). **NUNCA** se hard-delete.
+- **Nace:** del **CSV** (solo el nombre). El **Admin lo vincula** a un usuario en *Agentes y usuarios* (el plugin pone el correo).
+- **Estados:** `SinUsuario` → `ConUsuario` (vincula) → `Inactivo` (desactiva); el Admin puede cambiar o quitar el usuario (correo vacío).
+- **Vive:** persiste. Ancla el reparto: el flow lee `ag_usuarioid` para dar el dueño y el acceso. **Sin usuario, el flow no reparte** las
+  asignaciones de ese agente (DAT-07, abierto; en DEV 16 de 20 agentes estaban sin usuario en la auditoría de 2026-10-03).
+- **Fin:** cuando el localizador se va → **`ag_activo = No`** (soft-delete). **Nunca** se hard-delete.
 
 ### Cómo borrar
 - **NUNCA hard-delete:** referenciado por cuentas, asignaciones, interacciones y cargas = historia + seguridad.
-- `agente → cuenta / asignacion / interaccion / cargadiaria` = **`Restrict`**.
-- **Fin de vida = soft-deactivate** (`sanic_cm_ag_activo = No`).
+- `agente → cuenta / asignacion / interaccion / cargadiaria` = **Restrict**.
+- **Fin de vida = soft-deactivate** (`ag_activo = No`).
 
 ### Consideraciones al borrar
-- **Nombre cambiante:** si el `Agente` cambia en el origen, el import crea **otro** agente (no renombra) →
-  hay que **re-vincular** `sanic_cm_ag_usuarioid`. Acordar que el `Agente` del CSV sea **estable**.
-- **Localizador que renuncia:** `sanic_cm_ag_activo = No` + vista de control *"asignaciones de agentes inactivos"*
-  (el CSV puede insistir en mandarle cuentas — gana el CSV, DEC-020; se corrige en el core).
-- Borrarlo rompería **historia** y **seguridad row-level**.
+- **Nombre cambiante:** si el `Agente` cambia en el origen, el import crea **otro** agente (no renombra) → hay que **re-vincular** el usuario.
+  Acordar que el `Agente` del CSV sea **estable**.
+- **Localizador que renuncia:** `ag_activo = No` + control de "asignaciones de agentes inactivos" (el CSV puede insistir en mandarle
+  cuentas; gana el CSV, DEC-020).
+- **Vincular el usuario después no propaga el owner** de las asignaciones ya creadas (DAT-08, abierto).
+- Borrarlo rompería **historia** y **seguridad por fila**.
+- `ag_usuarioid` y `ag_emailusuario` tienen auditoría de tabla activa (`agente` está auditada desde 2026-10-06).
 
 ### Estado de la revisión
-✅ Import · ✅ Llaves · ✅ Lifecycle · ✅ Cómo borrar · ✅ Consideraciones.
+**2026-10-06.** Verificado en vivo: campos (incluida `ag_emailusuario`, que el catálogo anterior no tenía), alt key activa, `Restrict`,
+plugin `EmailDesdeUsuario` activo, auditoría. No confirmado: cuántos agentes tienen hoy usuario vinculado.
 
 ---
 
 ## 6. `sanic_cm_tbl_fiador` — Fiador / Fianza (catálogo)
 
 ### Definición
-El **fiador** (fianza) del producto en mora. Es **padre** de `cuenta`. ~50% de las cuentas **no** tienen
-fiador (`NombreFianza` vacío → no se crea fiador).
+El **fiador** (fianza) del producto en mora. Es **padre** de `cuenta`. Cerca de la mitad de las cuentas **no** tienen fiador
+(`NombreFianza` vacío → no se crea fiador).
 
 ### Campos
 | Campo lógico | Físico | Tipo | Req. | Descripción |
 |--------------|--------|------|:----:|-------------|
-| Nombre | `sanic_cm_fi_nombre` | Text | ✔ | **Primary name.** `NombreFianza`. **Alt key.** |
-| Dirección | `sanic_cm_fi_direccion` | Text | — | `DireccionFianza`. |
+| Nombre | `sanic_cm_fi_nombre` | Text(200) | Sí | **Nombre principal.** `NombreFianza`. **Alt key.** |
+| Dirección | `sanic_cm_fi_direccion` | Text(200) | — | `DireccionFianza`. |
 
 ### Llaves
-- **Alt key: `sanic_cm_pk_fi_nombre`** (sobre `sanic_cm_fi_nombre`)**.** Upsert por nombre. **Debe quedar `Active`.**
+- **Alt key `sanic_cm_pk_fi_nombre`** (`fi_nombre`). **Active.** Upsert por nombre.
+
+### Relaciones
+- `fiador → cuenta`: **Restrict** de borrado; nada se propaga (§B).
 
 ### Import
-- **Table Mapping #4**, processing order **1**. `NombreFianza → sanic_cm_fi_nombre` ·
-  `DireccionFianza → sanic_cm_fi_direccion`. Dedup `NombreFianza`.
+- **Table Mapping `Fiador`**, **orden 1**. `NombreFianza → fi_nombre` · `DireccionFianza → fi_direccion`. Dedup `fi_nombre`.
+- La **cuenta** guarda además el nombre y la dirección del fiador **denormalizados** (`ct_nombrefiador`, `ct_direccionfiador`).
 
 ### Ciclo de vida
-- **Nace:** del **CSV** (upsert por nombre). **Vive:** persiste; crece poco. **Fin:** no se borra.
+- **Nace:** del **CSV** (upsert por nombre). **Vive:** persiste. **Fin:** no se borra.
+- **No está en el perfil offline**; el flow **sí le comparte el fiador** al cobrador (junto con cuenta y cliente) y lo revoca al cerrar,
+  aunque la tabla no baje al teléfono. **Sin auditoría de tabla.**
 
 ### Cómo borrar
-- **`fiador → cuenta` = `Restrict`** (catálogo). No se cascadea; se bloquea si está en uso.
+- **`fiador → cuenta` = Restrict** (catálogo). No se cascadea; se bloquea si está en uso.
 
 ### Consideraciones al borrar
-- ⚠️ **Unicidad de `NombreFianza` (a VALIDAR con el área):** la alt key es por **nombre**. Si dos fianzas
-  **distintas** comparten nombre exacto, el upsert las **colapsa en una**. Si `NombreFianza` no es único en el
-  origen, hay que **repensar la clave** (ej. agregar un identificador de fianza). **Pregunta abierta al negocio.**
+- **Unicidad de `NombreFianza` (a VALIDAR con el área):** la alt key es por **nombre**. Si dos fianzas **distintas** comparten nombre
+  exacto, el upsert las **colapsa en una**. Si no es único en el origen, hay que repensar la clave (agregar un identificador de fianza).
+  Pregunta abierta al negocio.
+- En DEV hay **2785 fiadores para 1010 cuentas**: origen de la diferencia **no confirmado** (revisar cargas de QA).
 
 ### Estado de la revisión
-✅ Import · ✅ Llaves · ✅ Lifecycle · ✅ Cómo borrar · ⚠️ Consideraciones (validar unicidad de `NombreFianza`).
+**2026-10-06.** Verificado en vivo: campos, alt key activa, `Restrict`, mapeo. Abierto: unicidad de `NombreFianza`.
 
 ---
 
 ## 7. `sanic_cm_tbl_cuenta` — Cuenta en mora (el grano)
 
 ### Definición
-La **cuenta en mora** (tarjeta o préstamo) que se cobra. **El grano del modelo.** Guarda el **estado ACTUAL**
-(el upsert la pisa cada día; la historia financiera va a `cargadiaria`). Cuelga de `cliente`/`producto`/
-`agente`/`fiador`; es **padre** de `interaccion`, `asignacion`, `cargadiaria`.
+La **cuenta en mora** (tarjeta o préstamo) que se cobra. **El grano del modelo.** Guarda el **estado ACTUAL** (el upsert la pisa cada
+día; la historia financiera va a `cargadiaria`). Cuelga de `cliente` / `producto` / `agente` / `fiador`; es **padre** de `asignacion`
+y `cuentapan`, y referencia de `interaccion`, `pago` y `cargadiaria`.
+
+**Desde la Fase 2 PAN (2026-10-04 al 06) la cuenta ya no guarda el número de tarjeta completo:** el nombre principal guarda el número
+**enmascarado** `****1234`, la identidad de negocio es el **HMAC** `ct_clavepan`, y el número completo vive **solo** en la bóveda
+(`cuentapan`, §13).
 
 ### Campos
 
 **Identidad y vínculos**
 | Campo lógico | Físico | Tipo | Req. | Descripción |
 |--------------|--------|------|:----:|-------------|
-| Número de cuenta | `sanic_cm_ct_numerodecuenta` | Text | ✔ | **Primary name.** `NumeroCuenta` (tarjeta o préstamo). **Alt key.** |
-| Cliente | `sanic_cm_ct_clienteid` | Lookup → `sanic_cm_tbl_cliente` | ✔ | Resuelto por `CIF`. |
-| Producto | `sanic_cm_ct_productoid` | Lookup → `sanic_cm_tbl_producto` | — | Resuelto por `CodigoProducto`. |
-| Agente | `sanic_cm_ct_agenteid` | Lookup → `sanic_cm_tbl_agente` | — | Resuelto por `Agente`. |
-| Fiador | `sanic_cm_ct_fiador` | Lookup → `sanic_cm_tbl_fiador` | — | Resuelto por `NombreFianza`. |
+| Número de cuenta (enmascarado) | `sanic_cm_ct_numerodecuenta` | Text(20) | Sí | **Nombre principal.** `****1234` (`CONCAT("****", RIGHT(TRIM(NumeroCuenta),4))`). `PanGuard` rechaza 5 o más dígitos. El nombre mostrado sigue siendo `[CT] Numero de cuenta`. |
+| Clave PAN (HMAC) | `sanic_cm_ct_clavepan` | Text(64) | — | HMAC-SHA256 en hex minúsculas del número. **Alt key.** Lo calcula la plantilla. |
+| Últimos 4 | `sanic_cm_ct_ultimos4` | Text(4) | — | Para buscar (Solicitante, búsqueda rápida). |
+| Cliente | `sanic_cm_ct_clienteid` | Lookup → `cliente` | Sí | Resuelto por `CIF`. |
+| Producto | `sanic_cm_ct_productoid` | Lookup → `producto` | Sí | Resuelto por `CodigoProducto`. |
+| Agente | `sanic_cm_ct_agenteid` | Lookup → `agente` | — | Resuelto por `Agente`. Escrita por Smelter, **nunca leída** por las apps (DAT-30). |
+| Fiador | `sanic_cm_ct_fiador` | Lookup → `fiador` | — | Resuelto por `NombreFianza`. |
 
-**Montos** (Decimal — NO Money)
+**Denormalizados para las apps** (texto; las apps leen **estos**, no los de `cliente` ni `fiador`)
+| Campo lógico | Físico | Tipo | Del CSV |
+|--------------|--------|------|---------|
+| CIF Cliente | `sanic_cm_ct_cifcliente` | Text(250) | `CIF` |
+| Nombre Cliente | `sanic_cm_ct_nombrecliente` | Text(250) | `Cliente` |
+| Nombre Fiador | `sanic_cm_ct_nombrefiador` | Text(250) | `NombreFianza` |
+| Dirección Fiador | `sanic_cm_ct_direccionfiador` | Text(250) | `DireccionFianza` |
+| Tipo Producto | `sanic_cm_ct_tipoproducto` | Text(250) | **Sin mapeo en la plantilla** (origen no confirmado) |
+
+**Montos** (Decimal, precisión 2, rango 0 a 100 000 000 000)
 | Campo lógico | Físico | Del CSV |
 |--------------|--------|---------|
 | Saldo vencido NIO | `sanic_cm_ct_saldovencidonio` | `SaldoVencidoNIO` |
 | Saldo vencido USD | `sanic_cm_ct_saldovencidousd` | `SaldoVencidoUSD` |
-| Total saldo vencido | `sanic_cm_ct_totalsaldovencido` | NIO dolarizado + USD |
-| Contagiado USD | `sanic_cm_ct_contagiadousd` | saldo total en riesgo |
+| Total saldo vencido | `sanic_cm_ct_totalsaldovencido` | `TotalSaldoVencido` (viene del CSV, no se calcula acá) |
+| Contagiado USD | `sanic_cm_ct_contagiadousd` | `ContagiadoUSD` |
 | Pago mínimo NIO | `sanic_cm_ct_pagominimonio` | `PagoMinimoNIO` |
 | Pago mínimo USD | `sanic_cm_ct_pagominimousd` | `PagoMinimoUSD` |
-| Retiro NIO | `sanic_cm_ct_retironio` | **dinero a TRAER** (objetivo de cobro) ⭐ |
-| Retiro USD | `sanic_cm_ct_retirousd` | **dinero a TRAER** USD ⭐ |
+| Retiro NIO | `sanic_cm_ct_retironio` | `RetiroNIO` — dinero a **traer** (objetivo de cobro) |
+| Retiro USD | `sanic_cm_ct_retirousd` | `RetiroUSD` |
 
 **Mora, fechas y atributos**
 | Campo lógico | Físico | Tipo | Del CSV |
 |--------------|--------|------|---------|
-| Días de mora | `sanic_cm_ct_diasmora` | Whole Number | `DiasMora` |
-| Nivel de mora | `sanic_cm_ct_nivelmora` | Whole Number | `NivelMora` |
-| Fecha último pago | `sanic_cm_ct_fechaultimopago` | DateTime | `FechaUltimoPago` |
-| Fecha de pago | `sanic_cm_ct_fechapago` | DateTime | `FechaPago` (cuándo le toca pagar) |
-| Ciclo | `sanic_cm_ct_ciclo` | Text | `Ciclo` |
-| Tipo de asignación | `sanic_cm_ct_tipoasignacion` | Text | `Diaria`/`Incobrable`/`Especial` (también alimenta `asignacion`) |
-| Tipo especial | `sanic_cm_ct_tipoespecial` | Text | `TipoEspecial` |
-| Nota | `sanic_cm_ct_nota` | Text | `Nota` |
+| Días de mora | `sanic_cm_ct_diasmora` | Whole Number (>= 0) | `DiasMora` |
+| Nivel de mora | `sanic_cm_ct_nivelmora` | Whole Number (>= 0) | `NivelMora` |
+| Fecha último pago | `sanic_cm_ct_fechaultimopago` | DateTime (Date and Time, hora local) | `FechaUltimoPago` |
+| Fecha de pago | `sanic_cm_ct_fechapago` | **Text(100)** | `FechaPago` — **es texto, no fecha**; en DEV mezcla `20/07/2026` y `2026-07-17` (DAT-26) |
+| Ciclo | `sanic_cm_ct_ciclo` | Text(10) | `Ciclo` |
+| Tipo de asignación | `sanic_cm_ct_tipoasignacion` | Text(200) | `TipoAsignacion` (`Diaria`/`Incobrable`/`Especial`); texto. La `asignacion` toma el tipo directo del CSV, no de acá |
+| Tipo especial | `sanic_cm_ct_tipoespecial` | Text(200) | `TipoEspecial` |
+| Nota | `sanic_cm_ct_nota` | Text(400) | `Nota` |
+
+**Columnas eliminadas (Fase 2, paso 8):** el número completo ya no está en ninguna columna de la cuenta. Verificado que no existen las
+columnas `sanic_cm_as_numerocuenta`, `sanic_cm_in_numerocuenta` ni `sanic_cm_pg_numerocuenta` (las denormalizaciones viejas
+de asignación, interacción y pago).
 
 ### Llaves
-- **Alt key: `sanic_cm_pk_ct_numerodecuenta`** (sobre `sanic_cm_ct_numerodecuenta`)**.** Upsert por número de cuenta (estado actual). **Debe quedar `Active`.**
-- ⚠️ Caracteres prohibidos (`/ < > * % & : \ ? +`) en `NumeroCuenta` **rompen el upsert** — validar.
+- **Alt key `sanic_cm_ak_ct_clavepan`** (`ct_clavepan`). **Active.** Reemplaza a `sanic_cm_pk_ct_numerodecuenta`, **que ya no existe**
+  (con la clave única viva, `****1234` colisionaba: 81 cuentas en 40 grupos). Upsert por el HMAC del número.
+- El nombre principal **ya no es único** ni clave: dos cuentas distintas pueden compartir `****1234`.
+
+### Relaciones
+- Entrante: `cliente → cuenta` (Delete y Assign = Cascade; Share, Unshare y Reparent = NoCascade). Catálogos `producto/agente/fiador →
+  cuenta` = Restrict.
+- Saliente: `cuenta → cuentapan` (Cascade en todo), `cuenta → asignacion` (Delete y Assign = Cascade; Share/Unshare/Reparent = NoCascade),
+  `cuenta → interaccion / pago / cargadiaria` (**RemoveLink**). Ver §B.
 
 ### Import
-- **Table Mapping #10**, processing order **3** (después de los 4 padres).
-- **Column Mappings:** `NumeroCuenta`, los **8 montos** (Decimal), `DiasMora`/`NivelMora` (Whole Number),
-  `FechaUltimoPago`/`FechaPago` (DateTime — `DATEPARSE` si no es ISO), `Ciclo`/`TipoAsignacion`/`TipoEspecial`/
-  `Nota` (Text).
-- **Relationship Mappings:** `Cliente` (CIF) · `Producto` (CodigoProducto) · `Agente` (Agente) · `Fiador` (NombreFianza).
+- **Table Mapping `Cuenta`**, **orden 3** (después de los 4 padres y de direcciones/teléfonos). Dedup `ct_clavepan`.
+- **Columnas:** los 8 montos (Decimal), `DiasMora`/`NivelMora` (Whole Number), `FechaUltimoPago` (DateTime), `FechaPago` (**texto**, sin
+  transformación), `Ciclo`/`TipoAsignacion`/`TipoEspecial`/`Nota` (Text), los denormalizados (`CIF`, `Cliente`, `NombreFianza`,
+  `DireccionFianza`), `NumeroCuenta` enmascarado → `ct_numerodecuenta`, `HMAC(NumeroCuenta)` → `ct_clavepan`, `RIGHT(.,4)` → `ct_ultimos4`.
+- **Lookups:** `Cliente` (CIF → `cl_cif`) · `Producto` (`CodigoProducto` → `pr_codigo`) · `Agente` (`Agente` → `ag_nombre`) · `Fiador`
+  (`NombreFianza` → `fi_nombre`).
+- **Especiales del CSV (DAT-01):** `RetiroNIO/USD`, `TipoEspecial` y `Nota` se mapean **solo a la cuenta**. La `asignacion` tiene sus
+  propias columnas de retiro y notas, que Smelter **no** llena. La cuenta es compartida por todas sus asignaciones y la próxima carga la
+  pisa.
+- **Caracteres prohibidos** (`/ < > * % & : \ ? +`): rompían el upsert cuando la clave era el número. Ahora la clave es el HMAC (hex), así que ya
+  no deberían afectar; **no se re-probó**.
 
 ### Ciclo de vida
-- **Nace:** del **CSV** (upsert por `numerocuenta`) **o** en la **app** (Solicitante, al crear una Especial —
-  crea la cuenta si no existe).
-- **Vive:** el upsert **PISA** cada día (estado actual). La **historia financiera** → `cargadiaria`. El
-  `tipoasignacion` alimenta la `asignacion` (reclasificación, DEC-021).
-- **Fin:** **soft.** "Fuera de cobranza" = sin asignación activa (estado explícito **opcional**). No se borra
-  de rutina.
+- **Nace:** **solo de Smelter** (upsert por `ct_clavepan`). No hay forma de crear una cuenta desde las apps: el Solicitante tiene `Create`
+  vacío y el backoffice no tiene pantalla (DAT-20). La promesa original (DEC-013: el Solicitante crea la cuenta si no existe) no se cumple.
+- **Vive:** el upsert **PISA** cada día (saldos, mora, datos del cliente). La **historia financiera** → `cargadiaria`. Lo que el
+  cobrador ve de una cuenta es lo que el **flow le comparte** (con la asignación activa y, si es Especial, aprobada).
+- **Dueño:** `SYSTEM` (muestra de 500 filas).
+- **Fin:** **soft.** "Fuera de cobranza" = sin asignación activa. No se borra de rutina.
 
 ### Cómo borrar
-- **Entrante:** `cliente → cuenta` = **`Cascade`** (borrar el cliente borra la cuenta).
-- **Catálogos:** `producto/agente/fiador → cuenta` = **`Restrict`** (no se borra el catálogo si está en uso).
-- **Salientes:**
-  - `cuenta → cargadiaria` = **`Cascade`** (historia descartable).
-  - `cuenta → asignacion` = **`Cascade`** (operativa; no es el límite de protección; el rastro de
-    reasignaciones vive en la auditoría, DEC-016).
-  - `cuenta → interaccion` = **`Restrict`** ⏳ (el límite de protección; a confirmar al revisar `interaccion`).
-- **Efecto neto:** borrar una cuenta **cascadea** sus `cargadiaria` y `asignacion`, **pero se bloquea** si
-  tiene `interaccion` (cobranza registrada).
+- **Entrante:** `cliente → cuenta` = **Cascade** (borrar el cliente borra la cuenta). Catálogos `producto/agente/fiador → cuenta` = **Restrict**.
+- **Salientes (Delete):**
+  - `cuenta → cuentapan` = **Cascade** (la bóveda se va con la cuenta; nunca queda un número sin cuenta).
+  - `cuenta → asignacion` = **Cascade** (operativa; el rastro de reasignaciones vive en la auditoría, DEC-016).
+  - `cuenta → interaccion`, `cuenta → pago`, `cuenta → cargadiaria` = **RemoveLink** (quedan sin cuenta; no bloquean).
+- **Efecto neto verificado:** borrar una cuenta **borra** sus asignaciones y su bóveda y **deja huérfanas** sus interacciones, pagos y
+  filas de carga diaria. **No se bloquea** (el catálogo anterior decía que se bloqueaba por interacciones: era `Restrict` en el diseño, no en el build).
 
 ### Consideraciones al borrar
-- El `Restrict` en `interaccion` es lo que **protege la cobranza registrada** de un borrado accidental.
-- **Creación manual (Especial):** una cuenta creada a mano puede **colisionar** con el CSV → el upsert por
-  `numerocuenta` las **fusiona** (bien si el número es correcto).
-- **Estado actual vs histórico:** la cuenta se pisa; la evolución vive en `cargadiaria` (no se pierde al pisar).
+- Hoy **nada protege la cobranza registrada** de un borrado de cuenta: solo que el único que puede borrar es el Admin por la API.
+  Si se quiere el candado de DEC-023, hay que pasar `cuenta → interaccion` (y `→ pago`) a `Restrict`. Tradeoff: con `Restrict` ya no se podría
+  borrar un cliente con cobranza sin antes tratar las interacciones; requiere ventana de cambio.
+- **Assign = Cascade** desde cliente y hacia asignación/bóveda: reasignar la cuenta pisa el dueño que puso el flow (DAT-18, latente).
+- **Estado actual vs histórico:** la cuenta se pisa; la evolución vive en `cargadiaria`.
+- **Lo que edita el Admin en Maestros sobre el cliente no cambia los denormalizados de la cuenta** (`ct_nombrecliente`, `ct_cifcliente`), y la
+  próxima carga los vuelve a escribir (DAT-26).
+- **Cambiar el número de tarjeta de una cuenta** (ej. reemisión) crea **otra** cuenta, porque la identidad es el HMAC del número.
 
 ### Estado de la revisión
-✅ Import · ✅ Llaves · ✅ Lifecycle · ✅ Cómo borrar (`cargadiaria`/`asignacion` Cascade; `interaccion`
-Restrict ⏳ a confirmar) · ✅ Consideraciones.
+**2026-10-06.** Verificado en vivo: columnas (32 custom), alt key `sanic_cm_ak_ct_clavepan` activa y la vieja eliminada, cascadas,
+mapeo de Smelter, plugins. Discrepancias: `ct_fechapago` es texto (el catálogo decía DateTime); Smelter no mapea `ct_tipoproducto`; el
+bloqueo por interacciones no existe. No confirmado: origen de `ct_tipoproducto`.
 
 ---
 
 ## 8. `sanic_cm_tbl_cargadiaria` — Snapshot histórico diario
 
 ### Definición
-Una **foto diaria** de cada cuenta en mora (montos, mora, agente del día). Mientras `cuenta` guarda el
-**estado actual** (se pisa), `cargadiaria` guarda la **historia** — un registro por **(cuenta, día)**.
-Guarda un **subconjunto** de `cuenta`: solo lo que **cambia día a día** (lo estable se consulta por lookup).
+Una **foto diaria** de cada cuenta en mora (montos, mora, agente del día). Mientras `cuenta` guarda el **estado actual** (se pisa),
+`cargadiaria` guarda la **historia** — un registro por **(cuenta, día)**. Guarda un **subconjunto** de `cuenta`: solo lo que **cambia
+día a día**.
 
 ### Campos
 
 **Identidad y vínculos**
 | Campo lógico | Físico | Tipo | Req. | Descripción |
 |--------------|--------|------|:----:|-------------|
-| Número de cuenta | `sanic_cm_cd_numerocuenta` | Text | ✔ | **Primary name.** Copiado para la alt key. |
-| Fecha de carga | `sanic_cm_cd_fechacarga` | DateTime (Date Only) | ✔ | **`FechaCarga`** — columna NUEVA del CSV (no `createdon`). |
-| Cuenta | `sanic_cm_cd_cuenta` | Lookup → `sanic_cm_tbl_cuenta` | ✔ | Resuelto por `NumeroCuenta`. |
-| Cliente | `sanic_cm_cd_clienteid` | Lookup → `sanic_cm_tbl_cliente` | — | Por `CIF` (opcional, para reportes). |
-| Agente | `sanic_cm_cd_agenteid` | Lookup → `sanic_cm_tbl_agente` | — | Por `Agente` — **quién la tenía ese día**. |
-| Tipo de asignación | `sanic_cm_cd_tipoasignacion` | Text | — | `TipoAsignacion` del día. |
+| Número cuenta (enmascarado) | `sanic_cm_cd_numerocuenta` | Text(20) | Sí | **Nombre principal.** `****1234`. `PanGuard` rechaza 5 o más dígitos. Ya **no** forma parte de la clave. |
+| Clave PAN (HMAC) | `sanic_cm_cd_clavepan` | Text(64) | — | HMAC del número. Forma parte de la **alt key**. |
+| Fecha de carga | `sanic_cm_cd_fechacarga` | DateTime (**Date Only**, sin zona horaria) | Sí | **`FechaCarga`** — columna del CSV (no `createdon`). |
+| Cuenta | `sanic_cm_cd_cuenta` | Lookup → `cuenta` | — | Resuelto con el HMAC contra `ct_clavepan`. |
+| Cliente | `sanic_cm_cd_clienteid` | Lookup → `cliente` | Sí | Por `CIF`. Es el que ata la carga al borrado en cascada del cliente. |
+| Agente | `sanic_cm_cd_agenteid` | Lookup → `agente` | — | Por `Agente` — **quién la tenía ese día**. |
+| Tipo de asignación | `sanic_cm_cd_tipoasignacion` | Text(100) | — | `TipoAsignacion` del día. |
 
-**Montos del día** (Decimal) — los mismos 8 que `cuenta`: `sanic_cm_cd_saldovencidonio`, `sanic_cm_cd_saldovencidousd`,
-`sanic_cm_cd_totalsaldovencido`, `sanic_cm_cd_contagiadousd`, `sanic_cm_cd_pagominimonio`, `sanic_cm_cd_pagominimousd`,
-`sanic_cm_cd_retironio`, `sanic_cm_cd_retirousd`.
+**Montos del día** (Decimal, precisión 2, 0 a 100 000 000 000) — los mismos 8 que `cuenta`: `sanic_cm_cd_saldovencidonio`,
+`sanic_cm_cd_saldovencidousd`, `sanic_cm_cd_totalsaldovencido`, `sanic_cm_cd_contagiadousd`, `sanic_cm_cd_pagominimonio`,
+`sanic_cm_cd_pagominimousd`, `sanic_cm_cd_retironio`, `sanic_cm_cd_retirousd`.
 
-**Mora del día** (Whole Number): `sanic_cm_cd_diasmora`, `sanic_cm_cd_nivelmora`.
+**Mora del día** (Whole Number >= 0): `sanic_cm_cd_diasmora`, `sanic_cm_cd_nivelmora`.
 
 ### Llaves
-- **Alt key compuesta: `sanic_cm_pk_cd_numerocuenta_fechacarga`** (`sanic_cm_cd_numerocuenta` +
-  `sanic_cm_cd_fechacarga`)**.** Un registro por cuenta por día; mismo día re-subido = upsert (no duplica).
-  **Debe quedar `Active`.**
+- **Alt key compuesta `sanic_cm_ak_cd_clavepan_fecha`** (`cd_clavepan` + `cd_fechacarga`). **Active.** Reemplaza a
+  `sanic_cm_pk_cd_numerocuenta_fechacarga` (eliminada). Un registro por cuenta por día; mismo día re-subido = upsert (no duplica).
+
+### Relaciones
+- Entrantes: `cliente → cargadiaria` (Delete y Assign = Cascade; Share/Unshare/**Reparent = NoCascade**), `cuenta → cargadiaria`
+  (**RemoveLink**), `agente → cargadiaria` (Restrict). Es **hoja**.
 
 ### Import
-- **Table Mapping #11**, processing order **4** (después de `cuenta`). Es **el mismo import diario** (no un
-  proceso aparte).
-- **Prerrequisito:** el CSV **debe traer `FechaCarga`** (sin ella no hay forma de fechar el snapshot; `DATEPARSE`
-  si no es ISO).
-- **Relationship Mappings:** `Cuenta` (NumeroCuenta) · `Agente` (Agente) · `Cliente` (CIF, opcional).
+- **Table Mapping `Carga Diaria`**, **orden 5** (después de cuenta y bóveda). Dedup `cd_clavepan + cd_fechacarga`. Es **el mismo import
+  diario**.
+- **Prerrequisito:** el CSV debe traer `FechaCarga`.
+- **Columnas:** los 8 montos, `DiasMora`/`NivelMora`, `TipoAsignacion`, `FechaCarga`, número enmascarado, HMAC. **Lookups:** `Cuenta` (HMAC →
+  `ct_clavepan`), `Cliente` (CIF), `Agente`.
 
 ### Ciclo de vida
-- **Nace:** del **CSV** (una fila por cuenta por día).
-- **Vive:** **ACUMULA** (alt key `numerocuenta+fechacarga` → fila nueva cada día). **No se pisa** como `cuenta`.
-- **Cobertura por tipo:** `Diaria` **todos los días**; `Incobrable` **solo los días que aparece** (esparso);
-  `Especial` **del CSV** → sí tiene snapshot el día que viene; `Especial` **de la app** → **no** (no está en el CSV).
-- **Fin:** se **borra por retención** (es el único maestro que se borra de rutina).
+- **Nace:** del **CSV** (una fila por cuenta por día), solo Smelter. **Nadie la cambia.**
+- **Vive:** **ACUMULA**. No se pisa como `cuenta`. Casi nadie la lee: *Monitoreo de carga* (Admin) cuenta las filas de hoy y la
+  reconciliación compara contra la última carga; el resto del snapshot es histórico. No está en el perfil offline.
+- **Cobertura por tipo:** `Diaria` todos los días; `Incobrable` solo los días que aparece (esparso); `Especial` del CSV tiene snapshot el
+  día que viene; `Especial` pedida en la app **no** (no está en el CSV).
+- **Fin:** **sin retención hoy.** DEC-019 prevé Bulk Deletion de `fechacarga < hoy − N`, pero **no está implementada** (§ convenciones). Crece
+  ~1 fila por cuenta por día.
 
 ### Cómo borrar
-- **Entrante:** `cuenta → cargadiaria` = **`Cascade`** (borrar la cuenta borra sus snapshots).
-- **Retención (DEC-019):** **Bulk Deletion** recurrente → borrar `fechacarga < hoy − N` (ventana **N a definir**).
-- Es **hoja** (no tiene hijos) → borrado seguro.
+- **Entrante:** `cliente → cargadiaria` = **Cascade** (borrar el cliente borra su histórico). `cuenta → cargadiaria` = **RemoveLink** (borrar la
+  cuenta deja la fila con `cd_cuenta` vacío, no la borra).
+- **Retención (DEC-019):** pendiente. Hay que crear el job de Bulk Deletion recurrente (ventana N a definir).
+- Es **hoja**: borrado seguro (no arrastra nada).
 
 ### Consideraciones al borrar
-- **Es el ÚNICO que se borra de rutina** (a diferencia del resto de maestros) — porque es **descartable**: el
-  estado actual vive en `cuenta`, la cartera en `asignacion`. Borrarlo **no afecta la operación**, solo el histórico.
-- **Crece rápido** (1 fila/cuenta/día → decenas de millones/año a escala) → es la tabla a vigilar.
+- Es la **única tabla descartable** del modelo: el estado actual vive en `cuenta`, la cartera en `asignacion`. Borrarla **no afecta la operación**,
+  solo el histórico.
+- **Crece rápido** (decenas de millones por año a escala) → la tabla a vigilar. Sin `ChangeTracking` (no viaja al teléfono).
 - **No confundir con `asignacion`:** `cargadiaria` = histórico financiero; `asignacion` = cartera viva.
+- Borrar un **cliente** borra su histórico financiero aunque la relación con la cuenta no lo haga: propuesta abierta (DAT-18) de pasar
+  `cliente → cargadiaria` a `Restrict`.
 
 ### Estado de la revisión
-✅ Import · ✅ Llaves · ✅ Lifecycle · ✅ Cómo borrar (Cascade desde cuenta + Bulk Delete por retención) · ✅ Consideraciones.
+**2026-10-06.** Verificado en vivo: columnas (20), alt key `sanic_cm_ak_cd_clavepan_fecha` activa y la vieja eliminada, cascadas, mapeo, ausencia
+de job de retención. Discrepancias: `cuenta → cargadiaria` es `RemoveLink` (el catálogo anterior decía Cascade); `cd_clienteid` figura como
+requerido (el catálogo lo daba opcional).
 
 ---
 
 ## 9. `sanic_cm_tbl_interaccion` — Interacción (núcleo de la captura)
 
 ### Definición
-Cada **interacción** del localizador con un cliente: **comentario libre**, geo, si hubo pago, si hay datos a
-actualizar, y el **write-back al core**. Se crea **en la app de campo (offline)**, es **append-only**, y es
-**el rastro de auditoría** de la cobranza — la pieza **más protegida** del modelo.
+Cada **interacción** del localizador con un cliente: **comentario libre**, GPS, si hubo pago, si hay datos a actualizar y el **write-back al
+core**. Se crea **en la app de campo (offline)** y es **el rastro de auditoría** de la cobranza. Se pretende append-only, pero el servidor **no
+lo impone** (S-9).
 
 ### Campos
 
 **Captura del localizador (en campo, offline)**
 | Campo lógico | Físico | Tipo | Req. | Descripción |
 |--------------|--------|------|:----:|-------------|
-| Número | `sanic_cm_in_numerointeraccion` | Autonumber (`INT-{SEQNUM:6}`) | auto | **Primary name.** Server-assigned al sincronizar. |
-| Cuenta | `sanic_cm_in_cuentaid` | Lookup → `sanic_cm_tbl_cuenta` | ✔ | La cuenta gestionada. |
-| Agente | `sanic_cm_in_agente` | Lookup → `sanic_cm_tbl_agente` | ✔ | El localizador (= él mismo). |
-| Comentario | `sanic_cm_in_comentario` | Multiline Text | ✔ | **Texto libre** de la interacción. |
-| Fecha de interacción | `sanic_cm_in_fechacaptura` | DateTime | ✔ | Auto al registrar, en campo. **Sin equivalente en el esquema real.** |
+| Número de interacción | `sanic_cm_in_numerointeraccion` | Text(20), autonumérico **`IN-{SEQNUM:4}`** | auto | **Nombre principal.** Lo asigna el servidor al **sincronizar** (offline está vacío). Semilla 1000 según el contrato de datos; **no se pudo re-verificar** la semilla (es una acción). |
+| Cuenta | `sanic_cm_in_cuentaid` | Lookup → `cuenta` | Sí | La cuenta gestionada. |
+| Agente | `sanic_cm_in_agente` | Lookup → `agente` | Sí | El localizador (el de su correo). |
+| Nombre agente | `sanic_cm_in_nombreagente` | Text(200) | Sí | Nombre del agente copiado (texto). |
+| Comentario | `sanic_cm_in_comentario` | Multiline Text(2000) | Sí | **Texto libre** de la interacción. |
+| Fecha de captura | `sanic_cm_in_fechacaptura` | DateTime (Date and Time, hora local) | — | La pone el **teléfono** al registrar. |
 | ¿Actualiza datos? | `sanic_cm_in_actualizainfo` | Yes/No (def. No) | — | Marca que hay datos a actualizar (detalle en `actualizaciondatos`). |
-| ¿Aplica pago? | `sanic_cm_cd_aplicapago` | Yes/No (def. No) | — | Si hubo cobro (montos en `pago`). **(Prefijo `cd` en el esquema real, no `in`.)** |
-| Latitud | `sanic_cm_in_latitud` | Decimal (5) | — | GPS (DEC-008). |
-| Longitud | `sanic_cm_in_longitud` | Decimal (5) | — | GPS. |
-| Propietario | `ownerid` | Owner | ✔ | = el **localizador** (User-level). |
+| ¿Aplica pago? | `sanic_cm_cd_aplicapago` | Yes/No (def. No) | — | Si hubo cobro (montos en `pago`). **Prefijo `cd` en el esquema real, no `in`.** |
+| Latitud | `sanic_cm_in_latitud` | Decimal(**6**), -90 a 90 | — | GPS. Era Decimal(2) (~1 km); hoy **6 decimales** (DAT-05 corregido). |
+| Longitud | `sanic_cm_in_longitud` | Decimal(**6**), -180 a 180 | — | GPS. |
+| Propietario | `ownerid` | Owner | Sí | = el **localizador** (nivel usuario). |
 
 **Write-back al core (backoffice)**
 | Campo lógico | Físico | Tipo | Req. | Descripción |
 |--------------|--------|------|:----:|-------------|
-| Estado de transcripción | `sanic_cm_in_estadograbacion` | Choice (`Pendiente`/`Grabada en core`) | ✔ | Default `Pendiente`. Choice: `sanic_cm_choice_estadograbacioninteraccion`. |
-| Código del core | `sanic_cm_in_codigograbacion` | Text | — | El código con que el backoffice la grabó (DEC-002). |
-| Fecha grabada en core | `sanic_cm_in_fechagrabacion` | DateTime | — | Cuándo la transcribió. |
-| Grabada por | `sanic_cm_in_grabadopor` | Lookup → `systemuser` | — | Qué backoffice. |
+| Estado de grabación | `sanic_cm_in_estadograbacion` | Choice `sanic_cm_choice_estadograbacioninteraccion`: **1 Pendiente** (def.), **2 Grabado** | — | Cola del backoffice: `Pendiente`. (El catálogo anterior decía "Grabada en core": el valor real es **Grabado**.) |
+| Código del core | `sanic_cm_in_codigograbacion` | Text(10) | — | Código con que el backoffice la grabó (en mayúsculas). |
+| Fecha de grabación | `sanic_cm_in_fechagrabacion` | DateTime | — | Cuándo la transcribió. |
+| Grabado por | `sanic_cm_in_grabadopor` | Lookup → `systemuser` | — | Qué backoffice. |
 
 ### Llaves
-- **Ninguna.** Se crea en la app (no por import) → usa su **GUID**. Es un **hecho fechado** (append-only),
-  no se deduplica.
+- **Ninguna.** Se crea en la app (no por import) → usa su **GUID**. Es un **hecho fechado**, no se deduplica.
+
+### Relaciones
+- Entrantes: `cuenta → interaccion` (**RemoveLink**; nada se propaga), `agente → interaccion` (Restrict), `systemuser → interaccion` (`grabado por`, RemoveLink).
+- Salientes: `interaccion → pago` e `interaccion → actualizaciondatos` (Cascade en las cinco acciones: Share en cascada incluido).
 
 ### Import
-- **N/A** — **no viene del CSV.** La crea la **app de campo** (offline); el `sanic_cm_in_numerointeraccion` lo asigna el
-  servidor al **sincronizar**.
+- **N/A** — no viene del CSV. La crea la **app de campo**; el número lo asigna el servidor al sincronizar.
 
 ### Ciclo de vida
-- **Nace:** en la **app de campo** (offline), por el localizador. Owner = él.
-- **Vive:** **append-only.** Solo se completa el **write-back**: el backoffice asigna `codigocore`, marca
-  `estadotranscripcion = Grabada en core`, sella fecha y usuario. No se edita una vez sincronizada.
-- **Fin:** **NO se borra.** Es el rastro de auditoría — lo más sagrado del modelo.
+- **Nace:** en la **app del cobrador** (con o sin señal), solo el cobrador. Owner = él. Nada la crea fuera de la app.
+- **Estados:** `En el teléfono` (sin sincronizar) → **Pendiente** (el servidor asigna `IN-xxxx`) → **Grabado** (el BackOffice transcribe al core:
+  código, fecha, "grabado por"; desde la cola *Por transcribir*).
+- **Grabado es terminal solo por costumbre:** el servidor no impide volver a transcribir ni que el **cobrador edite** su interacción después (Write:U;
+  S-9, abierto). El BackOffice también tiene Write global.
+- **En el teléfono:** últimos 90 días (por fecha de modificación).
+- **Fin:** **no se borra.** Es el rastro de auditoría.
 
 ### Cómo borrar
-- **Entrante:** `cuenta → interaccion` = **`Restrict`** ✅ **(CONFIRMADO)** — **el candado**. Una cuenta con
-  interacciones **no se puede borrar** → bloquea la cascada desde el cliente. *Esto protege toda la cadena*
-  `cliente → cuenta → interaccion`.
-- **Salientes:**
-  - `interaccion → actualizaciondatos` = **`Cascade`** (es parte de la interacción; se va con ella).
-  - `interaccion → pago` = **`Cascade`** (el pago es parte del registro de la interacción; la barrera ya está
-    arriba en `cuenta → interaccion`).
-- **Efecto neto:** las interacciones **no se borran de rutina**; un borrado deliberado (ej. erasure legal)
-  obliga a resolverlas primero — esa es la fricción que protege la cobranza registrada.
+- **Entrante:** `cuenta → interaccion` = **RemoveLink**, **no `Restrict`** (corrección del catálogo anterior, que lo marcaba "CONFIRMADO"). Una
+  cuenta con interacciones **sí se puede borrar** y las interacciones quedan sin cuenta; **no existe el candado** que el modelo suponía.
+- **Salientes:** `interaccion → pago` y `interaccion → actualizaciondatos` = **Cascade** (el pago y la actualización son parte del registro).
+- **Efecto neto:** borrar una interacción borra sus **pagos** (dato financiero) y su actualización de datos; DAT-18 propone pasar `interaccion →
+  pago` a `Restrict`.
 
 ### Consideraciones al borrar
-- Es **el candado de auditoría** de todo el modelo de borrado.
-- **Offline:** `sanic_cm_in_numerointeraccion` server-assigned al sync; geo opcional (no bloquear si el GPS falla).
-- **Anti-doble-carga (write-back):** el filtro `estadotranscripcion = Pendiente` evita que dos backoffice la
-  graben dos veces.
+- **El candado de auditoría del modelo de borrado está en la capa de privilegios** (solo Admin tiene Delete), **no en las relaciones**.
+- **Offline:** el número es server-assigned al sync; GPS opcional (la app avisa y pide confirmación si falta).
+- **Anti-doble-carga:** el filtro `estadograbacion = Pendiente` evita que dos backoffice la graben dos veces.
+- **Auditoría de tabla activa** (desde 2026-10-06).
+- El plugin `CuentaDesdeInteraccion` lee de esta tabla al crear un pago (`in_cuentaid`, `in_numerointeraccion`).
 
 ### Estado de la revisión
-✅ Import (N/A) · ✅ Llaves (ninguna) · ✅ Lifecycle · ✅ Cómo borrar (`cuenta→interaccion` Restrict;
-`→ pago` y `→ actualizaciondatos` Cascade) · ✅ Consideraciones.
+**2026-10-06.** Verificado en vivo: columnas (21), sin alt key, cascadas, GPS con precisión 6, choice con valores, autonumérico `IN-{SEQNUM:4}`,
+privilegios. Discrepancias: `RemoveLink` en lugar de `Restrict`; autonumérico `IN-{SEQNUM:4}` (el catálogo decía `INT-{SEQNUM:6}`); choice
+`Grabado`; `in_estadograbacion` y `fechacaptura` figuran como opcionales; `in_nombreagente` es columna nueva. No confirmado: semilla del autonumérico.
 
 ---
 
 ## 10. `sanic_cm_tbl_pago` — Pago cobrado
 
 ### Definición
-Un **pago** cobrado al cliente, **hijo de una interacción**. La relación **1:N** permite el **pago mixto**
-(una interacción con un pago en NIO **y** otro en USD). El **recibo sigue siendo físico** (DEC-003); acá solo
-se **anota** monto, moneda y número de recibo.
+Un **pago** cobrado al cliente, **hijo de una interacción**. La relación **1:N** permite el **pago mixto** (una interacción con un pago en NIO
+**y** otro en USD). El **recibo sigue siendo físico** (DEC-003); acá solo se **anota** monto, moneda y número de recibo.
 
 ### Campos
 | Campo lógico | Físico | Tipo | Req. | Descripción |
 |--------------|--------|------|:----:|-------------|
-| Número | `sanic_cm_pg_numero` | Autonumber (`PAG-{SEQNUM:6}`) | auto | **Primary name.** Server-assigned al sincronizar. |
-| Interacción | `sanic_cm_pg_interaccion` | Lookup → `sanic_cm_tbl_interaccion` | ✔ | El pago **pertenece** a una interacción. |
-| Monto | `sanic_cm_pg_monto` | Decimal (2) | ✔ | Monto cobrado. |
-| Moneda | `sanic_cm_pg_moneda` | Choice (`NIO`/`USD`) | ✔ | Moneda del pago. Choice: `sanic_choice_cm_monedaenpago`. |
-| Número de recibo | `sanic_cm_pg_numerorecibo` | Text | ✔ | **Número del recibo físico** (talonario). |
-| Fecha del pago | `sanic_cm_pg_fecha` | DateTime | ✔ | Auto al registrar. **Sin equivalente en el esquema real de `pago`.** |
-| Propietario | `ownerid` | Owner | ✔ | = el **localizador** (User-level). |
+| Número | `sanic_cm_pg_numero` | Text(20), autonumérico **`PG-{SEQNUM:4}`** | auto | **Nombre principal.** Lo asigna el servidor al sincronizar. |
+| Interacción | `sanic_cm_pg_interaccion` | Lookup → `interaccion` | Sí | El pago **pertenece** a una interacción. |
+| Cuenta | `sanic_cm_pg_cuentaid` | Lookup → `cuenta` | — | **La completa el plugin** `CuentaDesdeInteraccion` desde la interacción (offline solo admite un nivel de lookup). Forma parte de la alt key. |
+| Número de interacción | `sanic_cm_pg_numerointeraccion` | Text(100) | — | **La completa el plugin** con `in_numerointeraccion` (offline el autonumérico está vacío; el backoffice une por este texto). |
+| Monto | `sanic_cm_pg_monto` | Decimal(2), 0 a 100 000 000 000 | — | Monto cobrado. La app exige > 0 y no tiene tope. |
+| Moneda | `sanic_cm_pg_moneda` | Choice `sanic_choice_cm_monedaenpago`: **1 NIO**, **2 USD** (sin valor por defecto) | — | Moneda del pago. |
+| Número de recibo | `sanic_cm_pg_numerorecibo` | Text(30) | Sí | **Número del recibo físico** (talonario). |
+| Fecha del pago | `sanic_cm_pg_fecha` | DateTime (Date and Time, hora local) | — | La escribe la app al registrar. |
+| Propietario | `ownerid` | Owner | Sí | = el **localizador** (nivel usuario). |
 
 ### Llaves
-- **Ninguna.** Se crea en la app (GUID). El `sanic_cm_pg_numerorecibo` es del **talonario físico**, sin constraint
-  de unicidad (ver consideraciones).
+- **Alt key compuesta `sanic_cm_ak_pg_recibo_cuenta_moneda`** (`pg_moneda` + `pg_cuentaid` + `pg_numerorecibo`). **Active.** Impide registrar el mismo
+  recibo dos veces en la misma cuenta y moneda (DAT-22; el catálogo anterior decía "sin clave").
+- `pg_cuentaid` forma parte de la clave y lo completa el plugin `CuentaDesdeInteraccion` (PreOperation) cuando la app no lo manda (offline). No se probó el
+  caso de un pago sin cuenta resoluble.
+
+### Relaciones
+- Entrantes: `interaccion → pago` (Cascade en todo) y `cuenta → pago` (**RemoveLink**).
 
 ### Import
-- **N/A** — **no viene del CSV.** La crea la **app de campo** (offline) cuando el localizador marca
-  `aplicapago` en una interacción. `sanic_cm_pg_numero` lo asigna el servidor al **sincronizar**.
+- **N/A** — no viene del CSV. La crea la **app de campo** cuando el cobrador marca `aplicapago`.
 
 ### Ciclo de vida
-- **Nace:** en la **app de campo** (offline), hijo de una interacción. Owner = el localizador.
-- **Vive:** **append-only** (registro financiero del cobro). No se edita.
-- **Fin:** **NO se borra** de rutina (registro financiero).
+- **Nace:** en la **app de campo**, hijo de una interacción. Owner = el localizador. El plugin completa cuenta y N° de interacción al crear en el servidor.
+- **Sin estados:** no se aprueba ni se cierra; es un hecho registrado. El BackOffice lo ve al transcribir y en el arqueo (*Transcritas hoy*).
+- **Vive:** se pretende append-only, pero el cobrador tiene `Write` y `Assign` sobre sus pagos (S-9, abierto: puede cambiar monto, fecha o reasignarlo).
+- **En el teléfono:** últimos 90 días.
+- **Fin:** **no se borra** de rutina (registro financiero).
 
 ### Cómo borrar
-- **Entrante:** `interaccion → pago` = **`Cascade`** — se va con su interacción (la barrera está arriba, en
-  `cuenta → interaccion = Restrict`).
-- Es **hoja** (no tiene hijos). En la práctica **nunca se borra solo** (solo si se borra deliberadamente su interacción).
+- **Entrante:** `interaccion → pago` = **Cascade** — se va con su interacción. `cuenta → pago` = **RemoveLink** (borrar la cuenta lo deja sin cuenta pero no lo borra).
+- Es **hoja**. En la práctica nunca se borra solo.
 
 ### Consideraciones al borrar
-- **Decimal, no Money** — consistente con el import; cada pago lleva **su** moneda (`sanic_cm_pg_moneda`).
-- **Unicidad del recibo:** el `sanic_cm_pg_numerorecibo` viene del **talonario físico**. Hoy es texto sin
-  constraint. Si se quisiera evitar duplicados, la clave correcta sería **`localizador + numerorecibo`** (dos
-  talonarios distintos pueden repetir número). **No** se implementa ahora; queda anotado.
+- **Decimal, no Money:** cada pago lleva **su** moneda.
+- **Unicidad del recibo:** la clave `recibo + cuenta + moneda` cubre el duplicado en una cuenta; **no** cubre el mismo recibo en cuentas distintas. La
+  clave que se propuso (`localizador + numerorecibo`) no se implementó.
+- El pago es el dato más sensible por plata y el menos protegido hoy en el servidor (S-9).
 
 ### Estado de la revisión
-✅ Import (N/A) · ✅ Llaves (ninguna) · ✅ Lifecycle · ✅ Cómo borrar (Cascade desde interacción) · ✅ Consideraciones.
+**2026-10-06.** Verificado en vivo: columnas (11), alt key activa, cascadas, plugin `CuentaDesdeInteraccion` activo, choice con valores.
+Discrepancias: alt key **sí** existe; autonumérico `PG-{SEQNUM:4}` (el catálogo decía `PAG-{SEQNUM:6}`); `pg_cuentaid` y `pg_numerointeraccion` son columnas nuevas;
+monto, moneda y fecha figuran como opcionales (el catálogo los daba requeridos).
 
 ---
 
 ## 11. `sanic_cm_tbl_asignacion` — Asignación (la cartera viva)
 
 ### Definición
-**Qué cuenta se asignó a qué localizador**, de qué **tipo**, en qué **estado** y con qué **orden**. Es una
-tabla **operativa viva** (no un snapshot), separada del histórico financiero `cargadiaria`. Es lo que cada
-localizador **tiene que cobrar**.
+**Qué cuenta se asignó a qué localizador**, de qué **tipo**, en qué **estado** y con qué **orden**. Tabla **operativa viva** (no un snapshot),
+separada del histórico financiero `cargadiaria`. Es lo que cada localizador **tiene que cobrar**. Tiene **dos ejes independientes**: estado (Activa o Cerrada) y
+aprobación (solo relevante para las Especiales).
 
 ### Campos
 
 **Base / operativo**
 | Campo lógico | Físico | Tipo | Req. | Descripción |
 |--------------|--------|------|:----:|-------------|
-| Número | `sanic_cm_as_numero` | Autonumber (`ASG-{SEQNUM:6}`) | auto | **Primary name.** |
-| Número de cuenta | `sanic_cm_as_numerocuenta` | Text | ✔ | Copiado para la alt key. |
-| Cuenta | `sanic_cm_as_cuentaid` | Lookup → `sanic_cm_tbl_cuenta` | ✔ | Resuelto por `NumeroCuenta`. **Toda asignación tiene cuenta.** |
-| Agente | `sanic_cm_as_agenteid` | Lookup → `sanic_cm_tbl_agente` | — | El localizador. En Especiales lo define el **Supervisor**. |
-| Tipo | `sanic_cm_as_tipo` | Choice (`Diaria`/`Incobrable`/`Especial`) | ✔ | Ciclo de vida por tipo. Choice: `sanic_choice_cm_tipoasignacion`. |
-| Estado | `sanic_cm_as_estado` | Choice (`Activa`/`Cerrada`) | ✔ | Default `Activa`. |
-| Orden | `sanic_cm_as_orden` | Whole Number | — | Prioridad del localizador. **NO se mapea en el import** (no se pisa). |
-| Fecha de asignación | `sanic_cm_as_fechasignacion` | DateTime | — | — |
-| Última carga | `sanic_cm_as_ultimacarga` | DateTime | — | = `FechaCarga`; la setea el import en cada upsert. Base del **sweep** (DEC-018). **Sin equivalente en el esquema real.** |
-| Motivo de cierre | `sanic_cm_as_motivo` | Text | — | Al cerrar (sweep, manual, reclasificación). |
+| Número | `sanic_cm_as_numero` | Text(20), autonumérico **`AS-{SEQNUM:4}`** | auto | **Nombre principal.** (El catálogo decía `ASG-{SEQNUM:6}`.) |
+| Cuenta | `sanic_cm_as_cuentaid` | Lookup → `cuenta` | — | Resuelto con el HMAC contra `ct_clavepan`. |
+| Clave PAN (HMAC) | `sanic_cm_as_clavepan` | Text(64) | — | HMAC de la cuenta. Forma parte de la **alt key**. Lo completa `ClaveDesdeCuenta` si viene vacío. **Reemplaza a `as_numerocuenta`** (eliminada). |
+| Agente | `sanic_cm_as_agenteid` | Lookup → `agente` | — | El localizador. En Especiales lo define el **Supervisor**. |
+| Tipo | `sanic_cm_as_tipo` | Choice `sanic_choice_cm_tipoasignacion`: **1 Diaria**, **2 Incobrable**, **3 Especial** (def. **3**) | — | Ciclo de vida por tipo. |
+| Estado | `sanic_cm_as_estado` | **Yes/No** (Sí = **Activa**, No = **Cerrada**; def. Sí) | — | Vigencia. (No es un Choice como decía el catálogo anterior.) |
+| Orden | `sanic_cm_as_orden` | Whole Number (-1 a 4000) | — | Prioridad del localizador; el cobrador la cambia desde la app, también sin conexión. **Smelter no la escribe.** |
+| Fecha de asignación | `sanic_cm_as_fechasignacion` | DateTime | — | Smelter la **sobrescribe con `FechaCarga`** en cada upsert (DAT-31: pisa la fecha de solicitud de una Especial del CSV). |
+| Última carga | `sanic_cm_as_ultimacarga` | DateTime | — | = `FechaCarga`; la setea el import en cada upsert. Base de la reconciliación (DEC-018). |
+| Motivo | `sanic_cm_as_motivo` | Text(500) | — | Motivo de cierre (Reconciliación o Cierres). |
+| Fecha de cierre | `sanic_cm_as_fechacierre` | DateTime | — | Cuándo se cerró. |
+| Retiro NIO / USD | `sanic_cm_as_retironio` / `sanic_cm_as_retirousd` | Decimal(2), 0 a 1 000 000 000 | — | Retiro **de la solicitud Especial** (Solicitante). No los llena Smelter. |
+| Notas | `sanic_cm_as_notas` | Multiline Text(2000) | — | Motivo de la solicitud; el tipo de solicitud se concatena acá con `" — "`. |
 
 **Solo Especiales (workflow de aprobación)**
 | Campo lógico | Físico | Tipo | Req. | Descripción |
 |--------------|--------|------|:----:|-------------|
-| Estado de aprobación | `sanic_cm_as_estadoaprobacion` | Choice (`Borrador`/`Pendiente`/`Aprobada`/`Rechazada`) | — | Gobierna la aprobación. Choice: `sanic_choice_cm_estadoaprobacionespecial`. |
-| Supervisor | `sanic_cm_as_resolutorid` | Lookup → `systemuser` | — | Quién aprueba/rechaza (resolutor). |
-| Creada por | `sanic_cm_as_solicitadopor` | Lookup → `systemuser` | — | El **Solicitante** (o servicio de import si vino por CSV). |
-| Motivo de rechazo | `sanic_cm_as_motivorechazo` | Text | — | Si el Supervisor la rechaza. **Sin equivalente en el esquema real** (solo existe `sanic_cm_as_motivo` genérico). |
-| Propietario | `ownerid` | Owner | ✔ | = el **localizador** (lo setea un plugin desde `agente.sanic_cm_ag_usuarioid`). |
+| Estado de aprobación | `sanic_cm_as_estadoaprobacion` | Choice `sanic_choice_cm_estadoaprobacionespecial`: **1 Borrador**, **2 Pendiente aprobación** (def. **2**), **3 Aprobado**, **4 Rechazada** | — | Gobierna la aprobación. |
+| Resolutor | `sanic_cm_as_resolutorid` | Lookup → `systemuser` | — | Quién aprueba o rechaza. Escrita, nunca leída por las apps. |
+| Solicitado por | `sanic_cm_as_solicitadopor` | Lookup → `systemuser` | — | El **Solicitante**. El flow le **comparte la Especial** (rama original conservada en `paso2_flow.py`); S-7 (abierto) advierte que el campo lo editan varios roles. |
+| Motivo de rechazo | `sanic_cm_as_motivorechazo` | Text(2000, área de texto) | — | Si el Supervisor rechaza. |
+| Propietario | `ownerid` | Owner | Sí | Lo mueve el **flow** al usuario del agente. |
 
 ### Llaves
-- **Alt key compuesta: `sanic_cm_as_numerocuenta` + `sanic_cm_as_tipo`** (DEC-016). Una asignación activa por
-  (cuenta, tipo) → coexisten **`{Diaria|Incobrable}` + `Especial`**, **nunca** Diaria + Incobrable (DEC-021). **Active.**
+- **Alt key compuesta `sanic_cm_ak_as_clavepan_tipo`** (`as_tipo` + `as_clavepan`). **Active.** Reemplaza a `sanic_cm_altkey_NumeroCuentaxTipo` (eliminada). Una
+  asignación por (cuenta, tipo): coexisten `{Diaria|Incobrable}` + `Especial`, nunca Diaria + Incobrable (DEC-021, regla de negocio, **no** una clave).
+
+### Relaciones
+- Entrante `cuenta → asignacion`: Delete y Assign = Cascade; Share, Unshare y **Reparent = NoCascade** (§B). `agente → asignacion` = Restrict. `systemuser →`
+  `as_resolutorid` y `as_solicitadopor` = RemoveLink. Es **hoja**.
 
 ### Import
-- **Table Mapping #12**, processing order **4**. Puebla **Diaria/Incobrable** (y **Especial → `Pendiente`**, DEC-022).
-- **Mapea:** `NumeroCuenta → numerocuenta`, `TipoAsignacion → tipo` (texto→Choice), `FechaCarga → ultimacarga`,
-  `estado` = default `Activa`. **NO mapea** `orden` (no pisar la prioridad).
-- **Relationship Mappings:** `Cuenta` (NumeroCuenta) · `Agente` (Agente).
-- **Owner:** lo setea un **plugin/flow** (no Smelter), desde `agente.sanic_cm_ag_usuarioid` (Comp. 01 §6).
-- **Reclasificación (DEC-021):** al llegar un core-type, el import **cierra el otro core-type activo**.
-- **Guarda Especial (DEC-022):** `estadoaprobacion = Pendiente` **solo al crear**; un re-import **no** revierte una ya aprobada.
+- **Table Mapping `Asignacion`**, **orden 5**. Dedup `as_clavepan + as_tipo`.
+- **Mapea:** `TipoAsignacion → as_tipo` (texto → Choice: Diaria 1, Incobrable 2, Especial 3), `FechaCarga → as_fechasignacion` y `→ as_ultimacarga`,
+  `HMAC(NumeroCuenta) → as_clavepan`; lookups `Cuenta` (HMAC → `ct_clavepan`) y `Agente` (`ag_nombre`).
+- **NO mapea** `as_estado` (nace Activa por el default), **`as_estadoaprobacion`** (nace **Pendiente aprobación** por el default de la columna: una Especial nueva
+  del CSV entra sola en la cola del Supervisor y, como no se manda, **la carga diaria no pisa** una ya aprobada, DEC-022), `as_orden`, `as_motivo`, retiro ni notas.
+  Una Especial por CSV con agente queda **sin compartir** hasta que el Supervisor la aprueba.
+- **Owner:** lo mueve el **flow**, no Smelter. El **plugin `ClaveDesdeCuenta`** completa o valida la clave en cada Create/Update.
+- **Reclasificación (DEC-021, Diaria ↔ Incobrable): no está implementada** (DAT-15): el import no cierra el otro tipo activo.
+- Una Diaria **cerrada** que **reaparece** en el CSV **no se reactiva** (DAT-10): el upsert actualiza `ultimacarga` pero no `estado`.
 
 ### Ciclo de vida (por tipo)
 | Tipo | Nace | Reasigna | Cierra | Notas |
 |------|------|----------|--------|-------|
-| **Diaria** | CSV diario | — (gana el CSV; manual interino) | **Admin** (reconciliación, función en app, DEC-018) | Si desaparece → la reconcilia el Admin. |
-| **Incobrable** | CSV (1–2/mes) | **Admin** (gana el CSV) | **Admin** (manual + motivo, DEC-020) | Persiste; NO se reconcilia. |
-| **Especial** | App (Solicitante) o CSV→`Pendiente` | **Supervisor** | **Admin** (manual; sin vencimiento, DEC-022) | Workflow: Borrador→Pendiente→[Supervisor] Aprobada/Rechazada. 2 campos de estado. |
+| **Diaria** | CSV diario (Smelter) | Gana el CSV; no hay pantalla de reasignación (DAT-29) | **Admin**: *Reconciliación* cierra en lote las que **no vinieron** en la última carga ("fuera de cartera"); freno de la app: no deja si superan el **30%** o si no hay carga de hoy | Es freno de la app, no del servidor |
+| **Incobrable** | CSV (1 a 2 por mes) | Admin (gana el CSV) | **Admin**: *Cierres* (Recuperada, Baja o castigada, Fuera de cartera) | Persiste; no se reconcilia |
+| **Especial** | App del **Solicitante** (nace **Pendiente**, sin agente) o CSV (nace **Pendiente**) | **Supervisor** al aprobar | **Admin**: *Cierres* (Gestión completada, Ya no aplica, Solicitud errónea) | Ver estados abajo |
 
-- **Estados:** `estado` (Activa/Cerrada) gobierna la vigencia; `estadoaprobacion` gobierna la aprobación de
-  Especiales. Cartera del localizador = suya + `estado = Activa` (+ `estadoaprobacion = Aprobada` si Especial).
-- **Auditoría:** habilitada en `agente`/`owner`/`tipo`/`estado` → historial de reasignaciones (DEC-016).
+**Estados de una Especial:** `Pendiente` → `Aprobado` (Supervisor, **eligiendo el cobrador**) o `Rechazada` (con motivo) → `Cerrada` (Admin). El Solicitante puede
+volver a pedir una `Cerrada`: **reactiva el mismo registro**. Una `Rechazada` sigue **Activa** y bloquea volver a pedirla hasta que el Admin la cierra (DAT-14).
+`Borrador` solo se alcanza por la API; las **47 Especiales en Borrador** de DEV son de la carga mock anterior al cambio del default y no aparecen en la cola de
+Aprobaciones (que muestra solo Pendientes). Reglas del servidor: solo Supervisor, Admin o `Servicio - Cobranza` aprueban, rechazan o ponen agente (plugin `AprobacionEspecial`);
+el flow **no comparte** una Especial sin aprobar.
+
+- **Lo que ve el cobrador:** asignaciones **activas** (el perfil offline filtra `as_estado = 1`) y, si es Especial, **aprobada**; baja por el flow + perfil offline.
+- **Lo que cambia el cobrador:** solo `as_orden`, también sin conexión.
+- **Quién crea:** Smelter; el Solicitante (`C:G`). **Quién cambia:** Supervisor (`W:G`, todas las columnas: S-11, abierto), Admin, `Servicio - Cobranza`.
+- **Auditoría:** activa a nivel de tabla (historial de reasignaciones, DEC-016).
 
 ### Cómo borrar
-- **Entrante:** `cuenta → asignacion` = **`Cascade`** — borrar la cuenta borra sus asignaciones.
-- Es **hoja** (no tiene hijos). El historial de reasignaciones **no se pierde** (vive en la auditoría, DEC-016).
+- **Entrante:** `cuenta → asignacion` = **Cascade** — borrar la cuenta borra sus asignaciones (y borrar el cliente, por la cuenta). Es **hoja**. El historial de
+  reasignaciones **no se pierde**: vive en la auditoría.
+- Solo el Admin tiene `Delete`; ninguna app borra asignaciones.
 
 ### Consideraciones al borrar
-- **CERRAR ≠ BORRAR:** el fin de vida operativo es **`estado = Cerrada`** (sweep/manual/reclasificación), **no**
-  un borrado. Las cerradas **se conservan** como rastro.
-- **Borrado físico** (opcional, muy posterior): bulk-delete de `Cerradas` viejas (>1 año), si hiciera falta;
-  no es rutina. La tabla **crece lento** (upsert por `numerocuenta+tipo`, no por día).
-- **Owner:** si el `agente` no tiene `sanic_cm_ag_usuarioid` vinculado, la asignación queda sin owner correcto → el
-  localizador no la ve (vista de control "agentes sin usuario vinculado").
+- **CERRAR ≠ BORRAR:** el fin de vida es **`as_estado = No` (Cerrada)** (Reconciliación, Cierres o el flow), no un borrado. Las cerradas **se conservan** como rastro.
+  El teléfono las saca en la próxima sincronización (el flow revoca el acceso y el filtro del perfil las excluye).
+- **Borrado físico** (opcional, muy posterior): bulk-delete de `Cerradas` viejas (más de 1 año), si hiciera falta; no hay job. La tabla crece lento.
+- **Owner:** si el agente no tiene `ag_usuarioid`, el flow no mueve el dueño y el localizador no la ve (DAT-07; vista de control "agentes sin usuario" en el inicio del Admin).
+- **Assign = Cascade** desde `cuenta` o `cliente`: reasignar la cuenta o el cliente pisa el dueño que puso el flow (DAT-18, latente).
+- Antes del 2026-10-06 `Reparent` estaba en Cascade y el cobrador heredaba lectura de **todas las asignaciones** de sus clientes (defecto 2 / S-14).
 
 ### Estado de la revisión
-✅ Import · ✅ Llaves · ✅ Lifecycle · ✅ Cómo borrar (Cascade desde cuenta) · ✅ Consideraciones.
+**2026-10-06.** Verificado en vivo: columnas (27), alt key activa y la vieja eliminada, choices con valores y defaults, cascadas (incluido Reparent), mapeo, flow activo,
+plugins `AprobacionEspecial` y `ClaveDesdeCuenta`, privilegios. Discrepancias: `as_estado` es Yes/No; autonumérico `AS-{SEQNUM:4}`; columnas nuevas (`clavepan`, `fechacierre`,
+`notas`, `retironio/usd`); `as_numerocuenta` eliminada; Smelter mapea `FechaCarga` también a `fechasignacion` y **no** mapea `estado`. No confirmado: el disparador en vivo del flow
+(se tomó del script).
 
 ---
 
 ## 12. `sanic_cm_tbl_actualizaciondatos` — Cambios de contacto pedidos
 
 ### Definición
-Captura los **nuevos valores de contacto** que el cliente pide actualizar **durante una interacción**
-(teléfonos, direcciones, correo). Es una **bandeja de cambios pedidos** que la **oficina procesa** — el
-localizador no edita los datos maestros (no tiene permiso). Tabla **aparte** (no columnas en `interaccion`,
-para no ensuciar la tabla núcleo).
+Captura los **nuevos valores de contacto** que el cliente pide actualizar **durante una interacción** (teléfonos, direcciones, correo). Es una **bandeja de cambios
+pedidos** que la **oficina transcribe al core** — el cobrador no edita los datos maestros. Tabla **aparte** (no columnas en `interaccion`).
 
 ### Campos
 | Campo lógico | Físico | Tipo | Req. | Descripción |
 |--------------|--------|------|:----:|-------------|
-| Número | `sanic_cm_ad_numero` | Autonumber (`ACT-{SEQNUM:6}`) | auto | **Primary name.** Server-assigned al sincronizar. |
-| Interacción | `sanic_cm_ad_interaccionid` | Lookup → `sanic_cm_tbl_interaccion` | ✔ | El vínculo (1:N, en la práctica 1:1). |
-| Teléfono casa | `sanic_cm_ad_telefonocasa` | Text | — | Nuevo número de casa → aplica a `telefono` (Casa). |
-| Teléfono celular | `sanic_cm_ad_telefonocelular` | Text | — | Nuevo celular → aplica a `telefono` (Celular). |
-| Teléfono trabajo | `sanic_cm_ad_telefonotrabajo` | Text | — | Nuevo trabajo → **capture-only** (no se aplica al master). |
-| Dirección casa | `sanic_cm_ad_direccioncasa` | Text | — | → aplica a `direccion` (Casa). |
-| Dirección EC | `sanic_cm_ad_direccionec` | Text | — | → aplica a `direccion` (EC). |
-| Dirección trabajo | `sanic_cm_ad_direcciontrabajo` | Text | — | → aplica a `direccion` (Trabajo). |
-| Correo | `sanic_cm_ad_correoelectronico` | Text (formato Email) | — | Nuevo correo → **capture-only** (no se aplica al master). |
-| Propietario | `ownerid` | Owner | ✔ | = el **localizador** (User-level). |
+| Número | `sanic_cm_ad_numero` | Text(20), autonumérico **`AD-{SEQNUM:4}`** | auto | **Nombre principal.** Lo asigna el servidor al sincronizar. (El catálogo decía `ACT-{SEQNUM:6}`.) |
+| Interacción | `sanic_cm_ad_interaccionid` | Lookup → `interaccion` | Sí | El vínculo (1:N, en la práctica 1:1). El plugin exige que la interacción **tenga cuenta**. |
+| Teléfono casa | `sanic_cm_ad_telefonocasa` | Text(20) | — | Nuevo número de casa. |
+| Teléfono celular | `sanic_cm_ad_telefonocelular` | Text(20) | — | Nuevo celular. |
+| Teléfono trabajo | `sanic_cm_ad_telefonotrabajo` | Text(20) | — | Nuevo trabajo → **capture-only**. |
+| Dirección casa | `sanic_cm_ad_direccioncasa` | Text(1000) | — | Nueva dirección de casa. |
+| Dirección EC | `sanic_cm_ad_direccionec` | Text(1000) | — | Nueva dirección de estado de cuenta. |
+| Dirección trabajo | `sanic_cm_ad_direcciontrabajo` | Text(1000) | — | Nueva dirección de trabajo. |
+| Correo | `sanic_cm_ad_correoelectronico` | Text(100), formato Email | — | Nuevo correo → **capture-only**. |
+| Propietario | `ownerid` | Owner | Sí | = el **localizador** (nivel usuario). |
 
-> **Todos los campos de dato son opcionales:** se completa **solo lo que cambió**.
+> **Todos los campos de dato son opcionales:** se completa **solo lo que cambió**. El teléfono no impone `MaxLength` en el control: el rechazo por largo llega
+> diferido, en la sincronización (DAT-21); la app actual valida 7 a 20 caracteres.
 
 ### Llaves
 - **Ninguna.** Se crea en la app (GUID), ligada a una interacción.
 
+### Relaciones
+- Entrante `interaccion → actualizaciondatos`: Cascade en las cinco acciones. Es **hoja**.
+
 ### Import
-- **N/A** — **no viene del CSV.** La crea la **app de campo** (offline) cuando el localizador marca
-  `actualizacliente` en una interacción.
+- **N/A** — no viene del CSV. La crea la **app de campo** cuando el cobrador marca `actualizainfo` en una interacción.
 
 ### Ciclo de vida
-- **Nace:** en la **app de campo** (offline), hija de una interacción. Owner = el localizador.
-- **Vive:** la **oficina aplica** los cambios a los datos maestros:
-  - **Aplicables al master:** `telefonocasa`/`celular` → `telefono`; `direccioncasa`/`ec`/`trabajo` → `direccion`.
-  - **Capture-only** (no se aplican; se transcriben al core): `correo` y `telefonotrabajo`.
-- **Fin:** se va con su interacción (no se borra de rutina).
+- **Nace:** en la **app de campo** (offline), hija de una interacción. Owner = el localizador. El plugin `ActualizacionConInteraccion` rechaza una sin interacción o con una
+  interacción sin cuenta.
+- **Vive:** el BackOffice ve el "antes / después" (cruza con `telefono` y `direccion` por CIF) y **lo tipea a mano en el core**. **Nadie lo aplica** a los datos maestros de CM:
+  se renuevan recién con la próxima carga, si el core los actualizó. **Sin estados ni cierre (DAT-19, abierto).**
+- **Fin:** se va con su interacción; no se borra de rutina.
 
 ### Cómo borrar
-- **Entrante:** `interaccion → actualizaciondatos` = **`Cascade`** — se va con su interacción.
-- Es **hoja** (no tiene hijos).
+- **Entrante:** `interaccion → actualizaciondatos` = **Cascade** — se va con su interacción. Es **hoja**.
 
 ### Consideraciones al borrar
-- **Es una SOLICITUD, no el dato vivo:** no modifica `cliente`/`telefono`/`direccion`; la **oficina** aplica
-  el cambio (proceso de aplicación = lógica de negocio, su propio diseño).
-- El **proceso de aplicación** de cambios al master todavía es **pendiente de diseño** (otra fase).
+- **Es una SOLICITUD, no el dato vivo:** no modifica `cliente`/`telefono`/`direccion`.
+- Para saber de qué cliente es hay que seguir `actualización → interacción → cuenta → CIF`. Si se borra la cuenta (`RemoveLink`), ese camino se corta.
+- Sin privilegio para Solicitante ni Supervisor; lo lee el BackOffice y lo edita el cobrador dueño.
+- El **proceso de aplicación** al master sigue **sin diseño** (DAT-19).
 
 ### Estado de la revisión
-✅ Import (N/A) · ✅ Llaves (ninguna) · ✅ Lifecycle · ✅ Cómo borrar (Cascade desde interacción) · ✅ Consideraciones.
+**2026-10-06.** Verificado en vivo: columnas (10), sin alt key, cascada, plugin activo, privilegios. Discrepancia: autonumérico `AD-{SEQNUM:4}`.
 
 ---
 
-> **✅ Catálogo completo — las 12 tablas revisadas** (Import · Llaves · Lifecycle · Cómo borrar · Consideraciones).
+## 13. `sanic_cm_tbl_cuentapan` — PAN de cuentas (la bóveda)
+
+### Definición
+**Tabla nueva de la Fase 2 PAN (2026-10-04).** Guarda el **número de tarjeta completo** (PAN) de cada cuenta, **una fila por cuenta**. Es el **único** lugar del modelo donde vive el
+número; el resto de las tablas guarda `****1234` y un HMAC. Se eligió una tabla con seguridad **por fila** (no una columna con seguridad de columna) porque el modo offline
+respeta la de fila y porque el nombre principal no puede protegerse por columna. Nombre mostrado: **CM | TBL | PAN de cuenta**.
+
+### Campos
+| Campo lógico | Físico | Tipo | Req. | Descripción |
+|--------------|--------|------|:----:|-------------|
+| Número (enmascarado) | `sanic_cm_cp_name` | Text(850) | — | **Nombre principal.** `****1234`. `PanGuard` rechaza 5 o más dígitos. Inofensivo si se filtra por un lookup. |
+| PAN | `sanic_cm_cp_pan` | Text(19) | — | **Número completo.** **Auditoría de columna apagada** y **fuera de búsqueda avanzada**; sin seguridad de columna. **Nunca se imprime ni se copia a otro lado.** |
+| Clave PAN (HMAC) | `sanic_cm_cp_clavepan` | Text(64) | — | HMAC-SHA256 hex del número. **Alt key.** |
+| Cuenta | `sanic_cm_cp_cuentaid` | Lookup → `cuenta` | Sí | La cuenta dueña del número. **Alt key** (garantiza 1:1). |
+| Propietario | `ownerid` | Owner | Sí | En la muestra de DEV: el usuario de aplicación del servicio de despliegue (`# PowerPlatform-Dev`), no `SYSTEM`. |
+
+### Llaves
+- **`sanic_cm_ak_cp_cuentaid`** (`cp_cuentaid`): **una bóveda por cuenta.** **Active.**
+- **`sanic_cm_ak_cp_clavepan`** (`cp_clavepan`): upsert de la carga. **Active.**
+
+### Relaciones
+- Entrante `cuenta → cuentapan`: **Cascade en las cinco acciones** (Delete, Assign, Share, Unshare, Reparent). Es **hoja**.
+  El Share en cascada es la **única** vía por la que el cobrador la lee: ve el número solo de las cuentas que el flow le compartió.
+
+### Import
+- **Table Mapping `Cuenta PAN (bóveda)`**, **orden 4** (después de `cuenta`). Dedup `cp_clavepan`. Mapea: `HMAC(NumeroCuenta) → cp_clavepan`, `TRIM(NumeroCuenta) →
+  cp_pan` (**único destino del número completo**), `****1234 → cp_name`, y el lookup `cp_cuentaid` calculando el HMAC contra `ct_clavepan`.
+
+### Ciclo de vida
+- **Nace:** solo **Smelter**, una por cuenta (backfill inicial con `scripts/pan/paso3_backfill.py`). **Nadie la cambia** (inmutable fuera de la carga).
+- **Quién la lee:** **BackOffice** (Global; ve el número completo para transcribir al core) y el **Localizador** (`R:U`, solo lo compartido; botón "Ver número", se oculta a los 30 s, un solo nivel de
+  lookup). Solicitante, Supervisor y `Servicio - Cobranza` **no tienen privilegio**; Admin **tampoco** (ver discrepancia).
+- **En el teléfono:** sí, dentro del perfil offline (criterio "todas las filas legibles").
+- **Fin:** se borra **solo con la cuenta** (Cascade). Nunca se borra suelta.
+
+### Cómo borrar
+- **Entrante:** `cuenta → cuentapan` = **Cascade**. Borrar la cuenta (o el cliente) borra la bóveda.
+
+### Consideraciones al borrar
+- **Cadena de acceso:** compartir la cuenta comparte la bóveda; revocar la cuenta la revoca. Si `Reparent` o `Share` volvieran a ser Cascade más arriba (cliente → cuenta), se rompería
+  el aislamiento por cobrador (S-14).
+- **Admin sin privilegios sobre la tabla:** el Admin no puede leerla por rol (el diseño de Fase 2 decía `Read Global`; la guía 16 y la metadata dicen que no). Si el Admin borra una cuenta,
+  si el Delete en cascada sobre la bóveda exige un privilegio que no tiene es **no confirmado** (no se probó).
+- La **auditoría de tabla** está encendida (Create, Delete, Share y lectura), con la columna `cp_pan` fuera.
+- **Rotar la clave K** obliga a recalcular los HMAC de cuenta, bóveda, asignación y carga diaria desde la bóveda (que tiene el número).
+
+### Estado de la revisión
+**2026-10-06.** Verificado en vivo: columnas, dos alt keys activas, Cascade completo, mapeo, `PanGuard` activo, auditoría de columna apagada en `cp_pan`, privilegios (R:G solo BackOffice; R:U Localizador).
+Discrepancia: Admin sin privilegios. No confirmado: contenido de la bóveda (no se leyó, por diseño).
+
+---
+
+## 14. `sanic_cm_tbl_usuarioapp` — Usuario App (huérfana)
+
+### Definición
+Tabla **sin uso**: 0 filas, 0 referencias en ambas apps, 0 privilegios en todos los roles CM (verificado). El rol de cada persona se deriva de los **roles y equipos** de Dataverse
+(`gblRol`), no de esta tabla. Candidata a **eliminarse** (DAT-30).
+
+### Campos
+| Campo lógico | Físico | Tipo | Req. | Descripción |
+|--------------|--------|------|:----:|-------------|
+| Nombre | `sanic_cm_ua_nombre` | Text(200) | — | **Nombre principal.** |
+| Usuario | `sanic_cm_ua_usuarioid` | Lookup → `systemuser` | Sí | |
+| Rol | `sanic_cm_ua_rol` | Multi-select Choice: **1 Backoffice**, **2 Solicitante**, **3 Supervisor**, **4 Admin** | Sí | |
+| Activo | `sanic_cm_ua_activo` | Yes/No (def. **No**) | — | |
+
+### Llaves, import, ciclo de vida, borrado
+- **Sin llaves, sin import, sin ciclo de vida.** Sin auditoría de tabla, sin `ChangeTracking`, fuera del perfil offline.
+- `systemuser → usuarioapp`: RemoveLink. Nada la referencia. Se puede **borrar o eliminar** sin impacto conocido (solo falta decidir).
+
+### Estado de la revisión
+**2026-10-06.** Verificado en vivo: columnas, 0 filas, 0 privilegios en los 6 roles CM. No confirmado: referencias desde otras soluciones del entorno.
+
+---
+
+## D. Discrepancias entre la documentación y la metadata viva (2026-10-06)
+
+Cuando metadata y documentos discrepan, manda la metadata. Lo que se corrigió en este catálogo:
+
+| # | Qué decía el catálogo / otro doc | Qué dice la metadata en DEV |
+|---|----------------------------------|------------------------------|
+| 1 | `cuenta → interaccion` = **Restrict** ("confirmado", el candado de DEC-023) | **RemoveLink**; también `cuenta → pago` y `cuenta → cargadiaria`. El candado no existe |
+| 2 | `cuenta → cargadiaria` = Cascade | RemoveLink (el borrado de carga diaria llega por `cliente → cargadiaria`) |
+| 3 | Alt keys `pk_ct_numerodecuenta`, `altkey_NumeroCuentaxTipo`, `pk_cd_numerocuenta_fechacarga` | Eliminadas; hoy `ak_ct_clavepan`, `ak_as_clavepan_tipo`, `ak_cd_clavepan_fecha`, más `ak_cp_*` y `ak_pg_recibo_cuenta_moneda` |
+| 4 | `pago` sin alt key | Alt key `sanic_cm_ak_pg_recibo_cuenta_moneda` activa |
+| 5 | Autonumeración `INT-/PAG-/ASG-/ACT-{SEQNUM:6}` | `IN-/PG-/AS-/AD-{SEQNUM:4}` |
+| 6 | `as_estado` es Choice (Activa/Cerrada) | Yes/No (Sí = Activa) |
+| 7 | `in_estadograbacion`: `Pendiente` / `Grabada en core` | `1 Pendiente` / `2 Grabado` |
+| 8 | `as_estadoaprobacion`: `Pendiente` / `Aprobada` | `2 Pendiente aprobación` / `3 Aprobado` |
+| 9 | GPS Decimal(5) | Decimal(**6**) |
+| 10 | `ct_fechapago` DateTime | **Text(100)**, con formatos mezclados |
+| 11 | La cuenta guarda el número; `as_numerocuenta` / `in_numerocuenta` / `pg_numerocuenta` | Número solo en la bóveda; las 3 columnas viejas **no existen** |
+| 12 | Relationship Mappings en Smelter | **0**; los lookups van en los column mappings |
+| 13 | `as_estado` lo mapea Smelter con default Activa | No lo mapea; nace Activa por el default de la columna |
+| 14 | Admin con `Read Global` sobre la bóveda (diseño Fase 2) | Sin ningún privilegio sobre `cuentapan` |
+| 15 | README de los plugins: 12 `PanGuard` desactivados, 3 plugins | 15 pasos activos, 6 `PanGuard` (los de columnas viejas se retiraron), 6 plugins |
+| 16 | Solicitante crea cliente y cuenta (DEC-013/014) | Solo el Admin crea clientes (Maestros); **nadie crea cuentas** fuera de Smelter |
+| 17 | `DAT-18` (contrato de datos): Reparent y Share en Cascade en `cliente → cuenta` y `cuenta → asignacion` | Cortados (Share 2026-10-03, Reparent 2026-10-06) |
+
+**No confirmado** en esta revisión: comportamiento real de los borrados en cascada y de `RemoveLink` sobre lookups requeridos (DEV de solo lectura); semillas de los autonuméricos;
+disparador en vivo del flow; origen de `ct_tipoproducto` y del volumen de `fiador`; contenido de `sanic_tbl_smlt_hmackey` y de `cp_pan` (no se leen por diseño).
