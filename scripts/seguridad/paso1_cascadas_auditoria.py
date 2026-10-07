@@ -1,11 +1,15 @@
 """Fase 1 · Paso 1: cortar cascadas de compartido peligrosas + auditoría en tablas transaccionales.
+2026-10-06: además se corta Reparent en las mismas relaciones. Con Reparent = Cascade, cada vez que la carga de Smelter
+vuelve a escribir la cuenta (cambia o reescribe su cliente), Dataverse le da lectura HEREDADA de la cuenta, su bóveda y sus
+asignaciones a quien tenga acceso al cliente: el cobrador terminaba leyendo todas las cuentas de sus clientes, con el
+número completo, aunque no estuvieran asignadas a él (defecto 2 de la prueba integral).
 Uso: python3 paso1_cascadas_auditoria.py [--aplicar]   (sin --aplicar solo muestra el plan)"""
 import sys
 from dvlib import rq, get
 
 APLICAR = '--aplicar' in sys.argv
 P = 'sanic_cm_tbl_'
-# (padre, hijo): compartir el padre NO debe compartir el hijo
+# (padre, hijo): compartir el padre NO debe compartir el hijo, ni darle acceso heredado al re-escribirlo (Reparent)
 CORTAR = [('cliente', 'cuenta'), ('cliente', 'cargadiaria'), ('cuenta', 'asignacion')]
 AUDITAR = ['asignacion', 'interaccion', 'pago', 'agente', 'actualizaciondatos', 'cargadiaria']
 
@@ -16,9 +20,9 @@ for padre, hijo in CORTAR:
     mid = r[0]['MetadataId']
     full = get(f"RelationshipDefinitions({mid})/Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata")
     c = full['CascadeConfiguration']
-    print(f"{padre}→{hijo} [{full['SchemaName']}] Share {c['Share']}→NoCascade · Unshare {c['Unshare']}→NoCascade (Assign {c['Assign']} y Delete {c['Delete']} sin cambio)")
-    if APLICAR and (c['Share'] != 'NoCascade' or c['Unshare'] != 'NoCascade'):
-        c['Share'] = 'NoCascade'; c['Unshare'] = 'NoCascade'
+    print(f"{padre}→{hijo} [{full['SchemaName']}] Share {c['Share']}→NoCascade · Unshare {c['Unshare']}→NoCascade · Reparent {c['Reparent']}→NoCascade (Assign {c['Assign']} y Delete {c['Delete']} sin cambio)")
+    if APLICAR and (c['Share'] != 'NoCascade' or c['Unshare'] != 'NoCascade' or c['Reparent'] != 'NoCascade'):
+        c['Share'] = 'NoCascade'; c['Unshare'] = 'NoCascade'; c['Reparent'] = 'NoCascade'
         full['@odata.type'] = 'Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata'
         for k in [k for k in full if k.startswith('@odata') and k != '@odata.type']: full.pop(k)
         st, b = rq('PUT', f"RelationshipDefinitions({mid})", full, {'MSCRM.MergeLabels': 'true'})

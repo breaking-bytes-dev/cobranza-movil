@@ -103,6 +103,17 @@ trazas y definición del flow.
 | S-12 | ❌ Abierto (tenant) | El entorno no es Managed, no tiene grupo de seguridad ni restricción por IP, y tiene 15 System Administrators | Centro de administración de Power Platform antes de PROD |
 | S-13 | ❌ Abierto | Trazas de plugins en "All" (`plugintracelogsetting = 2`) y **todos los roles CM las pueden leer**. Nuestros plugins nunca trazan valores; los de otras soluciones del entorno, no se sabe | Trazas en "Exception" en PROD y quitar `prvReadPluginTraceLog` a los roles operativos |
 
+**S-14 (encontrado por la prueba integral, cerrado en DEV el 2026-10-06): lectura heredada por Reparent.**
+- Con Reparent = Cascade en Cliente→Cuenta y Cuenta→Asignación, cada carga de Smelter le daba al cobrador lectura heredada
+  de todas las cuentas de sus clientes, **con el número completo de la bóveda**, y de sus asignaciones. Incluía Especiales
+  sin aprobar y cuentas de otros. No la perdía al cerrarse su asignación.
+- Evidencia: `principalobjectaccessset` con `accessrightsmask = 0` e `inheritedaccessrightsmask = 134217729`, nacido
+  durante la segunda importación.
+- Corrección: Reparent = NoCascade en esas relaciones y en Cliente→Carga diaria (`paso1_cascadas_auditoria.py`).
+- La prueba `tests/integral` F2-09 lo verifica de forma determinista.
+- Los accesos heredados que ya existían en DEV no se limpiaron (datos ficticios, por decisión). **En PROD hay que aplicar
+  el cambio antes de la primera carga real.**
+
 **Orden recomendado:** S-7 (además de riesgo, es un punto de falla operativo), S-9 (toca la plata), S-4. S-3, S-10 y S-12
 hay que pedírselos al administrador del tenant antes de PROD.
 

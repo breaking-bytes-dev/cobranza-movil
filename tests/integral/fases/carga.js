@@ -139,15 +139,6 @@ async function f1(ctx) {
   ctx.chk('F1-16', base.productos === 1 && base.fiadores === 1 && base.direcciones >= 1 && base.telefonos >= 1, `producto y fiador QA creados (1 y 1), direcciones ${base.direcciones}, teléfonos ${base.telefonos}`);
   D.conteosBase = base;
 
-  // ── Idempotencia: la misma carga otra vez no crea filas ──
-  // (hay que volver a armar el CSV: el archivo ya se borró; el contenido sigue en memoria)
-  const imp2 = await smelter.importar(ctx, ctx.secretos.contenido, 2);
-  const j2 = imp2.job;
-  ctx.chk('F1-17', j2.sanic_smlt_ij_status === 2 && !j2.sanic_smlt_ij_failedcount && imp2.logs.length === 0, `importación 2 (mismo CSV) Completed, 0 fallidas, 0 logs — ${smelter.resumenJob(j2)}${imp2.logs.length ? ' · ' + smelter.textoLogs(imp2.logs) : ''}`);
-  const despues = await datos.conteosCarga(ctx);
-  ctx.chk('F1-18', JSON.stringify(despues) === JSON.stringify(base), `idempotente: los conteos no cambian (${JSON.stringify(despues)})`);
-  const cts2 = (await dv.get(`sanic_cm_tbl_cuentas?$select=sanic_cm_tbl_cuentaid&$filter=_sanic_cm_ct_clienteid_value eq ${D.cliente.id}`)).value.map((x) => x.sanic_cm_tbl_cuentaid).sort();
-  ctx.chk('F1-19', JSON.stringify(cts2) === JSON.stringify(D.cuentas.map((e) => e.id).sort()), 'las 3 cuentas siguen siendo las mismas (mismos ids)');
   D.tCarga = Date.now();
 }
 
@@ -173,8 +164,31 @@ async function f2(ctx) {
   const veA = await datos.leerComo(U.cob, `sanic_cm_tbl_cuentas(${A.id})?$select=sanic_cm_tbl_cuentaid`);
   const veB = await datos.leerComo(U.cob, `sanic_cm_tbl_cuentas(${B.id})?$select=sanic_cm_tbl_cuentaid`);
   const veC = await datos.leerComo(U.cob, `sanic_cm_tbl_cuentas(${C.id})?$select=sanic_cm_tbl_cuentaid`);
-  if (veA.status !== 200 || veB.status !== 200 || veC.status === 200) for (const e of [A, B, Cc2]) ctx.nota(`diagnóstico cuenta ${e.clave}: ${await datos.diagnosticoCuenta(e.id)}`);
   ctx.chk('F2-04', veA.status === 200 && veB.status === 200 && veC.status !== 200, `User5 (suplantado) lee las cuentas A (${veA.status}) y B (${veB.status}) y NO la C (${veC.status}) — compartido por el flow`);
+
+  // ── Segunda carga con el cliente YA compartido (lo que hace cada carga diaria) ──
+  // Determinista para el defecto 2 (2026-10-06): con Reparent = Cascade en cliente→cuenta y cuenta→asignación, re-escribir
+  // la cuenta le daba al cobrador lectura HEREDADA de las cuentas hermanas (la C, con su bóveda y su asignación) aunque no
+  // estuvieran asignadas a él. Antes la segunda carga iba en F1 y el defecto dependía de una carrera con el flow.
+  const cli = await esperar(async () => (await datos.leerComo(U.cob, `sanic_cm_tbl_clientes(${D.cliente.id})?$select=sanic_cm_tbl_clienteid`)).status === 200, { maxMs: 180000, cadaMs: 8000 });
+  ctx.chk('F2-05', !!cli, 'el flow ya compartió el cliente con User5 (condición de la carga diaria)');
+  const base = D.conteosBase;
+  const imp2 = await smelter.importar(ctx, ctx.secretos.contenido, 2);
+  const j2 = imp2.job;
+  ctx.chk('F2-06', j2.sanic_smlt_ij_status === 2 && !j2.sanic_smlt_ij_failedcount && imp2.logs.length === 0, `importación 2 (mismo CSV) Completed, 0 fallidas, 0 logs — ${smelter.resumenJob(j2)}${imp2.logs.length ? ' · ' + smelter.textoLogs(imp2.logs) : ''}`);
+  const despues = await datos.conteosCarga(ctx);
+  ctx.chk('F2-07', JSON.stringify(despues) === JSON.stringify(base), `idempotente: los conteos no cambian (${JSON.stringify(despues)})`);
+  const cts2 = (await dv.get(`sanic_cm_tbl_cuentas?$select=sanic_cm_tbl_cuentaid&$filter=_sanic_cm_ct_clienteid_value eq ${D.cliente.id}`)).value.map((x) => x.sanic_cm_tbl_cuentaid).sort();
+  ctx.chk('F2-08', JSON.stringify(cts2) === JSON.stringify(D.cuentas.map((e) => e.id).sort()), 'las 3 cuentas siguen siendo las mismas (mismos ids)');
+  const bovC = (await dv.get(`sanic_cm_tbl_cuentapans?$select=sanic_cm_tbl_cuentapanid&$filter=_sanic_cm_cp_cuentaid_value eq ${C.id}`)).value[0].sanic_cm_tbl_cuentapanid;
+  const r2 = {
+    cuenta: (await datos.leerComo(U.cob, `sanic_cm_tbl_cuentas(${C.id})?$select=sanic_cm_tbl_cuentaid`)).status,
+    boveda: (await datos.leerComo(U.cob, `sanic_cm_tbl_cuentapans(${bovC})?$select=sanic_cm_tbl_cuentapanid`)).status,
+    asignacion: (await datos.leerComo(U.cob, `sanic_cm_tbl_asignacions(${C.asigId})?$select=sanic_cm_tbl_asignacionid`)).status,
+  };
+  if (Object.values(r2).some((x) => x === 200)) for (const e of [A, B, Cc2]) ctx.nota(`diagnóstico cuenta ${e.clave}: ${await datos.diagnosticoCuenta(e.id)}`);
+  ctx.chk('F2-09', Object.values(r2).every((x) => x !== 200),
+    `tras la segunda carga, User5 sigue SIN leer la Especial C no asignada: cuenta ${r2.cuenta} · bóveda ${r2.boveda} · asignación ${r2.asignacion} (defecto 2: acceso heredado por Reparent)`);
 }
 
 module.exports = { f0, f1, f2 };

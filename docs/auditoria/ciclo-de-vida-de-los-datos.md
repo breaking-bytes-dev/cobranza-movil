@@ -101,6 +101,17 @@ Cómo se lee:
 - **RESTRICT:** no se puede borrar un agente o un fiador que tenga hijos.
 - **Quita el vínculo:** si se borra una cuenta, sus interacciones y pagos quedan sin cuenta, pero no se borran.
 
+**Reparent** (qué pasa cuando un registro se guarda apuntando a un padre):
+- Con `Cascade`, todos los que tienen acceso al padre reciben lectura **heredada** del hijo. Esto pasa también cuando la
+  carga vuelve a escribir el mismo padre.
+- **Hasta el 2026-10-06** estaba en `Cascade` en Cliente→Cuenta y Cuenta→Asignación. Cada carga diaria le daba al
+  cobrador lectura heredada de **todas las cuentas de sus clientes**, con su bóveda (número completo) y sus asignaciones,
+  aunque no estuvieran asignadas a él. Era el defecto 2 de la prueba integral.
+- Desde esa fecha está en `NoCascade` en **Cliente→Cuenta, Cliente→Carga diaria y Cuenta→Asignación**
+  (`scripts/seguridad/paso1_cascadas_auditoria.py`).
+- Sigue en `Cascade`, a propósito, en Cuenta→Bóveda, Cliente→Teléfono/Dirección e Interacción→Pago/Actualización. Ahí la
+  audiencia es la misma que la del compartido que el diseño quiere.
+
 ---
 
 ## 3. Asignación: la tabla con más vida
