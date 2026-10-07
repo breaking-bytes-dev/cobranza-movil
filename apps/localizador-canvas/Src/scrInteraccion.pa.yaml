@@ -29,11 +29,14 @@ Screens:
         Clear(colIntGuardadas);
         // APP-02: los productos salen del origen y no de colAsig (que solo existe si antes se pasó por la Cartera).
         // Una consulta por cuenta del cliente, con igualdad sobre el lookup: delegable (sin tope de filas).
+        // F7-07: UNA fila por cuenta (FirstN 1). La interacción y el pago son de la cuenta, no de la asignación: una cuenta
+        // con Diaria + Especial aprobada daba 2 filas "actual" bloqueadas → no se podía aplicar pago y se grababan 2
+        // interacciones iguales.
         Clear(colProdInt);
         ForAll(Filter('CM | TBL | Cuentas', 'CIF Cliente' = varCuenta.'CIF Cliente') As C,
             Collect(colProdInt,
                 AddColumns(
-                    Filter('CM | TBL | Asignacions', '[AS] Estado' = true && ('[AS] Tipo' <> 'Choice | CM | Tipo asignacion'.Especial || '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado) && '[AS] Cuenta'.'CM | TBL | Cuenta' = C.'CM | TBL | Cuenta'),
+                    FirstN(Filter('CM | TBL | Asignacions', '[AS] Estado' = true && ('[AS] Tipo' <> 'Choice | CM | Tipo asignacion'.Especial || '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado) && '[AS] Cuenta'.'CM | TBL | Cuenta' = C.'CM | TBL | Cuenta'), 1),
                     cta,      C,
                     esActual, C.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta',
                     sel,      C.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta')))

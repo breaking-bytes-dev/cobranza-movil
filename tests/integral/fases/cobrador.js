@@ -87,6 +87,9 @@ async function f7(ctx) {
       let cobro = A;
       await ui.tocar(app, 'btnRegistrar');
       ctx.requiere((await lo.pantalla(app)) === 'scrInteraccion', 'no se abrió la pantalla de interacción');
+      // Una fila por CUENTA (fix de F7-07): la A tiene Diaria + Especial aprobada y tiene que contar como 1 producto.
+      const guardar = await lo.texto(app, 'btnRegistrar_1').catch(() => '');
+      ctx.chk('F7-07b', /Guardar en 1 producto\b/.test(guardar), `Cuenta A (2 asignaciones activas): el botón dice "${guardar}" (esperado "Guardar en 1 producto"; antes "2 productos" y se grababan 2 interacciones)`);
       const pagoOk = await intentarActivarPago(app);
       const nota = await lo.texto(app, 'lblSelNota').catch(() => '');
       ctx.chk('F7-07', pagoOk, `Cuenta A (Diaria + Especial aprobada): se puede activar "Aplica pago" en la interacción — ${pagoOk ? 'sí' : `NO: la pantalla pre-marca los 2 productos de la cuenta y dice "${nota}"`}`);

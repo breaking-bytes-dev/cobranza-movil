@@ -554,3 +554,21 @@ Tropiezo: el primer despliegue llevaba `AccessibleLabel: ="Estado de sincronizac
 | Verificación de la app | — | App Checker sin errores; web 23/23; conciliación 286/0. En el teléfono, una captura **sin servidor** (IN-1080, capturada 02:37:09, subida 02:38:22) llegó con agente y cuenta: la comparación en minúsculas funciona offline |
 
 Sigue pendiente APP-11 con GPS real: hace falta el teléfono del usuario (el Android de pruebas no tiene GPS).
+
+## F7-07: cobro bloqueado en una cuenta con Diaria + Especial aprobada (encontrado por la prueba integral, corregido 2026-10-07)
+
+**Defecto.** `scrInteraccion` armaba `colProdInt` con una fila por **asignación**, pero calculaba `esActual` y `sel` por
+**cuenta**.
+- Una cuenta con Diaria y Especial aprobada daba 2 filas "actual", bloqueadas y sin forma de desmarcarlas.
+- "Aplica pago" y "Actualizar datos" quedaban deshabilitados, porque había más de un producto seleccionado: el cobrador no
+  podía registrar el cobro.
+- Guardar sin pago grababa 2 interacciones iguales, una por fila.
+- El defecto no lo introdujeron los cambios recientes: viene del diseño multiproducto.
+
+**Corrección.** Una fila por **cuenta** (`FirstN(…, 1)` de sus asignaciones activas visibles). La interacción y el pago
+son de la cuenta, no de la asignación; el guardado ya usaba `P.cta`.
+
+**Verificación.**
+- App Checker sin errores.
+- `tests/integral` hasta F7: 98/98. F7-07b: "Guardar en 1 producto". F7-07: "Aplica pago" se activa en la cuenta A.
+  F7-10/12: 1 interacción y 1 pago. F7-13: el plugin completó la cuenta y el N° de interacción.

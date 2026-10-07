@@ -103,9 +103,8 @@ Cada paso dice **quién** lo hace, **qué** hace y **qué tiene que ver**.
 
 ## 6. Cobrador (User5) en la calle 📱
 
-> ⚠️ **Defecto conocido (F7-07, 2026-10-06).** La cuenta **A** queda con dos asignaciones activas: la Diaria y su Especial
-> aprobada en el paso 5.3. En ese caso la app **no deja aplicar pago ni actualizar datos**: los dos productos quedan marcados
-> y bloqueados. Hasta que se corrija, hacé el paso 6.1 en la cuenta **B**, y anotá el bloqueo en A como hallazgo.
+> Nota: hasta el 2026-10-07, la cuenta **A** (Diaria + Especial aprobada) no dejaba aplicar pago y grababa 2 interacciones
+> (defecto F7-07). Corregido: ahora cuenta como **1 producto**.
 
 | ☐ | Paso | Qué tiene que ver |
 |---|---|---|
