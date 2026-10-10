@@ -1,0 +1,1029 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+#
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+#
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+Screens:
+  scrHistorialEspeciales:
+    Properties:
+      Fill: =gblC.pantalla
+      OnVisible: |-
+        =// Historial de Especiales RESUELTAS (Aprobadas o Rechazadas). Supervisor, SOLO LECTURA.
+        // Cada filtro es un PAR de valores que entra al Filter como constante: "Todas" = los dos
+        // valores; "Aprobadas"/"Rechazadas" (o "Activas"/"Cerradas") = el mismo valor dos veces.
+        // Así la consulta queda siempre igual (dos igualdades con ||) y delega entera en Dataverse.
+        Set(varEstHes, "todas");
+        Set(varAprAHes, 'Choice | CM | Estado aprobacion especial'.Aprobado);
+        Set(varAprBHes, 'Choice | CM | Estado aprobacion especial'.Rechazada);
+        Set(varDiasHes, 30);
+        Set(varDesdeHes, DateAdd(Today(), -30, TimeUnit.Days));
+        Set(varVigHes, "todas");
+        Set(varVigAHes, true);
+        Set(varVigBHes, false);
+        Set(varPanelHes, false)
+    Children:
+      - cmpEncHes:
+          Control: CanvasComponent
+          ComponentName: cmpEncabezado
+          Properties:
+            Height: =If(nfMovil, gblE.AltoBarra + 84, 84)
+            Subtitulo: |-
+              ="Especiales ya resueltas: quién la pidió, quién la resolvió y a qué localizador fue."
+            Titulo: ="Historial de Especiales"
+            Width: =Parent.Width - Self.X
+            X: =If(nfMovil, 0, gblE.AnchoNav)
+      - conContenidoHes:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            DropShadow: =DropShadow.None
+            Fill: =Color.Transparent
+            Height: =Parent.Height - Self.Y - gblE.Pad
+            Width: =Min(gblE.AnchoMax, Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - 2*gblE.Pad)
+            X: |-
+              =If(nfMovil, 0, gblE.AnchoNav)
+                  + Max(gblE.Pad, (Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - gblE.AnchoMax) / 2)
+            Y: =cmpEncHes.Y + cmpEncHes.Height
+          Children:
+            - chpTodasHes:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =If(varEstHes = "todas", 0, 1)
+                  Color: =If(varEstHes = "todas", Color.White, gblC.ink2)
+                  Fill: =If(varEstHes = "todas", gblC.teal, gblC.card)
+                  FocusedBorderColor: =gblC.ink
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =32
+                  HoverFill: =ColorFade(Self.Fill, 10%)
+                  OnSelect: |-
+                    =Set(varEstHes, "todas");
+                    Set(varAprAHes, 'Choice | CM | Estado aprobacion especial'.Aprobado);
+                    Set(varAprBHes, 'Choice | CM | Estado aprobacion especial'.Rechazada);
+                    Set(varPanelHes, false)
+                  RadiusBottomLeft: =16
+                  RadiusBottomRight: =16
+                  RadiusTopLeft: =16
+                  RadiusTopRight: =16
+                  Size: =9
+                  Text: ="Todas"
+                  Width: =84
+                  X: =0
+                  Y: =0
+            - chpAprobHes:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =If(varEstHes = "apr", 0, 1)
+                  Color: =If(varEstHes = "apr", Color.White, gblC.ink2)
+                  Fill: =If(varEstHes = "apr", gblC.teal, gblC.card)
+                  FocusedBorderColor: =gblC.ink
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =32
+                  HoverFill: =ColorFade(Self.Fill, 10%)
+                  OnSelect: |-
+                    =Set(varEstHes, "apr");
+                    Set(varAprAHes, 'Choice | CM | Estado aprobacion especial'.Aprobado);
+                    Set(varAprBHes, 'Choice | CM | Estado aprobacion especial'.Aprobado);
+                    Set(varPanelHes, false)
+                  RadiusBottomLeft: =16
+                  RadiusBottomRight: =16
+                  RadiusTopLeft: =16
+                  RadiusTopRight: =16
+                  Size: =9
+                  Text: ="Aprobadas"
+                  Width: =110
+                  X: =chpTodasHes.X + chpTodasHes.Width + 6
+                  Y: =chpTodasHes.Y
+            - chpRechHes:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =If(varEstHes = "rech", 0, 1)
+                  Color: =If(varEstHes = "rech", Color.White, gblC.ink2)
+                  Fill: =If(varEstHes = "rech", gblC.teal, gblC.card)
+                  FocusedBorderColor: =gblC.ink
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =32
+                  HoverFill: =ColorFade(Self.Fill, 10%)
+                  OnSelect: |-
+                    =Set(varEstHes, "rech");
+                    Set(varAprAHes, 'Choice | CM | Estado aprobacion especial'.Rechazada);
+                    Set(varAprBHes, 'Choice | CM | Estado aprobacion especial'.Rechazada);
+                    Set(varPanelHes, false)
+                  RadiusBottomLeft: =16
+                  RadiusBottomRight: =16
+                  RadiusTopLeft: =16
+                  RadiusTopRight: =16
+                  Size: =9
+                  Text: ="Rechazadas"
+                  Width: =116
+                  X: =chpAprobHes.X + chpAprobHes.Width + 6
+                  Y: =chpTodasHes.Y
+            - chp7Hes:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =If(varDiasHes = 7, 0, 1)
+                  Color: =If(varDiasHes = 7, Color.White, gblC.ink2)
+                  Fill: =If(varDiasHes = 7, gblC.teal, gblC.card)
+                  FocusedBorderColor: =gblC.ink
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =32
+                  HoverFill: =ColorFade(Self.Fill, 10%)
+                  OnSelect: |-
+                    =Set(varDiasHes, 7);
+                    Set(varDesdeHes, DateAdd(Today(), -7, TimeUnit.Days));
+                    Set(varPanelHes, false)
+                  RadiusBottomLeft: =16
+                  RadiusBottomRight: =16
+                  RadiusTopLeft: =16
+                  RadiusTopRight: =16
+                  Size: =9
+                  Text: ="7 días"
+                  Width: =76
+                  X: =If(nfMovil, 0, chpRechHes.X + chpRechHes.Width + 2*gblE.Pad)
+                  Y: =If(nfMovil, chpTodasHes.Y + chpTodasHes.Height + 8, chpTodasHes.Y)
+            - chp30Hes:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =If(varDiasHes = 30, 0, 1)
+                  Color: =If(varDiasHes = 30, Color.White, gblC.ink2)
+                  Fill: =If(varDiasHes = 30, gblC.teal, gblC.card)
+                  FocusedBorderColor: =gblC.ink
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =32
+                  HoverFill: =ColorFade(Self.Fill, 10%)
+                  OnSelect: |-
+                    =Set(varDiasHes, 30);
+                    Set(varDesdeHes, DateAdd(Today(), -30, TimeUnit.Days));
+                    Set(varPanelHes, false)
+                  RadiusBottomLeft: =16
+                  RadiusBottomRight: =16
+                  RadiusTopLeft: =16
+                  RadiusTopRight: =16
+                  Size: =9
+                  Text: ="30 días"
+                  Width: =82
+                  X: =chp7Hes.X + chp7Hes.Width + 6
+                  Y: =chp7Hes.Y
+            - chp90Hes:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =If(varDiasHes = 90, 0, 1)
+                  Color: =If(varDiasHes = 90, Color.White, gblC.ink2)
+                  Fill: =If(varDiasHes = 90, gblC.teal, gblC.card)
+                  FocusedBorderColor: =gblC.ink
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =32
+                  HoverFill: =ColorFade(Self.Fill, 10%)
+                  OnSelect: |-
+                    =Set(varDiasHes, 90);
+                    Set(varDesdeHes, DateAdd(Today(), -90, TimeUnit.Days));
+                    Set(varPanelHes, false)
+                  RadiusBottomLeft: =16
+                  RadiusBottomRight: =16
+                  RadiusTopLeft: =16
+                  RadiusTopRight: =16
+                  Size: =9
+                  Text: ="90 días"
+                  Width: =82
+                  X: =chp30Hes.X + chp30Hes.Width + 6
+                  Y: =chp7Hes.Y
+            - chpVigTodasHes:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =If(varVigHes = "todas", 0, 1)
+                  Color: =If(varVigHes = "todas", Color.White, gblC.ink2)
+                  Fill: =If(varVigHes = "todas", gblC.teal, gblC.card)
+                  FocusedBorderColor: =gblC.ink
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =32
+                  HoverFill: =ColorFade(Self.Fill, 10%)
+                  OnSelect: |-
+                    =Set(varVigHes, "todas");
+                    Set(varVigAHes, true);
+                    Set(varVigBHes, false);
+                    Set(varPanelHes, false)
+                  RadiusBottomLeft: =16
+                  RadiusBottomRight: =16
+                  RadiusTopLeft: =16
+                  RadiusTopRight: =16
+                  Size: =9
+                  Text: ="Activas y cerradas"
+                  Width: =150
+                  X: =If(nfMovil, 0, chp90Hes.X + chp90Hes.Width + 2*gblE.Pad)
+                  Y: =If(nfMovil, chp7Hes.Y + chp7Hes.Height + 8, chpTodasHes.Y)
+            - chpVigActHes:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =If(varVigHes = "act", 0, 1)
+                  Color: =If(varVigHes = "act", Color.White, gblC.ink2)
+                  Fill: =If(varVigHes = "act", gblC.teal, gblC.card)
+                  FocusedBorderColor: =gblC.ink
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =32
+                  HoverFill: =ColorFade(Self.Fill, 10%)
+                  OnSelect: |-
+                    =Set(varVigHes, "act");
+                    Set(varVigAHes, true);
+                    Set(varVigBHes, true);
+                    Set(varPanelHes, false)
+                  RadiusBottomLeft: =16
+                  RadiusBottomRight: =16
+                  RadiusTopLeft: =16
+                  RadiusTopRight: =16
+                  Size: =9
+                  Text: ="Activas"
+                  Width: =84
+                  X: =chpVigTodasHes.X + chpVigTodasHes.Width + 6
+                  Y: =chpVigTodasHes.Y
+            - chpVigCerHes:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =If(varVigHes = "cer", 0, 1)
+                  Color: =If(varVigHes = "cer", Color.White, gblC.ink2)
+                  Fill: =If(varVigHes = "cer", gblC.teal, gblC.card)
+                  FocusedBorderColor: =gblC.ink
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =32
+                  HoverFill: =ColorFade(Self.Fill, 10%)
+                  OnSelect: |-
+                    =Set(varVigHes, "cer");
+                    Set(varVigAHes, false);
+                    Set(varVigBHes, false);
+                    Set(varPanelHes, false)
+                  RadiusBottomLeft: =16
+                  RadiusBottomRight: =16
+                  RadiusTopLeft: =16
+                  RadiusTopRight: =16
+                  Size: =9
+                  Text: ="Cerradas"
+                  Width: =92
+                  X: =chpVigActHes.X + chpVigActHes.Width + 6
+                  Y: =chpVigTodasHes.Y
+            - lblTotalHes:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.ink2
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =24
+                  PaddingLeft: =0
+                  Size: =10
+                  Text: |-
+                    =// Conteo EXACTO directo al datasource (CountIf delega): mismo predicado que la galería.
+                    CountIf('CM | TBL | Asignacions',
+                        '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                        && ('[AS] Estado de aprobacion' = varAprAHes || '[AS] Estado de aprobacion' = varAprBHes)
+                        && ('[AS] Estado' = varVigAHes || '[AS] Estado' = varVigBHes)
+                        && 'Modified On' >= varDesdeHes)
+                    & " especiales resueltas · últimos " & varDiasHes & " días"
+                  Width: =Parent.Width
+                  Wrap: =false
+                  Y: =chpVigTodasHes.Y + chpVigTodasHes.Height + gblE.PadSm
+            - conListaHes:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.card
+                  Height: =Parent.Height - Self.Y
+                  RadiusBottomLeft: =gblE.Radio
+                  RadiusBottomRight: =gblE.Radio
+                  RadiusTopLeft: =gblE.Radio
+                  RadiusTopRight: =gblE.Radio
+                  Width: =Parent.Width
+                  Y: =lblTotalHes.Y + lblTotalHes.Height + gblE.PadSm
+                Children:
+                  - galHes:
+                      Control: Gallery@2.15.0
+                      Variant: Vertical
+                      Properties:
+                        AccessibleLabel: ="Especiales resueltas"
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Height: =Parent.Height - 2*gblE.PadSm
+                        Items: |-
+                          =// Todo delegable: choice/booleano contra constantes (pares de variables), fecha >=
+                          // constante y Sort por columna. El rango va sobre 'Modified On' (siempre presente: en una
+                          // Especial resuelta el último cambio es la resolución o el cierre); '[AS] Fecha de
+                          // Asignacion' puede venir vacía y la pisa la carga diaria (DAT-31).
+                          Sort(
+                              Filter('CM | TBL | Asignacions',
+                                  '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                                  && ('[AS] Estado de aprobacion' = varAprAHes || '[AS] Estado de aprobacion' = varAprBHes)
+                                  && ('[AS] Estado' = varVigAHes || '[AS] Estado' = varVigBHes)
+                                  && 'Modified On' >= varDesdeHes),
+                              'Modified On', SortOrder.Descending)
+                        OnSelect: =Set(varPanelHes, true)
+                        ShowScrollbar: =false
+                        TemplateFill: =If(ThisItem.IsSelected && varPanelHes, gblC.tealSuave, gblC.card)
+                        TemplatePadding: =0
+                        TemplateSize: =If(nfMovil, 176, 92)
+                        Width: =Parent.Width - 2*gblE.PadSm
+                        X: =gblE.PadSm
+                        Y: =gblE.PadSm
+                      Children:
+                        - lblCliFilaHes:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.ink
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Semibold
+                              Height: =18
+                              PaddingLeft: =0
+                              Size: =10
+                              Text: =Upper(Coalesce(ThisItem.'[AS] Cuenta'.'Nombre Cliente', "—"))
+                              Width: =If(nfMovil, Parent.TemplateWidth - 2*gblE.PadSm, Parent.TemplateWidth*0.26)
+                              Wrap: =false
+                              X: =gblE.PadSm
+                              Y: =8
+                        - lblCtaFilaHes:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.muted
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              Height: =16
+                              PaddingLeft: =0
+                              Size: =9
+                              Text: =CuentaMasc(ThisItem.'[AS] Cuenta'.'Últimos 4') & " · " & ThisItem.'[AS] Numero'
+                              Width: =lblCliFilaHes.Width
+                              Wrap: =false
+                              X: =gblE.PadSm
+                              Y: =28
+                        - lblFechaFilaHes:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.muted2
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              Height: =16
+                              PaddingLeft: =0
+                              Size: =8
+                              Text: ="Último cambio " & Text(ThisItem.'Modified On', "dd/mm/yyyy HH:mm")
+                              Width: =lblCliFilaHes.Width
+                              Wrap: =false
+                              X: =gblE.PadSm
+                              Y: =46
+                        - lblPideFilaHes:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.ink2
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              Height: =16
+                              PaddingLeft: =0
+                              Size: =9
+                              Text: |-
+                                ="Pidió: " & Coalesce(ThisItem.'[AS] Solicitado por'.'Full Name', "—")
+                              Width: =If(nfMovil, Parent.TemplateWidth - 2*gblE.PadSm, Parent.TemplateWidth*0.26)
+                              Wrap: =false
+                              X: =If(nfMovil, gblE.PadSm, Parent.TemplateWidth*0.28)
+                              Y: =If(nfMovil, 66, 8)
+                        - lblResFilaHes:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.ink2
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              Height: =16
+                              PaddingLeft: =0
+                              Size: =9
+                              Text: |-
+                                ="Resolvió: " & Coalesce(ThisItem.'[AS] Resolutor'.'Full Name', "—")
+                              Width: =lblPideFilaHes.Width
+                              Wrap: =false
+                              X: =lblPideFilaHes.X
+                              Y: =lblPideFilaHes.Y + 18
+                        - lblAgeFilaHes:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.ink2
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              Height: =16
+                              PaddingLeft: =0
+                              Size: =9
+                              Text: |-
+                                ="🏍️ " & Coalesce(ThisItem.'[AS] Agente'.'[AG] Nombre', "sin localizador")
+                              Width: =lblPideFilaHes.Width
+                              Wrap: =false
+                              X: =lblPideFilaHes.X
+                              Y: =lblPideFilaHes.Y + 36
+                        - lblMotFilaHes:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.redInk
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              Height: =If(nfMovil, 34, Parent.TemplateHeight - 16)
+                              PaddingLeft: =0
+                              Size: =9
+                              Text: |-
+                                =// Motivo de rechazo (solo en las Rechazadas), recortado; completo en el panel.
+                                If(ThisItem.'[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Rechazada,
+                                    "Motivo: " & If(Len(ThisItem.'Motivo de rechazo') > 110,
+                                        Left(ThisItem.'Motivo de rechazo', 110) & "…",
+                                        Coalesce(ThisItem.'Motivo de rechazo', "—")),
+                                    "")
+                              VerticalAlign: =VerticalAlign.Top
+                              Width: =If(nfMovil, Parent.TemplateWidth - 2*gblE.PadSm, Parent.TemplateWidth*0.24)
+                              X: =If(nfMovil, gblE.PadSm, Parent.TemplateWidth*0.56)
+                              Y: =If(nfMovil, 120, 8)
+                        - lblRetiroFilaHes:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =If(nfMovil, Align.Left, Align.Right)
+                              Color: =gblC.ink
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Semibold
+                              Height: =18
+                              PaddingLeft: =0
+                              PaddingRight: =0
+                              Size: =10
+                              Text: =Moneda(ThisItem.'Retiro NIO', ThisItem.'Retiro USD')
+                              Width: =If(nfMovil, Parent.TemplateWidth*0.5, Parent.TemplateWidth*0.18)
+                              Wrap: =false
+                              X: =If(nfMovil, gblE.PadSm, Parent.TemplateWidth - Self.Width - gblE.PadSm)
+                              Y: =If(nfMovil, 152, 8)
+                        - chpEstFilaHes:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderThickness: =0
+                              Color: =If(ThisItem.'[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado, gblC.okInk, gblC.redInk)
+                              DisplayMode: =DisplayMode.View
+                              Fill: =If(ThisItem.'[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado, gblC.okBg, gblC.redBg)
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =26
+                              RadiusBottomLeft: =8
+                              RadiusBottomRight: =8
+                              RadiusTopLeft: =8
+                              RadiusTopRight: =8
+                              Size: =8
+                              Text: =If(ThisItem.'[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado, "Aprobada", "Rechazada")
+                              Width: =14 + 7*Len(Self.Text)
+                              X: =chpVigFilaHes.X - Self.Width - gblE.PadSm
+                              Y: =chpVigFilaHes.Y
+                        - chpVigFilaHes:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderThickness: =0
+                              Color: =If(ThisItem.'[AS] Estado', gblC.teal, gblC.ink2)
+                              DisplayMode: =DisplayMode.View
+                              Fill: =If(ThisItem.'[AS] Estado', gblC.tealSuave, gblC.hairline)
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =26
+                              RadiusBottomLeft: =8
+                              RadiusBottomRight: =8
+                              RadiusTopLeft: =8
+                              RadiusTopRight: =8
+                              Size: =8
+                              Text: =If(ThisItem.'[AS] Estado', "Activa", "Cerrada")
+                              Width: =14 + 7*Len(Self.Text)
+                              X: =Parent.TemplateWidth - Self.Width - gblE.PadSm
+                              Y: =If(nfMovil, 148, 46)
+                        - recSepHes:
+                            Control: GroupContainer@1.5.0
+                            Variant: ManualLayout
+                            Properties:
+                              BorderThickness: =0
+                              DropShadow: =DropShadow.None
+                              Fill: =gblC.hairline
+                              Height: =1
+                              Width: =Parent.TemplateWidth
+                              Y: =Parent.TemplateHeight - 1
+                        - btnFilaHes:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderThickness: =0
+                              Color: =Color.Transparent
+                              Fill: =Color.Transparent
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Height: =Parent.TemplateHeight
+                              HoverFill: =RGBA(15, 107, 107, 0.06)
+                              OnSelect: =Select(Parent)
+                              PressedFill: =RGBA(15, 107, 107, 0.12)
+                              TabIndex: =0
+                              Text: ="Ver detalle de " & ThisItem.'[AS] Numero'
+                              Width: =Parent.TemplateWidth
+                              X: =0
+                              Y: =0
+                  - cmpVacioHes:
+                      Control: CanvasComponent
+                      ComponentName: cmpVacio
+                      Properties:
+                        Height: =200
+                        Icono: |-
+                          ="📜"
+                        Mensaje: ="Probá con otro rango de fechas u otro filtro."
+                        Titulo: ="Sin especiales resueltas"
+                        Visible: =galHes.AllItemsCount = 0
+                        Width: =Min(420, Parent.Width - 2*gblE.Pad)
+                        X: =(Parent.Width - Self.Width) / 2
+                        Y: =(Parent.Height - Self.Height) / 2
+      - recScrimHes:
+          Control: Rectangle@2.3.0
+          Properties:
+            AccessibleLabel: ="Cerrar panel"
+            Fill: =gblC.scrim
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
+            Height: =Parent.Height
+            OnSelect: =Set(varPanelHes, false)
+            TabIndex: =0
+            Visible: =varPanelHes
+            Width: =Parent.Width
+      - conPanelHes:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            BorderColor: =gblC.borde
+            BorderThickness: =1
+            DropShadow: =DropShadow.None
+            Fill: =gblC.card
+            Height: =Parent.Height
+            RadiusBottomLeft: =0
+            RadiusBottomRight: =0
+            RadiusTopLeft: =0
+            RadiusTopRight: =0
+            Visible: =varPanelHes
+            Width: =If(nfMovil, Parent.Width, Min(480, Parent.Width * 0.45))
+            X: =Parent.Width - Self.Width
+          Children:
+            - lblTituloPanHes:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =22
+                  PaddingLeft: =0
+                  Text: ="Especial " & galHes.Selected.'[AS] Numero'
+                  Width: =Parent.Width - 2*gblE.Pad - 32
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =16
+            - icoCerrarHes:
+                Control: Classic/Icon@2.5.0
+                Properties:
+                  AccessibleLabel: ="Cerrar panel"
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: =22
+                  Icon: =Icon.Cancel
+                  OnSelect: =Set(varPanelHes, false)
+                  TabIndex: =0
+                  Width: =22
+                  X: =Parent.Width - Self.Width - gblE.Pad
+                  Y: =16
+            - lblSecCtaHes:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =22
+                  PaddingLeft: =0
+                  Size: =8
+                  Text: ="CUENTA"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =52
+            - lblKCliHes:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =22
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Cliente"
+                  Width: =110
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =74
+            - lblVCliHes:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Right
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =22
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =10
+                  Text: =Upper(Coalesce(galHes.Selected.'[AS] Cuenta'.'Nombre Cliente', "—"))
+                  Width: =Parent.Width - 2*gblE.Pad - 110
+                  Wrap: =false
+                  X: =gblE.Pad + 110
+                  Y: =74
+            - lblKCtaHes:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =22
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Cuenta"
+                  Width: =110
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =98
+            - lblVCtaHes:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Right
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =22
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =10
+                  Text: =CuentaMasc(galHes.Selected.'[AS] Cuenta'.'Últimos 4')
+                  Width: =Parent.Width - 2*gblE.Pad - 110
+                  Wrap: =false
+                  X: =gblE.Pad + 110
+                  Y: =98
+            - lblSecSolHes:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =22
+                  PaddingLeft: =0
+                  Size: =8
+                  Text: ="SOLICITUD Y RESOLUCIÓN"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =132
+            - lblKRetiroHes:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =22
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Retiro pedido"
+                  Width: =110
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =154
+            - lblVRetiroHes:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Right
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =22
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =10
+                  Text: =Moneda(galHes.Selected.'Retiro NIO', galHes.Selected.'Retiro USD')
+                  Width: =Parent.Width - 2*gblE.Pad - 110
+                  Wrap: =false
+                  X: =gblE.Pad + 110
+                  Y: =154
+            - lblKPideHes:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =22
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Solicitado por"
+                  Width: =110
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =178
+            - lblVPideHes:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Right
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =22
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =10
+                  Text: =Coalesce(galHes.Selected.'[AS] Solicitado por'.'Full Name', "—")
+                  Width: =Parent.Width - 2*gblE.Pad - 110
+                  Wrap: =false
+                  X: =gblE.Pad + 110
+                  Y: =178
+            - lblKResHes:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =22
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Resolutor"
+                  Width: =110
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =202
+            - lblVResHes:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Right
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =22
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =10
+                  Text: =Coalesce(galHes.Selected.'[AS] Resolutor'.'Full Name', "—")
+                  Width: =Parent.Width - 2*gblE.Pad - 110
+                  Wrap: =false
+                  X: =gblE.Pad + 110
+                  Y: =202
+            - lblKAgeHes:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =22
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Localizador"
+                  Width: =110
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =226
+            - lblVAgeHes:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Right
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =22
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =10
+                  Text: |-
+                    ="🏍️ " & Coalesce(galHes.Selected.'[AS] Agente'.'[AG] Nombre', "sin localizador")
+                  Width: =Parent.Width - 2*gblE.Pad - 110
+                  Wrap: =false
+                  X: =gblE.Pad + 110
+                  Y: =226
+            - lblKFechasHes:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =22
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Fechas"
+                  Width: =110
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =250
+            - lblVFechasHes:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Right
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =22
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =9
+                  Text: |-
+                    ="Solicitada " & Coalesce(Text(galHes.Selected.'[AS] Fecha de Asignacion', "dd/mm/yyyy"), "—") &
+                        " · último cambio " & Text(galHes.Selected.'Modified On', "dd/mm/yyyy HH:mm")
+                  Width: =Parent.Width - 2*gblE.Pad - 110
+                  Wrap: =false
+                  X: =gblE.Pad + 110
+                  Y: =250
+            - lblKEstadoHes:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =22
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Estado"
+                  Width: =110
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =274
+            - lblVEstadoHes:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Right
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =22
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =10
+                  Text: |-
+                    =If(galHes.Selected.'[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado,
+                        "Aprobada", "Rechazada") &
+                        " · " & If(galHes.Selected.'[AS] Estado', "Activa", "Cerrada")
+                  Width: =Parent.Width - 2*gblE.Pad - 110
+                  Wrap: =false
+                  X: =gblE.Pad + 110
+                  Y: =274
+            - lblSecNotasHes:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =22
+                  PaddingLeft: =0
+                  Size: =8
+                  Text: ="NOTAS DE LA SOLICITUD"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =306
+            - conNotasPanHes:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.pantalla
+                  Height: =110
+                  RadiusBottomLeft: =gblE.RadioSm
+                  RadiusBottomRight: =gblE.RadioSm
+                  RadiusTopLeft: =gblE.RadioSm
+                  RadiusTopRight: =gblE.RadioSm
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =330
+                Children:
+                  - lblNotasPanHes:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =Parent.Height - 2*gblE.PadSm
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: =Coalesce(galHes.Selected.Notas, "Sin notas.")
+                        VerticalAlign: =VerticalAlign.Top
+                        Width: =Parent.Width - 2*gblE.PadSm
+                        X: =gblE.PadSm
+                        Y: =gblE.PadSm
+            - conRechHes:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.redBg
+                  Height: =90
+                  RadiusBottomLeft: =gblE.RadioSm
+                  RadiusBottomRight: =gblE.RadioSm
+                  RadiusTopLeft: =gblE.RadioSm
+                  RadiusTopRight: =gblE.RadioSm
+                  Visible: =galHes.Selected.'[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Rechazada
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =conNotasPanHes.Y + conNotasPanHes.Height + gblE.PadSm
+                Children:
+                  - lblRechHes:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.redInk
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =Parent.Height - 2*gblE.PadSm
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: |-
+                          ="Motivo de rechazo: " & Coalesce(galHes.Selected.'Motivo de rechazo', "—")
+                        VerticalAlign: =VerticalAlign.Top
+                        Width: =Parent.Width - 2*gblE.PadSm
+                        X: =gblE.PadSm
+                        Y: =gblE.PadSm
+            - btnCerrarPanHes:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  Color: =gblC.ink2
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoBoton
+                  OnSelect: =Set(varPanelHes, false)
+                  Size: =9
+                  Text: ="Cerrar"
+                  Width: =120
+                  X: =gblE.Pad
+                  Y: =Parent.Height - gblE.AltoBoton - gblE.Pad
+      - cmpNavHes:
+          Control: CanvasComponent
+          ComponentName: cmpNavLateral
+          Properties:
+            Height: =Parent.Height
+            RutaActiva: ="hes"
+            Visible: =!nfMovil || gblNavMovilAbierta
+            Width: =gblE.AnchoNav

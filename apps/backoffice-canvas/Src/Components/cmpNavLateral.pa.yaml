@@ -161,34 +161,55 @@ ComponentDefinitions:
                             },
                             {
                                 Orden: 7,
+                                Icono: "🏍️",
+                                Titulo: "Cartera por localizador",
+                                Ruta: "cpl",
+                                Roles: "Supervisor"
+                            },
+                            {
+                                Orden: 8,
+                                Icono: "📜",
+                                Titulo: "Historial de Especiales",
+                                Ruta: "hes",
+                                Roles: "Supervisor"
+                            },
+                            {
+                                Orden: 9,
                                 Icono: "📡",
                                 Titulo: "Monitoreo de carga",
                                 Ruta: "mon",
                                 Roles: "Admin"
                             },
                             {
-                                Orden: 8,
+                                Orden: 10,
+                                Icono: "📤",
+                                Titulo: "Cargar archivo",
+                                Ruta: "car",
+                                Roles: "Admin"
+                            },
+                            {
+                                Orden: 11,
                                 Icono: "🧹",
                                 Titulo: "Reconciliación",
                                 Ruta: "rec",
                                 Roles: "Admin"
                             },
                             {
-                                Orden: 9,
+                                Orden: 12,
                                 Icono: "🔒",
                                 Titulo: "Cierres",
                                 Ruta: "cie",
                                 Roles: "Admin"
                             },
                             {
-                                Orden: 10,
+                                Orden: 13,
                                 Icono: "🏍️",
                                 Titulo: "Agentes y usuarios",
                                 Ruta: "age",
                                 Roles: "Admin"
                             },
                             {
-                                Orden: 11,
+                                Orden: 14,
                                 Icono: "👥",
                                 Titulo: "Datos maestros",
                                 Ruta: "mae",
@@ -207,7 +228,10 @@ ComponentDefinitions:
                         "nva",  Navigate(scrNuevaSolicitud),
                         "sol",  Navigate(scrMisSolicitudes),
                         "aprb", Navigate(scrAprobaciones),
+                        "cpl",  Navigate(scrCarteraLocalizador),
+                        "hes",  Navigate(scrHistorialEspeciales),
                         "mon",  Navigate(scrMonitoreo),
+                        "car",  Navigate(scrCargaArchivo),
                         "rec",  Navigate(scrReconciliacion),
                         "cie",  Navigate(scrCierres),
                         "age",  Navigate(scrAgentes),

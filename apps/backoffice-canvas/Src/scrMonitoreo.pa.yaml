@@ -169,7 +169,7 @@ Screens:
                         Height: =22
                         PaddingLeft: =0
                         Size: =9
-                        Text: ="Verificá el import en Smelter antes de operar la reconciliación."
+                        Text: ="Subí el archivo del banco en «Cargar archivo» y verificá la carga antes de operar la reconciliación."
                         Width: =Parent.Width - 2*gblE.Pad
                         Wrap: =false
                         X: =gblE.Pad
@@ -241,7 +241,7 @@ Screens:
                         Height: =Parent.Height - 2*gblE.PadSm
                         PaddingLeft: =0
                         Size: =9
-                        Text: ="El detalle de errores por fila vive en Smelter (app de imports). El historial por día llega en una fase posterior."
+                        Text: ="El archivo del banco se sube desde «Cargar archivo». El detalle de errores por fila lo ve soporte en Smelter; el historial por día llega en una fase posterior."
                         Width: =Parent.Width - 2*gblE.Pad
                         X: =gblE.Pad
                         Y: =gblE.PadSm
@@ -272,6 +272,24 @@ Screens:
                   Text: ="↻ Actualizar"
                   X: =Parent.Width - Self.Width
                   Y: =conInfoMon.Y + conInfoMon.Height + gblE.Pad
+            - btnCargarArchivoMon:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderThickness: =0
+                  Color: =Color.White
+                  Fill: =gblC.teal
+                  FocusedBorderColor: =gblC.ink
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoBoton
+                  HoverFill: =ColorFade(gblC.teal, 10%)
+                  OnSelect: =Navigate(scrCargaArchivo)
+                  Size: =10
+                  Text: ="📤 Cargar archivo"
+                  Visible: ="Admin" in gblRol
+                  Width: =180
+                  X: =btnActualizarMon.X - Self.Width - gblE.PadSm
+                  Y: =btnActualizarMon.Y
       - cmpNavMon:
           Control: CanvasComponent
           ComponentName: cmpNavLateral

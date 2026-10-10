@@ -108,20 +108,38 @@ async function abrirApp(browser, usuario, { viewport = { width: 1600, height: 95
   // El iframe del runtime se REEMPLAZA durante la carga (preload → app): se resuelve perezoso.
   Object.defineProperty(app, 'frame', { get: () => frameApp(app) });
   // Carga en frío: esperar a que la nav lateral, la barra móvil o el estado "sin acceso" aparezcan.
-  const sel = '[data-control-name="galNavCmp"], [data-control-name="cmpVacioIni"], [data-control-name="conBarraMovilEncCmp"]';
-  const t0 = Date.now(); let ok = false;
-  while (!ok && Date.now() - t0 < cfg.tCargaMs + 90000) {
-    for (const f of page.frames().filter(esRuntime)) {
-      try { if (await f.locator(sel).count()) { app._frame = f; ok = true; break; } } catch (e) { /* frame en transición */ }
+  // El frame elegido tiene que MOSTRAR la app: un título de la nav VISIBLE (o el estado "sin acceso"/barra móvil visibles).
+  // Antes bastaba con que el control existiera, y a veces quedaba el iframe de precarga, que tiene la app oculta: la prueba
+  // leía nav vacía y secciones de otros roles "visibles" (R-02/R-04/R-06a, corrida 7, 2026-10-09).
+  const sel = '[data-control-name="lblTituloNavCmp"], [data-control-name="cmpVacioIni"], [data-control-name="conBarraMovilEncCmp"]';
+  const buscar = async () => {
+    for (const f of page.frames().filter(esRuntime).reverse()) {
+      try { if (await f.locator(sel).locator('visible=true').count()) return f; } catch (e) { /* frame en transición */ }
     }
-    if (!ok) await page.waitForTimeout(1000);
-  }
-  if (!ok) throw new Error('La app no terminó de cargar (sin nav ni estado sin-acceso)');
+    return null;
+  };
+  const t0 = Date.now(); let f = null;
+  while (!f && Date.now() - t0 < cfg.tCargaMs + 90000) { f = await buscar(); if (!f) await page.waitForTimeout(1000); }
+  if (!f) throw new Error('La app no terminó de cargar (sin nav ni estado sin-acceso visibles)');
+  app._frame = f;
   await red.quieta(page, { quietoMs: 8000, maxMs: cfg.tCargaMs, minMs: 5000 });
+  app._frame = (await buscar()) || app._frame;   // por si el iframe se reemplazó durante la espera
+  await cerrarAviso(page);
   // Versión publicada que efectivamente cargó el player (traza para el reporte; ver B-15).
   app.version = await page.evaluate(() => Object.keys(localStorage)
     .filter(k => k.startsWith('PAPreloadKeyV2-')).map(k => k.slice(-20)).join(',')).catch(() => '');
   return app;
+}
+
+// El player muestra arriba "This app is in a Developer environment": tapa el encabezado y corre el contenido.
+async function cerrarAviso(page) {
+  for (const f of [page.mainFrame(), ...page.frames()]) {
+    try {
+      const b = f.locator('[role="alert"] button, [class*="MessageBar"] button, [class*="messageBar"] button').locator('visible=true').first();
+      if (await b.count()) { await b.click({ timeout: 2000 }); await page.waitForTimeout(800); return true; }
+    } catch (e) { /* sin aviso */ }
+  }
+  return false;
 }
 
 const esRuntime = f => /runtime-app\.[^/]*powerplatform\.com\/publishedapp/.test(f.url()) && !f.isDetached();

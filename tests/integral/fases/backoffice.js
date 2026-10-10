@@ -44,7 +44,9 @@ async function f8(ctx) {
       ctx.chk('F8-07', colaMeta.includes(mask) && !/\d{13,}/.test(colaMeta.replace(/[\s-]/g, '')), 'la cola muestra la cuenta enmascarada (el número completo solo en el detalle)');
 
       // Grabar: código en minúsculas + Enter → la app lo pasa a mayúsculas
+      // Enter en el campo solo lleva el foco a "Grabar"; el segundo Enter (sobre el botón) graba (2026-10-09).
       await pl.escribir(app, 'txtCodigoTrx', codigo.toLowerCase(), { enter: true, tab: false });
+      await app.page.keyboard.press('Enter');
       const n = await c.esperarNotif(app, /grabada|error/i, 20000);
       ctx.chk('F8-08', new RegExp(`${it.numero} grabada`).test(n || ''), `Enter graba: aviso "${n}"`);
       await app.red.quieta(app.page, { quietoMs: 4000, maxMs: 30000 });

@@ -1,0 +1,631 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+#
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+#
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+Screens:
+  scrCarteraLocalizador:
+    Properties:
+      Fill: =gblC.pantalla
+      OnVisible: |-
+        =// Cartera por localizador (Supervisor, SOLO LECTURA). La lista de agentes y los conteos por
+        // tipo van DIRECTO a Dataverse (Filter + StartsWith + CountIf, todo delegable): sin colección
+        // intermedia truncable al Data row limit. La cartera del agente elegido se carga al tocarlo.
+        Set(varPanelCpl, false);
+        Set(varAgeCpl, Blank());
+        Reset(txtBuscarCpl)
+    Children:
+      - cmpEncCpl:
+          Control: CanvasComponent
+          ComponentName: cmpEncabezado
+          Properties:
+            Height: =If(nfMovil, gblE.AltoBarra + 84, 84)
+            Subtitulo: ="Asignaciones ACTIVAS de cada localizador, por tipo. Tocá uno para ver su cartera."
+            Titulo: ="Cartera por localizador"
+            Width: =Parent.Width - Self.X
+            X: =If(nfMovil, 0, gblE.AnchoNav)
+      - conContenidoCpl:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            DropShadow: =DropShadow.None
+            Fill: =Color.Transparent
+            Height: =Parent.Height - Self.Y - gblE.Pad
+            Width: =Min(gblE.AnchoMax, Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - 2*gblE.Pad)
+            X: |-
+              =If(nfMovil, 0, gblE.AnchoNav)
+                  + Max(gblE.Pad, (Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - gblE.AnchoMax) / 2)
+            Y: =cmpEncCpl.Y + cmpEncCpl.Height
+          Children:
+            - txtBuscarCpl:
+                Control: Classic/TextInput@2.3.2
+                Properties:
+                  AccessibleLabel: ="Buscar localizador por nombre"
+                  BorderColor: =gblC.borde
+                  Default: =""
+                  DelayOutput: =true
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  HintText: ="Buscar localizador por nombre"
+                  PaddingLeft: =34
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Size: =10
+                  Width: =If(nfMovil, Parent.Width - btnActualizarCpl.Width - gblE.PadSm, Min(420, Parent.Width - btnActualizarCpl.Width - gblE.PadSm))
+                  Y: =2
+            - icoBuscarCpl:
+                Control: Classic/Icon@2.5.0
+                Properties:
+                  AccessibleLabel: ="Buscar localizador"
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: =20
+                  Icon: =Icon.Search
+                  Width: =20
+                  X: =txtBuscarCpl.X + 8
+                  Y: =txtBuscarCpl.Y + (txtBuscarCpl.Height - Self.Height) / 2
+            - btnActualizarCpl:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  Color: =gblC.ink2
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoBoton
+                  HoverFill: =ColorFade(gblC.card, 10%)
+                  OnSelect: |-
+                    =// Vuelve a pedir agentes y conteos (los CountIf de cada fila se recalculan).
+                    Refresh('CM | TBL | Agentes');
+                    Refresh('CM | TBL | Asignacions');
+                    Notify("Lista actualizada", NotificationType.Success, 2000)
+                  Size: =10
+                  Text: ="↻ Actualizar"
+                  Width: =150
+                  X: =Parent.Width - Self.Width
+            - conListaCpl:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.card
+                  Height: =Parent.Height - Self.Y
+                  RadiusBottomLeft: =gblE.Radio
+                  RadiusBottomRight: =gblE.Radio
+                  RadiusTopLeft: =gblE.Radio
+                  RadiusTopRight: =gblE.Radio
+                  Width: =Parent.Width
+                  Y: =btnActualizarCpl.Y + btnActualizarCpl.Height + gblE.PadSm
+                Children:
+                  - galAgentesCpl:
+                      Control: Gallery@2.15.0
+                      Variant: Vertical
+                      Properties:
+                        AccessibleLabel: ="Localizadores activos"
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Height: =Parent.Height - 2*gblE.PadSm
+                        Items: |-
+                          =// Directo a Dataverse, todo delegable: igualdad booleana + StartsWith + Sort por
+                          // columna. Sin With (cortaba la delegación — ver scrNuevaSolicitud.galCtaNva).
+                          Sort(
+                              Filter('CM | TBL | Agentes',
+                                  '[AG] Activo' = true
+                                  && StartsWith('[AG] Nombre', Trim(txtBuscarCpl.Text))),
+                              '[AG] Nombre')
+                        OnSelect: |-
+                          =// Cartera ACTIVA del agente elegido. Filter delegable: lookup comparado por PK +
+                          // booleano. Los datos de la cuenta se hornean navegando '[AS] Cuenta' (lo resuelve
+                          // el servidor). AddColumns y el orden (tipo, después cliente) corren EN MEMORIA
+                          // sobre el resultado (cota 2000 por agente).
+                          Set(varAgeCpl, ThisItem);
+                          ClearCollect(colAsigCpl,
+                              AddColumns(
+                                  Filter('CM | TBL | Asignacions',
+                                      '[AS] Agente'.'CM | TBL | Agente' = varAgeCpl.'CM | TBL | Agente'
+                                      && '[AS] Estado' = true),
+                                  clienteCpl, Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
+                                  ult4Cpl, Coalesce(ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
+                                  moraCpl, Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
+                                  nioCpl, Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO', 0),
+                                  usdCpl, Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD', 0),
+                                  ordCpl, Switch(ThisRecord.'[AS] Tipo',
+                                      'Choice | CM | Tipo asignacion'.Diaria, 1,
+                                      'Choice | CM | Tipo asignacion'.Incobrable, 2,
+                                      'Choice | CM | Tipo asignacion'.Especial, 3,
+                                      4)
+                              )
+                          );
+                          Set(varPanelCpl, true)
+                        ShowScrollbar: =false
+                        TemplateFill: =If(ThisItem.IsSelected && varPanelCpl, gblC.tealSuave, gblC.card)
+                        TemplatePadding: =0
+                        TemplateSize: =If(nfMovil, 128, 72)
+                        Width: =Parent.Width - 2*gblE.PadSm
+                        X: =gblE.PadSm
+                        Y: =gblE.PadSm
+                      Children:
+                        - lblNombreCpl:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.ink
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =22
+                              PaddingLeft: =0
+                              Size: =11
+                              Text: =ThisItem.'[AG] Nombre'
+                              Width: |-
+                                =If(nfMovil,
+                                    Parent.TemplateWidth - 2*gblE.Pad,
+                                    Parent.TemplateWidth*34% - gblE.Pad)
+                              Wrap: =false
+                              X: =gblE.Pad
+                              Y: =If(nfMovil, 8, 12)
+                        - lblEmailCpl:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =If(IsBlank(ThisItem.'Email Usuario'), gblC.redInk, gblC.muted)
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              Height: =18
+                              PaddingLeft: =0
+                              Size: =9
+                              Text: |-
+                                =// Vínculo con el usuario de Entra: sin usuario, sus asignaciones no llegan a ningún celular.
+                                If(IsBlank(ThisItem.'Email Usuario'),
+                                    "⚠ Sin usuario vinculado",
+                                    ThisItem.'Email Usuario')
+                              Width: =lblNombreCpl.Width
+                              Wrap: =false
+                              X: =gblE.Pad
+                              Y: =lblNombreCpl.Y + lblNombreCpl.Height
+                        - chpDiaCpl:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderThickness: =0
+                              Color: =gblC.diariaInk
+                              DisplayMode: =DisplayMode.View
+                              Fill: =gblC.diariaBg
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =26
+                              RadiusBottomLeft: =8
+                              RadiusBottomRight: =8
+                              RadiusTopLeft: =8
+                              RadiusTopRight: =8
+                              Size: =8
+                              Text: |-
+                                =// CountIf delegable (exacto): lookup por PK + booleano + choice.
+                                "Diarias " &
+                                    CountIf('CM | TBL | Asignacions',
+                                        '[AS] Agente'.'CM | TBL | Agente' = ThisItem.'CM | TBL | Agente'
+                                        && '[AS] Estado' = true
+                                        && '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria)
+                              Width: =14 + 7*Len(Self.Text)
+                              X: =If(nfMovil, gblE.Pad, Parent.TemplateWidth*36%)
+                              Y: =If(nfMovil, 60, (Parent.TemplateHeight - Self.Height)/2)
+                        - chpIncCpl:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderThickness: =0
+                              Color: =gblC.incobInk
+                              DisplayMode: =DisplayMode.View
+                              Fill: =gblC.incobBg
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =26
+                              RadiusBottomLeft: =8
+                              RadiusBottomRight: =8
+                              RadiusTopLeft: =8
+                              RadiusTopRight: =8
+                              Size: =8
+                              Text: |-
+                                ="Incobrables " &
+                                    CountIf('CM | TBL | Asignacions',
+                                        '[AS] Agente'.'CM | TBL | Agente' = ThisItem.'CM | TBL | Agente'
+                                        && '[AS] Estado' = true
+                                        && '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable)
+                              Width: =14 + 7*Len(Self.Text)
+                              X: =chpDiaCpl.X + chpDiaCpl.Width + gblE.PadSm
+                              Y: =chpDiaCpl.Y
+                        - chpEspCpl:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderThickness: =0
+                              Color: =gblC.espInk
+                              DisplayMode: =DisplayMode.View
+                              Fill: =gblC.espBg
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =26
+                              RadiusBottomLeft: =8
+                              RadiusBottomRight: =8
+                              RadiusTopLeft: =8
+                              RadiusTopRight: =8
+                              Size: =8
+                              Text: |-
+                                ="Especiales " &
+                                    CountIf('CM | TBL | Asignacions',
+                                        '[AS] Agente'.'CM | TBL | Agente' = ThisItem.'CM | TBL | Agente'
+                                        && '[AS] Estado' = true
+                                        && '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial)
+                              Width: =14 + 7*Len(Self.Text)
+                              X: =chpIncCpl.X + chpIncCpl.Width + gblE.PadSm
+                              Y: =chpDiaCpl.Y
+                        - lblVerCpl:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =If(nfMovil, Align.Left, Align.Right)
+                              Color: =gblC.teal
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Semibold
+                              Height: =22
+                              PaddingLeft: =0
+                              PaddingRight: =0
+                              Size: =9
+                              Text: ="Ver cartera ›"
+                              Width: =120
+                              Wrap: =false
+                              X: =If(nfMovil, gblE.Pad, Parent.TemplateWidth - Self.Width - gblE.Pad)
+                              Y: =If(nfMovil, 96, (Parent.TemplateHeight - Self.Height)/2)
+                        - recSepCpl:
+                            Control: GroupContainer@1.5.0
+                            Variant: ManualLayout
+                            Properties:
+                              BorderThickness: =0
+                              DropShadow: =DropShadow.None
+                              Fill: =gblC.hairline
+                              Height: =1
+                              Width: =Parent.TemplateWidth
+                              Y: =Parent.TemplateHeight - 1
+                        - btnFilaCpl:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderThickness: =0
+                              Color: =Color.Transparent
+                              Fill: =Color.Transparent
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Height: =Parent.TemplateHeight
+                              HoverFill: =RGBA(15, 107, 107, 0.06)
+                              OnSelect: =Select(Parent)
+                              PressedFill: =RGBA(15, 107, 107, 0.12)
+                              TabIndex: =0
+                              Text: ="Ver cartera de " & ThisItem.'[AG] Nombre'
+                              Width: =Parent.TemplateWidth
+                              X: =0
+                              Y: =0
+                  - cmpVacioCpl:
+                      Control: CanvasComponent
+                      ComponentName: cmpVacio
+                      Properties:
+                        Height: =200
+                        Icono: |-
+                          ="🏍️"
+                        Mensaje: |-
+                          =If(IsBlank(Trim(txtBuscarCpl.Text)),
+                              "Todavía no hay localizadores activos.",
+                              "Ningún localizador activo empieza con «" & Trim(txtBuscarCpl.Text) & "».")
+                        Titulo: ="Sin localizadores"
+                        Visible: =galAgentesCpl.AllItemsCount = 0
+                        Width: =Min(420, Parent.Width - 2*gblE.Pad)
+                        X: =(Parent.Width - Self.Width) / 2
+                        Y: =(Parent.Height - Self.Height) / 2
+      - recScrimCpl:
+          Control: Rectangle@2.3.0
+          Properties:
+            AccessibleLabel: ="Cerrar panel"
+            Fill: =gblC.scrim
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
+            Height: =Parent.Height
+            OnSelect: =Set(varPanelCpl, false)
+            TabIndex: =0
+            Visible: =varPanelCpl
+            Width: =Parent.Width
+      - conPanelCpl:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            BorderColor: =gblC.borde
+            BorderThickness: =1
+            DropShadow: =DropShadow.None
+            Fill: =gblC.card
+            Height: =Parent.Height
+            RadiusBottomLeft: =0
+            RadiusBottomRight: =0
+            RadiusTopLeft: =0
+            RadiusTopRight: =0
+            Visible: =varPanelCpl
+            Width: =If(nfMovil, Parent.Width, Min(640, Parent.Width * 0.5))
+            X: =Parent.Width - Self.Width
+          Children:
+            - lblTituloPanCpl:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =28
+                  PaddingLeft: =0
+                  Text: ="Cartera de " & varAgeCpl.'[AG] Nombre'
+                  Width: =Parent.Width - 2*gblE.Pad - 32
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =gblE.Pad
+            - icoCerrarCpl:
+                Control: Classic/Icon@2.5.0
+                Properties:
+                  AccessibleLabel: ="Cerrar panel"
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: =24
+                  Icon: =Icon.Cancel
+                  OnSelect: =Set(varPanelCpl, false)
+                  TabIndex: =0
+                  Width: =24
+                  X: =Parent.Width - gblE.Pad - 24
+                  Y: =gblE.Pad + 2
+            - lblSubPanCpl:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =20
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: |-
+                    =CountRows(colAsigCpl) & " asignaciones activas · " &
+                        If(IsBlank(varAgeCpl.'Email Usuario'), "sin usuario vinculado", varAgeCpl.'Email Usuario')
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =lblTituloPanCpl.Y + lblTituloPanCpl.Height + 4
+            - lblNTotalCpl:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =20
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: |-
+                    =// Desglose de lo cargado en el panel (mismo origen que la lista de abajo).
+                    "Diarias " & CountIf(colAsigCpl, ordCpl = 1) &
+                        " · Incobrables " & CountIf(colAsigCpl, ordCpl = 2) &
+                        " · Especiales " & CountIf(colAsigCpl, ordCpl = 3)
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =lblSubPanCpl.Y + lblSubPanCpl.Height + 2
+            - galAsigCpl:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  AccessibleLabel: ="Asignaciones activas del localizador"
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: =btnCerrarPanCpl.Y - gblE.PadSm - Self.Y
+                  Items: |-
+                    =// En memoria (colección ya cargada): por tipo (Diaria, Incobrable, Especial) y después cliente.
+                    Sort(colAsigCpl, Text(ordCpl) & "|" & clienteCpl)
+                  ShowScrollbar: =false
+                  TemplateFill: =gblC.card
+                  TemplatePadding: =0
+                  TemplateSize: =If(nfMovil, 108, 80)
+                  Visible: =CountRows(colAsigCpl) > 0
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =lblNTotalCpl.Y + lblNTotalCpl.Height + gblE.PadSm
+                Children:
+                  - lblCliFilaCpl:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =18
+                        PaddingLeft: =0
+                        Size: =10
+                        Text: =ThisItem.clienteCpl
+                        Width: =If(nfMovil, Parent.TemplateWidth - 2*gblE.PadSm, Parent.TemplateWidth*0.6)
+                        Wrap: =false
+                        X: =gblE.PadSm
+                        Y: =8
+                  - lblCtaFilaCpl:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.muted
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =16
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: =CuentaMasc(ThisItem.ult4Cpl) & " · " & ThisItem.'[AS] Numero'
+                        Width: =lblCliFilaCpl.Width
+                        Wrap: =false
+                        X: =gblE.PadSm
+                        Y: =28
+                  - chpTipoFilaCpl:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =Switch(ThisItem.ordCpl, 1, gblC.diariaInk, 2, gblC.incobInk, 3, gblC.espInk, gblC.ink2)
+                        DisplayMode: =DisplayMode.View
+                        Fill: =Switch(ThisItem.ordCpl, 1, gblC.diariaBg, 2, gblC.incobBg, 3, gblC.espBg, gblC.hairline)
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =24
+                        RadiusBottomLeft: =8
+                        RadiusBottomRight: =8
+                        RadiusTopLeft: =8
+                        RadiusTopRight: =8
+                        Size: =8
+                        Text: =Switch(ThisItem.ordCpl, 1, "Diaria", 2, "Incobrable", 3, "Especial", "—")
+                        Width: =14 + 7*Len(Self.Text)
+                        X: =gblE.PadSm
+                        Y: =48
+                  - chpAprFilaCpl:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: |-
+                          =Switch(ThisItem.'[AS] Estado de aprobacion',
+                              'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion', gblC.pendInk,
+                              'Choice | CM | Estado aprobacion especial'.Aprobado, gblC.okInk,
+                              'Choice | CM | Estado aprobacion especial'.Rechazada, gblC.redInk,
+                              gblC.ink2)
+                        DisplayMode: =DisplayMode.View
+                        Fill: |-
+                          =Switch(ThisItem.'[AS] Estado de aprobacion',
+                              'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion', gblC.pendBg,
+                              'Choice | CM | Estado aprobacion especial'.Aprobado, gblC.okBg,
+                              'Choice | CM | Estado aprobacion especial'.Rechazada, gblC.redBg,
+                              gblC.hairline)
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =24
+                        RadiusBottomLeft: =8
+                        RadiusBottomRight: =8
+                        RadiusTopLeft: =8
+                        RadiusTopRight: =8
+                        Size: =8
+                        Text: |-
+                          =// El estado de aprobación solo aplica a las Especiales.
+                          Switch(ThisItem.'[AS] Estado de aprobacion',
+                              'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion', "Pendiente aprobación",
+                              'Choice | CM | Estado aprobacion especial'.Aprobado, "Aprobada",
+                              'Choice | CM | Estado aprobacion especial'.Rechazada, "Rechazada",
+                              'Choice | CM | Estado aprobacion especial'.Borrador, "Borrador",
+                              "Sin estado")
+                        Visible: =ThisItem.ordCpl = 3
+                        Width: =14 + 7*Len(Self.Text)
+                        X: =chpTipoFilaCpl.X + chpTipoFilaCpl.Width + gblE.PadSm
+                        Y: =chpTipoFilaCpl.Y
+                  - lblSaldoFilaCpl:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =If(nfMovil, Align.Left, Align.Right)
+                        Color: =gblC.ink
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =18
+                        PaddingLeft: =0
+                        PaddingRight: =0
+                        Size: =10
+                        Text: =Moneda(ThisItem.nioCpl, ThisItem.usdCpl)
+                        Width: =If(nfMovil, Parent.TemplateWidth - 2*gblE.PadSm, Parent.TemplateWidth*0.36)
+                        Wrap: =false
+                        X: =If(nfMovil, gblE.PadSm, Parent.TemplateWidth - Self.Width - gblE.PadSm)
+                        Y: =If(nfMovil, 78, 8)
+                  - lblMoraFilaCpl:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =Align.Right
+                        Color: =If(ThisItem.moraCpl > 90, gblC.redInk, gblC.muted)
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =16
+                        PaddingLeft: =0
+                        PaddingRight: =0
+                        Size: =9
+                        Text: =ThisItem.moraCpl & " días de mora"
+                        Width: =140
+                        Wrap: =false
+                        X: =Parent.TemplateWidth - Self.Width - gblE.PadSm
+                        Y: =If(nfMovil, 52, 30)
+                  - recSepFilaCpl:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.hairline
+                        Height: =1
+                        Width: =Parent.TemplateWidth
+                        Y: =Parent.TemplateHeight - 1
+            - lblSinAsigCpl:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =40
+                  PaddingLeft: =0
+                  Size: =10
+                  Text: ="Este localizador no tiene asignaciones activas."
+                  Visible: =CountRows(colAsigCpl) = 0
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =galAsigCpl.Y
+            - btnCerrarPanCpl:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  Color: =gblC.ink2
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoBoton
+                  OnSelect: =Set(varPanelCpl, false)
+                  Size: =10
+                  Text: ="Cerrar"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =Parent.Height - gblE.AltoBoton - gblE.Pad
+      - cmpNavCpl:
+          Control: CanvasComponent
+          ComponentName: cmpNavLateral
+          Properties:
+            Height: =Parent.Height
+            RutaActiva: ="cpl"
+            Visible: =!nfMovil || gblNavMovilAbierta
+            Width: =gblE.AnchoNav

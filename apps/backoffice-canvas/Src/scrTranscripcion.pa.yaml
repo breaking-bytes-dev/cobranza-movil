@@ -1030,7 +1030,11 @@ Screens:
                               Height: =gblE.AltoInput
                               HintText: ="PAG01"
                               MaxLength: =10
-                              OnChange: =If(!IsBlank(Trim(Self.Text)) && !IsBlank(varActualTrx), Select(btnGrabarTrx))
+                              OnChange: |-
+                                =// Power Apps no distingue Enter de Tab ni de un clic afuera: los tres confirman el valor y disparan OnChange.
+                                // Por eso NO se graba acá (antes un Tab o un clic grababan sin querer): el foco pasa a "Grabar" y se graba
+                                // con Enter (o clic) sobre el botón.
+                                If(!IsBlank(Trim(Self.Text)) && !IsBlank(varActualTrx), SetFocus(btnGrabarTrx))
                               RadiusBottomLeft: =10
                               RadiusBottomRight: =10
                               RadiusTopLeft: =10
@@ -1192,7 +1196,7 @@ Screens:
                               Height: =28
                               PaddingLeft: =0
                               Size: =8
-                              Text: ="Enter marca y avanza · la cola se navega con clic"
+                              Text: ="Enter lleva a Grabar · Enter otra vez graba y avanza · la cola se navega con clic"
                               Width: =Parent.Width - Self.X - gblE.Pad
                               X: =btnSaltarTrx.X + btnSaltarTrx.Width + 8
                               Y: =20

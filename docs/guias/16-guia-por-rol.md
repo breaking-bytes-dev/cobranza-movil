@@ -262,6 +262,8 @@ Después de que se aprueba (el dueño pasa al cobrador), el Solicitante **sigue 
 |---|---|
 | **Inicio** | Ver POR APROBAR y "Cobrado hoy" |
 | **Aprobaciones** | Ver la cola de Especiales **pendientes y activas de todos los solicitantes**. Elegir una y: **aprobar eligiendo el localizador** (buscador de agentes activos con usuario) o **rechazar con motivo** |
+| **Cartera por localizador** (desde 2026-10-09) | Ver cada localizador con sus asignaciones **activas** por tipo (Diaria / Incobrable / Especial). Al elegir uno se abre el detalle: cliente, cuenta enmascarada, tipo, estado de aprobación, mora y saldo. Solo lectura. Las Especiales en Borrador o Pendiente cuentan acá aunque el cobrador no las vea en el teléfono |
+| **Historial de Especiales** (desde 2026-10-09) | Ver las Especiales **aprobadas y rechazadas**: quién la pidió, quién la resolvió, a qué localizador fue, motivo de rechazo, retiro y si sigue activa o cerrada. Filtros por resultado, por los últimos 7/30/90 días (último cambio) y por activas/cerradas. Solo lectura |
 
 Al **aprobar** se guardan, en un solo cambio: estado Aprobado, el agente y el Supervisor como resolutor. Después, el flow:
 - pasa el dueño de la asignación al usuario del agente;
@@ -300,7 +302,7 @@ Fase C: R-04, E-01c, D-02f, F-03, F-03c (el flow mueve el dueño) y F-03b.
 | Pantalla | Qué puede hacer |
 |---|---|
 | **Inicio** | Ver EN COLA, CON PAGO, TRANSCRITAS HOY y "Cobrado hoy" |
-| **Por transcribir** | Cola de las interacciones **pendientes** de todos los cobradores (la más vieja primero). Para cada una ve: cliente, cuenta con el **número completo** (bóveda; el único rol que lo ve), comentario, pagos y la actualización de datos (antes y después). Escribe el **código del core** y graba (botón o Enter) |
+| **Por transcribir** | Cola de las interacciones **pendientes** de todos los cobradores (la más vieja primero). Para cada una ve: cliente, cuenta con el **número completo** (bóveda; el único rol que lo ve), comentario, pagos y la actualización de datos (antes y después). Escribe el **código del core**: **Enter (o Tab) lleva el foco a "Grabar" y Enter otra vez graba** (desde 2026-10-09: Power Apps no distingue Enter de Tab ni de un clic afuera, y antes cualquiera de los tres grababa) |
 | **Transcritas hoy** | Arqueo del día: lo que **él** grabó hoy, con sus pagos. Solo lectura |
 
 **Al grabar** se guarda: estado Grabado, código (en mayúsculas, hasta 10), fecha y "grabado por". Después avanza a la
@@ -339,7 +341,8 @@ Fase D: R-02, E-01d, D-02g, D-02h, F-01, F-01b, H-03 y R-06a/b (multirol).
 | **Monitoreo de carga** | Ver si llegó la carga del día (filas, cuentas, clientes, última carga). Solo lectura |
 | **Reconciliación** | Ver las Diarias que **desaparecieron** de la última carga y **cerrarlas en lote** ("fuera de cartera"). Freno: no deja cerrar si superan el 30% o si no hay carga de hoy |
 | **Cierres** | Cerrar a mano Incobrables (Recuperada, Baja/castigada, Fuera de cartera) y Especiales (Gestión completada, Ya no aplica, Solicitud errónea), con detalle opcional |
-| **Agentes y usuarios** | **Vincular** un agente a un usuario, cambiarlo, **desvincularlo**, activarlo o desactivarlo |
+| **Agentes y usuarios** | **Vincular** un agente a un usuario, cambiarlo, **desvincularlo**, activarlo o desactivarlo. **＋ Nuevo agente** (desde 2026-10-09): nombre (tiene que ser **exacto** al que manda el banco en el CSV, o la próxima carga crea otro agente) y usuario opcional; bloquea nombres repetidos |
+| **Cargar archivo** | **En construcción.** Va a reemplazar la consola de Smelter para subir el CSV del día (prueba en seco, carga real y contadores). Mientras tanto la carga se hace en la app de Smelter |
 | **Datos maestros** | Buscar clientes por CIF o nombre; **crear** un cliente (con anti-duplicado de CIF), editar nombre y datos, agregar teléfono o dirección |
 
 **Al vincular un agente**, el servidor (plugin `EmailDesdeUsuario`) deja el correo del agente igual al **UPN** del usuario,

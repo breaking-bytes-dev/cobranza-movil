@@ -66,6 +66,21 @@ def familia(t):
                          'OptionSetInfoNameMapping': {str(o['Value']): etiqueta(o['Label']) for o in os_}, 'OptionSetIsGlobal': False,
                          'OptionSetIsBooleanValued': False, 'OptionSetTypeKey': tipo,
                          'OptionSetReference': {'OptionSetReferenceItem0': {'OptionSetReferenceEntityName': nombre, 'OptionSetReferenceColumnName': col}}})
+    # Picklist y Boolean de la tabla (Studio los registra como OptionSetInfo; los de estado ya están arriba). Nombre local = '<tabla>_<columna>';
+    # los globales ya existen si otra tabla los usa (se actualiza su referencia sin duplicar la entrada).
+    for clave, tipo, booleano in [('PicklistOptionSetAttribute', 'PicklistType', False), ('BooleanOptionSetAttribute', 'BooleanType', True)]:
+        for a in json.loads(td[clave])['value']:
+            os_ = a['OptionSet']; col = a['LogicalName']
+            if not os_: continue
+            nombre_os = os_.get('Name') or f'{t}_{col}'
+            if os_.get('IsGlobal'): visible = etiqueta(os_.get('DisplayName'))
+            else: visible = f"{etiqueta(a['DisplayName'])} ({nombre})"
+            mapa = ({'1': etiqueta(os_['TrueOption']['Label']), '0': etiqueta(os_['FalseOption']['Label'])} if booleano
+                    else {str(o['Value']): etiqueta(o['Label']) for o in os_['Options']})
+            opciones.append({'Type': 'OptionSetInfo', 'Name': nombre_os, 'DatasetName': 'default.cds', 'DisplayName': visible,
+                             'RelatedEntityName': nombre, 'RelatedColumnInvariantName': col, 'OptionSetInfoNameMapping': mapa,
+                             'OptionSetIsGlobal': bool(os_.get('IsGlobal')), 'OptionSetIsBooleanValued': booleano, 'OptionSetTypeKey': tipo,
+                             'OptionSetReference': {'OptionSetReferenceItem0': {'OptionSetReferenceEntityName': nombre, 'OptionSetReferenceColumnName': col}}})
     vistas = {'Type': 'ViewInfo', 'Name': f'default.cds_{t}_views', 'DisplayName': f'{nombre} (Views)', 'RelatedEntityName': nombre,
               'ViewInfoNameMapping': {v['savedqueryid']: v['name'] for v in json.loads(td['Views'])['value']}}
     principal = [f for f in json.loads(td['Forms'])['value'] if f['type'] == 2]

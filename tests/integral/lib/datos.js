@@ -29,7 +29,9 @@ async function inventario(reg = {}) {
   const telefono = uniq([...(await ids('telefono', comienza('sanic_cm_tl_cif'))), ...deReg('telefono')]);
   const producto = uniq([...(await ids('producto', comienza('sanic_cm_pr_codigo'))), ...deReg('producto')]);
   const fiador = uniq([...(await ids('fiador', comienza('sanic_cm_fi_nombre'))), ...deReg('fiador')]);
-  const job = uniq([...(await ids('job', comienza('sanic_smlt_ij_name'))), ...deReg('job')]);
+  // Los jobs creados desde la pantalla "Cargar archivo" se llaman "Carga <fecha> · <archivo>.csv · prueba|real": llevan el prefijo en el
+  // NOMBRE DEL ARCHIVO (QA-E2E-INT-…), no al comienzo del nombre del job.
+  const job = uniq([...(await ids('job', comienza('sanic_smlt_ij_name'))), ...(await ids('job', `contains(sanic_smlt_ij_name,'${PREFIJO}')`)), ...deReg('job')]);
   return { interaccion, pago, actualizacion, asignacion, carga, boveda, cuenta, direccion, telefono, cliente, producto, fiador, job };
 }
 

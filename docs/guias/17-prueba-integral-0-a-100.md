@@ -124,7 +124,7 @@ Cada paso dice **quién** lo hace, **qué** hace y **qué tiene que ver**.
 | ☐ | 7.1 Inicio | "EN COLA" y "CON PAGO" incluyen las interacciones QA |
 | ☐ | 7.2 Por transcribir → la interacción "QA-E2E-INT visita 1" | Cliente QA, cuenta con el **número completo** (solo este rol lo ve), agente "QA-E2E Localizador User5", pago C$ 25 recibo R1 |
 | ☐ | 7.3 La interacción "QA-E2E-INT sin señal" | Su pago (R2) y la **actualización de datos** con el antes y el después del teléfono celular |
-| ☐ | 7.4 Escribir el código "QAINT1" + **Enter** | "✓ … grabada — siguiente". Sale de la cola |
+| ☐ | 7.4 Escribir el código "QAINT1" + **Enter** (el foco pasa a "Grabar") + **Enter** | "✓ … grabada — siguiente". Sale de la cola. Un Tab o un clic afuera **no** graban |
 | ☐ | 7.5 Grabar la otra con "QAINT2" | Sale de la cola |
 | ☐ | 7.6 Transcritas hoy | Las dos, con sus pagos; el total coincide |
 

@@ -17,7 +17,12 @@ Screens:
         // Panel de vínculo cerrado y sin agente objetivo (se elige al tocar Vincular/Cambiar).
         Set(varPanelAge, false);
         Set(varAgenteAge, Blank());
-        Reset(txtBuscarUsrAge)
+        Reset(txtBuscarUsrAge);
+        // Panel de alta (＋ Nuevo agente) cerrado, sin usuario elegido y con los campos vacíos.
+        Set(varNuevoAge, false);
+        Set(varUsrNueAge, Blank());
+        Reset(txtNombreNueAge);
+        Reset(txtBuscarUsrNueAge)
     Children:
       - cmpEncabezadoAge:
           Control: CanvasComponent
@@ -60,6 +65,28 @@ Screens:
                   Text: ="↻ Actualizar"
                   Width: =150
                   X: =Parent.Width - Self.Width
+            - btnNuevoAge:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderThickness: =0
+                  Color: =Color.White
+                  Fill: =gblC.teal
+                  FocusedBorderColor: =gblC.ink
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoBoton
+                  HoverFill: =ColorFade(gblC.teal, 10%)
+                  OnSelect: |-
+                    =// Abre el panel de alta. No escribe nada: la escritura ocurre solo con "Crear agente".
+                    Set(varUsrNueAge, Blank());
+                    Reset(txtNombreNueAge);
+                    Reset(txtBuscarUsrNueAge);
+                    Set(varNuevoAge, true)
+                  Size: =10
+                  Text: ="＋ Nuevo agente"
+                  Visible: ="Admin" in gblRol
+                  Width: =170
+                  X: =btnActualizarAge.X - Self.Width - gblE.PadSm
             - conAlertaAge:
                 Control: GroupContainer@1.5.0
                 Variant: ManualLayout
@@ -690,6 +717,449 @@ Screens:
                   Width: =Parent.Width - 2*gblE.Pad
                   X: =gblE.Pad
                   Y: =Parent.Height - gblE.AltoBoton - gblE.Pad
+      - recScrimNueAge:
+          Control: Rectangle@2.3.0
+          Properties:
+            AccessibleLabel: ="Cerrar panel"
+            Fill: =gblC.scrim
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
+            Height: =Parent.Height
+            OnSelect: |-
+              =Set(varNuevoAge, false);
+              Set(varUsrNueAge, Blank())
+            TabIndex: =0
+            Visible: =varNuevoAge
+            Width: =Parent.Width
+      - conNuevoAge:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            BorderColor: =gblC.borde
+            BorderThickness: =1
+            DropShadow: =DropShadow.None
+            Fill: =gblC.card
+            Height: =Parent.Height
+            RadiusBottomLeft: =0
+            RadiusBottomRight: =0
+            RadiusTopLeft: =0
+            RadiusTopRight: =0
+            Visible: =varNuevoAge
+            Width: =If(nfMovil, Parent.Width, Min(480, Parent.Width * 0.45))
+            X: =Parent.Width - Self.Width
+          Children:
+            - lblTituloNueAge:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =28
+                  PaddingLeft: =0
+                  Text: ="Nuevo agente"
+                  Width: =Parent.Width - 2*gblE.Pad - 32
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =gblE.Pad
+            - icoCerrarNueAge:
+                Control: Classic/Icon@2.5.0
+                Properties:
+                  AccessibleLabel: ="Cerrar panel"
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: =24
+                  Icon: =Icon.Cancel
+                  OnSelect: |-
+                    =Set(varNuevoAge, false);
+                    Set(varUsrNueAge, Blank())
+                  TabIndex: =0
+                  Width: =24
+                  X: =Parent.Width - gblE.Pad - 24
+                  Y: =gblE.Pad + 2
+            - lblNombreKNueAge:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =18
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Nombre del agente *"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =lblTituloNueAge.Y + lblTituloNueAge.Height + gblE.Pad
+            - txtNombreNueAge:
+                Control: Classic/TextInput@2.3.2
+                Properties:
+                  AccessibleLabel: ="Nombre del agente"
+                  BorderColor: =gblC.borde
+                  Default: =""
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  HintText: ="Nombre tal como viene en el CSV del banco"
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Size: =10
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =lblNombreKNueAge.Y + lblNombreKNueAge.Height + 4
+            - conAvisoNueAge:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.pendBg
+                  Height: =64
+                  RadiusBottomLeft: =gblE.RadioSm
+                  RadiusBottomRight: =gblE.RadioSm
+                  RadiusTopLeft: =gblE.RadioSm
+                  RadiusTopRight: =gblE.RadioSm
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =txtNombreNueAge.Y + txtNombreNueAge.Height + gblE.PadSm
+                Children:
+                  - lblAvisoNueAge:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.pendInk
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =Parent.Height - 2*gblE.PadSm
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: |-
+                          ="⚠ Escribí el nombre EXACTO con el que el banco lo manda en el CSV; si no coincide, la próxima carga crea otro agente."
+                        VerticalAlign: =VerticalAlign.Top
+                        Width: =Parent.Width - 2*gblE.PadSm
+                        X: =gblE.PadSm
+                        Y: =gblE.PadSm
+            - lblUsrKNueAge:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =18
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Usuario de Entra (opcional — tocá uno para elegirlo)"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =conAvisoNueAge.Y + conAvisoNueAge.Height + gblE.Pad
+            - txtBuscarUsrNueAge:
+                Control: Classic/TextInput@2.3.2
+                Properties:
+                  AccessibleLabel: ="Buscar usuario por nombre o correo"
+                  BorderColor: =gblC.borde
+                  Default: =""
+                  DelayOutput: =true
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  HintText: ="Buscar por nombre o correo (mín. 2)"
+                  PaddingLeft: =34
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Size: =10
+                  Visible: =IsBlank(varUsrNueAge)
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =lblUsrKNueAge.Y + lblUsrKNueAge.Height + 4
+            - icoBuscarUsrNueAge:
+                Control: Classic/Icon@2.5.0
+                Properties:
+                  AccessibleLabel: ="Buscar usuario"
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: =20
+                  Icon: =Icon.Search
+                  Visible: =txtBuscarUsrNueAge.Visible
+                  Width: =20
+                  X: =txtBuscarUsrNueAge.X + 8
+                  Y: =txtBuscarUsrNueAge.Y + (txtBuscarUsrNueAge.Height - Self.Height) / 2
+            - galUsrNueAge:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  AccessibleLabel: ="Usuarios que coinciden con la búsqueda"
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: |-
+                    =// Alto acotado: hasta 3 filas (mín. 1 para el aviso "sin coincidencias").
+                    Min(Max(Self.AllItemsCount, 1), 3) * Self.TemplateHeight
+                  Items: |-
+                    =// Mismo patrón que galUsrAge (B-04/B-19): Filter directo sobre Users, delegable
+                    // (StartsWith en ambas columnas); con menos de 2 caracteres, centinela "§§".
+                    // SIN With (cortaba la delegación — ver scrNuevaSolicitud.galCtaNva).
+                    Filter(Users,
+                        StartsWith('Full Name', If(Len(Trim(txtBuscarUsrNueAge.Text)) < 2, "§§", Trim(txtBuscarUsrNueAge.Text)))
+                        || StartsWith('Primary Email', If(Len(Trim(txtBuscarUsrNueAge.Text)) < 2, "§§", Trim(txtBuscarUsrNueAge.Text))))
+                  OnSelect: |-
+                    =// Solo ELIGE el usuario (no escribe nada). Sin correo principal no hay login en el
+                    // celular → no se elige.
+                    If(
+                        IsBlank(ThisItem.'Primary Email'),
+                        Notify("El usuario " & ThisItem.'Full Name' & " no tiene correo principal: no podría entrar a la app del celular. Elegí otro.",
+                            NotificationType.Warning),
+                        Set(varUsrNueAge, ThisItem)
+                    )
+                  ShowScrollbar: =false
+                  TemplateFill: =gblC.card
+                  TemplatePadding: =0
+                  TemplateSize: =48
+                  Visible: =IsBlank(varUsrNueAge) && Len(Trim(txtBuscarUsrNueAge.Text)) >= 2
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =txtBuscarUsrNueAge.Y + txtBuscarUsrNueAge.Height + 4
+                Children:
+                  - lblNomFilaUsrNueAge:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =20
+                        PaddingLeft: =0
+                        Size: =10
+                        Text: =ThisItem.'Full Name'
+                        Width: =Parent.TemplateWidth - 2*gblE.PadSm
+                        Wrap: =false
+                        X: =gblE.PadSm
+                        Y: =5
+                  - lblMailFilaUsrNueAge:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.muted
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =18
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: =If(IsBlank(ThisItem.'Primary Email'), "sin correo principal", ThisItem.'Primary Email')
+                        Width: =lblNomFilaUsrNueAge.Width
+                        Wrap: =false
+                        X: =gblE.PadSm
+                        Y: =lblNomFilaUsrNueAge.Y + lblNomFilaUsrNueAge.Height + 2
+                  - recSepUsrNueAge:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.hairline
+                        Height: =1
+                        Width: =Parent.TemplateWidth
+                        Y: =Parent.TemplateHeight - 1
+                  - btnFilaUsrNueAge:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =Color.Transparent
+                        Fill: =Color.Transparent
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Height: =Parent.TemplateHeight
+                        HoverFill: =RGBA(15, 107, 107, 0.06)
+                        OnSelect: =Select(Parent)
+                        PressedFill: =RGBA(15, 107, 107, 0.12)
+                        TabIndex: =0
+                        Text: ="Elegir a " & ThisItem.'Full Name' & " · " & ThisItem.'Primary Email'
+                        Width: =Parent.TemplateWidth
+                        X: =0
+                        Y: =0
+            - lblSinUsrNueAge:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =galUsrNueAge.Height
+                  PaddingLeft: =gblE.PadSm
+                  Size: =9
+                  Text: ="Ningún usuario empieza con «" & Trim(txtBuscarUsrNueAge.Text) & "»."
+                  Visible: =galUsrNueAge.Visible && galUsrNueAge.AllItemsCount = 0
+                  Width: =galUsrNueAge.Width
+                  Wrap: =false
+                  X: =galUsrNueAge.X
+                  Y: =galUsrNueAge.Y
+            - conUsrSelNueAge:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderColor: =gblC.teal
+                  BorderThickness: =1
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.tealSuave
+                  Height: =gblE.AltoInput
+                  RadiusBottomLeft: =gblE.RadioSm
+                  RadiusBottomRight: =gblE.RadioSm
+                  RadiusTopLeft: =gblE.RadioSm
+                  RadiusTopRight: =gblE.RadioSm
+                  Visible: =!IsBlank(varUsrNueAge)
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =txtBuscarUsrNueAge.Y
+                Children:
+                  - lblUsrSelNueAge:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =Parent.Height
+                        PaddingLeft: =0
+                        Size: =10
+                        Text: =varUsrNueAge.'Full Name' & "  ·  " & Lower(varUsrNueAge.'Primary Email')
+                        Width: =Parent.Width - 3*gblE.PadSm - btnQuitarUsrNueAge.Width
+                        Wrap: =false
+                        X: =gblE.PadSm
+                        Y: =0
+                  - btnQuitarUsrNueAge:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderColor: =gblC.borde
+                        BorderThickness: =1
+                        Color: =gblC.ink2
+                        Fill: =gblC.card
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =28
+                        HoverFill: =ColorFade(gblC.card, 10%)
+                        OnSelect: |-
+                          =Set(varUsrNueAge, Blank());
+                          Reset(txtBuscarUsrNueAge)
+                        Size: =9
+                        TabIndex: =0
+                        Text: ="Quitar"
+                        Width: =92
+                        X: =Parent.Width - Self.Width - gblE.PadSm
+                        Y: =(Parent.Height - Self.Height) / 2
+            - lblNotaUsrNueAge:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =40
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: |-
+                    =If(IsBlank(varUsrNueAge),
+                        "Sin usuario, el agente se crea igual pero no entra a la app del celular hasta que lo vincules.",
+                        "El correo del agente lo completa el servidor a partir del usuario elegido.")
+                  VerticalAlign: =VerticalAlign.Top
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: |-
+                    =If(galUsrNueAge.Visible, galUsrNueAge.Y + galUsrNueAge.Height,
+                        txtBuscarUsrNueAge.Y + txtBuscarUsrNueAge.Height)
+                    + gblE.PadSm
+            - btnCancelarNueAge:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  Color: =gblC.ink2
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoBoton
+                  OnSelect: |-
+                    =// Cierra sin escribir nada.
+                    Set(varNuevoAge, false);
+                    Set(varUsrNueAge, Blank());
+                    Reset(txtNombreNueAge);
+                    Reset(txtBuscarUsrNueAge)
+                  Size: =10
+                  Text: ="Cancelar"
+                  Width: =(Parent.Width - 3*gblE.Pad)/2
+                  X: =gblE.Pad
+                  Y: =Parent.Height - gblE.AltoBoton - gblE.Pad
+            - btnCrearNueAge:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderThickness: =0
+                  Color: =Color.White
+                  DisabledColor: =Color.White
+                  DisabledFill: =ColorFade(gblC.teal, 60%)
+                  DisplayMode: =If(Len(Trim(txtNombreNueAge.Text)) > 0, DisplayMode.Edit, DisplayMode.Disabled)
+                  Fill: =gblC.teal
+                  FocusedBorderColor: =gblC.ink
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoBoton
+                  HoverFill: =ColorFade(gblC.teal, 10%)
+                  OnSelect: |-
+                    =// Alta manual de un localizador (solo Admin). Nombre requerido y recortado.
+                    // 1) Duplicado: LookUp delegable por igualdad de texto (Dataverse compara sin distinguir
+                    //    mayúsculas, igual que la alt key del nombre, que además lo rechaza en el servidor).
+                    // 2) Patch con Defaults: Activo = true y el usuario elegido (o Blank). 'Email Usuario' NO se
+                    //    escribe: lo deriva el plugin EmailDesdeUsuario desde el usuario vinculado.
+                    // IfError (B-03): si el Patch falla, detalle y el panel queda abierto (sin éxito).
+                    If(
+                        Len(Trim(txtNombreNueAge.Text)) = 0,
+                        Notify("Escribí el nombre del agente.", NotificationType.Warning),
+                        !IsBlank(LookUp('CM | TBL | Agentes', '[AG] Nombre' = Trim(txtNombreNueAge.Text))),
+                        Notify("Ya existe un agente llamado «" & Trim(txtNombreNueAge.Text) & "». No se creó otro.",
+                            NotificationType.Error),
+                        IfError(
+                            Patch('CM | TBL | Agentes', Defaults('CM | TBL | Agentes'),
+                                {
+                                    '[AG] Nombre': Trim(txtNombreNueAge.Text),
+                                    '[AG] Activo': true,
+                                    '[AG] Usuario': varUsrNueAge
+                                }
+                            ),
+                            Notify("No se pudo crear el agente " & Trim(txtNombreNueAge.Text) & ": " & FirstError.Message,
+                                NotificationType.Error),
+                            Notify("✓ Agente " & Trim(txtNombreNueAge.Text) & " creado" &
+                                If(IsBlank(varUsrNueAge), " sin usuario", " y vinculado a " & Lower(varUsrNueAge.'Primary Email')),
+                                NotificationType.Success, 2500);
+                            Set(varNuevoAge, false);
+                            Set(varUsrNueAge, Blank());
+                            Reset(txtNombreNueAge);
+                            Reset(txtBuscarUsrNueAge);
+                            ClearCollect(colAgentesAge, Sort('CM | TBL | Agentes', '[AG] Nombre'))
+                        )
+                    )
+                  Size: =10
+                  Text: ="Crear agente"
+                  Width: =btnCancelarNueAge.Width
+                  X: =btnCancelarNueAge.X + btnCancelarNueAge.Width + gblE.Pad
+                  Y: =btnCancelarNueAge.Y
       - cmpNavAge:
           Control: CanvasComponent
           ComponentName: cmpNavLateral

@@ -14,7 +14,10 @@ EditorState:
     - scrMisSolicitudes
     - scrNuevaSolicitud
     - scrAprobaciones
+    - scrCarteraLocalizador
+    - scrHistorialEspeciales
     - scrMonitoreo
+    - scrCargaArchivo
     - scrReconciliacion
     - scrCierres
     - scrAgentes

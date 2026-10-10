@@ -139,7 +139,7 @@ Screens:
                         Etiqueta: ="EN COLA"
                         Height: =96
                         Valor: =Text(varNPendIni)
-                        Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 3*gblE.PadSm) / 4)
+                        Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 2*gblE.PadSm) / 3)
                   - cmpKpiTscIni:
                       Control: CanvasComponent
                       ComponentName: cmpKpi
@@ -149,7 +149,7 @@ Screens:
                         Etiqueta: ="TRANSCRITAS HOY"
                         Height: =96
                         Valor: =Text(varNTscIni)
-                        Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 3*gblE.PadSm) / 4)
+                        Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 2*gblE.PadSm) / 3)
                         X: =If(nfMovil, (Parent.Width - gblE.PadSm)/2 + gblE.PadSm, (Parent.Width - 3*gblE.PadSm)/4 + gblE.PadSm)
                   - cmpKpiPagoIni:
                       Control: CanvasComponent
@@ -160,7 +160,7 @@ Screens:
                         Etiqueta: ="CON PAGO"
                         Height: =96
                         Valor: =Text(varNPagoIni)
-                        Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 3*gblE.PadSm) / 4)
+                        Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 2*gblE.PadSm) / 3)
                         X: =If(nfMovil, 0, 2*((Parent.Width - 3*gblE.PadSm)/4 + gblE.PadSm))
                         Y: =If(nfMovil, 96 + gblE.PadSm, 0)
             - conKpisSolIni:
@@ -184,7 +184,7 @@ Screens:
                         Etiqueta: ="PENDIENTES"
                         Height: =96
                         Valor: =Text(varNSpenIni)
-                        Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 3*gblE.PadSm) / 4)
+                        Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 2*gblE.PadSm) / 3)
                   - cmpKpiSaprIni:
                       Control: CanvasComponent
                       ComponentName: cmpKpi
@@ -194,7 +194,7 @@ Screens:
                         Etiqueta: ="APROBADAS"
                         Height: =96
                         Valor: =Text(varNSaprIni)
-                        Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 3*gblE.PadSm) / 4)
+                        Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 2*gblE.PadSm) / 3)
                         X: =If(nfMovil, (Parent.Width - gblE.PadSm)/2 + gblE.PadSm, (Parent.Width - 3*gblE.PadSm)/4 + gblE.PadSm)
                   - cmpKpiSrecIni:
                       Control: CanvasComponent
@@ -205,7 +205,7 @@ Screens:
                         Etiqueta: ="RECHAZADAS"
                         Height: =96
                         Valor: =Text(varNSrecIni)
-                        Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 3*gblE.PadSm) / 4)
+                        Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 2*gblE.PadSm) / 3)
                         X: =If(nfMovil, 0, 2*((Parent.Width - 3*gblE.PadSm)/4 + gblE.PadSm))
                         Y: =If(nfMovil, 96 + gblE.PadSm, 0)
             - conKpisSupIni:
@@ -229,7 +229,7 @@ Screens:
                         Etiqueta: ="POR APROBAR"
                         Height: =96
                         Valor: =Text(varNAprbIni)
-                        Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 3*gblE.PadSm) / 4)
+                        Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 2*gblE.PadSm) / 3)
             - conKpisAdmIni:
                 Control: GroupContainer@1.5.0
                 Variant: ManualLayout
@@ -251,7 +251,7 @@ Screens:
                         Etiqueta: ="CARGA DE HOY"
                         Height: =96
                         Valor: =If(IsBlank(varUltCargaIni) || varUltCargaIni < Today(), "sin carga", Text(varUltCargaIni, "dd/mm HH:mm"))
-                        Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 3*gblE.PadSm) / 4)
+                        Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 2*gblE.PadSm) / 3)
                   - cmpKpiDesapIni:
                       Control: CanvasComponent
                       ComponentName: cmpKpi
@@ -261,7 +261,7 @@ Screens:
                         Etiqueta: ="DIARIAS FUERA DE CARTERA"
                         Height: =96
                         Valor: =Text(varNDesapIni)
-                        Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 3*gblE.PadSm) / 4)
+                        Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 2*gblE.PadSm) / 3)
                         X: =If(nfMovil, (Parent.Width - gblE.PadSm)/2 + gblE.PadSm, (Parent.Width - 3*gblE.PadSm)/4 + gblE.PadSm)
                   - cmpKpiAgeIni:
                       Control: CanvasComponent
@@ -272,7 +272,7 @@ Screens:
                         Etiqueta: ="AGENTES SIN USUARIO"
                         Height: =96
                         Valor: =Text(varNAgSinUsrIni)
-                        Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 3*gblE.PadSm) / 4)
+                        Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 2*gblE.PadSm) / 3)
                         X: =If(nfMovil, 0, 2*((Parent.Width - 3*gblE.PadSm)/4 + gblE.PadSm))
                         Y: =If(nfMovil, 96 + gblE.PadSm, 0)
             - lblSecAccIni:

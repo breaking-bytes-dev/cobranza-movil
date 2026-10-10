@@ -183,7 +183,7 @@ App:
               AltoFila: 64,
               AltoInput: 40,
               AltoBoton: 44,
-              AnchoMax: 1160
+              AnchoMax: 1600
           }
       );
       // 4) La navegación por rol vive en cmpNavLateral (galNavCmp.Items, catálogo local — B-06).
