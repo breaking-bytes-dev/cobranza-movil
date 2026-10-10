@@ -1,24 +1,748 @@
 # ************************************************************************************************
 # Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
 # Use the maker portal to create and edit your Power Apps.
-# 
+#
 # The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
-# 
+#
 # For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
 # ************************************************************************************************
 Screens:
   scrCargaArchivo:
     Properties:
       Fill: =gblC.pantalla
+      OnVisible: |-
+        =// Carga del archivo del banco por Smelter (sin la app model-driven de Smelter).
+        // Smelter es de OTRO equipo: acá solo se LEE la plantilla y se crean/actualizan Import Jobs
+        // (lo mismo que le permite el rol "Smelter Operador" a quien está en el team "CM · Admin y Carga").
+        // Orden obligatorio: 1) crear el job SIN estado, 2) subir el archivo a '[IJ] Source File',
+        // 3) recién ahí estado = En cola (0): el flow orquestador de Smelter dispara con estado = 0 al crear o
+        // actualizar (es lo que hace el botón "Ejecutar" de Smelter).
+        // Estado de pantalla limpio en cada visita (las variables persisten entre visitas).
+        Set(varJobCar, Blank());
+        Set(varEstCar, 0);
+        Set(varEsPruebaCar, true);
+        Set(varOcupadoCar, false);
+        Set(varPollCar, false);
+        Set(varVueltasCar, 0);
+        Set(varConfirmaCar, false);
+        Set(varValidadoCar, "");
+        Set(varArchivoCar, "");
+        Set(varNombreCar, "");
+        Set(varNuevoCar, Blank());
+        // Plantilla "Cobranza movil" (igualdad sobre texto: delegable). Si no se ve, el usuario no está en el team.
+        Set(varPlantillaCar, LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil"));
+        // Historial propio: últimas 10 cargas que creó el usuario (Filter + Sort + FirstN: delegable). Va por 'Created By'
+        // y no por dueño: el rol de Smelter llega por el team, así que el job queda a nombre del team «CM · Admin y Carga».
+        ClearCollect(colHistCar,
+            FirstN(
+                Sort(
+                    Filter('TBL | SMLT | Import Jobs', 'Created By'.User = gblUsuarioDV.User),
+                    'Created On', SortOrder.Descending
+                ),
+                10
+            )
+        );
+        Reset(attArchivoCar)
     Children:
-      - lblEnConstruccionCar:
-          Control: Label@2.5.1
+      - cmpEncCar:
+          Control: CanvasComponent
+          ComponentName: cmpEncabezado
           Properties:
-            Color: =gblC.ink
-            FontWeight: =FontWeight.Semibold
-            Height: =60
-            Size: =14
-            Text: ="Cargar archivo del banco — en construcción. Mientras tanto, la carga se hace desde la app de Smelter."
-            Width: =Parent.Width - 2*gblE.Pad
-            X: =gblE.Pad
-            Y: =gblE.Pad
+            Height: =If(nfMovil, gblE.AltoBarra + 84, 84)
+            Subtitulo: ="Primero una prueba en seco; si sale limpia, la carga real."
+            Titulo: ="Cargar archivo del banco"
+            Width: =Parent.Width - Self.X
+            X: =If(nfMovil, 0, gblE.AnchoNav)
+      - conContenidoCar:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            DropShadow: =DropShadow.None
+            Fill: =Color.Transparent
+            Height: =Parent.Height - Self.Y - gblE.Pad
+            Width: =Min(gblE.AnchoMax, Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - 2*gblE.Pad)
+            X: |-
+              =If(nfMovil, 0, gblE.AnchoNav)
+                  + Max(gblE.Pad, (Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - gblE.AnchoMax) / 2)
+            Y: =cmpEncCar.Y + cmpEncCar.Height + gblE.PadSm
+          Children:
+            - conArchivoCar:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.card
+                  Height: =212
+                  RadiusBottomLeft: =gblE.Radio
+                  RadiusBottomRight: =gblE.Radio
+                  RadiusTopLeft: =gblE.Radio
+                  RadiusTopRight: =gblE.Radio
+                  Width: =Parent.Width
+                Children:
+                  - lblPaso1Car:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =24
+                        PaddingLeft: =0
+                        Size: =11
+                        Text: ="1 · Elegí el archivo del banco"
+                        Width: =Parent.Width - 2*gblE.Pad
+                        Wrap: =false
+                        X: =gblE.Pad
+                        Y: =gblE.PadSm
+                  - lblReglasCar:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.muted
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =22
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: ="Un solo archivo .csv, de hasta 128 MB. Nunca se sube nada sin pasar antes por la prueba en seco."
+                        Width: =Parent.Width - 2*gblE.Pad
+                        Wrap: =false
+                        X: =gblE.Pad
+                        Y: =lblPaso1Car.Y + lblPaso1Car.Height
+                  - attArchivoCar:
+                      Control: Attachments@2.3.0
+                      Properties:
+                        AddAttachmentText: ="＋ Elegir el archivo .csv"
+                        BorderColor: =gblC.borde
+                        DisplayMode: =If(varOcupadoCar, DisplayMode.Disabled, DisplayMode.Edit)
+                        Height: =96
+                        Items: =Blank()
+                        MaxAttachments: =1
+                        MaxAttachmentSize: =128
+                        MaxAttachmentsText: ="Un solo archivo por carga. Para cambiarlo, quitá el actual con la ✕."
+                        NoAttachmentsText: ="Todavía no elegiste ningún archivo."
+                        PaddingBottom: =5
+                        PaddingLeft: =5
+                        PaddingRight: =5
+                        PaddingTop: =5
+                        Tooltip: ="Archivo del banco (.csv)"
+                        Width: =Parent.Width - 2*gblE.Pad
+                        X: =gblE.Pad
+                        Y: =lblReglasCar.Y + lblReglasCar.Height + 6
+                  - lblArchivoMsgCar:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: |-
+                          =If(CountRows(attArchivoCar.Attachments) = 0, gblC.muted,
+                              If(EndsWith(Lower(First(attArchivoCar.Attachments).Name), ".csv"), gblC.okInk, gblC.redInk))
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =22
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: |-
+                          =If(CountRows(attArchivoCar.Attachments) = 0, "Todavía no elegiste ningún archivo.",
+                              If(EndsWith(Lower(First(attArchivoCar.Attachments).Name), ".csv"),
+                                  "✓ Listo para validar: " & First(attArchivoCar.Attachments).Name,
+                                  "⛔ Tiene que ser un archivo .csv: " & First(attArchivoCar.Attachments).Name))
+                        Width: =Parent.Width - 2*gblE.Pad
+                        Wrap: =false
+                        X: =gblE.Pad
+                        Y: =attArchivoCar.Y + attArchivoCar.Height + gblE.PadSm
+            - conAccionCar:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.card
+                  Height: =If(nfMovil, 2*gblE.AltoBoton + 3*gblE.Pad + 40, gblE.AltoBoton + 2*gblE.Pad + 40)
+                  RadiusBottomLeft: =gblE.Radio
+                  RadiusBottomRight: =gblE.Radio
+                  RadiusTopLeft: =gblE.Radio
+                  RadiusTopRight: =gblE.Radio
+                  Width: =Parent.Width
+                  Y: =conArchivoCar.Y + conArchivoCar.Height + gblE.PadSm
+                Children:
+                  - btnValidarCar:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =Color.White
+                        DisabledColor: =Color.White
+                        DisabledFill: =ColorFade(gblC.teal, 60%)
+                        DisplayMode: |-
+                          =If(!varOcupadoCar && !IsBlank(varPlantillaCar) && CountRows(attArchivoCar.Attachments) = 1
+                              && EndsWith(Lower(First(attArchivoCar.Attachments).Name), ".csv"),
+                              DisplayMode.Edit, DisplayMode.Disabled)
+                        Fill: =gblC.teal
+                        FocusedBorderColor: =gblC.ink
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =gblE.AltoBoton
+                        HoverFill: =ColorFade(gblC.teal, 10%)
+                        OnSelect: |-
+                          =// Paso 2 · PRUEBA EN SECO: crea un job con '[IJ] Is Dry Run' = Sí, sube el archivo y lo pone En cola
+                          // (btnEnviarCar). Cero filas nuevas en Cobranza Móvil.
+                          Set(varOcupadoCar, true);
+                          Set(varConfirmaCar, false);
+                          Set(varEsPruebaCar, true);
+                          Set(varArchivoCar, First(attArchivoCar.Attachments).Name);
+                          Set(varNombreCar, "Carga " & Text(Now(), "yyyy-mm-dd HH:mm") & " · " & Left(varArchivoCar, 120) & " · prueba");
+                          Select(btnEnviarCar)
+                        Size: =10
+                        Text: ="Validar (prueba en seco)"
+                        Width: =If(nfMovil, Parent.Width - 2*gblE.Pad, (Parent.Width - 3*gblE.Pad) / 2)
+                        X: =gblE.Pad
+                        Y: =gblE.Pad
+                  - btnCargarCar:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =gblC.okInk
+                        DisabledColor: =Color.White
+                        DisabledFill: =ColorFade(gblC.okBg, 60%)
+                        DisplayMode: |-
+                          =If(!varOcupadoCar && !IsBlank(varPlantillaCar) && !IsBlank(varValidadoCar)
+                              && CountRows(attArchivoCar.Attachments) = 1
+                              && First(attArchivoCar.Attachments).Name = varValidadoCar,
+                              DisplayMode.Edit, DisplayMode.Disabled)
+                        Fill: =gblC.okBg
+                        FocusedBorderColor: =gblC.ink
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =gblE.AltoBoton
+                        HoverFill: =ColorFade(gblC.okBg, 10%)
+                        OnSelect: =Set(varConfirmaCar, true)
+                        Size: =10
+                        Text: ="Cargar"
+                        Width: =btnValidarCar.Width
+                        X: =If(nfMovil, gblE.Pad, btnValidarCar.X + btnValidarCar.Width + gblE.Pad)
+                        Y: =If(nfMovil, btnValidarCar.Y + btnValidarCar.Height + gblE.Pad, btnValidarCar.Y)
+                  - lblPasosCar:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.muted
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =40
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: |-
+                          =If(IsBlank(varPlantillaCar),
+                              "⛔ No se ve la plantilla de Smelter ""Cobranza movil"". Avisá a soporte: tu usuario no está en el equipo de carga.",
+                              If(varOcupadoCar, "⏳ Hay una carga en curso: esperá a que termine para empezar otra.",
+                                  If(IsBlank(varValidadoCar),
+                                      "Para habilitar «Cargar», validá primero el archivo con la prueba en seco.",
+                                      "✓ Prueba en seco limpia de «" & varValidadoCar & "». Si es el archivo correcto, tocá «Cargar».")))
+                        VerticalAlign: =VerticalAlign.Top
+                        Width: =Parent.Width - 2*gblE.Pad
+                        X: =gblE.Pad
+                        Y: =If(nfMovil, btnCargarCar.Y + btnCargarCar.Height + gblE.PadSm, btnValidarCar.Y + btnValidarCar.Height + gblE.PadSm)
+            - btnEnviarCar:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderThickness: =0
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =10
+                  OnSelect: |-
+                    =// Camino ÚNICO de envío (lo usan la prueba en seco y la carga real). Orden obligatorio:
+                    // 1) job SIN estado (con nombre, plantilla y marca de prueba), 2) archivo a la columna de archivo,
+                    // 3) recién ahí estado = En cola (0): el flow orquestador de Smelter dispara con estado = 0.
+                    // IfError (B-03): si algo falla, detalle y pantalla liberada. Un job sin estado NO dispara nada en Smelter.
+                    Set(varJobCar, Blank());
+                    Set(varEstCar, 0);
+                    IfError(
+                        Set(varNuevoCar,
+                            Patch('TBL | SMLT | Import Jobs', Defaults('TBL | SMLT | Import Jobs'),
+                                {
+                                    '[IJ] Name': varNombreCar,
+                                    '[IJ] Import Template': varPlantillaCar,
+                                    '[IJ] Is Dry Run': varEsPruebaCar
+                                }
+                            )
+                        );
+                        Set(varNuevoCar,
+                            Patch('TBL | SMLT | Import Jobs', varNuevoCar,
+                                {
+                                    '[IJ] Source File': {
+                                        FileName: First(attArchivoCar.Attachments).Name,
+                                        Value: First(attArchivoCar.Attachments).Value
+                                    }
+                                }
+                            )
+                        );
+                        Set(varNuevoCar,
+                            Patch('TBL | SMLT | Import Jobs', varNuevoCar,
+                                {'[IJ] Status': '[IJ] Status (TBL | SMLT | Import Jobs)'.Queued}
+                            )
+                        );
+                        Set(varJobCar, varNuevoCar);
+                        Set(varVueltasCar, 0);
+                        Set(varPollCar, true),
+                        Notify("No se pudo iniciar la carga: " & FirstError.Message, NotificationType.Error);
+                        Set(varOcupadoCar, false)
+                    )
+                  Text: ="Enviar"
+                  Visible: =false
+                  Width: =10
+            - conConfirmCar:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderColor: =gblC.pendInk
+                  BorderThickness: =1
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.pendBg
+                  Height: =If(nfMovil, 2*gblE.AltoBoton + 3*gblE.Pad + 44, gblE.AltoBoton + 2*gblE.Pad + 44)
+                  RadiusBottomLeft: =gblE.Radio
+                  RadiusBottomRight: =gblE.Radio
+                  RadiusTopLeft: =gblE.Radio
+                  RadiusTopRight: =gblE.Radio
+                  Visible: =varConfirmaCar
+                  Width: =Parent.Width
+                  Y: =conAccionCar.Y + conAccionCar.Height + gblE.PadSm
+                Children:
+                  - lblConfirmaCar:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.pendInk
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =44
+                        PaddingLeft: =0
+                        Size: =10
+                        Text: |-
+                          ="Vas a cargar «" & varValidadoCar & "» de verdad: crea y actualiza clientes, cuentas y asignaciones. ¿Seguimos?"
+                        VerticalAlign: =VerticalAlign.Top
+                        Width: =Parent.Width - 2*gblE.Pad
+                        X: =gblE.Pad
+                        Y: =gblE.PadSm
+                  - btnConfirmarCar:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =Color.White
+                        DisabledColor: =Color.White
+                        DisabledFill: =ColorFade(gblC.okInk, 60%)
+                        DisplayMode: =If(varOcupadoCar, DisplayMode.Disabled, DisplayMode.Edit)
+                        Fill: =gblC.okInk
+                        FocusedBorderColor: =gblC.ink
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =gblE.AltoBoton
+                        HoverFill: =ColorFade(gblC.okInk, 10%)
+                        OnSelect: |-
+                          =// Paso 3 · CARGA REAL. Mismo camino que la prueba, con '[IJ] Is Dry Run' = No.
+                          // Solo llega acá si «Cargar» estaba habilitado: el archivo elegido es el validado.
+                          Set(varConfirmaCar, false);
+                          Set(varOcupadoCar, true);
+                          Set(varEsPruebaCar, false);
+                          Set(varArchivoCar, First(attArchivoCar.Attachments).Name);
+                          Set(varNombreCar, "Carga " & Text(Now(), "yyyy-mm-dd HH:mm") & " · " & Left(varArchivoCar, 120) & " · real");
+                          Select(btnEnviarCar)
+                        Size: =10
+                        Text: ="Sí, cargar ahora"
+                        Width: =If(nfMovil, Parent.Width - 2*gblE.Pad, (Parent.Width - 3*gblE.Pad) / 2)
+                        X: =gblE.Pad
+                        Y: =lblConfirmaCar.Y + lblConfirmaCar.Height + gblE.PadSm
+                  - btnCancelarCar:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =gblC.ink2
+                        Fill: =gblC.hairline
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoBoton
+                        HoverFill: =ColorFade(gblC.hairline, -5%)
+                        OnSelect: =Set(varConfirmaCar, false)
+                        Size: =10
+                        Text: ="Cancelar"
+                        Width: =btnConfirmarCar.Width
+                        X: =If(nfMovil, gblE.Pad, btnConfirmarCar.X + btnConfirmarCar.Width + gblE.Pad)
+                        Y: =If(nfMovil, btnConfirmarCar.Y + btnConfirmarCar.Height + gblE.Pad, btnConfirmarCar.Y)
+            - conResultadoCar:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.card
+                  Height: |-
+                    =gblE.PadSm + 26 + gblE.PadSm + If(nfMovil, 3*96 + 2*gblE.PadSm, 96) + gblE.PadSm
+                        + If(lblFallosCar.Visible, lblFallosCar.Height + gblE.PadSm, 0)
+                        + If(lblAvanceCar.Visible, lblAvanceCar.Height + gblE.PadSm, 0)
+                        + If(btnIrMonitoreoCar.Visible, btnIrMonitoreoCar.Height + gblE.PadSm, 0)
+                  RadiusBottomLeft: =gblE.Radio
+                  RadiusBottomRight: =gblE.Radio
+                  RadiusTopLeft: =gblE.Radio
+                  RadiusTopRight: =gblE.Radio
+                  Visible: =!IsBlank(varJobCar)
+                  Width: =Parent.Width
+                  Y: |-
+                    =conConfirmCar.Y + If(conConfirmCar.Visible, conConfirmCar.Height + gblE.PadSm, 0)
+                Children:
+                  - lblNombreJobCar:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =26
+                        PaddingLeft: =0
+                        Size: =10
+                        Text: =varJobCar.'[IJ] Name'
+                        Width: =Parent.Width - 3*gblE.Pad - chpEstadoCar.Width
+                        Wrap: =false
+                        X: =gblE.Pad
+                        Y: =gblE.PadSm
+                  - chpEstadoCar:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: |-
+                          =Switch(varEstCar,
+                              2, gblC.okInk, 3, gblC.pendInk, 4, gblC.redInk, gblC.diariaInk)
+                        DisplayMode: =DisplayMode.View
+                        Fill: |-
+                          =Switch(varEstCar,
+                              2, gblC.okBg, 3, gblC.pendBg, 4, gblC.redBg, gblC.diariaBg)
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =26
+                        RadiusBottomLeft: =8
+                        RadiusBottomRight: =8
+                        RadiusTopLeft: =8
+                        RadiusTopRight: =8
+                        Size: =9
+                        Text: |-
+                          =Switch(varEstCar,
+                              1, "Procesando", 2, "Terminada", 3, "Terminada con errores", 4, "Falló", "En cola")
+                        Width: =14 + 7*Len(Self.Text)
+                        X: =Parent.Width - Self.Width - gblE.Pad
+                        Y: =gblE.PadSm
+                  - cmpKpiTotCar:
+                      Control: CanvasComponent
+                      ComponentName: cmpKpi
+                      Properties:
+                        Detalle: =If(varJobCar.'[IJ] Is Dry Run', "prueba en seco", "carga real")
+                        EsHero: =false
+                        Etiqueta: ="FILAS DEL ARCHIVO"
+                        Height: =96
+                        Valor: =Text(Coalesce(varJobCar.'[IJ] Total Rows', 0), "#,##0")
+                        Width: =If(nfMovil, (Parent.Width - 2*gblE.Pad - gblE.PadSm) / 2, (Parent.Width - 2*gblE.Pad - 4*gblE.PadSm) / 5)
+                        X: =gblE.Pad
+                        Y: =lblNombreJobCar.Y + lblNombreJobCar.Height + gblE.PadSm
+                  - cmpKpiProcCar:
+                      Control: CanvasComponent
+                      ComponentName: cmpKpi
+                      Properties:
+                        Detalle: ="ya leídas"
+                        EsHero: =false
+                        Etiqueta: ="PROCESADAS"
+                        Height: =96
+                        Valor: =Text(Coalesce(varJobCar.'[IJ] Processed Rows', 0), "#,##0")
+                        Width: =cmpKpiTotCar.Width
+                        X: =cmpKpiTotCar.X + cmpKpiTotCar.Width + gblE.PadSm
+                        Y: =cmpKpiTotCar.Y
+                  - cmpKpiOkCar:
+                      Control: CanvasComponent
+                      ComponentName: cmpKpi
+                      Properties:
+                        Detalle: ="sin problema"
+                        EsHero: =false
+                        Etiqueta: ="ÉXITOS"
+                        Height: =96
+                        Valor: =Text(Coalesce(varJobCar.'[IJ] Success Count', 0), "#,##0")
+                        Width: =cmpKpiTotCar.Width
+                        X: =If(nfMovil, cmpKpiTotCar.X, cmpKpiProcCar.X + cmpKpiProcCar.Width + gblE.PadSm)
+                        Y: =If(nfMovil, cmpKpiTotCar.Y + cmpKpiTotCar.Height + gblE.PadSm, cmpKpiTotCar.Y)
+                  - cmpKpiErrCar:
+                      Control: CanvasComponent
+                      ComponentName: cmpKpi
+                      Properties:
+                        Detalle: ="con error"
+                        EsHero: =false
+                        Etiqueta: ="FALLOS"
+                        Height: =96
+                        Valor: =Text(Coalesce(varJobCar.'[IJ] Fail Count', 0), "#,##0")
+                        Width: =cmpKpiTotCar.Width
+                        X: =If(nfMovil, cmpKpiProcCar.X, cmpKpiOkCar.X + cmpKpiOkCar.Width + gblE.PadSm)
+                        Y: =cmpKpiOkCar.Y
+                  - cmpKpiOmitCar:
+                      Control: CanvasComponent
+                      ComponentName: cmpKpi
+                      Properties:
+                        Detalle: ="sin cambios"
+                        EsHero: =false
+                        Etiqueta: ="OMITIDAS"
+                        Height: =96
+                        Valor: =Text(Coalesce(varJobCar.'[IJ] Skipped Count', 0), "#,##0")
+                        Width: =cmpKpiTotCar.Width
+                        X: =If(nfMovil, cmpKpiTotCar.X, cmpKpiErrCar.X + cmpKpiErrCar.Width + gblE.PadSm)
+                        Y: =If(nfMovil, cmpKpiOkCar.Y + cmpKpiOkCar.Height + gblE.PadSm, cmpKpiOkCar.Y)
+                  - lblAvanceCar:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.diariaInk
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =24
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: ="⏳ Smelter está trabajando; la pantalla consulta el avance cada 3 segundos."
+                        Visible: =varEstCar < 2
+                        Width: =Parent.Width - 2*gblE.Pad
+                        Wrap: =false
+                        X: =gblE.Pad
+                        Y: |-
+                          =If(nfMovil, cmpKpiOmitCar.Y + cmpKpiOmitCar.Height, cmpKpiTotCar.Y + cmpKpiTotCar.Height) + gblE.PadSm
+                  - lblFallosCar:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =If(varEstCar = 4, gblC.redInk, gblC.pendInk)
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =40
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: |-
+                          =If(Coalesce(varJobCar.'[IJ] Fail Count', 0) > 0,
+                              "Hay " & Text(varJobCar.'[IJ] Fail Count', "#,##0") & " filas con error. Avisá a soporte con el nombre de la carga: " & varJobCar.'[IJ] Name',
+                              "La carga falló antes de terminar. Avisá a soporte con el nombre de la carga: " & varJobCar.'[IJ] Name')
+                        VerticalAlign: =VerticalAlign.Top
+                        Visible: =varEstCar >= 3 || (varEstCar = 2 && Coalesce(varJobCar.'[IJ] Fail Count', 0) > 0)
+                        Width: =Parent.Width - 2*gblE.Pad
+                        X: =gblE.Pad
+                        Y: |-
+                          =If(lblAvanceCar.Visible, lblAvanceCar.Y + lblAvanceCar.Height,
+                              If(nfMovil, cmpKpiOmitCar.Y + cmpKpiOmitCar.Height, cmpKpiTotCar.Y + cmpKpiTotCar.Height)) + gblE.PadSm
+                  - btnIrMonitoreoCar:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =gblC.teal
+                        Fill: =gblC.tealSuave
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoBoton
+                        HoverFill: =ColorFade(gblC.tealSuave, 10%)
+                        OnSelect: =Navigate(scrMonitoreo)
+                        Size: =10
+                        Text: ="📡 Ir a Monitoreo de carga"
+                        Visible: =!varEsPruebaCar && varEstCar >= 2 && varEstCar <= 3
+                        Width: =If(nfMovil, Parent.Width - 2*gblE.Pad, 260)
+                        X: =gblE.Pad
+                        Y: |-
+                          =If(lblFallosCar.Visible, lblFallosCar.Y + lblFallosCar.Height,
+                              If(lblAvanceCar.Visible, lblAvanceCar.Y + lblAvanceCar.Height,
+                                  If(nfMovil, cmpKpiOmitCar.Y + cmpKpiOmitCar.Height, cmpKpiTotCar.Y + cmpKpiTotCar.Height))) + gblE.PadSm
+            - conHistCar:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.card
+                  Height: =Max(gblE.AltoFila * 3 + 34, Parent.Height - Self.Y)
+                  RadiusBottomLeft: =gblE.Radio
+                  RadiusBottomRight: =gblE.Radio
+                  RadiusTopLeft: =gblE.Radio
+                  RadiusTopRight: =gblE.Radio
+                  Width: =Parent.Width
+                  Y: =conResultadoCar.Y + If(conResultadoCar.Visible, conResultadoCar.Height + gblE.PadSm, 0)
+                Children:
+                  - lblHistTituloCar:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =26
+                        PaddingLeft: =0
+                        Size: =10
+                        Text: ="Mis últimas cargas"
+                        Width: =Parent.Width - 2*gblE.Pad
+                        Wrap: =false
+                        X: =gblE.Pad
+                        Y: =gblE.PadSm
+                  - galHistCar:
+                      Control: Gallery@2.15.0
+                      Variant: Vertical
+                      Properties:
+                        AccessibleLabel: ="Mis últimas cargas de archivos del banco"
+                        DisplayMode: =DisplayMode.View
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Height: =Parent.Height - Self.Y
+                        Items: =colHistCar
+                        ShowScrollbar: =false
+                        TemplatePadding: =0
+                        TemplateSize: =gblE.AltoFila
+                        Width: =Parent.Width
+                        Y: =lblHistTituloCar.Y + lblHistTituloCar.Height
+                      Children:
+                        - lblHistNombreCar:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.ink
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Semibold
+                              Height: =22
+                              PaddingLeft: =0
+                              Size: =10
+                              Text: =ThisItem.'[IJ] Name'
+                              Width: =Parent.TemplateWidth - 3*gblE.Pad - 150
+                              Wrap: =false
+                              X: =gblE.Pad
+                              Y: =10
+                        - lblHistContadoresCar:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.muted
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              Height: =20
+                              PaddingLeft: =0
+                              Size: =9
+                              Text: |-
+                                =If(IsBlank(ThisItem.'Created On'), "—", Text(ThisItem.'Created On', "dd/mm HH:mm")) & " · "
+                                    & Text(Coalesce(ThisItem.'[IJ] Total Rows', 0), "#,##0") & " filas · "
+                                    & Text(Coalesce(ThisItem.'[IJ] Success Count', 0), "#,##0") & " éxitos · "
+                                    & Text(Coalesce(ThisItem.'[IJ] Fail Count', 0), "#,##0") & " fallos · "
+                                    & Text(Coalesce(ThisItem.'[IJ] Skipped Count', 0), "#,##0") & " omitidas"
+                              Width: =Parent.TemplateWidth - 3*gblE.Pad - 150
+                              Wrap: =false
+                              X: =gblE.Pad
+                              Y: =32
+                        - chpHistEstadoCar:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderThickness: =0
+                              Color: |-
+                                =Switch(ThisItem.'[IJ] Status',
+                                    '[IJ] Status (TBL | SMLT | Import Jobs)'.Completed, gblC.okInk, '[IJ] Status (TBL | SMLT | Import Jobs)'.CompletedWithErrors, gblC.pendInk,
+                                    '[IJ] Status (TBL | SMLT | Import Jobs)'.Failed, gblC.redInk, gblC.diariaInk)
+                              DisplayMode: =DisplayMode.View
+                              Fill: |-
+                                =Switch(ThisItem.'[IJ] Status',
+                                    '[IJ] Status (TBL | SMLT | Import Jobs)'.Completed, gblC.okBg, '[IJ] Status (TBL | SMLT | Import Jobs)'.CompletedWithErrors, gblC.pendBg,
+                                    '[IJ] Status (TBL | SMLT | Import Jobs)'.Failed, gblC.redBg, gblC.diariaBg)
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =26
+                              RadiusBottomLeft: =8
+                              RadiusBottomRight: =8
+                              RadiusTopLeft: =8
+                              RadiusTopRight: =8
+                              Size: =8
+                              Text: |-
+                                =Switch(ThisItem.'[IJ] Status',
+                                    '[IJ] Status (TBL | SMLT | Import Jobs)'.Processing, "Procesando", '[IJ] Status (TBL | SMLT | Import Jobs)'.Completed, "Terminada",
+                                    '[IJ] Status (TBL | SMLT | Import Jobs)'.CompletedWithErrors, "Con errores", '[IJ] Status (TBL | SMLT | Import Jobs)'.Failed, "Falló", "En cola")
+                              Width: =14 + 7*Len(Self.Text)
+                              X: =Parent.TemplateWidth - Self.Width - gblE.Pad
+                              Y: =(Parent.TemplateHeight - Self.Height) / 2
+                        - recSepHistCar:
+                            Control: GroupContainer@1.5.0
+                            Variant: ManualLayout
+                            Properties:
+                              BorderThickness: =0
+                              DropShadow: =DropShadow.None
+                              Fill: =gblC.hairline
+                              Height: =1
+                              Width: =Parent.TemplateWidth
+                              Y: =Parent.TemplateHeight - 1
+                  - cmpVacioHistCar:
+                      Control: CanvasComponent
+                      ComponentName: cmpVacio
+                      Properties:
+                        Height: =160
+                        Icono: ="📤"
+                        Mensaje: ="Cuando cargues un archivo, queda anotado acá."
+                        Titulo: ="Todavía no hay cargas tuyas"
+                        Visible: =CountRows(colHistCar) = 0
+                        Width: =Min(420, Parent.Width - 2*gblE.Pad)
+                        X: =(Parent.Width - Self.Width) / 2
+                        Y: =lblHistTituloCar.Y + lblHistTituloCar.Height + gblE.PadSm
+      - tmrAvanceCar:
+          Control: Timer@2.1.0
+          Properties:
+            AutoPause: =false
+            Duration: =3000
+            OnTimerEnd: |-
+              =// Sondeo cada ~3 s del job propio hasta que Smelter lo termine (2 Completed, 3 CompletedWithErrors, 4 Failed).
+              // Se lee solo lo que el Operador puede leer: el job (contadores). Los logs de Smelter son del SYSTEM.
+              Refresh('TBL | SMLT | Import Jobs');
+              IfError(
+                  Set(varJobCar, LookUp('TBL | SMLT | Import Jobs', 'TBL | SMLT | Import Job' = varJobCar.'TBL | SMLT | Import Job')),
+                  Notify("No se pudo consultar el avance: " & FirstError.Message, NotificationType.Warning)
+              );
+              Set(varEstCar,
+                  Switch(varJobCar.'[IJ] Status',
+                      '[IJ] Status (TBL | SMLT | Import Jobs)'.Processing, 1, '[IJ] Status (TBL | SMLT | Import Jobs)'.Completed, 2,
+                      '[IJ] Status (TBL | SMLT | Import Jobs)'.CompletedWithErrors, 3, '[IJ] Status (TBL | SMLT | Import Jobs)'.Failed, 4, 0));
+              Set(varVueltasCar, varVueltasCar + 1);
+              If(varEstCar >= 2 || varVueltasCar > 400,
+                  Set(varPollCar, false);
+                  Set(varOcupadoCar, false);
+                  // «Cargar» se habilita SOLO tras una prueba en seco Terminada y con 0 fallos, de ESTE archivo.
+                  If(varEsPruebaCar,
+                      If(varEstCar = 2 && Coalesce(varJobCar.'[IJ] Fail Count', 0) = 0,
+                          Set(varValidadoCar, varArchivoCar),
+                          Set(varValidadoCar, "")));
+                  // Terminada la carga real, el archivo no se puede volver a cargar sin validarlo de nuevo.
+                  If(!varEsPruebaCar, Set(varValidadoCar, ""); Reset(attArchivoCar));
+                  ClearCollect(colHistCar,
+                      FirstN(
+                          Sort(
+                              Filter('TBL | SMLT | Import Jobs', 'Created By'.User = gblUsuarioDV.User),
+                              'Created On', SortOrder.Descending
+                          ),
+                          10
+                      )
+                  )
+              )
+            Repeat: =true
+            Start: =varPollCar
+            Visible: =false
+      - cmpNavCar:
+          Control: CanvasComponent
+          ComponentName: cmpNavLateral
+          Properties:
+            Height: =Parent.Height
+            RutaActiva: ="car"
+            Visible: =!nfMovil || gblNavMovilAbierta
+            Width: =gblE.AnchoNav

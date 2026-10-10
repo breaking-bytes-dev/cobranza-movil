@@ -53,14 +53,16 @@ Cada paso dice **quién** lo hace, **qué** hace y **qué tiene que ver**.
 
 ---
 
-## 1. Carga del día: Admin y carga (User4) en la app de Smelter
+## 1. Carga del día: Admin y carga (User4) en el backoffice → Cargar archivo
 
 | ☐ | Paso | Qué tiene que ver |
 |---|---|---|
-| ☐ | 1.1 Abrir "MDA - SMLT - Import Configurationd and Monitoring" (así se llama, con la errata) → **Import Jobs** → Nuevo | Formulario del trabajo de importación |
-| ☐ | 1.2 Template = **Cobranza movil**; subir el CSV en **Source File**; marcar **Is Dry Run**; Guardar → ▶ **Ejecutar** | Termina sin filas fallidas. No escribe nada en las tablas de CM (es la prueba en seco) |
-| ☐ | 1.3 Nuevo job igual, **sin** Dry Run → ▶ Ejecutar | Estado **Completed** y **Failed = 0** |
-| ☐ | 1.4 Revisar **Import Job Logs** del job | Sin errores. Ningún mensaje muestra un número completo |
+| ☐ | 1.1 Backoffice → nav **Cargar archivo** | «Validar» y «Cargar» deshabilitados hasta elegir el archivo |
+| ☐ | 1.2 **＋ Elegir el archivo .csv** → **Validar (prueba en seco)** | Chip *Terminada* con **Fallos 0**. No escribe nada en las tablas de CM. «Cargar» queda habilitado solo para ese archivo |
+| ☐ | 1.3 **Cargar** → **Sí, cargar ahora** | Chip *Terminada*, **Fallos 0**, aparece «📡 Ir a Monitoreo de carga» |
+| ☐ | 1.4 **Mis últimas cargas** | Las dos cargas (prueba y real) con sus contadores |
+
+Automatizado: `node run.js --carga-ui` hace F1 por esta pantalla (checks F1u-01..14) en lugar de la API de Smelter.
 
 ## 2. Reparto automático (lo hace el flow, en segundos)
 
@@ -69,7 +71,7 @@ Cada paso dice **quién** lo hace, **qué** hace y **qué tiene que ver**.
 | ☐ | 2.1 📱 Cobrador (User5): abrir la app → Sincronización → "Sincronización completa" | La píldora vuelve a "Sincronizado" |
 | ☐ | 2.2 📱 Cartera | Aparece el cliente **QA-E2E-INT** con las cuentas **A (Diaria)** y **B (Incobrable)**. **No** aparece la C (Especial Pendiente) |
 | ☐ | 2.3 📱 Abrir la cuenta A → **Ver número** | Muestra el número completo unos segundos y vuelve a `•••• NNNN` |
-| ☐ | 2.4 Admin y carga: repetir 1.3 con el **mismo CSV** (como la carga del día siguiente) | Completed, **sin registros nuevos**: la carga es idempotente |
+| ☐ | 2.4 Admin y carga: repetir 1.2–1.3 con el **mismo CSV** (como la carga del día siguiente) | Completed, **sin registros nuevos**: la carga es idempotente |
 | ☐ | 2.5 📱 Cobrador: Sincronización completa → Cliente QA-E2E-INT | Sigue viendo **solo A y B**: la C (Especial Pendiente) **no** aparece. Antes del 2026-10-06, la segunda carga le daba acceso heredado a la C, con el número completo (defecto 2) |
 
 ## 3. Admin (User4) en el backoffice

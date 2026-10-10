@@ -2,6 +2,7 @@
 // Prueba integral "0 a 100" de Cobranza Móvil en DEV: un CSV real por Smelter → reparto → todos los roles en las dos apps
 // canvas → cierre → limpieza. Ver README.md.
 // Uso:  cd tests/integral && NODE_PATH=../backoffice-canvas/node_modules node run.js [--hasta F5] [--solo-limpieza]
+//       --carga-ui: la 1.ª importación (F1) se hace desde la pantalla "Cargar archivo" del backoffice como User4, en vez de la API
 //       (depuración) --conservar (no limpia al final) · --desde F5 (reanuda sobre los datos de la última corrida conservada)
 const fs = require('fs');
 const path = require('path');
@@ -28,7 +29,7 @@ const FASES = [
 const args = process.argv.slice(2);
 const flag = (n) => args.includes(n);
 const valor = (n) => (args.includes(n) ? args[args.indexOf(n) + 1] : null);
-const soloLimpieza = flag('--solo-limpieza'), conservar = flag('--conservar');
+const soloLimpieza = flag('--solo-limpieza'), conservar = flag('--conservar'), cargaUi = flag('--carga-ui');
 const hasta = valor('--hasta'), desde = valor('--desde');
 for (const f of [hasta, desde]) if (f && !FASES.some((x) => x[0] === f.toUpperCase())) { console.error(`Fase desconocida: ${f} (válidas: ${FASES.map((x) => x[0]).join(', ')})`); process.exit(2); }
 
@@ -92,6 +93,7 @@ async function main() {
   } else {
     ctx = new Corrida({ runid: nuevoRunid(), dir: path.join(RAIZ, `corrida-${ahoraCorta()}`) });
   }
+  ctx.cargaUi = cargaUi;
   console.log(`Prueba integral 0 a 100 · corrida ${ctx.runid} · cliente "${ctx.nombreCliente}" · hoy (Managua) ${ctx.hoy.fecha}\nResultados en ${ctx.dir}`);
 
   // limpieza previa (restos de corridas caídas) — sin tocar nada si se reanuda

@@ -47,7 +47,10 @@ async function f1(ctx) {
   let imp1;
   try {
     // ── Importación 1 ──
-    imp1 = await ctx.paso('F1-01', 'importar por Smelter', () => smelter.importar(ctx, ctx.secretos.contenido, 1));
+    // --carga-ui: la 1.ª importación la hace User4 desde la pantalla "Cargar archivo" (prueba en seco + carga real); sin el flag, por la API.
+    imp1 = ctx.cargaUi
+      ? await ctx.paso('F1-01', 'importar por la pantalla «Cargar archivo» (User4)', () => require('../lib/cargaui').importarPorPantalla(ctx, ctx.csvPath))
+      : await ctx.paso('F1-01', 'importar por Smelter', () => smelter.importar(ctx, ctx.secretos.contenido, 1));
   } finally {
     // El CSV tiene números completos: se borra apenas se usó, pase lo que pase.
     try { fs.unlinkSync(ctx.csvPath); } catch (e) { /* ya no estaba */ }

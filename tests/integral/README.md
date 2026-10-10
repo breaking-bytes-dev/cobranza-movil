@@ -19,6 +19,7 @@ cd tests/integral && NODE_PATH=../backoffice-canvas/node_modules node run.js
 |---|---|
 | `--hasta F5` | corre hasta esa fase (inclusive) y **limpia igual**. `--hasta F0` solo genera el CSV QA y lo deja en `resultados/` (se borra con `--solo-limpieza`) |
 | `--solo-limpieza` | borra todo lo que lleve el prefijo `QA-E2E-INT` (de esta y de corridas caídas) y verifica que no quede nada |
+| `--carga-ui` | la 1.ª importación (F1) la hace User4 desde la pantalla **Cargar archivo** del backoffice (prueba en seco + carga real, checks F1u-01..14) en lugar de la API de Smelter |
 | `--conservar` | (depuración) NO limpia al final y guarda `resultados/estado.json` |
 | `--desde F7` | (depuración) reanuda una corrida conservada desde esa fase, sobre los mismos datos |
 

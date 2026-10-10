@@ -342,7 +342,7 @@ Fase D: R-02, E-01d, D-02g, D-02h, F-01, F-01b, H-03 y R-06a/b (multirol).
 | **Reconciliación** | Ver las Diarias que **desaparecieron** de la última carga y **cerrarlas en lote** ("fuera de cartera"). Freno: no deja cerrar si superan el 30% o si no hay carga de hoy |
 | **Cierres** | Cerrar a mano Incobrables (Recuperada, Baja/castigada, Fuera de cartera) y Especiales (Gestión completada, Ya no aplica, Solicitud errónea), con detalle opcional |
 | **Agentes y usuarios** | **Vincular** un agente a un usuario, cambiarlo, **desvincularlo**, activarlo o desactivarlo. **＋ Nuevo agente** (desde 2026-10-09): nombre (tiene que ser **exacto** al que manda el banco en el CSV, o la próxima carga crea otro agente) y usuario opcional; bloquea nombres repetidos |
-| **Cargar archivo** | **En construcción.** Va a reemplazar la consola de Smelter para subir el CSV del día (prueba en seco, carga real y contadores). Mientras tanto la carga se hace en la app de Smelter |
+| **Cargar archivo** | Subir el CSV del día sin entrar a Smelter: **＋ Elegir el archivo .csv** → **Validar (prueba en seco)** → si sale *Terminada* con 0 fallos se habilita **Cargar** → confirmar. Muestra solo contadores (filas, procesadas, éxitos, fallos, omitidas); si hay fallos dice *Avisá a soporte con el nombre de la carga*. Abajo, **Mis últimas cargas** (por *Creado por*: el job queda a nombre del team «CM · Admin y Carga», porque el rol Smelter Operador llega por el team) |
 | **Datos maestros** | Buscar clientes por CIF o nombre; **crear** un cliente (con anti-duplicado de CIF), editar nombre y datos, agregar teléfono o dirección |
 
 **Al vincular un agente**, el servidor (plugin `EmailDesdeUsuario`) deja el correo del agente igual al **UPN** del usuario,
