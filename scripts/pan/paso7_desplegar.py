@@ -9,7 +9,7 @@ Pasos: pac canvas pack de cada app (con chequeo de YAML: con la carpeta mal nomb
 (verificado 2026-10-04: una importación con --activate-plugins ENCENDIÓ PanGuard y una sin él APAGÓ ClaveDesdeCuenta).
 Usa el perfil activo de pac (SP de DEV). Después: paso3_reconciliar.py --aplicar.
 Uso: python3 scripts/pan/paso7_desplegar.py [--aplicar]"""
-import html, json, os, re, subprocess, sys, tempfile, time, zipfile
+import html, json, os, re, signal, subprocess, sys, tempfile, time, zipfile
 import yaml
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'seguridad'))
 from dvlib import rq, get
@@ -111,7 +111,20 @@ def estados():
     ids = {c['objectid'] for c in get(f"solutioncomponents?$select=objectid&$filter=_solutionid_value eq {sol} and componenttype eq 29")['value']}
     flows = {w['workflowid']: (w['name'], w['statecode']) for w in get("workflows?$select=name,statecode&$filter=category eq 5")['value'] if w['workflowid'] in ids}
     return pasos, flows
-pasos_antes, flows_antes = estados()
+# El import apaga los pasos de plugin y el `finally` de abajo los vuelve a su estado. Si el proceso muere a mitad
+# (2026-10-12: un `timeout` le mandó SIGTERM durante el import), el `finally` no corre y los 15 pasos de CM (PanGuard
+# incluido) quedan APAGADOS; el deploy siguiente tomaba ese estado como "el de antes" y los dejaba así.
+# Defensa doble: SIGTERM/SIGHUP pasan por el `finally`, y el estado previo queda en disco hasta restaurarlo; si al
+# arrancar hay uno guardado, es de un deploy interrumpido y manda ese.
+for sig in (signal.SIGTERM, signal.SIGHUP): signal.signal(sig, lambda s, f: sys.exit(f'deploy interrumpido por la señal {s}'))
+ESTADO = os.path.join(RAIZ, 'local', 'deploy-estado-previo.json')
+if os.path.exists(ESTADO):
+    guardado = json.load(open(ESTADO))
+    pasos_antes = {k: tuple(v) for k, v in guardado['pasos'].items()}; flows_antes = {k: tuple(v) for k, v in guardado['flows'].items()}
+    print(f'⚠ hay un estado previo de un deploy interrumpido ({guardado["cuando"]}): se restaura ESE, no el actual')
+else:
+    pasos_antes, flows_antes = estados()
+    json.dump({'cuando': time.strftime('%Y-%m-%d %H:%M:%S'), 'pasos': pasos_antes, 'flows': flows_antes}, open(ESTADO, 'w'), indent=1)
 print(f'estado previo: {sum(v[1] == 0 for v in pasos_antes.values())} pasos activos de {len(pasos_antes)}, '
       f'{sum(v[1] == 1 for v in flows_antes.values())} flows encendidos de {len(flows_antes)}')
 try:
@@ -134,4 +147,9 @@ finally:  # aunque la importación falle, los estados de pasos y flows vuelven a
         if flows_desp.get(i, (nombre, st))[1] != st:
             r = rq('PATCH', f'workflows({i})', {'statecode': st, 'statuscode': 2 if st == 1 else 1})
             print(f"  restaurado flow {nombre}: {'encendido' if st == 1 else 'apagado'} → {r[0]}")
+    pasos_fin, flows_fin = estados()
+    if all(pasos_fin.get(i, v)[1] == v[1] for i, v in pasos_antes.items()) and all(flows_fin.get(i, v)[1] == v[1] for i, v in flows_antes.items()):
+        os.remove(ESTADO)
+    else:
+        print(f'⚠ quedaron pasos o flows sin restaurar: el estado previo sigue en {ESTADO} y el próximo deploy lo usa')
 print('Importado. Falta: python3 scripts/seguridad/paso3_reconciliar.py --aplicar')

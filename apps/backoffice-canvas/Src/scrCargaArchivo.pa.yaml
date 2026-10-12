@@ -20,6 +20,7 @@ Screens:
         // Estado de pantalla limpio en cada visita (las variables persisten entre visitas).
         Set(varJobCar, Blank());
         Set(varEstCar, 0);
+        Set(varArmarCar, Blank());
         Set(varEsPruebaCar, true);
         Set(varOcupadoCar, false);
         Set(varPollCar, false);
@@ -258,10 +259,14 @@ Screens:
                   OnSelect: |-
                     =// Camino ÚNICO de envío (lo usan la prueba en seco y la carga real). Orden obligatorio:
                     // 1) job SIN estado (con nombre, plantilla y marca de prueba), 2) archivo a la columna de archivo,
-                    // 3) recién ahí estado = En cola (0): el flow orquestador de Smelter dispara con estado = 0.
+                    // 3) recién ahí estado = En cola (0), y NO en el mismo instante: lo hace tmrAvanceCar 20 s después.
+                    // Por qué la espera: el disparador del orquestador de Smelter evalúa «estado = 0» sobre el registro
+                    // como está CUANDO ARRANCA la corrida, no sobre el evento. Con los 3 Patch seguidos, el Create y el
+                    // Update del archivo también veían estado 0 y el job se procesaba 3 veces EN PARALELO (2026-10-12:
+                    // fila con «CIF duplicado»). Con la espera, esos eventos ya se evaluaron con el estado vacío.
                     // IfError (B-03): si algo falla, detalle y pantalla liberada. Un job sin estado NO dispara nada en Smelter.
                     Set(varJobCar, Blank());
-                    Set(varEstCar, 0);
+                    Set(varEstCar, -1);
                     IfError(
                         Set(varNuevoCar,
                             Patch('TBL | SMLT | Import Jobs', Defaults('TBL | SMLT | Import Jobs'),
@@ -282,12 +287,8 @@ Screens:
                                 }
                             )
                         );
-                        Set(varNuevoCar,
-                            Patch('TBL | SMLT | Import Jobs', varNuevoCar,
-                                {'[IJ] Status': '[IJ] Status (TBL | SMLT | Import Jobs)'.Queued}
-                            )
-                        );
                         Set(varJobCar, varNuevoCar);
+                        Set(varArmarCar, DateAdd(Now(), 20, TimeUnit.Seconds));
                         Set(varVueltasCar, 0);
                         Set(varPollCar, true),
                         Notify("No se pudo iniciar la carga: " & FirstError.Message, NotificationType.Error);
@@ -437,7 +438,7 @@ Screens:
                         Size: =9
                         Text: |-
                           =Switch(varEstCar,
-                              1, "Procesando", 2, "Terminada", 3, "Terminada con errores", 4, "Falló", "En cola")
+                              -1, "Preparando", 1, "Procesando", 2, "Terminada", 3, "Terminada con errores", 4, "Falló", "En cola")
                         Width: =14 + 7*Len(Self.Text)
                         X: =Parent.Width - Self.Width - gblE.Pad
                         Y: =gblE.PadSm
@@ -511,7 +512,9 @@ Screens:
                         Height: =24
                         PaddingLeft: =0
                         Size: =9
-                        Text: ="⏳ Smelter está trabajando; la pantalla consulta el avance cada 3 segundos."
+                        Text: |-
+                          =If(varEstCar = -1, "⏳ Preparando la carga: el archivo ya subió, en unos segundos se pone en cola.",
+                              "⏳ Smelter está trabajando; la pantalla consulta el avance cada 3 segundos.")
                         Visible: =varEstCar < 2
                         Width: =Parent.Width - 2*gblE.Pad
                         Wrap: =false
@@ -703,8 +706,25 @@ Screens:
             AutoPause: =false
             Duration: =3000
             OnTimerEnd: |-
-              =// Sondeo cada ~3 s del job propio hasta que Smelter lo termine (2 Completed, 3 CompletedWithErrors, 4 Failed).
+              =// Fase 1 · armado: pasados los 20 s desde que subió el archivo (ver btnEnviarCar), estado = En cola (0).
+              // Fase 2 · sondeo cada ~3 s del job propio hasta que Smelter lo termine (2 Completed, 3 CompletedWithErrors, 4 Failed).
               // Se lee solo lo que el Operador puede leer: el job (contadores). Los logs de Smelter son del SYSTEM.
+              If(!IsBlank(varArmarCar),
+                  If(Now() >= varArmarCar,
+                      IfError(
+                          Set(varJobCar,
+                              Patch('TBL | SMLT | Import Jobs', varJobCar,
+                                  {'[IJ] Status': '[IJ] Status (TBL | SMLT | Import Jobs)'.Queued}
+                              )
+                          );
+                          Set(varArmarCar, Blank());
+                          Set(varEstCar, 0),
+                          Notify("No se pudo poner la carga en cola: " & FirstError.Message, NotificationType.Error);
+                          Set(varArmarCar, Blank());
+                          Set(varPollCar, false);
+                          Set(varOcupadoCar, false)
+                      )
+                  ),
               Refresh('TBL | SMLT | Import Jobs');
               IfError(
                   Set(varJobCar, LookUp('TBL | SMLT | Import Jobs', 'TBL | SMLT | Import Job' = varJobCar.'TBL | SMLT | Import Job')),
@@ -734,6 +754,7 @@ Screens:
                           10
                       )
                   )
+              )
               )
             Repeat: =true
             Start: =varPollCar
