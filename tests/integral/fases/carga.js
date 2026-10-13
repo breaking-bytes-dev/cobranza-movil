@@ -1,4 +1,4 @@
-// F0 Preparación · F1 Carga por Smelter · F2 Reparto automático (flow de owner).
+// F0 Preparación · F1 Carga por Smelter · F2 Reparto automático (plugin RepartoAsignacion).
 const fs = require('fs');
 const path = require('path');
 const dv = require('../../backoffice-canvas/lib/dataverse');
@@ -157,24 +157,24 @@ async function f2(ctx) {
     for (const e of [...pend]) if ((await ownerDe(e.asigId)) === U.cob) { e.tOwner = Math.round((Date.now() - t0) / 1000); pend.delete(e); }
     return pend.size === 0;
   }, { maxMs: 180000, cadaMs: 8000 });
-  for (const e of [A, B]) ctx.chk(`F2-0${e.clave === 'A' ? 1 : 2}`, !pend.has(e), `${e.clave} (${e.tipo}, ${e.asigNum}): el flow pasó el dueño a User5 ${pend.has(e) ? 'NO ocurrió en 3 min' : `en ~${e.tOwner} s`}`);
+  for (const e of [A, B]) ctx.chk(`F2-0${e.clave === 'A' ? 1 : 2}`, !pend.has(e), `${e.clave} (${e.tipo}, ${e.asigNum}): el reparto pasó el dueño a User5 ${pend.has(e) ? 'NO ocurrió en 3 min' : `en ~${e.tOwner} s`}`);
   // C (Especial Pendiente): ~2 min después de la carga el dueño NO tiene que haber cambiado a User5.
   const falta = 120000 - (Date.now() - D.tCarga);
   if (falta > 0) { ctx.nota(`esperando ${Math.round(falta / 1000)} s para cumplir los ~2 min de la Especial C`); await dormir(falta); }
   const oC = await ownerDe(C.asigId);
-  ctx.chk('F2-03', oC !== U.cob && oC === C.ownerInicial, `C (Especial Pendiente ${C.asigNum}): sigue con el dueño de la carga (${oC === C.ownerInicial ? 'sin cambios' : 'CAMBIÓ'}) y NO es User5 — compuerta del flow`);
+  ctx.chk('F2-03', oC !== U.cob && oC === C.ownerInicial, `C (Especial Pendiente ${C.asigNum}): sigue con el dueño de la carga (${oC === C.ownerInicial ? 'sin cambios' : 'CAMBIÓ'}) y NO es User5 — compuerta S-6 del reparto`);
   // lectura suplantando a User5: ve A y B, no ve C
   const veA = await datos.leerComo(U.cob, `sanic_cm_tbl_cuentas(${A.id})?$select=sanic_cm_tbl_cuentaid`);
   const veB = await datos.leerComo(U.cob, `sanic_cm_tbl_cuentas(${B.id})?$select=sanic_cm_tbl_cuentaid`);
   const veC = await datos.leerComo(U.cob, `sanic_cm_tbl_cuentas(${C.id})?$select=sanic_cm_tbl_cuentaid`);
-  ctx.chk('F2-04', veA.status === 200 && veB.status === 200 && veC.status !== 200, `User5 (suplantado) lee las cuentas A (${veA.status}) y B (${veB.status}) y NO la C (${veC.status}) — compartido por el flow`);
+  ctx.chk('F2-04', veA.status === 200 && veB.status === 200 && veC.status !== 200, `User5 (suplantado) lee las cuentas A (${veA.status}) y B (${veB.status}) y NO la C (${veC.status}) — compartido por el reparto`);
 
   // ── Segunda carga con el cliente YA compartido (lo que hace cada carga diaria) ──
   // Determinista para el defecto 2 (2026-10-06): con Reparent = Cascade en cliente→cuenta y cuenta→asignación, re-escribir
   // la cuenta le daba al cobrador lectura HEREDADA de las cuentas hermanas (la C, con su bóveda y su asignación) aunque no
   // estuvieran asignadas a él. Antes la segunda carga iba en F1 y el defecto dependía de una carrera con el flow.
   const cli = await esperar(async () => (await datos.leerComo(U.cob, `sanic_cm_tbl_clientes(${D.cliente.id})?$select=sanic_cm_tbl_clienteid`)).status === 200, { maxMs: 180000, cadaMs: 8000 });
-  ctx.chk('F2-05', !!cli, 'el flow ya compartió el cliente con User5 (condición de la carga diaria)');
+  ctx.chk('F2-05', !!cli, 'el reparto ya compartió el cliente con User5 (condición de la carga diaria)');
   const base = D.conteosBase;
   const imp2 = await smelter.importar(ctx, ctx.secretos.contenido, 2);
   const j2 = imp2.job;

@@ -1,5 +1,5 @@
 // F5 Supervisor (User3): cola de Aprobaciones, aprobar C y A-Especial con localizador, rechazar B-Especial ·
-// F6 Reparto tras aprobar (flow): las aprobadas pasan a User5, la rechazada no.
+// F6 Reparto tras aprobar (plugin RepartoAsignacion): las aprobadas pasan a User5, la rechazada no.
 const dv = require('../../backoffice-canvas/lib/dataverse');
 const v = require('../../backoffice-canvas/lib/verdad');
 const { AGENTE, U, esperar } = require('../lib/ctx');
@@ -98,7 +98,7 @@ async function f6(ctx) {
     for (const [, id, e] of objetivos) if (pend.has(id) && (await ownerDe(id)) === U.cob) { pend.delete(id); seg[id] = Math.round((Date.now() - (e.tAprob || Date.now())) / 1000); }
     return pend.size === 0;
   }, { maxMs: 180000, cadaMs: 8000 });
-  objetivos.forEach(([n, id], i) => ctx.chk(`F6-0${i + 1}`, !pend.has(id), `${n}: tras aprobar, el flow pasó el dueño a User5 ${pend.has(id) ? 'NO ocurrió en 3 min' : `(≤ ${seg[id]} s después de aprobar)`}`));
+  objetivos.forEach(([n, id], i) => ctx.chk(`F6-0${i + 1}`, !pend.has(id), `${n}: tras aprobar, el reparto pasó el dueño a User5 ${pend.has(id) ? 'NO ocurrió en 3 min' : `(≤ ${seg[id]} s después de aprobar)`}`));
   const oB = await ownerDe(B.espId);
   ctx.chk('F6-03', oB !== U.cob, `B-Especial rechazada: su dueño NO es User5 (sigue siendo ${oB === U.sol ? 'User2' : oB})`);
   const lee = async (e) => (await datos.leerComo(U.cob, `sanic_cm_tbl_cuentas(${e.id})?$select=sanic_cm_tbl_cuentaid`)).status;

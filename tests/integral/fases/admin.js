@@ -137,7 +137,7 @@ async function f9(ctx) {
     });
   } finally { await ui.cerrar(app); }
 
-  // Revocación del compartido (flow): User5 (suplantado) deja de leer la cuenta B; A (Diaria activa) sigue.
+  // Revocación del compartido (plugin RepartoAsignacion): User5 (suplantado) deja de leer la cuenta B; A (Diaria activa) sigue.
   const lee = async (e) => (await datos.leerComo(U.cob, `sanic_cm_tbl_cuentas(${e.id})?$select=sanic_cm_tbl_cuentaid`)).status;
   ctx.requiere(B.tCierre, 'la cuenta B no se cerró en Cierres: la revocación no se puede evaluar');
   const t0 = Date.now();

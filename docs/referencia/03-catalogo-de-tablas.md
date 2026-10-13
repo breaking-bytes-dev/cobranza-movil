@@ -150,8 +150,9 @@ Cada fila es una relación 1:N real (`OneToManyRelationships` de las tablas CM).
 
 ### C.2 Plugins (ensamblado `Sanic.CobranzaMovil.Plugins`)
 
-**15 pasos, todos activos en DEV** (verificado `statecode = 0`), todos **PreOperation (20)**, **síncronos (0)**, ejecutan como el
-usuario que llama. Ninguno conoce la clave K ni escribe valores en trazas o mensajes de error.
+**17 pasos, todos activos en DEV** (verificado `statecode = 0`, 2026-10-13). 15 son **PreOperation (20)**, **síncronos (0)** y
+ejecutan como el usuario que llama; los 2 de `RepartoAsignacion` son **PostOperation (40)**, **asíncronos (1)** y usan el servicio
+del sistema (ver C.3). Ninguno conoce la clave K ni escribe valores en trazas o mensajes de error.
 
 | Plugin | Tabla y mensaje | Filtro de Update | Qué hace |
 |--------|-----------------|------------------|----------|
@@ -161,27 +162,41 @@ usuario que llama. Ninguno conoce la clave K ni escribe valores en trazas o mens
 | `AprobacionEspecial` (2) | `asignacion`: Create y Update | `as_agenteid`, `as_estadoaprobacion`, `as_tipo` (+ `PreImage`) | S-6. Sobre una **Especial**, solo Supervisor, Admin o `Servicio - Cobranza` pueden: pasarla a Aprobado o Rechazada, poner o cambiar el agente, o convertir en Especial una asignación que ya tiene agente. Frena a las **personas con algún rol `SR \| CM \|`** que no sean esos; no frena a SYSTEM (Smelter) ni a administradores sin roles de CM |
 | `ActualizacionConInteraccion` (2) | `actualizaciondatos`: Create y Update | `ad_interaccionid` | APP-24. Exige una interacción **con cuenta** |
 | `EmailDesdeUsuario` (2) | `agente`: Create y Update | `ag_usuarioid` | `ag_emailusuario` = UPN del usuario vinculado en minúsculas; vacío si se desvincula |
+| `RepartoAsignacion` (2) | `asignacion`: Create y Update, **asíncrono** | `as_agenteid`, `as_estado`, `as_estadoaprobacion` | Reparto de la asignación al cobrador: dueño, compartidos y revocación al anterior (C.3) |
 
 Los pasos `PanGuard` de las columnas viejas (`as_`, `in_`, `pg_numerocuenta`) se retiraron cuando esas columnas se eliminaron
 (Fase 2, paso 8). Un paso mal registrado **falla cerrado**. Registro: `scripts/pan/paso5_plugins.py`. *(El README del
 ensamblado todavía describe 12 pasos `PanGuard` desactivados y no menciona `AprobacionEspecial`, `ActualizacionConInteraccion` ni
 `EmailDesdeUsuario`: está desactualizado respecto de DEV.)*
 
-### C.3 Flow `Cloud Flow | CM | Cambio de Owner en Asignaciones`
+### C.3 Reparto de asignaciones: plugin `RepartoAsignacion` (reemplaza al flow de owner)
 
-Verificado en vivo: **activo** (`statecode = 1`), última modificación 2026-10-06. Definición: `scripts/seguridad/paso2_flow.py` +
-`flow-owner-base.json`. Disparador: cambios de `as_agenteid`, `as_estado`, `as_estadoaprobacion` (según el script; el disparador
-en vivo no se releyó).
+Desde el 2026-10-13 el reparto lo hace el plugin **asíncrono** `RepartoAsignacion` (versión 1.0.4.0 del ensamblado). El flow
+`Cloud Flow | CM | Cambio de Owner en Asignaciones` quedó **apagado** (borrador) y `scripts/seguridad/paso2_flow.py` se niega a
+encenderlo salvo como rollback. El flow fallaba en ~40% de las corridas: (a) intentaba revocarle la cuenta a SYSTEM siendo SYSTEM
+su dueño; (b) varias asignaciones del mismo cliente compartían el cliente a la vez ("More than one concurrent Share requests
+detected") y, como las acciones iban encadenadas, **se salteaban el fiador y la revocación al cobrador anterior**.
 
-- **Asignación activa, y no es Especial sin aprobar, y el agente tiene usuario:** dueño de la asignación = usuario del agente;
-  `GrantAccess` (**solo lectura**) de **cuenta, cliente y fiador** al cobrador; `RevokeAccess` al dueño anterior si no le queda
-  otra asignación activa que lo justifique. Además comparte la Especial con el **Solicitante** (`as_solicitadopor`). La bóveda, las direcciones y los teléfonos llegan por **Share en cascada**.
-- **Asignación cerrada:** `RevokeAccess` al dueño actual si no tiene otra asignación activa que lo justifique; desaparece del teléfono
-  en la próxima sincronización.
+El plugin lee el estado **actual** de la asignación (converge, no repite el evento) y corre con el servicio del sistema:
+
+- **Asignación activa, y no es Especial sin aprobar, y el agente tiene usuario:** primero el dueño de la asignación pasa al
+  usuario del agente; después `GrantAccess` (**solo lectura**) de **cuenta, cliente y fiador** al cobrador; por último
+  `RevokeAccess` al dueño anterior (usuario o equipo) de lo que no justifique otra asignación activa suya. Además comparte la
+  Especial con el **Solicitante** (`as_solicitadopor`, lectura, escritura y anexar). La bóveda, las direcciones y los teléfonos
+  llegan por **Share en cascada**.
+- **Asignación cerrada:** `RevokeAccess` al dueño actual si no tiene otra asignación activa que lo justifique; desaparece del
+  teléfono en la próxima sincronización.
 - **Especial Borrador, Pendiente o Rechazada:** no hace nada (S-6).
-- **Agente sin usuario:** no hace nada, y no se vuelve a evaluar cuando se vincula el usuario después (DAT-07 / DAT-08, abiertos).
-- Corre con la **conexión personal** de su dueño (S-7, abierto). Es la única pieza que reparte acceso: si falla, la asignación no llega
-  al teléfono.
+- **Sin agente, o agente sin usuario:** no hace nada, y no se vuelve a evaluar cuando se vincula el usuario después (DAT-07 /
+  DAT-08, abiertos: igual que el flow).
+- **Fallas:** cada paso corre aunque falle otro; el compartido concurrente se reintenta con espera dentro del plugin; si algo queda
+  sin hacer, la ejecución termina en error, con reintento del servicio asíncrono si es transitorio. Los trabajos fallidos quedan en
+  `asyncoperations` y se leen con el Service Principal; los exitosos se borran solos. `paso3_reconciliar.py` sigue como red de
+  seguridad (solo agrega compartidos).
+- **Nunca síncrono:** correría dentro del trozo de 100 filas de Smelter, que tiene 2 minutos por mensaje; si se pasa, se deshace
+  el trozo entero. El plugin falla cerrado si se lo registra síncrono.
+- S-7 queda **a medias**: ya no hay conexión personal, pero el compartido al Solicitante sigue usando `as_solicitadopor`, que es
+  editable.
 
 ### C.4 Auditoría
 

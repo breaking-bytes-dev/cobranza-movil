@@ -64,7 +64,7 @@ Cada paso dice **quién** lo hace, **qué** hace y **qué tiene que ver**.
 
 Automatizado: `node run.js --carga-ui` hace F1 por esta pantalla (checks F1u-01..14) en lugar de la API de Smelter.
 
-## 2. Reparto automático (lo hace el flow, en segundos)
+## 2. Reparto automático (lo hace el plugin asíncrono `RepartoAsignacion`, en segundos)
 
 | ☐ | Paso | Qué tiene que ver |
 |---|---|---|
@@ -161,10 +161,10 @@ Automatizado: `node run.js --carga-ui` hace F1 por esta pantalla (checks F1u-01.
 | Paso | Rol | Funcionalidad | Regla del servidor que se ejercita |
 |---|---|---|---|
 | 1 | Admin y carga | Carga diaria por Smelter, prueba en seco, idempotencia | PanGuard, clave HMAC, bóveda, `ClaveDesdeCuenta` |
-| 2 | (flow) | Reparto al cobrador; perfil offline | Flow de owner y compartidos, cascada a la bóveda |
+| 2 | (plugin) | Reparto al cobrador; perfil offline | `RepartoAsignacion` (dueño y compartidos, asíncrono), cascada a la bóveda |
 | 3 | Admin | Monitoreo, freno de Reconciliación, Agentes | — |
 | 4 | Solicitante | Nueva solicitud, anti-duplicado | `AprobacionEspecial` (nace sin agente), clave cuenta + tipo |
-| 5 | Supervisor | Aprobar con localizador, rechazar con motivo | `AprobacionEspecial` (solo Supervisor), compuerta S-6 del flow |
+| 5 | Supervisor | Aprobar con localizador, rechazar con motivo | `AprobacionEspecial` (solo Supervisor), compuerta S-6 del reparto |
 | 6 | Cobrador | Cobro, validaciones, sin señal, GPS, actualización de datos, ruta | `CuentaDesdeInteraccion`, `ActualizacionConInteraccion`, clave alterna del recibo |
 | 7 | BackOffice | Transcripción con el número completo, arqueo | Lectura de la bóveda solo para BackOffice |
 | 8 | Admin | Cierre de Incobrable y Especial | Flow: revoca el compartido |

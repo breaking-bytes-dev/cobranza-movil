@@ -3,7 +3,7 @@
 Recorre **de punta a punta** la solución, con **todos los roles** y **las dos apps canvas**, empezando por una **carga real de Smelter**:
 
 ```
-CSV QA ─► Smelter (API) ─► flow de owner ─► Admin ─► Solicitante ─► Supervisor ─► Cobrador ─► BackOffice ─► Admin (cierres) ─► Solicitante ─► limpieza
+CSV QA ─► Smelter (API) ─► reparto (plugin) ─► Admin ─► Solicitante ─► Supervisor ─► Cobrador ─► BackOffice ─► Admin (cierres) ─► Solicitante ─► limpieza
 ```
 
 Es la versión automática de la [guía 17](../../docs/guias/17-prueba-integral-0-a-100.md). Lo que exige un **teléfono real** (modo avión, GPS,
@@ -32,11 +32,11 @@ números de tarjeta**) y `capturas/` (solo de pantallas sin PAN). El proceso sal
 |---|---|---|
 | **F0** Preparación | — | CSV de 33 columnas con 1 cliente `QA-E2E-INT <runid>` y 3 cuentas: A Diaria, B Incobrable, C Especial (retiro, tipo, nota), todas con el agente `QA-E2E Localizador User5` y FechaCarga de hoy. PAN ficticios (BIN 9999, 16 dígitos, Luhn válido, aleatorios por corrida) |
 | **F1** Carga | API de Smelter | job Completed (2), 0 fallidas, 0 logs; cliente; 3 cuentas con número enmascarado, últimos 4, `clavepan` de 64 hex (y HMAC correcto si está la llave); bóveda 1:1; 3 asignaciones con agente y tipo; **la Especial C nace Pendiente (2)**; 3 filas de carga diaria de hoy; **re-importar el mismo CSV no crea filas** |
-| **F2** Reparto | flow | A y B pasan a User5 (≤ 3 min); C (Pendiente) conserva el dueño de la carga tras ~2 min; User5 lee A y B y no C |
+| **F2** Reparto | plugin `RepartoAsignacion` | A y B pasan a User5 (≤ 3 min); C (Pendiente) conserva el dueño de la carga tras ~2 min; User5 lee A y B y no C |
 | **F3** Admin (User4) | web | Inicio y Monitoreo = API; Reconciliación en estado **bloqueado** (umbral > 30%, casilla y cierre deshabilitados; no se pulsa nada); Agentes muestra al agente con su usuario (solo lectura) |
 | **F4** Solicitante (User2) | web | Nueva solicitud sobre A (búsqueda por últimos 4) → Pendiente, sin agente, solicitada por User2; aviso anti-duplicado; segunda Especial sobre B |
 | **F5** Supervisor (User3) | web | la cola trae C (CSV) y las 2 de User2; aprueba C y A-Especial con el localizador, rechaza B-Especial con motivo → `estadoaprobacion` 3/3/4, resolutor User3 |
-| **F6** Reparto tras aprobar | flow | las aprobadas pasan a User5; la rechazada no; User5 lee las 3 cuentas |
+| **F6** Reparto tras aprobar | plugin `RepartoAsignacion` | las aprobadas pasan a User5; la rechazada no; User5 lee las 3 cuentas |
 | **F7** Cobrador (User5) | web player | Cartera = asignaciones visibles de User5 (API suplantando); el cliente QA con sus cuentas y sin la Especial rechazada; cobro con pago (recibo `QA-E2E-INT-<runid>-R1`, C$ 25) → interacción con agente y cuenta, pago con cuenta y N° de interacción completados por el plugin, fecha del pago |
 | **F8** BackOffice (User1) | web | Por transcribir muestra la interacción con su pago y el número de cuenta completo (solo se verifica longitud y últimos 4: **no se lee, no se guarda, no se captura**); código `QAINT<runid>` + Enter → Grabado, mayúsculas, grabado por User1; Transcritas hoy la lista con su pago |
 | **F9** Admin (User4) | web + API | Cierres: Incobrable B ("Recuperada") y Especial C ("Gestión completada" + detalle); luego User5 (suplantado con `MSCRMCallerID`) deja de leer B y C y sigue leyendo A |
@@ -55,14 +55,14 @@ números de tarjeta**) y `capturas/` (solo de pantallas sin PAN). El proceso sal
 
 ## Duración
 
-Unos **20 a 25 minutos** (7 aperturas en frío de la app, de 1 a 2 minutos cada una, más la espera de los ~2 minutos de la compuerta del flow en F2).
+Unos **20 a 25 minutos** (7 aperturas en frío de la app, de 1 a 2 minutos cada una, más la espera de los ~2 minutos de la compuerta S-6 en F2).
 
 ## Efectos colaterales
 
 - **Reconciliación**: mientras existen las filas de carga de hoy, las ~800 Diarias viejas del mock de junio aparecen como "desaparecidas" y la app **bloquea** el cierre en lote (> 30%).
   La suite solo lo **lee**; se normaliza al borrar las filas QA en la limpieza (F11-06 lo verifica). **Si alguien está mirando esa pantalla en DEV mientras corre, va a ver el bloqueo.**
 - Crea y borra jobs de importación de Smelter `QA-E2E-INT <runid> job N` (con su archivo), un producto y un fiador QA.
-- Los flows y plugins del servidor corren de verdad (reparto, compartidos, numeración IN-/PG-/AS-): los consecutivos avanzan aunque se borren los registros.
+- Los flows y plugins del servidor corren de verdad (reparto con `RepartoAsignacion`, compartidos, numeración IN-/PG-/AS-): los consecutivos avanzan aunque se borren los registros.
 
 ## Reglas que respeta (no negociables)
 

@@ -15,7 +15,7 @@ const datos = require('./lib/datos');
 const FASES = [
   ['F0', 'Preparación (CSV QA)', 'carga', 'f0'],
   ['F1', 'Carga por Smelter + idempotencia', 'carga', 'f1'],
-  ['F2', 'Reparto automático (flow de owner)', 'carga', 'f2'],
+  ['F2', 'Reparto automático (plugin RepartoAsignacion)', 'carga', 'f2'],
   ['F3', 'Admin (User4): monitoreo, reconciliación, agentes', 'admin', 'f3'],
   ['F4', 'Solicitante (User2): nuevas solicitudes', 'solicitante', 'f4'],
   ['F5', 'Supervisor (User3): aprobar y rechazar', 'supervisor', 'f5'],
