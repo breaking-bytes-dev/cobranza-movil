@@ -1,10 +1,17 @@
 """Fase 1 · Paso 2: el flow de owner comparte (lectura) cuenta/cliente/fiador con el cobrador y revoca al anterior/al cerrar.
 Una Especial sin aprobar no se comparte ni cambia de dueño (S-6).
-Uso: python3 paso2_flow.py [--aplicar]   (sin --aplicar guarda el JSON y muestra el resumen)"""
+Uso: python3 paso2_flow.py [--aplicar --reactivar-flow-retirado]   (sin --aplicar guarda el JSON y muestra el resumen)
+RETIRADO: lo reemplaza el plugin RepartoAsignacion (2026-10-13). Ver el guard de abajo."""
 import copy, json, os, sys
 from dvlib import rq, get
 
 APLICAR = '--aplicar' in sys.argv
+# RETIRADO 2026-10-13: el flow quedo apagado y lo reemplaza el plugin asincrono RepartoAsignacion (ver
+# plugins/Sanic.CobranzaMovil.Plugins/README.md). Aplicar este script lo vuelve a ENCENDER: solo como rollback, y
+# desactivando antes los dos pasos "Sanic.CobranzaMovil.Plugins.RepartoAsignacion" (si no, repartirian los dos).
+if APLICAR and '--reactivar-flow-retirado' not in sys.argv:
+    sys.exit('El flow de owner esta retirado (lo reemplaza RepartoAsignacion). Rollback: desactivar los pasos de '
+             'RepartoAsignacion y repetir con --aplicar --reactivar-flow-retirado.')
 WF = 'workflows(3b897aa2-0077-f111-ab0e-70a8a5b226fd)'
 live = get(WF + '?$select=clientdata,statecode')
 json.dump(json.loads(live['clientdata']), open('flow-vigente-respaldo.json', 'w'), indent=1)  # lo que está desplegado ahora

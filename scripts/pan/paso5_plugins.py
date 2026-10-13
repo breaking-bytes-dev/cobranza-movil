@@ -9,7 +9,11 @@ REGLA DE PanGuard (paso 8 del plan):
   pasos se crean DESACTIVADOS. Un paso PanGuard que ya existe conserva su estado, salvo que se pida:
     --activar-panguard      activa los pasos PanGuard (paso 8)
     --desactivar-panguard   los desactiva (rollback)
-  Los pasos de ClaveDesdeCuenta, CuentaDesdeInteraccion, AprobacionEspecial, ActualizacionConInteraccion y EmailDesdeUsuario quedan activos.
+  Los pasos de ClaveDesdeCuenta, CuentaDesdeInteraccion, AprobacionEspecial, ActualizacionConInteraccion, EmailDesdeUsuario y
+  RepartoAsignacion quedan activos.
+
+RepartoAsignacion es el unico ASINCRONO (PostOperation, borra el trabajo del sistema si termina bien): reemplaza al flow
+"Cambio de Owner en Asignaciones". Nunca sincrono: correria dentro del trozo de 100 filas de Smelter (2 minutos por mensaje).
 
 Credenciales: variables de entorno DATAVERSE_URL, PP_CLIENT_ID, PP_CLIENT_SECRET, PP_TENANT_ID (las mismas
 secrets del repo). En local, si faltan, se leen de pp_secrets.env (gitignored). Nunca se imprimen.
@@ -27,6 +31,7 @@ SOLUCION_POR_DEFECTO = 'cm_core_cobranzamovil'
 P = 'sanic_cm_tbl_'
 COMPONENTE_ENSAMBLADO, COMPONENTE_PASO = 91, 92
 ETAPA_PREOPERATION, MODO_SINCRONO = 20, 0
+ETAPA_POSTOPERATION, MODO_ASINCRONO = 40, 1
 IMAGEN_PREVIA = 'PreImage'
 
 
@@ -90,7 +95,17 @@ def definir_pasos():
             filtro=['sanic_cm_ag_usuarioid'] if mensaje == 'Update' else [],
             columnas=['sanic_cm_ag_usuarioid', 'sanic_cm_ag_emailusuario'], legacy=False, imagen=None,
             descripcion='Correo del agente = UPN (minusculas) del usuario vinculado'))
+    # RepartoAsignacion: dueno al cobrador, compartir cuenta/cliente/fiador y revocar al anterior. ASINCRONO.
+    for mensaje in ('Create', 'Update'):
+        cols = ['sanic_cm_as_agenteid', 'sanic_cm_as_estado', 'sanic_cm_as_estadoaprobacion']
+        pasos.append(dict(
+            tipo=NS + 'RepartoAsignacion', mensaje=mensaje, entidad=P + 'asignacion', panguard=False,
+            filtro=cols if mensaje == 'Update' else [], columnas=cols + ['sanic_cm_as_solicitadopor'], legacy=False,
+            imagen=None, etapa=ETAPA_POSTOPERATION, modo=MODO_ASINCRONO,
+            descripcion='Reparto: dueno al cobrador, compartidos de cuenta/cliente/fiador y revocacion al anterior (asincrono)'))
     for p in pasos:
+        p.setdefault('etapa', ETAPA_PREOPERATION)
+        p.setdefault('modo', MODO_SINCRONO)
         p['nombre'] = '%s: %s of %s' % (p['tipo'], p['mensaje'], p['entidad'])
     return pasos
 
@@ -243,7 +258,7 @@ def main():
         tipo_id = tipos.get(p['tipo'])
         existentes = []
         if tipo_id:
-            existentes = dv.get("sdkmessageprocessingsteps?$select=sdkmessageprocessingstepid,filteringattributes,rank,stage,mode,statecode,description,_sdkmessagefilterid_value,_sdkmessageid_value"
+            existentes = dv.get("sdkmessageprocessingsteps?$select=sdkmessageprocessingstepid,filteringattributes,rank,stage,mode,asyncautodelete,statecode,description,_sdkmessagefilterid_value,_sdkmessageid_value"
                                 "&$filter=name eq '%s' and _eventhandler_value eq %s" % (p['nombre'].replace("'", "''"), tipo_id))['value']
         if len(existentes) > 1:
             raise SystemExit('Hay %d pasos con el nombre "%s": resolver a mano antes de seguir' % (len(existentes), p['nombre']))
@@ -270,7 +285,8 @@ def main():
             if a.activar_panguard: deseado_activo = True
             elif a.desactivar_panguard: deseado_activo = False
 
-        if existente and (existente['stage'] != ETAPA_PREOPERATION or existente['mode'] != MODO_SINCRONO
+        asincrono = p['modo'] == MODO_ASINCRONO
+        if existente and (existente['stage'] != p['etapa'] or existente['mode'] != p['modo']
                           or existente['_sdkmessagefilterid_value'] != filtro_msg_id or existente['_sdkmessageid_value'] != mensaje_id):
             # Etapa, modo, mensaje o entidad no se pueden editar: se vuelve a crear conservando el estado.
             estaba_activo = existente['statecode'] == 0
@@ -282,13 +298,13 @@ def main():
 
         if existente is None:
             cuerpo = {
-                'name': p['nombre'], 'description': p['descripcion'], 'stage': ETAPA_PREOPERATION, 'mode': MODO_SINCRONO,
-                'rank': 1, 'supporteddeployment': 0, 'asyncautodelete': False,
+                'name': p['nombre'], 'description': p['descripcion'], 'stage': p['etapa'], 'mode': p['modo'],
+                'rank': 1, 'supporteddeployment': 0, 'asyncautodelete': asincrono,
                 'eventhandler_plugintype@odata.bind': '/plugintypes(%s)' % tipo_id,
                 'sdkmessageid@odata.bind': '/sdkmessages(%s)' % mensaje_id,
                 'sdkmessagefilterid@odata.bind': '/sdkmessagefilters(%s)' % filtro_msg_id}
             if filtro: cuerpo['filteringattributes'] = filtro
-            b = accion('crear paso: %s [PreOperation, sincrono, filtro=%s]' % (p['nombre'], filtro or '-'),
+            b = accion('crear paso: %s [%s, filtro=%s]' % (p['nombre'], 'PostOperation, asincrono' if asincrono else 'PreOperation, sincrono', filtro or '-'),
                        'POST', 'sdkmessageprocessingsteps', cuerpo, {**sol, 'Prefer': 'return=representation'})
             paso_id = b['sdkmessageprocessingstepid'] if b else None
             resumen['creados'] += 1
@@ -306,6 +322,7 @@ def main():
             cambios = {}
             if (existente.get('filteringattributes') or '') != filtro: cambios['filteringattributes'] = filtro or None
             if existente.get('rank') != 1: cambios['rank'] = 1
+            if bool(existente.get('asyncautodelete')) != asincrono: cambios['asyncautodelete'] = asincrono
             if (existente.get('description') or '') != p['descripcion']: cambios['description'] = p['descripcion']
             if cambios:
                 accion('actualizar paso %s: %s' % (p['nombre'], ', '.join(sorted(cambios))), 'PATCH', 'sdkmessageprocessingsteps(%s)' % paso_id, cambios)

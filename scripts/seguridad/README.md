@@ -7,7 +7,7 @@ Todos muestran el plan sin cambiar nada; aplican solo con `--aplicar`.
 | Paso | Script | Qué hace |
 |---|---|---|
 | 1 | `paso1_cascadas_auditoria.py` | Pone **Share/Unshare = NoCascade** en cliente→cuenta, cliente→carga diaria y cuenta→asignación. Así, compartir un cliente no comparte todas sus tarjetas, y compartir una cuenta no comparte las asignaciones de otros cobradores. Cliente→dirección y cliente→teléfono siguen en cascada (es lo que se busca). Enciende la **auditoría** en asignación, interacción, pago, agente, actualización de datos y carga diaria. Publica solo esas tablas |
-| 2 | `paso2_flow.py` | Redefine el flow "Cambio de Owner en Asignaciones" a partir de `flow-owner-base.json`. Con asignación activa y agente con usuario: owner + compartido de la Especial con el solicitante + **GrantAccess Read** de cuenta, cliente y fiador al cobrador + revoca al dueño anterior. Al cerrar la asignación: revoca al dueño. Solo revoca si el usuario no tiene **otra** asignación activa que justifique ese registro |
+| 2 | `paso2_flow.py` | **Retirado el 2026-10-13.** Definía el flow "Cambio de Owner en Asignaciones", que quedó **apagado** y lo reemplaza el plugin asíncrono `RepartoAsignacion` ([README de plugins](../../plugins/Sanic.CobranzaMovil.Plugins/README.md)), con la misma regla: asignación activa con agente con usuario → owner + compartido de la Especial con el solicitante + **GrantAccess Read** de cuenta, cliente y fiador al cobrador + revoca al dueño anterior; al cerrar, revoca al dueño; solo revoca si el usuario no tiene **otra** asignación activa que justifique ese registro. El flow fallaba en ~40% de las corridas y, cuando fallaba un compartido, se salteaba la revocación. El script ahora se niega a aplicar salvo con `--reactivar-flow-retirado` (rollback: antes desactivar los pasos de `RepartoAsignacion`) |
 | — | `paso2_prueba.py` | Prueba E2E (T1–T4) con datos `QA-E2E-F1` que se borran al final |
 | 3 | `paso3_reconciliar.py` | **Reconciliación**: asegura los compartidos de todas las asignaciones activas cuyo owner es el usuario de su agente. Es idempotente |
 | 4 | `paso4_rol_basic.py` | El rol `SR \| CM \| Localizador` pasa de lectura **Global** a **Basic** en cuenta, cliente, dirección, teléfono y fiador. `--revertir` lo devuelve a Global |
@@ -16,9 +16,9 @@ Todos muestran el plan sin cambiar nada; aplican solo con `--aplicar`.
 
 1 → 2 → 3 → 4. Si se baja el rol (4) antes de compartir (2 y 3), los teléfonos se quedan sin cartera.
 
-## Regla operativa: correr la reconciliación después de cada despliegue del flow
+## Regla operativa: correr la reconciliación después de cada despliegue
 
-Al desactivar y reactivar el flow (por ejemplo, en un import de solución), Dataverse tarda unos minutos en volver a registrar la suscripción del disparador. **Los cambios de asignaciones que ocurren en ese intervalo no disparan el flow y se pierden** (comprobado en DEV: el alta T1 se perdió). Por eso, **después de cada despliegue**:
+El import de la solución apaga los pasos de plugin (y apagaba el flow) mientras dura, y `paso7_desplegar.py` los vuelve a su estado al terminar. **Los cambios de asignaciones que ocurren en ese intervalo no disparan el reparto y se pierden** (comprobado en DEV con el flow: el alta T1 se perdió). Por eso, **después de cada despliegue**:
 
 ```bash
 python3 scripts/seguridad/paso3_reconciliar.py --aplicar
