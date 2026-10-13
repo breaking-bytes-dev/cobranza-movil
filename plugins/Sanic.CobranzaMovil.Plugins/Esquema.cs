@@ -17,6 +17,9 @@ namespace Sanic.CobranzaMovil.Plugins
         public const string Rol = "role";
         public const string Agente = "sanic_cm_tbl_agente";
         public const string Usuario = "systemuser";
+        public const string Equipo = "team";
+        public const string Cliente = "sanic_cm_tbl_cliente";
+        public const string Fiador = "sanic_cm_tbl_fiador";
 
         // Columnas de texto donde un PAN en claro esta prohibido (el valor valido es el enmascarado)
         public const string CuentaNumero = "sanic_cm_ct_numerodecuenta";
@@ -47,6 +50,15 @@ namespace Sanic.CobranzaMovil.Plugins
         public const int AprobacionAprobado = 3;    // sanic_choice_cm_estadoaprobacionespecial
         public const int AprobacionRechazada = 4;
 
+        // Reparto de la asignacion (RepartoAsignacion: reemplaza al flow "Cambio de Owner en Asignaciones")
+        public const string Propietario = "ownerid";
+        public const string AsignacionId = "sanic_cm_tbl_asignacionid";
+        public const string AsignacionEstado = "sanic_cm_as_estado";
+        public const string AsignacionSolicitadoPor = "sanic_cm_as_solicitadopor";
+        public const string CuentaId = "sanic_cm_tbl_cuentaid";
+        public const string CuentaCliente = "sanic_cm_ct_clienteid";
+        public const string CuentaFiador = "sanic_cm_ct_fiador";
+
         // Agente <-> usuario (app del cobrador: gblAgente busca por Lower(User().Email), que es el UPN)
         public const string AgenteUsuario = "sanic_cm_ag_usuarioid";
         public const string AgenteEmail = "sanic_cm_ag_emailusuario";
@@ -60,6 +72,8 @@ namespace Sanic.CobranzaMovil.Plugins
         public const string MensajeUpdate = "Update";
         public const int EtapaPreValidation = 10;
         public const int EtapaPreOperation = 20;
+        public const int EtapaPostOperation = 40;
+        public const int ModoAsincrono = 1;
 
         // Imagen previa que registra el paso Update de ClaveDesdeCuenta
         public const string NombreImagenPrevia = "PreImage";
