@@ -64,6 +64,41 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
 
         // ------------------------------------------------------------------ Create
 
+        [Theory]
+        [InlineData(Diaria, null)]
+        [InlineData(Diaria, Pendiente)]
+        [InlineData(2, null)]
+        public void DAT_28_una_Diaria_o_Incobrable_nace_en_Borrador(int tipo, int? estado)
+        {
+            var t = Nueva(tipo, estado, conAgente: true);
+            var h = Crear(t, new string[0]);
+            h.Ejecutar(new AprobacionEspecial());
+            Assert.Equal(Borrador, t.GetAttributeValue<OptionSetValue>(Estado).Value);
+            Assert.Equal(0, h.ConsultasAlServicio());
+        }
+
+        [Fact]
+        public void DAT_28_una_Especial_conserva_su_estado_y_un_estado_explicito_no_se_toca()
+        {
+            var especial = Nueva(Especial, null, conAgente: false);
+            Crear(especial, Solicitante).Ejecutar(new AprobacionEspecial());
+            Assert.False(especial.Contains(Estado)); // nace Pendiente por el valor por defecto de la columna
+
+            var diariaAprobada = Nueva(Diaria, Aprobado, conAgente: true);
+            Crear(diariaAprobada, new string[0]).Ejecutar(new AprobacionEspecial());
+            Assert.Equal(Aprobado, diariaAprobada.GetAttributeValue<OptionSetValue>(Estado).Value);
+        }
+
+        [Fact]
+        public void DAT_28_en_un_Update_no_se_toca_el_estado()
+        {
+            var previa = Previa(Guid.NewGuid(), Diaria, Pendiente, null);
+            var t = new Entity(Asignacion, previa.Id);
+            t[Orden] = 3;
+            Actualizar(t, previa, Localizador).Ejecutar(new AprobacionEspecial());
+            Assert.False(t.Contains(Estado));
+        }
+
         [Fact]
         public void La_solicitud_normal_pendiente_y_sin_agente_pasa_sin_consultar_roles()
         {

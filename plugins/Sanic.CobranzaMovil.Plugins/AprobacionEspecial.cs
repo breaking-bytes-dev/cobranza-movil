@@ -33,6 +33,7 @@ namespace Sanic.CobranzaMovil.Plugins
             local.ExigirRegistro(Esquema.Asignacion, Esquema.EtapaPreOperation, Esquema.MensajeCreate, Esquema.MensajeUpdate);
 
             var target = local.ObtenerTarget();
+            if (local.EsMensaje(Esquema.MensajeCreate)) SinAprobacionSiNoEsEspecial(local, target);
             Entity previa = null;
             if (local.EsMensaje(Esquema.MensajeUpdate))
             {
@@ -57,6 +58,21 @@ namespace Sanic.CobranzaMovil.Plugins
                 return;
             }
             throw local.Error("solo un Supervisor puede aprobar, rechazar o asignar el agente de una asignacion Especial.");
+        }
+
+        /// <summary>
+        /// DAT-28: el estado de aprobacion es solo de las Especiales, pero su valor por defecto es Pendiente (lo necesitan
+        /// las Especiales del CSV para entrar a la cola del Supervisor). Una Diaria o Incobrable nace en Borrador, como
+        /// las que ya existen, y no aparece como "pendiente de aprobacion" en una consulta que no filtre por tipo.
+        /// </summary>
+        private static void SinAprobacionSiNoEsEspecial(LocalContext local, Entity target)
+        {
+            var tipo = target.GetAttributeValue<OptionSetValue>(Esquema.AsignacionTipo);
+            if (tipo == null || tipo.Value == Esquema.TipoEspecial) return;
+            var aprobacion = target.GetAttributeValue<OptionSetValue>(Esquema.AsignacionEstadoAprobacion);
+            if (aprobacion != null && aprobacion.Value != Esquema.AprobacionPendiente) return;
+            target[Esquema.AsignacionEstadoAprobacion] = new OptionSetValue(Esquema.AprobacionBorrador);
+            local.Trace("DAT-28: Diaria o Incobrable nace en Borrador.");
         }
 
         private static bool CambioControlado(Entity target, Entity previa)
