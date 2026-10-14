@@ -1,10 +1,15 @@
-"""Fase 1 · Paso 3: reconciliación de compartidos (backfill y post-despliegue del flow).
+"""Fase 1 · Paso 3: reconciliación de compartidos (red de seguridad del reparto).
 Para cada asignación ACTIVA cuyo owner es el usuario de su agente: comparte en lectura cuenta, cliente y fiador.
-Uso: python3 paso3_reconciliar.py [--aplicar]"""
+Además lista los compartidos SOBRANTES: cuenta, cliente o fiador compartidos directamente con un usuario al que ninguna
+asignación activa suya se lo justifica (por ejemplo, si un revoke del plugin falló). Con --revocar se quitan.
+Ojo: el reparto es asíncrono. Correrlo con la carga o un re-reparto en curso puede marcar como sobrante algo que el plugin
+está por compartir; en ese caso basta con volver a correr --aplicar.
+Uso: python3 paso3_reconciliar.py [--aplicar] [--revocar]"""
 import sys
 from dvlib import rq, get
 
 APLICAR = '--aplicar' in sys.argv
+REVOCAR = '--revocar' in sys.argv
 
 def todas(path):
     out = []; nxt = path
@@ -34,3 +39,22 @@ if APLICAR:
                                            'PrincipalAccess': {'Principal': {'@odata.type': 'Microsoft.Dynamics.CRM.systemuser', 'systemuserid': u}, 'AccessMask': 'ReadAccess'}})
         if st >= 300: err += 1; print('  error', es, i, st, b[:200])
     print('GrantAccess aplicados:', len(pares) - err, '| errores:', err)
+
+# ---------------------------------------------------------------------------------------------- sobrantes
+justificados = {(ln, i, u) for _, ln, i, u in pares}
+sobrantes = []
+for ln in ('sanic_cm_tbl_cuenta', 'sanic_cm_tbl_cliente', 'sanic_cm_tbl_fiador'):
+    for poa in todas(f"principalobjectaccessset?$select=objectid,principalid,accessrightsmask"
+                     f"&$filter=objecttypecode eq '{ln}' and principaltypecode eq 'systemuser' and accessrightsmask gt 0"):
+        if (ln, poa['objectid'], poa['principalid']) not in justificados:
+            sobrantes.append((ln, poa['objectid'], poa['principalid']))
+print(f'compartidos sobrantes (sin asignación activa que los justifique): {len(sobrantes)} (por tabla: '
+      + ', '.join(f"{t.split('_')[-1]}={sum(1 for x in sobrantes if x[0] == t)}" for t in sorted({x[0] for x in sobrantes})) + ')'
+      + ('' if REVOCAR or not sobrantes else ' · quitarlos con --revocar'))
+if REVOCAR:
+    err = 0
+    for ln, i, u in sobrantes:
+        st, b = rq('POST', 'RevokeAccess', {'Target': {'@odata.type': f'Microsoft.Dynamics.CRM.{ln}', f'{ln}id': i},
+                                            'Revokee': {'@odata.type': 'Microsoft.Dynamics.CRM.systemuser', 'systemuserid': u}})
+        if st >= 300: err += 1; print('  error', ln, st, str(b)[:200])
+    print('RevokeAccess aplicados:', len(sobrantes) - err, '| errores:', err)

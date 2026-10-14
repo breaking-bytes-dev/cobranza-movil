@@ -103,7 +103,6 @@
       <RootComponent type="29" id="{3b897aa2-0077-f111-ab0e-70a8a5b226fd}" behavior="0" />
       <RootComponent type="29" id="{6fdd6914-0777-f111-ab0e-70a8a5b226fd}" behavior="0" />
       <RootComponent type="29" id="{bc33bc07-f48a-f111-8076-70a8a59c703e}" behavior="0" />
-      <RootComponent type="29" id="{d6f8caac-9871-f111-ab0d-000d3a5d0906}" behavior="0" />
       <RootComponent type="300" schemaName="sanic_appcmbackofficecanvas_d0162" behavior="0" />
       <RootComponent type="300" schemaName="sanic_appcmbackofficedefaultcommandlibrary_d6eda" behavior="0" />
       <RootComponent type="300" schemaName="sanic_appcobranzamovil_c4e67" behavior="0" />
