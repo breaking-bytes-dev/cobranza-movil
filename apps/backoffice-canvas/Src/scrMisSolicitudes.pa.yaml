@@ -242,14 +242,15 @@ Screens:
                             Properties:
                               BorderThickness: =0
                               Color: |-
-                                =If(ThisItem.'[AS] Estado' = false, gblC.ink2,
+                                =// DAT-14: una Rechazada ahora queda cerrada; se sigue mostrando como Rechazada.
+                                If(ThisItem.'[AS] Estado' = false && ThisItem.'[AS] Estado de aprobacion' <> 'Choice | CM | Estado aprobacion especial'.Rechazada, gblC.ink2,
                                     Switch(ThisItem.'[AS] Estado de aprobacion',
                                         'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion', gblC.pendInk,
                                         'Choice | CM | Estado aprobacion especial'.Aprobado, gblC.okInk,
                                         'Choice | CM | Estado aprobacion especial'.Rechazada, gblC.redInk,
                                         gblC.ink2))
                               Fill: |-
-                                =If(ThisItem.'[AS] Estado' = false, gblC.hairline,
+                                =If(ThisItem.'[AS] Estado' = false && ThisItem.'[AS] Estado de aprobacion' <> 'Choice | CM | Estado aprobacion especial'.Rechazada, gblC.hairline,
                                     Switch(ThisItem.'[AS] Estado de aprobacion',
                                         'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion', gblC.pendBg,
                                         'Choice | CM | Estado aprobacion especial'.Aprobado, gblC.okBg,
@@ -266,7 +267,7 @@ Screens:
                               RadiusTopRight: =8
                               Size: =8
                               Text: |-
-                                =If(ThisItem.'[AS] Estado' = false, "Cerrada",
+                                =If(ThisItem.'[AS] Estado' = false && ThisItem.'[AS] Estado de aprobacion' <> 'Choice | CM | Estado aprobacion especial'.Rechazada, "Cerrada",
                                     Switch(ThisItem.'[AS] Estado de aprobacion',
                                         'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion', "Pendiente aprobación",
                                         'Choice | CM | Estado aprobacion especial'.Aprobado, "Aprobada",

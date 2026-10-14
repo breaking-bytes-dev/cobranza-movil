@@ -631,7 +631,7 @@ Screens:
                     =// B-04: el ComboBox clásico no pinta registros de Dataverse en esta app → buscador +
                     // galería (ver galCtaNva). Filter directo, todo delegable: igualdad booleana,
                     // <> Blank() y StartsWith. Solo agentes activos con usuario vinculado (sin usuario
-                    // Comp-14 no puede pasarle el owner). Con menos de 2 caracteres, centinela "§§":
+                    // el reparto no tiene a quién pasarle el owner). Con menos de 2 caracteres, centinela "§§":
                     // no se consulta la tabla entera (B-19) y siempre hay tabla (B-06).
                     // SIN With (cortaba la delegación — ver scrNuevaSolicitud.galCtaNva). En línea sí delega.
                     Filter('CM | TBL | Agentes',
@@ -834,13 +834,18 @@ Screens:
                   HoverFill: =ColorFade(gblC.redBg, 10%)
                   OnSelect: |-
                     =// IfError (B-03): si el Patch falla se muestra el detalle y NO se saca de la cola.
+                    // DAT-31: se busca por el id, no por el número autonumérico.
                     IfError(
                         Patch('CM | TBL | Asignacions',
-                            LookUp('CM | TBL | Asignacions', '[AS] Numero' = varSelAprb.'[AS] Numero'),
+                            LookUp('CM | TBL | Asignacions', 'CM | TBL | Asignacion' = varSelAprb.'CM | TBL | Asignacion'),
                             {
                                 '[AS] Estado de aprobacion': 'Choice | CM | Estado aprobacion especial'.Rechazada,
                                 'Motivo de rechazo': Trim(txtMotRechAprb.Text),
-                                '[AS] Resolutor': gblUsuarioDV
+                                '[AS] Resolutor': gblUsuarioDV,
+                                // DAT-14: la rechazada se cierra; si no, quedaba activa y bloqueaba volver a pedirla.
+                                '[AS] Estado': false,
+                                '[AS] Motivo': "Rechazada",
+                                'Fecha de cierre': Now()
                             }
                         ),
                         Notify("No se pudo rechazar " & varSelAprb.'[AS] Numero' & ": " & FirstError.Message,
@@ -873,15 +878,15 @@ Screens:
                   Height: =gblE.AltoBoton
                   HoverFill: =ColorFade(gblC.teal, 10%)
                   OnSelect: |-
-                    =// Al setear '[AS] Agente', el Cloud Flow Comp-14 cambia el OWNER del registro al
+                    =// Al setear '[AS] Agente', el plugin RepartoAsignacion cambia el OWNER del registro al
                     // usuario del agente → eso dispara el aislamiento por propietario y la sincronización
                     // offline: la asignación aparece en el celular del localizador sin que esta app haga
                     // nada más. Por eso la notificación lo anuncia — la app solo aprueba; el reparto es
-                    // del backend.
+                    // del backend. DAT-31: se busca por el id, no por el número autonumérico.
                     // IfError (B-03): si el Patch falla se muestra el detalle y NO se saca de la cola.
                     IfError(
                         Patch('CM | TBL | Asignacions',
-                            LookUp('CM | TBL | Asignacions', '[AS] Numero' = varSelAprb.'[AS] Numero'),
+                            LookUp('CM | TBL | Asignacions', 'CM | TBL | Asignacion' = varSelAprb.'CM | TBL | Asignacion'),
                             {
                                 '[AS] Estado de aprobacion': 'Choice | CM | Estado aprobacion especial'.Aprobado,
                                 '[AS] Agente': varAgeAprb,
@@ -892,7 +897,7 @@ Screens:
                             NotificationType.Error),
                         // El Notify va ANTES de limpiar varAgeAprb (lee el nombre del localizador).
                         Notify("✓ Aprobada — asignada a " & varAgeAprb.'[AG] Nombre' &
-                            ". El flujo de owner la baja al celular del localizador.",
+                            ". Baja al celular del localizador en la próxima sincronización.",
                             NotificationType.Success, 2500);
                         Remove(colAprobAprb,
                             LookUp(colAprobAprb, '[AS] Numero' = varSelAprb.'[AS] Numero'));

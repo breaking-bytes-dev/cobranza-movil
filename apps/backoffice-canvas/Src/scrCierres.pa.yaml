@@ -666,11 +666,11 @@ Screens:
                   Height: =gblE.AltoBoton
                   HoverFill: =ColorFade(gblC.redBg, 10%)
                   OnSelect: |-
-                    =// Un solo Patch delegable (LookUp por '[AS] Numero', texto exacto — 00 §4.2)
+                    =// Un solo Patch delegable (LookUp por el id: DAT-31)
                     // más limpieza local: cero recargas. IfError (B-03): si falla, detalle y sin limpieza.
                     IfError(
                         Patch('CM | TBL | Asignacions',
-                            LookUp('CM | TBL | Asignacions', '[AS] Numero' = varSelCie.'[AS] Numero'),
+                            LookUp('CM | TBL | Asignacions', 'CM | TBL | Asignacion' = varSelCie.'CM | TBL | Asignacion'),
                             {
                                 '[AS] Estado': false,
                                 '[AS] Motivo': cmbMotivoCie.Selected.Value &

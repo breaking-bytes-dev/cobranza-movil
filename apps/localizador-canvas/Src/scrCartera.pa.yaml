@@ -43,14 +43,17 @@ Screens:
                 saldoNio, cta.'[CT] Saldo Vencido NIO',
                 saldoUsd, cta.'[CT] Saldo Vencido USD',
                 diasMora, cta.'[CT] Dias Mora',
+                ctaId,    cta.'CM | TBL | Cuenta',
                 ord,      '[AS] Orden'));
 
+          // DAT-15: el saldo se suma por CUENTA distinta (una cuenta con Diaria y Especial aprobada tiene 2 asignaciones con el
+          // mismo saldo). nCuentas sigue contando productos asignados, igual que la pestaña Cuentas del Cliente.
           ClearCollect(colClientes,
              AddColumns(
                 GroupBy(Filter(colAsig, !IsBlank(cid)), cid, cliNom, Asigs),
                 orden,    Min(Asigs, ord),
-                totNio,   Sum(Asigs, saldoNio),
-                totUsd,   Sum(Asigs, saldoUsd),
+                totNio,   Sum(ForAll(Distinct(Asigs, ctaId) As C, LookUp(Asigs, ctaId = C.Value).saldoNio), Value),
+                totUsd,   Sum(ForAll(Distinct(Asigs, ctaId) As C, LookUp(Asigs, ctaId = C.Value).saldoUsd), Value),
                 maxDias,  Max(Asigs, diasMora),
                 nCuentas, CountRows(Asigs),
                 dirCasa,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'="Casa").'[DR] Direccion',
@@ -166,7 +169,7 @@ Screens:
                               Color: =gblC.white
                               FontWeight: =FontWeight.Normal
                               Height: =If(gblScale = 1, 30,gblScale = 1.2,34,gblScale = 1.45,40,46)
-                              OnSelect: "=UpdateContext({varshowLoader: true});\r\n\r\nUpdateContext({okOrden: IfError(ForAll(Filter(colClientes, dirty) As C,\r\n     ForAll(Filter(colAsig, cid = C.cid) As A,\r\n        UpdateIf('CM | TBL | Asignacions',\r\n           'CM | TBL | Asignacion' = A.'CM | TBL | Asignacion',\r\n           { '[AS] Orden': C.orden }))); true, false)});\r\n\r\n// APP-13: si no se pudo guardar el orden, no se recarga (se perderia) y se avisa.\r\nIf(okOrden,\r\nClearCollect(colCuentas, 'CM | TBL | Cuentas');\r\nClearCollect(colDirecciones, Filter('CM | TBL | Direccions', '[DR] Tipo' = \"Casa\" || '[DR] Tipo' = \"Trabajo\"));\r\nClearCollect(colTelefonos, 'CM | TBL | Telefonos');\r\nClearCollect(colAsigRaw, Filter('CM | TBL | Asignacions', '[AS] Estado' = true && ('[AS] Tipo' <> 'Choice | CM | Tipo asignacion'.Especial || '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado)));\r\nClearCollect(colAsig,\r\n     AddColumns(\r\n        AddColumns(colAsigRaw,\r\n           cta, LookUp(colCuentas, 'CM | TBL | Cuenta' = '[AS] Cuenta'.'CM | TBL | Cuenta')),\r\n        cid,      cta.'CIF Cliente',\r\n        cliNom,   cta.'Nombre Cliente',\r\n        ult4,     cta.'Últimos 4',\r\n        saldoNio, cta.'[CT] Saldo Vencido NIO',\r\n        saldoUsd, cta.'[CT] Saldo Vencido USD',\r\n        diasMora, cta.'[CT] Dias Mora',\r\n        ord,      '[AS] Orden'));\r\n\r\n  ClearCollect(colClientes,\r\n     AddColumns(\r\n        GroupBy(Filter(colAsig, !IsBlank(cid)), cid, cliNom, Asigs),\r\n        orden,    Min(Asigs, ord),\r\n        totNio,   Sum(Asigs, saldoNio),\r\n        totUsd,   Sum(Asigs, saldoUsd),\r\n        maxDias,  Max(Asigs, diasMora),\r\n        nCuentas, CountRows(Asigs),\r\n        dirCasa,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'=\"Casa\").'[DR] Direccion',\r\n        dirTrab,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'=\"Trabajo\").'[DR] Direccion',\r\n        dirty,   false));\r\n          // Orden 1..n sin empates ni vacíos (APP-23). Los que no tienen orden (asignaciones nuevas; Min() de vacíos da 0)\r\n          // van al final, alfabéticos. Solo los que cambian quedan dirty y se guardan en Dataverse al salir (OnHidden).\r\n          With({ lista: SortByColumns(AddColumns(colClientes, sinOrden, Coalesce(orden, 0) <= 0),\r\n                                      \"sinOrden\", SortOrder.Ascending, \"orden\", SortOrder.Ascending, \"cliNom\", SortOrder.Ascending) },\r\n             ForAll(Sequence(CountRows(lista)) As N,\r\n                With({ r: Index(lista, N.Value) },\r\n                   If(Coalesce(r.orden, 0) <> N.Value,\r\n                      Patch(colClientes, LookUp(colClientes, cid = r.cid), { orden: N.Value, dirty: true })))));\r\n    Set(varCarteraLista, true);\r\n     Set(varRecargarCartera, false);\r\n     Set(varFechaUltimaActualizacion, Now()),\r\n   Notify(\"No se pudo guardar el orden de la cartera; no se recargó para no perderlo. Reintentá con señal.\", NotificationType.Warning));\r\n     UpdateContext({varshowLoader: false});\r\n        "
+                              OnSelect: "=UpdateContext({varshowLoader: true});\r\n\r\nUpdateContext({okOrden: IfError(ForAll(Filter(colClientes, dirty) As C,\r\n     ForAll(Filter(colAsig, cid = C.cid) As A,\r\n        UpdateIf('CM | TBL | Asignacions',\r\n           'CM | TBL | Asignacion' = A.'CM | TBL | Asignacion',\r\n           { '[AS] Orden': C.orden }))); true, false)});\r\n\r\n// APP-13: si no se pudo guardar el orden, no se recarga (se perderia) y se avisa.\r\nIf(okOrden,\r\nClearCollect(colCuentas, 'CM | TBL | Cuentas');\r\nClearCollect(colDirecciones, Filter('CM | TBL | Direccions', '[DR] Tipo' = \"Casa\" || '[DR] Tipo' = \"Trabajo\"));\r\nClearCollect(colTelefonos, 'CM | TBL | Telefonos');\r\nClearCollect(colAsigRaw, Filter('CM | TBL | Asignacions', '[AS] Estado' = true && ('[AS] Tipo' <> 'Choice | CM | Tipo asignacion'.Especial || '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado)));\r\nClearCollect(colAsig,\r\n     AddColumns(\r\n        AddColumns(colAsigRaw,\r\n           cta, LookUp(colCuentas, 'CM | TBL | Cuenta' = '[AS] Cuenta'.'CM | TBL | Cuenta')),\r\n        cid,      cta.'CIF Cliente',\r\n        cliNom,   cta.'Nombre Cliente',\r\n        ult4,     cta.'Últimos 4',\r\n        saldoNio, cta.'[CT] Saldo Vencido NIO',\r\n        saldoUsd, cta.'[CT] Saldo Vencido USD',\r\n        diasMora, cta.'[CT] Dias Mora',\r\n        ctaId,    cta.'CM | TBL | Cuenta',\r\n        ord,      '[AS] Orden'));\r\n\r\n  ClearCollect(colClientes,\r\n     AddColumns(\r\n        GroupBy(Filter(colAsig, !IsBlank(cid)), cid, cliNom, Asigs),\r\n        orden,    Min(Asigs, ord),\r\n        totNio,   Sum(ForAll(Distinct(Asigs, ctaId) As C, LookUp(Asigs, ctaId = C.Value).saldoNio), Value),\r\n        totUsd,   Sum(ForAll(Distinct(Asigs, ctaId) As C, LookUp(Asigs, ctaId = C.Value).saldoUsd), Value),\r\n        maxDias,  Max(Asigs, diasMora),\r\n        nCuentas, CountRows(Asigs),\r\n        dirCasa,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'=\"Casa\").'[DR] Direccion',\r\n        dirTrab,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'=\"Trabajo\").'[DR] Direccion',\r\n        dirty,   false));\r\n          // Orden 1..n sin empates ni vacíos (APP-23). Los que no tienen orden (asignaciones nuevas; Min() de vacíos da 0)\r\n          // van al final, alfabéticos. Solo los que cambian quedan dirty y se guardan en Dataverse al salir (OnHidden).\r\n          With({ lista: SortByColumns(AddColumns(colClientes, sinOrden, Coalesce(orden, 0) <= 0),\r\n                                      \"sinOrden\", SortOrder.Ascending, \"orden\", SortOrder.Ascending, \"cliNom\", SortOrder.Ascending) },\r\n             ForAll(Sequence(CountRows(lista)) As N,\r\n                With({ r: Index(lista, N.Value) },\r\n                   If(Coalesce(r.orden, 0) <> N.Value,\r\n                      Patch(colClientes, LookUp(colClientes, cid = r.cid), { orden: N.Value, dirty: true })))));\r\n    Set(varCarteraLista, true);\r\n     Set(varRecargarCartera, false);\r\n     Set(varFechaUltimaActualizacion, Now()),\r\n   Notify(\"No se pudo guardar el orden de la cartera; no se recargó para no perderlo. Reintentá con señal.\", NotificationType.Warning));\r\n     UpdateContext({varshowLoader: false});\r\n        "
                               PaddingBottom: =0
                               PaddingLeft: =0
                               PaddingRight: =0
@@ -300,7 +303,7 @@ Screens:
                                           LayoutMinHeight: =16
                                           LayoutMinWidth: =16
                                           Size: =gblT.flg
-                                          Text: =Text(Sum(colAsig, saldoNio),"#,##0.00", "en-US")
+                                          Text: =Text(Sum(colClientes, totNio),"#,##0.00", "en-US")
                               - boxlblTotalAUSD:
                                   Control: GroupContainer@1.5.0
                                   Variant: AutoLayout
@@ -341,7 +344,7 @@ Screens:
                                           LayoutMinHeight: =16
                                           LayoutMinWidth: =16
                                           Size: =gblT.flg
-                                          Text: =Text(Sum(colAsig, saldoUsd),"#,##0.00", "en-US")
+                                          Text: =Text(Sum(colClientes, totUsd),"#,##0.00", "en-US")
                         - lblTotalMeta:
                             Control: Label@2.5.1
                             Properties:

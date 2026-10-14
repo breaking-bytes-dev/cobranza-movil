@@ -1070,14 +1070,15 @@ Screens:
                                 // IfError (B-03): si el Patch falla se muestra el detalle y NO se saca de la cola,
                                 // no se avanza ni se limpia el input. Si sale bien, el flujo 3..8 de siempre.
                                 IfError(
+                                    // DAT-11: la fecha y el usuario de grabación los pone el servidor (plugin GrabacionInteraccion),
+                                    // que además rechaza grabar una interacción que otra persona ya grabó.
+                                    // DAT-31: se busca por el id, no por el número autonumérico.
                                     Patch('CM | TBL | Interaccions',
                                         LookUp('CM | TBL | Interaccions',
-                                            '[IN] Numero de Interaccion' = varActualTrx.'[IN] Numero de Interaccion'),
+                                            'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'),
                                         {
                                             '[IN] Estado grabacion': 'Choice | CM | Estado grabacion Interaccio'.Grabado,
-                                            '[IN] Codigo Grabacion': Upper(Trim(txtCodigoTrx.Text)),
-                                            '[IN] Fecha grabacion': Now(),          // ← quitar estas 2 líneas cuando el flujo
-                                            '[IN] Grabado por': gblUsuarioDV        //    de auditoría esté activo (00 §3.2)
+                                            '[IN] Codigo Grabacion': Upper(Trim(txtCodigoTrx.Text))
                                         }),
                                     Notify("No se pudo grabar " & varNumTrx & ": " & FirstError.Message, NotificationType.Error),
                                     // 3) sacar de la cola local (00 §5: cero re-consulta)

@@ -145,7 +145,7 @@ Screens:
                           =Concat(
                               Filter(colAgentesAge, '[AG] Activo' && IsBlank('Email Usuario')),
                               '[AG] Nombre', ", ") &
-                              ". Esta lista debe estar VACÍA antes de operar: sin usuario no entran a la app del celular y Comp-14 no aísla sus asignaciones."
+                              ". Esta lista debe estar VACÍA antes de operar: sin usuario no entran a la app del celular y sus asignaciones quedan en la cartera sin cobrador."
                         VerticalAlign: =VerticalAlign.Top
                         Width: =Parent.Width - 2*gblE.Pad
                         X: =gblE.Pad
@@ -290,13 +290,14 @@ Screens:
                               HoverFill: =ColorFade(gblC.card, 10%)
                               OnSelect: |-
                                 =// B-08: la desvinculación salió del OnChange del combo (se disparaba al abrir la
-                                // pantalla). Limpia las DOS columnas juntas. IfError (B-03).
+                                // pantalla). Solo el lookup: el correo lo vacía el plugin EmailDesdeUsuario (DAT-17).
+                                // Al desvincular, RepartoPorAgente pasa sus asignaciones a la cartera sin cobrador.
+                                // IfError (B-03).
                                 IfError(
                                     Patch('CM | TBL | Agentes',
                                         LookUp('CM | TBL | Agentes', '[AG] Nombre' = ThisItem.'[AG] Nombre'),
                                         {
-                                            '[AG] Usuario': Blank(),
-                                            'Email Usuario': Blank()
+                                            '[AG] Usuario': Blank()
                                         }
                                     ),
                                     Notify("No se pudo desvincular " & ThisItem.'[AG] Nombre' & ": " & FirstError.Message,
@@ -581,9 +582,9 @@ Screens:
                         || StartsWith('Primary Email', If(Len(Trim(txtBuscarUsrAge.Text)) < 2, "§§", Trim(txtBuscarUsrAge.Text))))
                   OnSelect: |-
                     =// Tocar un usuario CONFIRMA el vínculo del agente objetivo (varAgenteAge).
-                    // Se escriben las DOS columnas SIEMPRE juntas: '[AG] Usuario' (lookup, lo usa
-                    // Comp-14 para el owner) y 'Email Usuario' (texto en minúsculas, lo usa la canvas del
-                    // localizador para el login). Patchear una sola deja al agente inconsistente.
+                    // Solo se escribe '[AG] Usuario' (lookup). 'Email Usuario', que usa la app del cobrador para
+                    // el login, lo pone el plugin EmailDesdeUsuario con el UPN del usuario (DAT-17: una sola
+                    // fuente). Al vincular, RepartoPorAgente le pasa al usuario las asignaciones del agente.
                     // Igual que el viejo OnChange (B-08): SOLO vincula y SOLO si el usuario elegido es
                     // distinto del vínculo actual. Desvincular sigue siendo btnDesvincularAge.
                     // Sin correo principal no hay login en el celular → no se vincula.
@@ -592,15 +593,14 @@ Screens:
                         IsBlank(ThisItem.'Primary Email'),
                         Notify("El usuario " & ThisItem.'Full Name' & " no tiene correo principal: no podría entrar a la app del celular. Elegí otro.",
                             NotificationType.Warning),
-                        Lower(ThisItem.'Primary Email') = Lower(Coalesce(varAgenteAge.'Email Usuario', "")),
+                        !IsBlank(varAgenteAge.'[AG] Usuario') && varAgenteAge.'[AG] Usuario'.User = ThisItem.User,
                         Notify(varAgenteAge.'[AG] Nombre' & " ya está vinculado a " & Lower(ThisItem.'Primary Email'),
                             NotificationType.Information, 2500),
                         IfError(
                             Patch('CM | TBL | Agentes',
                                 LookUp('CM | TBL | Agentes', '[AG] Nombre' = varAgenteAge.'[AG] Nombre'),
                                 {
-                                    '[AG] Usuario': ThisItem,
-                                    'Email Usuario': Lower(ThisItem.'Primary Email')
+                                    '[AG] Usuario': ThisItem
                                 }
                             ),
                             Notify("No se pudo vincular " & varAgenteAge.'[AG] Nombre' & ": " & FirstError.Message,

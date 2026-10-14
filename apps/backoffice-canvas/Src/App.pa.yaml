@@ -52,9 +52,11 @@ App:
       //    ForAll ("not accessible in this context", verificado en Studio), así que el perfil
       //    sale del segmento del medio del nombre del team (el sufijo DEV/PRD se ignora).
       //    ⚠ Renombrar un team CM rompe este mapeo (mismo acople que el prefijo "SR | CM | ").
+      // Por el id de Entra y no por correo: User().Email devuelve el UPN, que puede no coincidir con el correo
+      // principal (en la app del cobrador ya se corrigió; ver plugin EmailDesdeUsuario). El id no cambia nunca.
       gblUsuarioDV = LookUp(
           Users,
-          'Primary Email' = Lower(User().Email)
+          'Azure AD Object ID' = User().EntraObjectId
       );
 
       // Expresión pura (Concat/Split/Distinct, sin Collect/Set): válida en fórmula con nombre.

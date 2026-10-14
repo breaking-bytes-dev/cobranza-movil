@@ -1,0 +1,992 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+#
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+#
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+Screens:
+  scrReasignar:
+    Properties:
+      Fill: =gblC.pantalla
+      OnVisible: |-
+        =// DAT-29: reasignación manual del localizador. Supervisor: Especiales activas y Aprobadas.
+        // Admin: esas mismas + Incobrables activas. Las Diarias NO (manda el archivo diario).
+        // Rol en variables antes del Filter: así el Filter queda delegable (constantes + choice + booleano).
+        Set(varSupRea, "Supervisor" in gblRol);
+        Set(varAdminRea, "Admin" in gblRol);
+        // Datos de la cuenta navegando el lookup '[AS] Cuenta' (lo resuelve el servidor, igual que Cierres).
+        // ageRea/ageIdRea: localizador actual horneado (texto + id) para mostrarlo, excluirlo del
+        // buscador y actualizarlo en memoria tras reasignar sin recargar.
+        ClearCollect(colReasigRea,
+            AddColumns(
+                Filter('CM | TBL | Asignacions',
+                    '[AS] Estado' = true
+                    && (('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                          && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado
+                          && (varSupRea || varAdminRea))
+                        || ('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable && varAdminRea))),
+                clienteRea, Upper(Coalesce(
+                    ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
+                ult4Rea, Coalesce(
+                    ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
+                diasRea, Coalesce(
+                    ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
+                ageRea, Coalesce(
+                    ThisRecord.'[AS] Agente'.'[AG] Nombre', "Sin localizador"),
+                ageIdRea, ThisRecord.'[AS] Agente'.'CM | TBL | Agente'
+            )
+        );
+        // Estado de pantalla (resetea tab/panel/búsqueda entre visitas — gotcha de persistencia)
+        Set(varTabRea, "esp");
+        Set(varSelRea, Blank());
+        Set(varAgeRea, Blank());
+        Set(varPanelRea, false);
+        Reset(txtBuscarRea);
+        Reset(txtBuscarAgeRea)
+    Children:
+      - cmpEncabezadoRea:
+          Control: CanvasComponent
+          ComponentName: cmpEncabezado
+          Properties:
+            Height: =If(nfMovil, gblE.AltoBarra + 84, 84)
+            Subtitulo: |-
+              =If("Admin" in gblRol,
+                  "Cambiá el localizador de una Especial aprobada o una Incobrable activa. Las Diarias las reparte el archivo.",
+                  "Cambiá el localizador de una Especial aprobada y activa. Las Diarias las reparte el archivo.")
+            Titulo: ="Reasignar"
+            Width: =Parent.Width - Self.X
+            X: =If(nfMovil, 0, gblE.AnchoNav)
+      - conContenidoRea:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            DropShadow: =DropShadow.None
+            Fill: =Color.Transparent
+            Height: =Parent.Height - Self.Y
+            Visible: ="Supervisor" in gblRol || "Admin" in gblRol
+            Width: =Min(gblE.AnchoMax, Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - 2*gblE.Pad)
+            X: |-
+              =If(nfMovil, 0, gblE.AnchoNav)
+                  + Max(gblE.Pad, (Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - gblE.AnchoMax) / 2)
+            Y: =cmpEncabezadoRea.Y + cmpEncabezadoRea.Height
+          Children:
+            - txtBuscarRea:
+                Control: Classic/TextInput@2.3.2
+                Properties:
+                  AccessibleLabel: ="Buscar por cliente, cuenta o localizador"
+                  BorderColor: =gblC.borde
+                  Default: =""
+                  DelayOutput: =true
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  HintText: ="Buscar por cliente, cuenta o localizador"
+                  PaddingLeft: =34
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Size: =10
+                  Width: =Min(420, Parent.Width - btnActualizarRea.Width - 3*gblE.Pad)
+                  X: =gblE.Pad
+                  Y: =gblE.PadSm + 2
+            - icoBuscarRea:
+                Control: Classic/Icon@2.5.0
+                Properties:
+                  AccessibleLabel: ="Buscar asignación"
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: =20
+                  Icon: =Icon.Search
+                  Width: =20
+                  X: =txtBuscarRea.X + 8
+                  Y: =txtBuscarRea.Y + (txtBuscarRea.Height - Self.Height) / 2
+            - btnActualizarRea:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  Color: =gblC.ink2
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =44
+                  OnSelect: |-
+                    =// Re-colecta y cierra el panel (mismo bloque del OnVisible)
+                    ClearCollect(colReasigRea,
+                        AddColumns(
+                            Filter('CM | TBL | Asignacions',
+                                '[AS] Estado' = true
+                                && (('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                                      && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado
+                                      && (varSupRea || varAdminRea))
+                                    || ('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable && varAdminRea))),
+                            clienteRea, Upper(Coalesce(
+                                ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
+                            ult4Rea, Coalesce(
+                                ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
+                            diasRea, Coalesce(
+                                ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
+                            ageRea, Coalesce(
+                                ThisRecord.'[AS] Agente'.'[AG] Nombre', "Sin localizador"),
+                            ageIdRea, ThisRecord.'[AS] Agente'.'CM | TBL | Agente'
+                        )
+                    );
+                    Set(varSelRea, Blank());
+                    Set(varAgeRea, Blank());
+                    Set(varPanelRea, false)
+                  Size: =9
+                  Text: ="↻ Actualizar"
+                  Width: =140
+                  X: =Parent.Width - Self.Width - gblE.Pad
+                  Y: =gblE.PadSm
+            - conTabsRea:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.hairline
+                  Height: =44
+                  RadiusBottomLeft: =11
+                  RadiusBottomRight: =11
+                  RadiusTopLeft: =11
+                  RadiusTopRight: =11
+                  Visible: |-
+                    =// Solo el Admin ve Incobrables: el Supervisor no necesita pestañas.
+                    varAdminRea
+                  Width: =356
+                  X: =gblE.Pad
+                  Y: =btnActualizarRea.Y + btnActualizarRea.Height + gblE.PadSm
+                Children:
+                  - btnTabEspRea:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =If(varTabRea = "esp", gblC.teal, gblC.muted)
+                        Fill: =If(varTabRea = "esp", gblC.card, Color.Transparent)
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =36
+                        HoverFill: =Self.Fill
+                        OnSelect: =Set(varTabRea, "esp")
+                        RadiusBottomLeft: =8
+                        RadiusBottomRight: =8
+                        RadiusTopLeft: =8
+                        RadiusTopRight: =8
+                        Size: =9
+                        Text: |-
+                          ="🟣 Especiales (" &
+                              CountIf(colReasigRea,
+                                  '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial) & ")"
+                        Width: =170
+                        X: =4
+                        Y: =4
+                  - btnTabIncobRea:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =If(varTabRea = "incob", gblC.teal, gblC.muted)
+                        Fill: =If(varTabRea = "incob", gblC.card, Color.Transparent)
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =36
+                        HoverFill: =Self.Fill
+                        OnSelect: =Set(varTabRea, "incob")
+                        RadiusBottomLeft: =8
+                        RadiusBottomRight: =8
+                        RadiusTopLeft: =8
+                        RadiusTopRight: =8
+                        Size: =9
+                        Text: |-
+                          ="🟠 Incobrables (" &
+                              CountIf(colReasigRea,
+                                  '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable) & ")"
+                        Width: =170
+                        X: =178
+                        Y: =4
+            - galReasigRea:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  AccessibleLabel: ="Asignaciones que se pueden reasignar"
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: =Parent.Height - Self.Y - gblE.Pad
+                  Items: |-
+                    =// En memoria (colección ya filtrada por rol): pestaña + búsqueda por cliente,
+                    // últimos 4 o localizador actual. `in` es case-insensitive.
+                    Sort(
+                        Filter(colReasigRea,
+                            If(varTabRea = "incob",
+                                '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable,
+                                '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial)
+                            && (IsBlank(Trim(txtBuscarRea.Text))
+                                || Trim(txtBuscarRea.Text) in clienteRea
+                                || Trim(txtBuscarRea.Text) in ult4Rea
+                                || Trim(txtBuscarRea.Text) in ageRea)),
+                        clienteRea)
+                  OnSelect: |-
+                    =// Cada apertura del panel arranca sin localizador elegido y con el buscador vacío.
+                    Set(varSelRea, ThisItem);
+                    Set(varAgeRea, Blank());
+                    Reset(txtBuscarAgeRea);
+                    Set(varPanelRea, true)
+                  ShowScrollbar: =false
+                  TemplateFill: =If(ThisItem.IsSelected && varPanelRea, gblC.tealSuave, gblC.card)
+                  TemplatePadding: =0
+                  TemplateSize: =gblE.AltoFila
+                  Width: =Min(gblE.AnchoMax, Parent.Width - 2*gblE.Pad)
+                  X: =gblE.Pad
+                  Y: |-
+                    =If(conTabsRea.Visible, conTabsRea.Y + conTabsRea.Height,
+                        btnActualizarRea.Y + btnActualizarRea.Height)
+                    + gblE.PadSm
+                Children:
+                  - lblNombreRea:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =22
+                        PaddingLeft: =0
+                        Size: =11
+                        Text: =ThisItem.clienteRea
+                        Width: =Parent.TemplateWidth * 0.38
+                        Wrap: =false
+                        X: =gblE.Pad
+                        Y: =8
+                  - lblMetaRea:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.muted
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =20
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: =CuentaMasc(ThisItem.ult4Rea)
+                        Width: =Parent.TemplateWidth * 0.38
+                        Wrap: =false
+                        X: =gblE.Pad
+                        Y: =32
+                  - lblMoraRea:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink2
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =24
+                        PaddingLeft: =0
+                        Size: =10
+                        Text: =Text(ThisItem.diasRea) & " días de mora"
+                        Width: =Parent.TemplateWidth * 0.22
+                        Wrap: =false
+                        X: =Parent.TemplateWidth * 0.40
+                        Y: =20
+                  - lblAgeFilaRea:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =Align.Right
+                        Color: =If(IsBlank(ThisItem.ageIdRea), gblC.redInk, gblC.teal)
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =22
+                        PaddingLeft: =0
+                        PaddingRight: =0
+                        Size: =10
+                        Text: ="🏍️ " & ThisItem.ageRea
+                        Width: =260
+                        Wrap: =false
+                        X: =Parent.TemplateWidth - 260 - gblE.Pad
+                        Y: =8
+                  - chpTipoRea:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: |-
+                          =If(ThisItem.'[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable,
+                              gblC.incobInk, gblC.espInk)
+                        Fill: |-
+                          =If(ThisItem.'[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable,
+                              gblC.incobBg, gblC.espBg)
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =26
+                        RadiusBottomLeft: =8
+                        RadiusBottomRight: =8
+                        RadiusTopLeft: =8
+                        RadiusTopRight: =8
+                        Size: =8
+                        Text: |-
+                          =If(ThisItem.'[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable,
+                              "Incobrable", "Especial")
+                        Width: =14 + 7*Len(Self.Text)
+                        X: =Parent.TemplateWidth - Self.Width - gblE.Pad
+                        Y: =32
+                  - recSepRea:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.hairline
+                        Height: =1
+                        Width: =Parent.TemplateWidth
+                        Y: =Parent.TemplateHeight - 1
+                  - btnFilaRea:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =Color.Transparent
+                        Fill: =Color.Transparent
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Height: =Parent.TemplateHeight
+                        HoverFill: =RGBA(15, 107, 107, 0.06)
+                        OnSelect: =Select(Parent)
+                        PressedFill: =RGBA(15, 107, 107, 0.12)
+                        TabIndex: =0
+                        Text: ="Reasignar asignación de " & ThisItem.clienteRea
+                        Width: =Parent.TemplateWidth
+                        X: =0
+                        Y: =0
+            - cmpVacioRea:
+                Control: CanvasComponent
+                ComponentName: cmpVacio
+                Properties:
+                  Height: =200
+                  Icono: ="✨"
+                  Mensaje: |-
+                    =If(!IsBlank(Trim(txtBuscarRea.Text)),
+                        "Ninguna asignación coincide con «" & Trim(txtBuscarRea.Text) & "».",
+                        "No hay " & If(varTabRea = "incob", "Incobrables activas", "Especiales aprobadas y activas") & " para reasignar.")
+                  Titulo: ="Nada para reasignar"
+                  Visible: =galReasigRea.AllItemsCount = 0
+                  Width: =Min(420, Parent.Width - 2*gblE.Pad)
+                  X: =(Parent.Width - Self.Width) / 2
+                  Y: =galReasigRea.Y + 80
+      - cmpSinAccesoRea:
+          Control: CanvasComponent
+          ComponentName: cmpVacio
+          Properties:
+            Height: =200
+            Icono: |-
+              ="🔐"
+            Mensaje: ="Reasignar es para el Supervisor (Especiales) y el Admin (Especiales e Incobrables)."
+            Titulo: ="Sin acceso"
+            Visible: =!("Supervisor" in gblRol || "Admin" in gblRol)
+            Width: =Min(420, Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - 2*gblE.Pad)
+            X: =If(nfMovil, 0, gblE.AnchoNav) + (Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - Self.Width) / 2
+            Y: =(Parent.Height - Self.Height) / 2
+      - recScrimRea:
+          Control: Rectangle@2.3.0
+          Properties:
+            AccessibleLabel: ="Cerrar panel"
+            Fill: =gblC.scrim
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
+            Height: =Parent.Height
+            OnSelect: |-
+              =Set(varPanelRea, false);
+              Set(varAgeRea, Blank());
+              Reset(txtBuscarAgeRea)
+            TabIndex: =0
+            Visible: =varPanelRea
+            Width: =Parent.Width
+      - conPanelRea:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            BorderColor: =gblC.borde
+            BorderThickness: =1
+            DropShadow: =DropShadow.None
+            Fill: =gblC.card
+            Height: =Parent.Height
+            RadiusBottomLeft: =0
+            RadiusBottomRight: =0
+            RadiusTopLeft: =0
+            RadiusTopRight: =0
+            Visible: =varPanelRea
+            Width: =If(nfMovil, Parent.Width, Min(480, Parent.Width * 0.45))
+            X: =Parent.Width - Self.Width
+          Children:
+            - lblTituloPanRea:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =28
+                  PaddingLeft: =0
+                  Text: ="Reasignar " & varSelRea.'[AS] Numero'
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =gblE.Pad
+            - icoCerrarRea:
+                Control: Classic/Icon@2.5.0
+                Properties:
+                  AccessibleLabel: ="Cerrar panel"
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: =28
+                  Icon: =Icon.Cancel
+                  OnSelect: |-
+                    =Set(varPanelRea, false);
+                    Set(varAgeRea, Blank());
+                    Reset(txtBuscarAgeRea)
+                  TabIndex: =0
+                  Width: =40
+                  X: =Parent.Width - 40 - gblE.PadSm
+                  Y: =gblE.Pad
+            - lblK1Rea:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =36
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Cliente"
+                  Width: =120
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =56
+            - lblV1Rea:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Right
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =36
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =10
+                  Text: =varSelRea.clienteRea
+                  Width: =Parent.Width - 3*gblE.Pad - 120
+                  Wrap: =false
+                  X: =gblE.Pad + 120
+                  Y: =56
+            - recKvSep1Rea:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderThickness: =0
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.hairline
+                  Height: =1
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =91
+            - lblK2Rea:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =36
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Cuenta"
+                  Width: =120
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =92
+            - lblV2Rea:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Right
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =36
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =10
+                  Text: =CuentaMasc(varSelRea.ult4Rea)
+                  Width: =Parent.Width - 3*gblE.Pad - 120
+                  Wrap: =false
+                  X: =gblE.Pad + 120
+                  Y: =92
+            - recKvSep2Rea:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderThickness: =0
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.hairline
+                  Height: =1
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =127
+            - lblK3Rea:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =36
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Tipo"
+                  Width: =120
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =128
+            - lblV3Rea:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Right
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =36
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =10
+                  Text: |-
+                    =If(varSelRea.'[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable,
+                        "Incobrable", "Especial")
+                  Width: =Parent.Width - 3*gblE.Pad - 120
+                  Wrap: =false
+                  X: =gblE.Pad + 120
+                  Y: =128
+            - recKvSep3Rea:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderThickness: =0
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.hairline
+                  Height: =1
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =163
+            - lblK4Rea:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =36
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Días de mora"
+                  Width: =120
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =164
+            - lblV4Rea:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Right
+                  Color: =gblC.ink
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =36
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =10
+                  Text: =Text(varSelRea.diasRea)
+                  Width: =Parent.Width - 3*gblE.Pad - 120
+                  Wrap: =false
+                  X: =gblE.Pad + 120
+                  Y: =164
+            - recKvSep4Rea:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderThickness: =0
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.hairline
+                  Height: =1
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =199
+            - lblK5Rea:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =36
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Localizador actual"
+                  Width: =120
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =200
+            - lblV5Rea:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Right
+                  Color: =If(IsBlank(varSelRea.ageIdRea), gblC.redInk, gblC.teal)
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =36
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  Size: =10
+                  Text: ="🏍️ " & varSelRea.ageRea
+                  Width: =Parent.Width - 3*gblE.Pad - 120
+                  Wrap: =false
+                  X: =gblE.Pad + 120
+                  Y: =200
+            - lblSecNuevoRea:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =20
+                  PaddingLeft: =0
+                  Size: =8
+                  Text: ="NUEVO LOCALIZADOR *"
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =248
+            - txtBuscarAgeRea:
+                Control: Classic/TextInput@2.3.2
+                Properties:
+                  AccessibleLabel: ="Buscar localizador por nombre"
+                  BorderColor: =gblC.borde
+                  Default: =""
+                  DelayOutput: =true
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  HintText: ="Buscar localizador por nombre (mín. 2)"
+                  PaddingLeft: =34
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Size: =10
+                  Visible: =IsBlank(varAgeRea)
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =lblSecNuevoRea.Y + 24
+            - icoBuscarAgeRea:
+                Control: Classic/Icon@2.5.0
+                Properties:
+                  AccessibleLabel: ="Buscar localizador"
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: =20
+                  Icon: =Icon.Search
+                  Visible: =txtBuscarAgeRea.Visible
+                  Width: =20
+                  X: =txtBuscarAgeRea.X + 8
+                  Y: =txtBuscarAgeRea.Y + (txtBuscarAgeRea.Height - Self.Height) / 2
+            - galAgeRea:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  AccessibleLabel: ="Localizadores que coinciden con la búsqueda"
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Height: |-
+                    =// Alto acotado: hasta 3 filas (mín. 1 para el aviso "sin coincidencias").
+                    Min(Max(Self.AllItemsCount, 1), 3) * Self.TemplateHeight
+                  Items: |-
+                    =// Mismo buscador que scrAprobaciones.galAgeAprb (B-04): Filter directo, todo delegable
+                    // (igualdad booleana, <> Blank(), <> por id y StartsWith). Solo agentes activos con usuario
+                    // vinculado (sin usuario el reparto no tiene a quién pasarle el owner). Se excluye el
+                    // localizador actual. Con menos de 2 caracteres, centinela "§§": no se consulta la tabla
+                    // entera (B-19) y siempre hay tabla (B-06). SIN With (cortaba la delegación).
+                    Filter('CM | TBL | Agentes',
+                        '[AG] Activo' = true
+                        && 'Email Usuario' <> Blank()
+                        && 'CM | TBL | Agente' <> varSelRea.ageIdRea
+                        && StartsWith('[AG] Nombre', If(Len(Trim(txtBuscarAgeRea.Text)) < 2, "§§", Trim(txtBuscarAgeRea.Text))))
+                  OnSelect: =Set(varAgeRea, ThisItem)
+                  ShowScrollbar: =false
+                  TemplateFill: =gblC.card
+                  TemplatePadding: =0
+                  TemplateSize: =48
+                  Visible: =IsBlank(varAgeRea) && Len(Trim(txtBuscarAgeRea.Text)) >= 2
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =txtBuscarAgeRea.Y + txtBuscarAgeRea.Height + 4
+                Children:
+                  - lblNomFilaAgeRea:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =20
+                        PaddingLeft: =0
+                        Size: =10
+                        Text: =ThisItem.'[AG] Nombre'
+                        Width: =Parent.TemplateWidth - 2*gblE.PadSm
+                        Wrap: =false
+                        X: =gblE.PadSm
+                        Y: =5
+                  - lblMailFilaAgeRea:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.muted
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =18
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: =ThisItem.'Email Usuario'
+                        Width: =lblNomFilaAgeRea.Width
+                        Wrap: =false
+                        X: =gblE.PadSm
+                        Y: =lblNomFilaAgeRea.Y + lblNomFilaAgeRea.Height + 2
+                  - recSepAgeRea:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.hairline
+                        Height: =1
+                        Width: =Parent.TemplateWidth
+                        Y: =Parent.TemplateHeight - 1
+                  - btnFilaAgeRea:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =Color.Transparent
+                        Fill: =Color.Transparent
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Height: =Parent.TemplateHeight
+                        HoverFill: =RGBA(15, 107, 107, 0.06)
+                        OnSelect: =Select(Parent)
+                        PressedFill: =RGBA(15, 107, 107, 0.12)
+                        TabIndex: =0
+                        Text: ="Reasignar a " & ThisItem.'[AG] Nombre'
+                        Width: =Parent.TemplateWidth
+                        X: =0
+                        Y: =0
+            - lblSinAgeRea:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =galAgeRea.Height
+                  PaddingLeft: =gblE.PadSm
+                  Size: =9
+                  Text: ="Ningún otro localizador activo con usuario empieza con «" & Trim(txtBuscarAgeRea.Text) & "»."
+                  Visible: =galAgeRea.Visible && galAgeRea.AllItemsCount = 0
+                  Width: =galAgeRea.Width
+                  Wrap: =false
+                  X: =galAgeRea.X
+                  Y: =galAgeRea.Y
+            - conAgeSelRea:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderColor: =gblC.teal
+                  BorderThickness: =1
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.tealSuave
+                  Height: =gblE.AltoInput
+                  RadiusBottomLeft: =gblE.RadioSm
+                  RadiusBottomRight: =gblE.RadioSm
+                  RadiusTopLeft: =gblE.RadioSm
+                  RadiusTopRight: =gblE.RadioSm
+                  Visible: =!IsBlank(varAgeRea)
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =txtBuscarAgeRea.Y
+                Children:
+                  - lblAgeSelRea:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =Parent.Height
+                        PaddingLeft: =0
+                        Size: =10
+                        Text: =varAgeRea.'[AG] Nombre' & "  ·  " & varAgeRea.'Email Usuario'
+                        Width: =Parent.Width - 3*gblE.PadSm - btnCambiarAgeRea.Width
+                        Wrap: =false
+                        X: =gblE.PadSm
+                        Y: =0
+                  - btnCambiarAgeRea:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderColor: =gblC.borde
+                        BorderThickness: =1
+                        Color: =gblC.ink2
+                        Fill: =gblC.card
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =28
+                        HoverFill: =ColorFade(gblC.card, 10%)
+                        OnSelect: |-
+                          =Set(varAgeRea, Blank());
+                          Reset(txtBuscarAgeRea)
+                        Size: =9
+                        TabIndex: =0
+                        Text: ="Cambiar"
+                        Width: =92
+                        X: =Parent.Width - Self.Width - gblE.PadSm
+                        Y: =(Parent.Height - Self.Height) / 2
+            - lblAvisoRea:
+                Control: Label@2.5.1
+                Properties:
+                  AutoHeight: =true
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: |-
+                    ="Solo cambia el localizador. El dueño y el celular los mueve el servidor: la asignación sale del anterior y le llega al nuevo en la próxima sincronización."
+                  VerticalAlign: =VerticalAlign.Top
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: |-
+                    =// Debajo de los resultados si están abiertos; si no, del buscador o la tarjeta
+                    // (mismo Y y mismo alto).
+                    If(galAgeRea.Visible, galAgeRea.Y + galAgeRea.Height,
+                        txtBuscarAgeRea.Y + txtBuscarAgeRea.Height)
+                    + gblE.PadSm
+            - btnCancelarRea:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  Color: =gblC.ink2
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoBoton
+                  OnSelect: |-
+                    =Set(varPanelRea, false);
+                    Set(varAgeRea, Blank());
+                    Reset(txtBuscarAgeRea)
+                  Size: =10
+                  Text: ="Cancelar"
+                  Width: =(Parent.Width - 3*gblE.Pad) / 2
+                  X: =gblE.Pad
+                  Y: =Parent.Height - gblE.AltoBoton - gblE.Pad
+            - btnReasignarRea:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderThickness: =0
+                  Color: =Color.White
+                  DisabledColor: =Color.White
+                  DisabledFill: =ColorFade(gblC.teal, 60%)
+                  DisplayMode: |-
+                    =// Solo con un localizador elegido y DISTINTO del actual.
+                    If(!IsBlank(varAgeRea) && varAgeRea.'CM | TBL | Agente' <> varSelRea.ageIdRea,
+                        DisplayMode.Edit, DisplayMode.Disabled)
+                  Fill: =gblC.teal
+                  FocusedBorderColor: =gblC.ink
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoBoton
+                  HoverFill: =ColorFade(gblC.teal, 10%)
+                  OnSelect: |-
+                    =// Se escribe SOLO '[AS] Agente': ColumnasAsignacion le rechaza al Supervisor cualquier
+                    // otra columna y AprobacionEspecial solo deja a Supervisor/Admin cambiar el agente de una
+                    // Especial. RepartoAsignacion (async) mueve owner y sharing al usuario del nuevo agente.
+                    // DAT-31: se busca por el id, no por el número autonumérico.
+                    // IfError (B-03): si el Patch falla se muestra el detalle y el panel queda abierto.
+                    IfError(
+                        Patch('CM | TBL | Asignacions',
+                            LookUp('CM | TBL | Asignacions', 'CM | TBL | Asignacion' = varSelRea.'CM | TBL | Asignacion'),
+                            {
+                                '[AS] Agente': varAgeRea
+                            }
+                        ),
+                        Notify("No se pudo reasignar " & varSelRea.'[AS] Numero' & ": " & FirstError.Message,
+                            NotificationType.Error),
+                        // El Notify va ANTES de limpiar varAgeRea (lee el nombre del localizador).
+                        Notify("🔁 Reasignada a " & varAgeRea.'[AG] Nombre' &
+                            ". Baja al celular del localizador en la próxima sincronización.",
+                            NotificationType.Success, 2500);
+                        // Actualiza la fila en memoria (sigue siendo reasignable): cero recargas.
+                        Patch(colReasigRea,
+                            LookUp(colReasigRea, 'CM | TBL | Asignacion' = varSelRea.'CM | TBL | Asignacion'),
+                            {
+                                ageRea: varAgeRea.'[AG] Nombre',
+                                ageIdRea: varAgeRea.'CM | TBL | Agente'
+                            }
+                        );
+                        Set(varPanelRea, false);
+                        Set(varSelRea, Blank());
+                        Set(varAgeRea, Blank());
+                        Reset(txtBuscarAgeRea)
+                    )
+                  Size: =10
+                  Text: ="🔁 Reasignar"
+                  Width: =btnCancelarRea.Width
+                  X: =btnCancelarRea.X + btnCancelarRea.Width + gblE.Pad
+                  Y: =btnCancelarRea.Y
+      - cmpNavRea:
+          Control: CanvasComponent
+          ComponentName: cmpNavLateral
+          Properties:
+            Height: =Parent.Height
+            RutaActiva: ="rea"
+            Visible: =!nfMovil || gblNavMovilAbierta
+            Width: =gblE.AnchoNav

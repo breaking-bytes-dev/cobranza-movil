@@ -630,7 +630,12 @@ Screens:
                                         }
                                     )
                                 ),
-                                Notify("No se pudo enviar la solicitud de la cuenta " & _cta & ": " & FirstError.Message,
+                                // DAT-14: si la cuenta ya tiene una Especial que este usuario no ve (la pidió otro
+                                // Solicitante), Dataverse la rechaza por la clave (cuenta, tipo). Se explica qué hacer.
+                                Notify(
+                                    If(IsMatch(FirstError.Message, "already exists|duplicate|ya existe|duplicad", MatchOptions.Contains & MatchOptions.IgnoreCase),
+                                        "La cuenta " & _cta & " ya tiene una Especial que pidió otra persona. Revisala con el Supervisor.",
+                                        "No se pudo enviar la solicitud de la cuenta " & _cta & ": " & FirstError.Message),
                                     NotificationType.Error),
                                 Notify("✨ Solicitud enviada — quedó Pendiente de aprobación", NotificationType.Success, 2500);
                                 Set(varCtaNva, Blank());

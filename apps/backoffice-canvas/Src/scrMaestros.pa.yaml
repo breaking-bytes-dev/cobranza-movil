@@ -653,7 +653,7 @@ Screens:
                   Height: =16
                   PaddingLeft: =0
                   Size: =9
-                  Text: ="Nombre completo"
+                  Text: ="Nombre completo (lo actualiza la carga del banco)"
                   Visible: =varModoMae = "editar"
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
@@ -662,9 +662,13 @@ Screens:
             - txtNombreMae:
                 Control: Classic/TextInput@2.3.2
                 Properties:
-                  AccessibleLabel: ="Nombre del cliente"
+                  AccessibleLabel: ="Nombre del cliente, solo lectura. Lo actualiza la carga del banco"
                   BorderColor: =gblC.borde
                   Default: =varCliMae.'[CL] Nombre'
+                  DisplayMode: |-
+                    =// DAT-26: el nombre lo escribe la carga diaria (y las apps leen el de la cuenta). Editarlo acá no
+                    // se veía en ningún lado y la carga siguiente lo pisaba: queda de solo lectura.
+                    DisplayMode.View
                   Fill: =gblC.card
                   FocusedBorderColor: =gblC.teal
                   FocusedBorderThickness: =2
@@ -808,7 +812,6 @@ Screens:
                         Patch('CM | TBL | Clientes',
                             LookUp('CM | TBL | Clientes', '[CL] CIF' = varCliMae.'[CL] CIF'),
                             {
-                                '[CL] Nombre': Trim(txtNombreMae.Text),
                                 '[CL] Departamento': Trim(txtDeptoMae.Text),
                                 '[CL] Distrito': Trim(txtDistritoMae.Text),
                                 '[CL] Trabajo': Trim(txtTrabajoMae.Text)
