@@ -15,7 +15,14 @@ const especialesDe = async (e) => (await dv.get(`sanic_cm_tbl_asignacions?$selec
 async function pedirEspecial(ctx, app, e, { nio, motivo, etiqueta }) {
   await ui.ir(app, 'Nueva solicitud', etiqueta);
   const mask = `•••• ${e.ult4}`;
-  const r = await c.elegirEnBuscador(app, { ...BUSCA_CTA, buscar: e.ult4, opcion: ctx.nombreCliente });
+  // La galería del buscador a veces sigue mostrando la lista anterior cuando se lee (la consulta de la búsqueda tarda más que
+  // la espera fija de buscarEnBuscador; corrida 14ASY, 2026-10-14): se repite la búsqueda hasta 3 veces antes de dar la precondición por rota.
+  let r;
+  for (let i = 0; i < 3; i++) {
+    r = await c.elegirEnBuscador(app, { ...BUSCA_CTA, buscar: e.ult4, opcion: ctx.nombreCliente });
+    if (r.ok) break;
+    await pl.esperar(app, 3000);
+  }
   ctx.requiere(r.ok, `no se pudo elegir la cuenta ${mask} de "${ctx.nombreCliente}" (filas: ${r.textos.slice(0, 4).join(' / ')})`);
   const sel = await pl.texto(app, 'lblCtaSelNva');
   ctx.requiere(sel.includes(mask) && sel.includes(ctx.nombreCliente), `Seguridad: la cuenta elegida no es la QA (${sel.slice(0, 80)})`);

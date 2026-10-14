@@ -7,6 +7,10 @@ const ui = require('../lib/ui');
 const datos = require('../lib/datos');
 const { pl, c, lo } = ui;
 
+// Espera a que la pantalla visible sea `scr`: tras un toque, la navegación del player puede tardar más que la espera de red
+// quieta y leer la pantalla UNA vez devuelve la anterior (F7-07, corrida de 2026-10-14). Devuelve la última pantalla vista.
+const esperarPantalla = (app, scr) => ui.esperarEstable(() => lo.pantalla(app), { timeout: 20000, listo: (p) => p === scr });
+
 // Filas visibles de la galería de cuentas del cliente (galMini → conMini): [{ txt, caja }]
 async function filasCuentas(app) {
   const filas = pl.ctl(app, 'conMini').locator('visible=true');
@@ -25,7 +29,7 @@ async function abrirCuenta(ctx, app, e, tipo) {
   const caja = await f.f.boundingBox();
   await app.page.mouse.click(caja.x + caja.width / 2, caja.y + caja.height / 2);
   await app.red.quieta(app.page, { quietoMs: 2500, maxMs: 30000, minMs: 2500 });
-  ctx.requiere((await lo.pantalla(app)) === 'scrDetalleCuenta', `no se abrió el detalle de la cuenta ${e.clave}`);
+  ctx.requiere((await esperarPantalla(app, 'scrDetalleCuenta')) === 'scrDetalleCuenta', `no se abrió el detalle de la cuenta ${e.clave}`);
   const t = await lo.texto(app, 'Text1_1');
   ctx.requiere(t === tipo, `el detalle abierto es "${t}", esperaba ${tipo}`);
 }
@@ -70,7 +74,7 @@ async function f7(ctx) {
       ctx.chk('F7-03', cnt.includes(`${esperadoCliente} cuenta(s)`), `Cartera: la tarjeta del cliente dice "${esperadoCliente} cuenta(s)" (visibles: ${cnt.join(' | ')})`);
       await tarjeta.click({ timeout: 15000, force: true });
       await app.red.quieta(app.page, { quietoMs: 2500, maxMs: 30000, minMs: 2500 });
-      ctx.requiere((await lo.pantalla(app)) === 'scrCliente', 'no se abrió la pantalla del cliente');
+      ctx.requiere((await esperarPantalla(app, 'scrCliente')) === 'scrCliente', 'no se abrió la pantalla del cliente');
       const tab = await lo.texto(app, 'Button6');
       ctx.chk('F7-04', tab === `Cuentas (${esperadoCliente})`, `Cliente: pestaña "${tab}"`);
       const filas = await filasCuentas(app);
@@ -86,9 +90,11 @@ async function f7(ctx) {
       // 1) Lo pedido: cobrar sobre la cuenta A (Diaria, y además con una Especial aprobada).
       let cobro = A;
       await ui.tocar(app, 'btnRegistrar');
-      ctx.requiere((await lo.pantalla(app)) === 'scrInteraccion', 'no se abrió la pantalla de interacción');
+      ctx.requiere((await esperarPantalla(app, 'scrInteraccion')) === 'scrInteraccion', 'no se abrió la pantalla de interacción');
       // Una fila por CUENTA (fix de F7-07): la A tiene Diaria + Especial aprobada y tiene que contar como 1 producto.
-      const guardar = await lo.texto(app, 'btnRegistrar_1').catch(() => '');
+      // El texto del botón se calcula con colProdInt (una fila por cuenta): justo al entrar puede verse vacío o con un conteo
+      // intermedio. Se espera a que muestre el valor esperado y se mantenga; si nunca llega, el chequeo falla con el texto real.
+      const guardar = await ui.esperarEstable(() => lo.texto(app, 'btnRegistrar_1').catch(() => ''), { timeout: 30000, listo: (t) => /Guardar en 1 producto\b/.test(t) });
       ctx.chk('F7-07b', /Guardar en 1 producto\b/.test(guardar), `Cuenta A (2 asignaciones activas): el botón dice "${guardar}" (esperado "Guardar en 1 producto"; antes "2 productos" y se grababan 2 interacciones)`);
       const pagoOk = await intentarActivarPago(app);
       const nota = await lo.texto(app, 'lblSelNota').catch(() => '');
@@ -99,7 +105,7 @@ async function f7(ctx) {
         // 2) Para no cortar el recorrido (BackOffice, cierres) el cobro se hace en la cuenta B (Incobrable, una sola asignación visible).
         ctx.nota('el cobro continúa sobre la cuenta B (Incobrable), que no tiene el problema; el recorrido de BackOffice usa esa interacción');
         await ui.tocar(app, 'Icon1'); await ui.tocar(app, 'Icon1');     // ← Detalle, ← Cliente
-        ctx.requiere((await lo.pantalla(app)) === 'scrCliente', 'no se pudo volver a la pantalla del cliente');
+        ctx.requiere((await esperarPantalla(app, 'scrCliente')) === 'scrCliente', 'no se pudo volver a la pantalla del cliente');
         await abrirCuenta(ctx, app, B, 'Incobrable');
         await ui.tocar(app, 'btnRegistrar');
         ctx.requiere(await intentarActivarPago(app), 'tampoco se puede activar "Aplica pago" en la cuenta B');

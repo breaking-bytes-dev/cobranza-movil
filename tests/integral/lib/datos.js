@@ -59,8 +59,9 @@ async function limpiar(extraReg) {
   for (const [k, l] of Object.entries(extraReg || {})) reg[k] = [...(reg[k] || []), ...l];
   const inv = await inventario(reg);
   const borrados = {}, errores = [];
-  // Interacciones primero (cascada a pagos y actualizaciones), luego lo que cuelga de cuenta/cliente, el cliente (cascada) y los maestros.
-  const orden = ['interaccion', 'pago', 'actualizacion', 'asignacion', 'carga', 'boveda', 'cuenta', 'direccion', 'telefono', 'cliente', 'producto', 'fiador'];
+  // Pagos y actualizaciones antes que su interacción (DAT-18: interacción→pago/actualización es Delete = Restrict), luego lo que
+  // cuelga de cuenta/cliente (la carga diaria antes que el cliente, también Restrict), el cliente y los maestros.
+  const orden = ['pago', 'actualizacion', 'interaccion', 'asignacion', 'carga', 'boveda', 'cuenta', 'direccion', 'telefono', 'cliente', 'producto', 'fiador'];
   for (const tipo of orden) {
     borrados[tipo] = 0;
     for (const id of inv[tipo]) {

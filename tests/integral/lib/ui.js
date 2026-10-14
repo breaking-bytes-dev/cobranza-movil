@@ -74,4 +74,23 @@ async function textosFilas(app, galeria) {
   return (await f.allInnerTexts()).map((s) => s.replace(/\s+/g, ' ').trim()).filter(Boolean);
 }
 
-module.exports = { capturador, tocar, escribir, clic, conControl, pl, c, lo, abrirBackoffice, abrirCobrador, cerrar, captura, ir, filas, textosFilas };
+// Espera robusta de un valor de pantalla que se carga de forma asíncrona (KPIs de Inicio, texto de un botón calculado…).
+// El problema que resuelve: leer UNA vez justo después de abrir/navegar agarra el valor intermedio (vacío, "sin carga", "0",
+// un conteo parcial) mientras la app todavía está resolviendo sus consultas, y el chequeo falla de forma intermitente.
+// Sondea `leer()` cada `intervalo` ms hasta que el valor (a) no sea el de "cargando" y (b) sea IGUAL en dos lecturas
+// consecutivas. `listo(valor)` es opcional y afina (a): por ejemplo, "coincide con lo que dice la API". Si vence el plazo
+// devuelve la última lectura (NO lanza): el chequeo de afuera sigue afirmando lo mismo y falla con el valor real a la vista.
+const esVacio = (x) => x === null || x === undefined || x === '' || (typeof x === 'string' && /^(…|\.\.\.|—|-)$/.test(x.trim()));
+async function esperarEstable(leer, { timeout = 40000, intervalo = 500, listo = (x) => !esVacio(x) } = {}) {
+  const t0 = Date.now(); let previo, tieneprevio = false, ult, ultErr;
+  for (;;) {
+    let actual;
+    try { ult = await leer(); ultErr = null; actual = JSON.stringify(ult); } catch (e) { ultErr = e; tieneprevio = false; }   // control aún no pintado / frame en transición
+    if (actual !== undefined && listo(ult) && tieneprevio && actual === previo) return ult;
+    previo = actual; tieneprevio = actual !== undefined && listo(ult);
+    if (Date.now() - t0 + intervalo > timeout) { if (ultErr && ult === undefined) throw ultErr; return ult; }
+    await new Promise((r) => setTimeout(r, intervalo));
+  }
+}
+
+module.exports = { esperarEstable, esVacio, capturador, tocar, escribir, clic, conControl, pl, c, lo, abrirBackoffice, abrirCobrador, cerrar, captura, ir, filas, textosFilas };

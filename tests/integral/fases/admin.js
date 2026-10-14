@@ -19,11 +19,13 @@ async function f3(ctx) {
   ctx.capturador = ui.capturador(ctx, app);
   try {
     await ctx.paso('F3-01', 'Inicio', async () => {
-      const k = await pl.kpis(app);
-      const carga = k['CARGA DE HOY'] || '';
+      // Los KPIs de Inicio se calculan en OnVisible con consultas asíncronas: justo tras abrir la app pueden verse vacíos,
+      // "sin carga" o con un conteo parcial. Se espera a que lleguen al valor esperado y se mantengan iguales en dos lecturas.
+      const leer = async () => { const k = await pl.kpis(app); return { carga: k['CARGA DE HOY'] || '', fuera: k['DIARIAS FUERA DE CARTERA'] ?? null, desap: await v.desaparecidas() }; };
+      const listo = (x) => !!x.carga && x.carga !== 'sin carga' && x.carga.includes(`${dd}/${mm}`) && c.num(x.fuera) === x.desap;
+      const { carga, fuera, desap } = await ui.esperarEstable(leer, { timeout: 45000, intervalo: 1000, listo });
       ctx.chk('F3-01', carga && carga !== 'sin carga' && carga.includes(`${dd}/${mm}`), `Inicio: "CARGA DE HOY" muestra la fecha de hoy ("${carga}", esperaba ${dd}/${mm})`);
-      const desap = await v.desaparecidas();
-      ctx.chk('F3-02', c.num(k['DIARIAS FUERA DE CARTERA']) === desap, `Inicio: "DIARIAS FUERA DE CARTERA" = API (${k['DIARIAS FUERA DE CARTERA']} vs ${desap})`);
+      ctx.chk('F3-02', c.num(fuera) === desap, `Inicio: "DIARIAS FUERA DE CARTERA" = API (${fuera} vs ${desap})`);
     });
     await ctx.paso('F3-03', 'Monitoreo', async () => {
       await ui.ir(app, 'Monitoreo de carga', 'scrMonitoreo');

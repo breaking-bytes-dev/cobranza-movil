@@ -17,8 +17,11 @@ async function f8(ctx) {
   ctx.capturador = ui.capturador(ctx, app, { sensible: true });
   try {
     await ctx.paso('F8-01', 'Por transcribir', async () => {
-      const k = await pl.kpis(app);
-      const [cola, conPago] = [await v.pendientes(), await v.pendientesConPago()];
+      // KPIs de Inicio: se cargan de forma asíncrona tras abrir la app. Se espera a que coincidan con la API (que se vuelve a
+      // leer en cada vuelta, por si la cola cambia) y a que se mantengan iguales en dos lecturas consecutivas.
+      const leer = async () => ({ k: await pl.kpis(app), cola: await v.pendientes(), conPago: await v.pendientesConPago() });
+      const listo = (x) => c.num(x.k['EN COLA']) === x.cola && c.num(x.k['CON PAGO']) === x.conPago && x.conPago >= 1;
+      const { k, cola, conPago } = await ui.esperarEstable(leer, { timeout: 45000, intervalo: 1000, listo });
       ctx.chk('F8-01', c.num(k['EN COLA']) === cola && c.num(k['CON PAGO']) === conPago && conPago >= 1, `Inicio BackOffice: EN COLA / CON PAGO = API (${k['EN COLA']}/${k['CON PAGO']} vs ${cola}/${conPago})`);
       await ui.ir(app, 'Por transcribir', 'scrTranscripcion');
       await pl.ctl(app, 'btnFilaLocsTrx').locator('visible=true').filter({ hasText: AGENTE }).first().click();

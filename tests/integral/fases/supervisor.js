@@ -44,8 +44,10 @@ async function f5(ctx) {
   ctx.capturador = ui.capturador(ctx, app);
   try {
     await ctx.paso('F5-01', 'cola', async () => {
-      const k = await pl.kpis(app);
-      const porAprobar = await v.porAprobar();
+      // El KPI se llena en el OnVisible de Inicio: se espera a que coincida con la API y se mantenga (no una sola lectura).
+      const leer = async () => { const k = await pl.kpis(app).catch(() => ({})); return { k, porAprobar: await v.porAprobar() }; };
+      const { k, porAprobar } = await ui.esperarEstable(leer, { timeout: 45000, intervalo: 1000,
+        listo: (x) => c.num(x.k['POR APROBAR']) === x.porAprobar });
       ctx.chk('F5-01', c.num(k['POR APROBAR']) === porAprobar && porAprobar >= 3, `Inicio Supervisor: "POR APROBAR" = API (${k['POR APROBAR']} vs ${porAprobar}; incluye las 3 Especiales de la corrida)`);
       await ui.ir(app, 'Aprobaciones', 'scrAprobaciones');
       const filas = (await pl.ctl(app, 'lblFilaClienteAprb').locator('visible=true').allInnerTexts()).map((s) => s.trim()).filter((t) => t === ctx.nombreCliente);
