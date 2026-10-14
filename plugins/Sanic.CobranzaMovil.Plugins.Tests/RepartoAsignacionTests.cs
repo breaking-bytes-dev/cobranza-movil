@@ -24,6 +24,8 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         private const string Cliente = "sanic_cm_tbl_cliente";
         private const string Fiador = "sanic_cm_tbl_fiador";
         private const string Usuario = "systemuser";
+        private const string Equipo = "team";
+        private const string PrefijoSinCobrador = "CM \u00B7 Cartera sin cobrador";
         private const int Diaria = 1, Especial = 3;
         private const int Pendiente = 2, Aprobado = 3, Rechazada = 4;
 
@@ -49,6 +51,11 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             public readonly Guid Anterior = Guid.NewGuid();     // dueno anterior (otro cobrador)
             public readonly Guid Sistema = Guid.NewGuid();      // SYSTEM, dueno de lo que crea la carga
             public readonly Guid Solicitante = Guid.NewGuid();
+            public readonly Guid EquipoSinCobrador = Guid.NewGuid(); // dueno de la cartera sin cobrador (DAT-07)
+
+            /// <summary>Equipos que devuelve la busqueda de "Cartera sin cobrador" (por defecto, uno).</summary>
+            public readonly List<Entity> Equipos = new List<Entity>();
+            public readonly List<QueryExpression> ConsultasEquipo = new List<QueryExpression>();
 
             public readonly Dictionary<string, Entity> Filas = new Dictionary<string, Entity>();
             public readonly List<object> Operaciones = new List<object>(); // Entity (Update) u OrganizationRequest
@@ -75,7 +82,11 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
                     a["sanic_cm_as_agenteid"] = new EntityReference(Agente, AgenteId);
                     a["sanic_cm_as_cuentaid"] = new EntityReference(Cuenta, CuentaId);
                     a["ownerid"] = new EntityReference(Usuario, Sistema);
+                    a["createdby"] = new EntityReference(Usuario, Sistema);
                 });
+                var equipo = new Entity(Equipo, EquipoSinCobrador);
+                equipo["name"] = PrefijoSinCobrador + " \u00B7 DEV";
+                Equipos.Add(equipo);
                 Poner(Agente, AgenteId, a => a["sanic_cm_ag_usuarioid"] = new EntityReference(Usuario, Cobrador));
                 Poner(Cuenta, CuentaId, c =>
                 {
@@ -104,6 +115,11 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
                     .Returns<QueryBase>(q =>
                     {
                         var qe = (QueryExpression)q;
+                        if (qe.EntityName == Equipo)
+                        {
+                            ConsultasEquipo.Add(qe);
+                            return new EntityCollection(Equipos.ToList());
+                        }
                         Consultas.Add(qe);
                         var res = new EntityCollection();
                         if (ConservaOtra.Contains(TablaDeLaConsulta(qe))) res.Entities.Add(new Entity(Asignacion, Guid.NewGuid()));
@@ -371,13 +387,14 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         }
 
         [Fact]
-        public void Especial_aprobada_se_reparte_y_se_comparte_con_el_solicitante()
+        public void Especial_aprobada_se_reparte_y_se_comparte_con_el_solicitante_que_la_creo()
         {
             var m = new Mundo();
             var a = m.Fila(Asignacion, m.AsignacionId);
             a["sanic_cm_as_tipo"] = new OptionSetValue(Especial);
             a["sanic_cm_as_estadoaprobacion"] = new OptionSetValue(Aprobado);
             a["sanic_cm_as_solicitadopor"] = new EntityReference(Usuario, m.Solicitante);
+            a["createdby"] = new EntityReference(Usuario, m.Solicitante);
             m.Ejecutar();
             Assert.Single(m.Updates);
             Assert.True(m.Compartio(Asignacion, m.AsignacionId, m.Solicitante,
@@ -385,21 +402,135 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         }
 
         [Fact]
-        public void Sin_agente_no_hace_nada()
+        public void S7_si_Solicitado_por_no_es_quien_creo_la_Especial_no_se_comparte_con_nadie()
+        {
+            // "Solicitado por" lo editan Solicitante, Supervisor y Localizador: cambiandolo se le regalaba lectura,
+            // escritura y anexar a un tercero. Quien la creo (createdby) no se puede editar.
+            var m = new Mundo();
+            var a = m.Fila(Asignacion, m.AsignacionId);
+            a["sanic_cm_as_tipo"] = new OptionSetValue(Especial);
+            a["sanic_cm_as_estadoaprobacion"] = new OptionSetValue(Aprobado);
+            a["sanic_cm_as_solicitadopor"] = new EntityReference(Usuario, m.Solicitante);
+            a["createdby"] = new EntityReference(Usuario, m.Anterior);
+            m.Ejecutar(); // no lanza: el resto del reparto sigue
+
+            Assert.DoesNotContain(m.Grants, g => g.Target.LogicalName == Asignacion);
+            Assert.Equal(m.Cobrador, Assert.Single(m.Updates).GetAttributeValue<EntityReference>("ownerid").Id);
+            Assert.True(m.Compartio(Cuenta, m.CuentaId, m.Cobrador, AccessRights.ReadAccess));
+            Assert.Contains("S-7", m.H.TodoElTexto());
+        }
+
+        [Fact]
+        public void S7_la_Especial_se_lee_con_su_creador()
         {
             var m = new Mundo();
+            ColumnSet leidas = null;
+            m.H.Service.Setup(s => s.Retrieve(Asignacion, m.AsignacionId, It.IsAny<ColumnSet>()))
+                .Returns<string, Guid, ColumnSet>((t, id, cs) => { leidas = cs; return m.Fila(Asignacion, id); });
+            m.Ejecutar();
+            Assert.Contains("createdby", leidas.Columns);
+        }
+
+        // ------------------------------------------------------------------ sin cobrador (DAT-07)
+
+        [Fact]
+        public void Agente_sin_usuario_pasa_la_asignacion_al_equipo_sin_cobrador_sin_compartir_nada()
+        {
+            var m = new Mundo();
+            m.Fila(Agente, m.AgenteId).Attributes.Remove("sanic_cm_ag_usuarioid");
+            m.Ejecutar();
+
+            var dueno = Assert.Single(m.Updates).GetAttributeValue<EntityReference>("ownerid");
+            Assert.Equal(Equipo, dueno.LogicalName);
+            Assert.Equal(m.EquipoSinCobrador, dueno.Id);
+            Assert.Empty(m.Grants);
+        }
+
+        [Fact]
+        public void Reasignada_a_un_agente_sin_usuario_le_revoca_al_cobrador_anterior()
+        {
+            // Antes el reparto no hacia nada y el cobrador anterior seguia con la asignacion en el telefono.
+            var m = new Mundo("Update");
+            Reasignada(m);
+            m.Fila(Agente, m.AgenteId).Attributes.Remove("sanic_cm_ag_usuarioid");
+            m.Ejecutar();
+
+            Assert.Equal(m.EquipoSinCobrador, Assert.Single(m.Updates).GetAttributeValue<EntityReference>("ownerid").Id);
+            Assert.True(m.Revoco(Cuenta, m.CuentaId, m.Anterior));
+            Assert.True(m.Revoco(Cliente, m.ClienteId, m.Anterior));
+            Assert.True(m.Revoco(Fiador, m.FiadorId, m.Anterior));
+            Assert.Empty(m.Grants);
+        }
+
+        [Fact]
+        public void Sin_agente_tambien_pasa_al_equipo_sin_cobrador()
+        {
+            var m = new Mundo("Update");
+            Reasignada(m);
             m.Fila(Asignacion, m.AsignacionId).Attributes.Remove("sanic_cm_as_agenteid");
+            m.Ejecutar();
+            Assert.Equal(m.EquipoSinCobrador, Assert.Single(m.Updates).GetAttributeValue<EntityReference>("ownerid").Id);
+            Assert.True(m.Revoco(Cuenta, m.CuentaId, m.Anterior));
+        }
+
+        [Fact]
+        public void Si_ya_es_del_equipo_sin_cobrador_no_hace_nada()
+        {
+            var m = new Mundo("Update");
+            m.Fila(Asignacion, m.AsignacionId)["ownerid"] = new EntityReference(Equipo, m.EquipoSinCobrador);
+            m.Fila(Agente, m.AgenteId).Attributes.Remove("sanic_cm_ag_usuarioid");
             m.Ejecutar();
             Assert.Empty(m.Operaciones);
         }
 
         [Fact]
-        public void Agente_sin_usuario_no_hace_nada()
+        public void Sin_el_equipo_sin_cobrador_falla_sin_tocar_nada_y_sin_reintento()
         {
+            // Mejor un trabajo fallido visible que revocarle al dueno algo que sigue siendo suyo.
+            var m = new Mundo("Update");
+            Reasignada(m);
+            m.Fila(Agente, m.AgenteId).Attributes.Remove("sanic_cm_ag_usuarioid");
+            m.Equipos.Clear();
+            var ex = Assert.Throws<InvalidPluginExecutionException>(() => m.Ejecutar());
+
+            Assert.NotEqual(OperationStatus.Retry, ex.Status);
+            Assert.Contains("Cartera sin cobrador", ex.Message);
+            Assert.Empty(m.Operaciones);
+        }
+
+        [Fact]
+        public void Con_dos_equipos_sin_cobrador_falla_sin_tocar_nada()
+        {
+            var m = new Mundo("Update");
+            Reasignada(m);
+            m.Fila(Agente, m.AgenteId).Attributes.Remove("sanic_cm_ag_usuarioid");
+            m.Equipos.Add(new Entity(Equipo, Guid.NewGuid()));
+            Assert.Throws<InvalidPluginExecutionException>(() => m.Ejecutar());
+            Assert.Empty(m.Operaciones);
+        }
+
+        [Fact]
+        public void El_equipo_sin_cobrador_se_busca_por_prefijo_entre_los_equipos_duenos()
+        {
+            // El nombre lleva el entorno al final ("... · DEV"), como los demas equipos de CM.
             var m = new Mundo();
             m.Fila(Agente, m.AgenteId).Attributes.Remove("sanic_cm_ag_usuarioid");
             m.Ejecutar();
-            Assert.Empty(m.Operaciones);
+
+            var q = Assert.Single(m.ConsultasEquipo);
+            Assert.Contains(q.Criteria.Conditions, c => c.AttributeName == "name" && c.Operator == ConditionOperator.BeginsWith
+                && (string)c.Values[0] == PrefijoSinCobrador);
+            Assert.Contains(q.Criteria.Conditions, c => c.AttributeName == "teamtype" && c.Operator == ConditionOperator.Equal
+                && (int)c.Values[0] == 0);
+            Assert.Equal(2, q.TopCount);
+        }
+
+        [Fact]
+        public void Con_cobrador_no_busca_el_equipo_sin_cobrador()
+        {
+            var m = new Mundo();
+            m.Ejecutar();
+            Assert.Empty(m.ConsultasEquipo);
         }
 
         [Fact]
