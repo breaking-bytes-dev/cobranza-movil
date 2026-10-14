@@ -150,9 +150,9 @@ Cada fila es una relación 1:N real (`OneToManyRelationships` de las tablas CM).
 
 ### C.2 Plugins (ensamblado `Sanic.CobranzaMovil.Plugins`)
 
-**17 pasos, todos activos en DEV** (verificado `statecode = 0`, 2026-10-13). 15 son **PreOperation (20)**, **síncronos (0)** y
-ejecutan como el usuario que llama; los 2 de `RepartoAsignacion` son **PostOperation (40)**, **asíncronos (1)** y usan el servicio
-del sistema (ver C.3). Ninguno conoce la clave K ni escribe valores en trazas o mensajes de error.
+**18 pasos, todos activos en DEV** (verificado `statecode = 0`, 2026-10-14, ensamblado 1.0.5.0). 15 son **PreOperation (20)**,
+**síncronos (0)** y ejecutan como el usuario que llama; los 2 de `RepartoAsignacion` y el de `RepartoPorAgente` son
+**PostOperation (40)**, **asíncronos (1)** y usan el servicio del sistema (ver C.3). Ninguno conoce la clave K ni escribe valores en trazas o mensajes de error.
 
 | Plugin | Tabla y mensaje | Filtro de Update | Qué hace |
 |--------|-----------------|------------------|----------|
@@ -162,7 +162,8 @@ del sistema (ver C.3). Ninguno conoce la clave K ni escribe valores en trazas o 
 | `AprobacionEspecial` (2) | `asignacion`: Create y Update | `as_agenteid`, `as_estadoaprobacion`, `as_tipo` (+ `PreImage`) | S-6. Sobre una **Especial**, solo Supervisor, Admin o `Servicio - Cobranza` pueden: pasarla a Aprobado o Rechazada, poner o cambiar el agente, o convertir en Especial una asignación que ya tiene agente. Frena a las **personas con algún rol `SR \| CM \|`** que no sean esos; no frena a SYSTEM (Smelter) ni a administradores sin roles de CM |
 | `ActualizacionConInteraccion` (2) | `actualizaciondatos`: Create y Update | `ad_interaccionid` | APP-24. Exige una interacción **con cuenta** |
 | `EmailDesdeUsuario` (2) | `agente`: Create y Update | `ag_usuarioid` | `ag_emailusuario` = UPN del usuario vinculado en minúsculas; vacío si se desvincula |
-| `RepartoAsignacion` (2) | `asignacion`: Create y Update, **asíncrono** | `as_agenteid`, `as_estado`, `as_estadoaprobacion` | Reparto de la asignación al cobrador: dueño, compartidos y revocación al anterior (C.3) |
+| `RepartoAsignacion` (2) | `asignacion`: Create y Update, **asíncrono** | `as_agenteid`, `as_estado`, `as_estadoaprobacion` | Reparto de la asignación al cobrador (o a la cartera sin cobrador): dueño, compartidos y revocación al anterior (C.3) |
+| `RepartoPorAgente` (1) | `agente`: Update, **asíncrono** | `ag_usuarioid` | DAT-08. Al vincular, cambiar o quitar el usuario, vuelve a escribir el mismo agente en sus asignaciones activas mal repartidas: eso dispara `RepartoAsignacion` en cada una (C.3) |
 
 Los pasos `PanGuard` de las columnas viejas (`as_`, `in_`, `pg_numerocuenta`) se retiraron cuando esas columnas se eliminaron
 (Fase 2, paso 8). Un paso mal registrado **falla cerrado**. Registro: `scripts/pan/paso5_plugins.py`. *(El README del
@@ -171,7 +172,8 @@ ensamblado todavía describe 12 pasos `PanGuard` desactivados y no menciona `Apr
 
 ### C.3 Reparto de asignaciones: plugin `RepartoAsignacion` (reemplaza al flow de owner)
 
-Desde el 2026-10-13 el reparto lo hace el plugin **asíncrono** `RepartoAsignacion` (versión 1.0.4.0 del ensamblado). El flow
+Desde el 2026-10-13 el reparto lo hace el plugin **asíncrono** `RepartoAsignacion` (desde el 2026-10-14, versión 1.0.5.0 del
+ensamblado, con la cartera sin cobrador, `RepartoPorAgente` y S-7). El flow
 `Cloud Flow | CM | Cambio de Owner en Asignaciones` quedó **apagado** (borrador) y `scripts/seguridad/paso2_flow.py` se niega a
 encenderlo salvo como rollback. El flow fallaba en ~40% de las corridas: (a) intentaba revocarle la cuenta a SYSTEM siendo SYSTEM
 su dueño; (b) varias asignaciones del mismo cliente compartían el cliente a la vez ("More than one concurrent Share requests
@@ -181,22 +183,35 @@ El plugin lee el estado **actual** de la asignación (converge, no repite el eve
 
 - **Asignación activa, y no es Especial sin aprobar, y el agente tiene usuario:** primero el dueño de la asignación pasa al
   usuario del agente; después `GrantAccess` (**solo lectura**) de **cuenta, cliente y fiador** al cobrador; por último
-  `RevokeAccess` al dueño anterior (usuario o equipo) de lo que no justifique otra asignación activa suya. Además comparte la
-  Especial con el **Solicitante** (`as_solicitadopor`, lectura, escritura y anexar). La bóveda, las direcciones y los teléfonos
-  llegan por **Share en cascada**.
+  `RevokeAccess` al dueño anterior (usuario o equipo) de lo que no justifique otra asignación activa suya. La bóveda, las
+  direcciones y los teléfonos llegan por **Share en cascada**.
+- **Especial aprobada:** además se le comparte (lectura, escritura y anexar) al **Solicitante**, pero **solo si
+  `as_solicitadopor` es quien la creó** (`createdby`). "Solicitado por" lo editan Solicitante, Supervisor y Localizador;
+  `createdby` no se puede editar. Si no coinciden, no se le comparte a nadie (S-7). Desde el backoffice siempre coinciden: la
+  pantalla de nueva solicitud pone "Solicitado por" = quien la crea.
+- **Asignación activa sin agente, o con un agente sin usuario (DAT-07):** el dueño pasa al equipo **"CM · Cartera sin
+  cobrador · DEV"** y se le revoca al dueño anterior lo que no justifique otra asignación suya. No se comparte nada: el equipo
+  **no tiene miembros**, así que nadie la ve en el teléfono. Su único rol, `SR | CM | Cartera sin cobrador`, solo da Read Basic
+  de la asignación (Dataverse no deja pasarle un registro a un dueño sin lectura sobre la tabla), más los 4 de SharePoint que la
+  plataforma le pone a todo rol. Equipo y rol los crea `scripts/seguridad/paso5_cartera_sin_cobrador.py`, que falla si el equipo
+  tiene miembros. Si el equipo no existe, el plugin falla sin tocar nada (trabajo del sistema fallido, sin reintento).
+- **Cambia el usuario de un agente (DAT-08):** el plugin `RepartoPorAgente` (asíncrono, Update de `ag_usuarioid`) busca las
+  asignaciones activas del agente cuyo dueño no es el que corresponde (el usuario nuevo o, si se lo quitó, el equipo), sin las
+  Especiales por aprobar, y les vuelve a escribir el **mismo** agente: eso dispara `RepartoAsignacion` en cada una. Hasta 1000
+  por ejecución; si quedan más o alguna falla, pide reintento.
 - **Asignación cerrada:** `RevokeAccess` al dueño actual si no tiene otra asignación activa que lo justifique; desaparece del
   teléfono en la próxima sincronización.
 - **Especial Borrador, Pendiente o Rechazada:** no hace nada (S-6).
-- **Sin agente, o agente sin usuario:** no hace nada, y no se vuelve a evaluar cuando se vincula el usuario después (DAT-07 /
-  DAT-08, abiertos: igual que el flow).
 - **Fallas:** cada paso corre aunque falle otro; el compartido concurrente se reintenta con espera dentro del plugin; si algo queda
   sin hacer, la ejecución termina en error, con reintento del servicio asíncrono si es transitorio. Los trabajos fallidos quedan en
   `asyncoperations` y se leen con el Service Principal; los exitosos se borran solos. `paso3_reconciliar.py` sigue como red de
   seguridad (solo agrega compartidos).
 - **Nunca síncrono:** correría dentro del trozo de 100 filas de Smelter, que tiene 2 minutos por mensaje; si se pasa, se deshace
   el trozo entero. El plugin falla cerrado si se lo registra síncrono.
-- S-7 queda **a medias**: ya no hay conexión personal, pero el compartido al Solicitante sigue usando `as_solicitadopor`, que es
-  editable.
+- S-7 queda **cerrado**: no hay conexión personal (servicio del sistema) y el compartido al Solicitante exige que sea quien
+  creó la Especial.
+- Las asignaciones de agentes sin usuario que ya eran de SYSTEM pasan al equipo la próxima vez que algo las toque (la carga
+  diaria re-escribe el agente de cada fila).
 
 ### C.4 Auditoría
 
@@ -474,8 +489,8 @@ identidad de Entra. Es **padre** de `cuenta`, `asignacion`, `interaccion` y `car
 ### Ciclo de vida
 - **Nace:** del **CSV** (solo el nombre). El **Admin lo vincula** a un usuario en *Agentes y usuarios* (el plugin pone el correo).
 - **Estados:** `SinUsuario` → `ConUsuario` (vincula) → `Inactivo` (desactiva); el Admin puede cambiar o quitar el usuario (correo vacío).
-- **Vive:** persiste. Ancla el reparto: el flow lee `ag_usuarioid` para dar el dueño y el acceso. **Sin usuario, el flow no reparte** las
-  asignaciones de ese agente (DAT-07, abierto; en DEV 16 de 20 agentes estaban sin usuario en la auditoría de 2026-10-03).
+- **Vive:** persiste. Ancla el reparto: `RepartoAsignacion` lee `ag_usuarioid` para dar el dueño y el acceso. **Sin usuario, sus asignaciones van
+  al equipo "Cartera sin cobrador"** (sin miembros: nadie las ve) y el cobrador anterior las pierde (DAT-07, cerrado 2026-10-14).
 - **Fin:** cuando el localizador se va → **`ag_activo = No`** (soft-delete). **Nunca** se hard-delete.
 
 ### Cómo borrar
@@ -488,7 +503,7 @@ identidad de Entra. Es **padre** de `cuenta`, `asignacion`, `interaccion` y `car
   Acordar que el `Agente` del CSV sea **estable**.
 - **Localizador que renuncia:** `ag_activo = No` + control de "asignaciones de agentes inactivos" (el CSV puede insistir en mandarle
   cuentas; gana el CSV, DEC-020).
-- **Vincular el usuario después no propaga el owner** de las asignaciones ya creadas (DAT-08, abierto).
+- **Vincular, cambiar o quitar el usuario re-reparte sus asignaciones activas** (`RepartoPorAgente`, DAT-08, cerrado 2026-10-14).
 - Borrarlo rompería **historia** y **seguridad por fila**.
 - `ag_usuarioid` y `ag_emailusuario` tienen auditoría de tabla activa (`agente` está auditada desde 2026-10-06).
 
@@ -887,7 +902,7 @@ aprobación (solo relevante para las Especiales).
 |--------------|--------|------|:----:|-------------|
 | Estado de aprobación | `sanic_cm_as_estadoaprobacion` | Choice `sanic_choice_cm_estadoaprobacionespecial`: **1 Borrador**, **2 Pendiente aprobación** (def. **2**), **3 Aprobado**, **4 Rechazada** | — | Gobierna la aprobación. |
 | Resolutor | `sanic_cm_as_resolutorid` | Lookup → `systemuser` | — | Quién aprueba o rechaza. Escrita, nunca leída por las apps. |
-| Solicitado por | `sanic_cm_as_solicitadopor` | Lookup → `systemuser` | — | El **Solicitante**. El flow le **comparte la Especial** (rama original conservada en `paso2_flow.py`); S-7 (abierto) advierte que el campo lo editan varios roles. |
+| Solicitado por | `sanic_cm_as_solicitadopor` | Lookup → `systemuser` | — | El **Solicitante**. `RepartoAsignacion` le **comparte la Especial aprobada** solo si es quien la creó (`createdby`): el campo lo editan varios roles (S-7, cerrado). |
 | Motivo de rechazo | `sanic_cm_as_motivorechazo` | Text(2000, área de texto) | — | Si el Supervisor rechaza. |
 | Propietario | `ownerid` | Owner | Sí | Lo mueve el **flow** al usuario del agente. |
 
@@ -937,7 +952,7 @@ el flow **no comparte** una Especial sin aprobar.
 - **CERRAR ≠ BORRAR:** el fin de vida es **`as_estado = No` (Cerrada)** (Reconciliación, Cierres o el flow), no un borrado. Las cerradas **se conservan** como rastro.
   El teléfono las saca en la próxima sincronización (el flow revoca el acceso y el filtro del perfil las excluye).
 - **Borrado físico** (opcional, muy posterior): bulk-delete de `Cerradas` viejas (más de 1 año), si hiciera falta; no hay job. La tabla crece lento.
-- **Owner:** si el agente no tiene `ag_usuarioid`, el flow no mueve el dueño y el localizador no la ve (DAT-07; vista de control "agentes sin usuario" en el inicio del Admin).
+- **Owner:** si el agente no tiene `ag_usuarioid`, la asignación pasa al equipo "Cartera sin cobrador" y ningún localizador la ve (DAT-07; vista de control "agentes sin usuario" en el inicio del Admin).
 - **Assign = Cascade** desde `cuenta` o `cliente`: reasignar la cuenta o el cliente pisa el dueño que puso el flow (DAT-18, latente).
 - Antes del 2026-10-06 `Reparent` estaba en Cascade y el cobrador heredaba lectura de **todas las asignaciones** de sus clientes (defecto 2 / S-14).
 

@@ -11,6 +11,7 @@ Todos muestran el plan sin cambiar nada; aplican solo con `--aplicar`.
 | — | `paso2_prueba.py` | Prueba E2E (T1–T4) con datos `QA-E2E-F1` que se borran al final |
 | 3 | `paso3_reconciliar.py` | **Reconciliación**: asegura los compartidos de todas las asignaciones activas cuyo owner es el usuario de su agente. Es idempotente |
 | 4 | `paso4_rol_basic.py` | El rol `SR \| CM \| Localizador` pasa de lectura **Global** a **Basic** en cuenta, cliente, dirección, teléfono y fiador. `--revertir` lo devuelve a Global |
+| 5 | `paso5_cartera_sin_cobrador.py --entorno DEV` | Equipo dueño **"CM · Cartera sin cobrador · DEV"** (unidad raíz, **sin miembros**) y su rol `SR \| CM \| Cartera sin cobrador` (solo Read Basic de la asignación, más los 4 de SharePoint que Dataverse le pone a todo rol; se agrega a la solución). `RepartoAsignacion` le pasa las asignaciones activas cuyo agente no tiene usuario (DAT-07) y `RepartoPorAgente` las mueve al vincular o quitar el usuario (DAT-08). Termina con error si el equipo tiene miembros u otros roles. **Antes de registrar los plugins 1.0.5.0 en un entorno nuevo** |
 
 ## Orden obligatorio
 

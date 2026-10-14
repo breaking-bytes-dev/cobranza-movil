@@ -80,6 +80,7 @@ Revisé por mi cuenta, fuera de los agentes, las afirmaciones más graves:
 |---|---|---|
 | 0 · Línea base | ✅ | Commits `49275f0`, `0f4d491` |
 | 1 · Exposición (S-1, S-2, S-8) | ✅ en DEV | [scripts/seguridad](../../scripts/seguridad/README.md): cascadas cortadas, auditoría transaccional, el flow comparte y revoca, backfill de 282 compartidos, Localizador en lectura Basic. Teléfono de User5 con primera sincronización limpia: 2 cuentas en vez de 1.004, y tarjetas completas (también resuelve F-1 para cobradores). Pendiente: los teléfonos que ya tenían el padrón lo conservan hasta reiniciarlos (ver README). 2026-10-05: perfil offline propio con asignaciones activas e historial de 90 días |
+| 4 · Integridad: S-7 y F-7 (DAT-07/08) | ✅ en DEV (2026-10-14) | Plugins asíncronos `RepartoAsignacion` (reemplaza al flow de owner; sin agente o con agente sin usuario, la asignación pasa al equipo sin miembros "CM · Cartera sin cobrador" y el cobrador anterior la pierde) y `RepartoPorAgente` (vincular, cambiar o quitar el usuario re-reparte sus asignaciones). Ver [catálogo C.3](../referencia/03-catalogo-de-tablas.md) |
 | 4 · Integridad: S-6 | ✅ en DEV | Plugin `AprobacionEspecial` (solo Supervisor/Admin aprueban, rechazan o asignan agente a una Especial; la carga de Smelter, sin roles de CM, no se frena), flow que no comparte una Especial sin aprobar y app que no la muestra. Ver [localizador-bugs-codigo.md](localizador-bugs-codigo.md#cierre-app-25-24-16-08s-6-y-s-1-2026-10-05) |
 
 ## Estado verificado y recomendaciones de seguridad (2026-10-06)
@@ -95,7 +96,7 @@ trazas y definición del flow.
 | S-4 | ❌ Abierto | **Todos los roles CM pueden crear flows** (verificado): un flow puede copiar lo que el usuario lee a su OneDrive o correo sin que se note. Los roles CM no dan "Exportar a Excel", pero los usuarios tienen otros roles ("Basic User") que pueden darlo. DLP no verificable con la cuenta de servicio | Quitar `prvCreateWorkflow` a los roles CM operativos; revisar la exportación en **todos** los roles de cada usuario; política DLP del entorno |
 | S-5 | ✅ Cerrado | — | Fase 2 de PAN: el número completo solo vive en la bóveda |
 | S-6 | ✅ Cerrado | — | Plugin `AprobacionEspecial` + compuerta del flow + filtro de la app |
-| S-7 | ❌ Abierto | El flow corre con la **cuenta personal** de su dueño (con permisos de administrador): si esa cuenta cambia, se cae la asignación de Especiales. Además da **lectura, escritura y vínculo** a quien figure en "Solicitado por", un campo que editan Solicitante, Supervisor y Localizador: se puede regalar acceso a un tercero | **Prioridad 1.** Identidad de servicio (SP con rol "Servicio - Cobranza") y compartir con `createdby` (no editable) en lugar de "Solicitado por" |
+| S-7 | ✅ Cerrado (2026-10-14) | — | El reparto lo hace el plugin asíncrono `RepartoAsignacion` con el servicio del sistema (sin conexión personal; flow apagado) y la Especial aprobada se le comparte al Solicitante **solo si "Solicitado por" es quien la creó** (`createdby`). Verificado en vivo: creada por otro → no se comparte; creada por el Solicitante → sí |
 | S-8 | ✅ Cerrado | — | Auditoría activa en asignación, interacción, pago y agente |
 | S-9 | ❌ Abierto | El cobrador tiene **escritura sobre sus interacciones y pagos** y puede **reasignar pagos** (verificado): puede cambiar un monto, la fecha o el GPS después de grabar | **Prioridad 2.** Que el rol cree pero no edite, o un plugin que bloquee los campos clave después de grabar. Diseñarlo con la sincronización offline en mente (también actualiza registros) |
 | S-10 | ⚠️ Sin re-verificar | En la auditoría, la app del cobrador estaba compartida con User1 (BackOffice y agente de 66 asignaciones) y User9 (sin rol CM). Ver los compartidos requiere la API de administración de Power Apps | Compartir la app solo con el equipo "CM · Localizadores" |
@@ -114,7 +115,7 @@ trazas y definición del flow.
 - Los accesos heredados que ya existían en DEV no se limpiaron (datos ficticios, por decisión). **En PROD hay que aplicar
   el cambio antes de la primera carga real.**
 
-**Orden recomendado:** S-7 (además de riesgo, es un punto de falla operativo), S-9 (toca la plata), S-4. S-3, S-10 y S-12
+**Orden recomendado:** S-9 (toca la plata), S-4 (S-7 cerrado el 2026-10-14). S-3, S-10 y S-12
 hay que pedírselos al administrador del tenant antes de PROD.
 
 ## Orden de corrección propuesto
@@ -143,7 +144,7 @@ hay que pedírselos al administrador del tenant antes de PROD.
 | ¿El cobrador necesita el PAN? | **Sí, lo escribe a mano en la factura de papel**, también **sin señal** | Visible completo para el cobrador, offline, solo de su cartera |
 | Modelo "solo su cartera" | **A: compartir desde el flow** (GrantAccess y RevokeAccess) + lectura Basic en el rol Localizador | Hay que mantener el revoke al reasignar o cerrar; crece la tabla POA |
 | Dispositivos | **Corporativos con Intune** | MDM + MAM: Power Apps (`com.microsoft.msapps`) está en la lista oficial de [apps protegidas por Intune](https://learn.microsoft.com/intune/app-management/ref-protected-apps) |
-| Identidad del flow | **Se mantiene la cuenta actual en DEV** | Pendiente obligatorio antes de PRD (S-7) |
+| Identidad del flow | **Se mantiene la cuenta actual en DEV** | Superado: el flow se reemplazó por el plugin `RepartoAsignacion`, que corre con el servicio del sistema (S-7 cerrado, 2026-10-14) |
 
 ### Diseño PCI acordado (Fase 2)
 

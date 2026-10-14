@@ -5,7 +5,7 @@ Ensamblado de plugins de la **Fase 2 PAN/PCI** (diseño: [fase2-pan-diseno.md](.
 
 ## Qué hace cada plugin
 
-Todos son **síncronos, PreOperation**, corren con los permisos del **usuario que llama** y nunca ponen un valor de columna en un mensaje de error ni en una traza (solo el nombre de la columna). La excepción es `RepartoAsignacion`: **asíncrono, PostOperation**, con el servicio del sistema (ver abajo).
+Todos son **síncronos, PreOperation**, corren con los permisos del **usuario que llama** y nunca ponen un valor de columna en un mensaje de error ni en una traza (solo el nombre de la columna). Las excepciones son `RepartoAsignacion` y `RepartoPorAgente`: **asíncronos, PostOperation**, con el servicio del sistema (ver abajo).
 
 | Plugin | Mensaje y tabla | Filtro | Qué hace |
 |---|---|---|---|
@@ -13,7 +13,8 @@ Todos son **síncronos, PreOperation**, corren con los permisos del **usuario qu
 | `PanGuard` | Create y Update de `sanic_cm_tbl_asignacion`, `sanic_cm_tbl_interaccion`, `sanic_cm_tbl_pago` | Update: `sanic_cm_as_numerocuenta` / `sanic_cm_in_numerocuenta` / `sanic_cm_pg_numerocuenta` | Rechaza **cualquier valor no vacío** en esas columnas denormalizadas viejas (el paso 8d las elimina; el script retira solo esos pasos cuando la columna ya no existe). |
 | `ClaveDesdeCuenta` | Create y Update de `sanic_cm_tbl_asignacion` | Update: `sanic_cm_as_cuentaid`, `sanic_cm_as_clavepan` (+ imagen previa `PreImage` con `sanic_cm_as_cuentaid`) | Si hay `as_cuentaid`: lee `sanic_cm_ct_clavepan` de la cuenta (un solo `Retrieve`, una sola columna); sin `as_clavepan` en el Target la completa; si es distinta, rechaza. Si `as_cuentaid` se borra, no toca nada. Si la cuenta aún no tiene clave, no bloquea. |
 | `CuentaDesdeInteraccion` | Create de `sanic_cm_tbl_pago` | — | Si `sanic_cm_pg_cuentaid` viene vacío y hay `sanic_cm_pg_interaccion`, lo completa con `sanic_cm_in_cuentaid` de la interacción (un solo `Retrieve`, una columna). Hace falta porque el modo offline solo admite un nivel de lookup. |
-| `RepartoAsignacion` | Create y Update de `sanic_cm_tbl_asignacion`, **asíncrono, PostOperation** | Update: `sanic_cm_as_agenteid`, `sanic_cm_as_estado`, `sanic_cm_as_estadoaprobacion` | Reemplaza al flow "Cambio de Owner en Asignaciones". Lee el estado **actual** de la asignación. Si está activa, tiene agente con usuario y no es una Especial sin aprobar (S-6): pasa el dueño al usuario del agente, le comparte en lectura cuenta, cliente y fiador (y la Especial al solicitante) y le revoca al dueño anterior lo que ya no justifique otra asignación activa suya. Si está cerrada, revoca al dueño actual. Cada paso corre aunque falle otro; el compartido concurrente se reintenta con espera y, si algo queda sin hacer, la ejecución termina en error (con reintento del servicio asíncrono si es transitorio). Corre con el servicio del **sistema** (dar y quitar acceso no lo tiene ningún rol de persona). |
+| `RepartoAsignacion` | Create y Update de `sanic_cm_tbl_asignacion`, **asíncrono, PostOperation** | Update: `sanic_cm_as_agenteid`, `sanic_cm_as_estado`, `sanic_cm_as_estadoaprobacion` | Reemplaza al flow "Cambio de Owner en Asignaciones". Lee el estado **actual** de la asignación. Si está activa y no es una Especial sin aprobar (S-6): pasa el dueño al usuario del agente, le comparte en lectura cuenta, cliente y fiador y le revoca al dueño anterior lo que ya no justifique otra asignación activa suya. Sin agente o con un agente sin usuario, el dueño pasa al equipo **"CM · Cartera sin cobrador · &lt;entorno&gt;"** (sin miembros, DAT-07) y no comparte nada. La Especial aprobada se le comparte al solicitante **solo si "Solicitado por" es quien la creó** (`createdby`, S-7). Si está cerrada, revoca al dueño actual. Cada paso corre aunque falle otro; el compartido concurrente se reintenta con espera y, si algo queda sin hacer, la ejecución termina en error (con reintento del servicio asíncrono si es transitorio). Corre con el servicio del **sistema** (dar y quitar acceso no lo tiene ningún rol de persona). |
+| `RepartoPorAgente` | Update de `sanic_cm_tbl_agente`, **asíncrono, PostOperation** | `sanic_cm_ag_usuarioid` | DAT-08. Al vincular, cambiar o quitar el usuario del agente, busca sus asignaciones activas cuyo dueño no es el que corresponde (el usuario o el equipo Cartera sin cobrador), sin las Especiales por aprobar, y les vuelve a escribir el **mismo** agente: eso dispara `RepartoAsignacion` en cada una. Hasta 1000 por ejecución; si quedan más o alguna falla, pide reintento. |
 
 Un paso mal registrado (otra tabla, otra etapa, otro mensaje) **falla cerrado** con un error claro en vez de ignorar el control en silencio.
 
@@ -32,7 +33,10 @@ Hasta el paso 8 la carga de Smelter **todavía escribe el PAN** en `ct_numerodec
 Smelter escribe las filas del CSV con la Custom API `processchunk`: un solo mensaje por trozo de **100 filas** (la plantilla dice 50, pero Smelter fuerza un mínimo de 100). Un plugin síncrono sobre la asignación correría **dentro** de ese mensaje, y Dataverse le da al mensaje entero **2 minutos**: si se pasa, deshace el trozo completo. Medido en DEV (2026-10-12): unos 80 s por trozo de 100 filas sin el reparto; el reparto suma de 8 a 12 operaciones por asignación. Asíncrono, cada asignación es un trabajo del sistema aparte con sus propios 2 minutos. El plugin **falla cerrado** si se lo registra síncrono.
 
 Los trabajos fallidos quedan en `asyncoperations` (los exitosos se borran solos) y se leen con el Service Principal:
-`asyncoperations?$filter=operationtype eq 1 and statuscode eq 31 and startswith(name,'Sanic.CobranzaMovil.Plugins.RepartoAsignacion')`.
+`asyncoperations?$filter=operationtype eq 1 and statuscode eq 31 and startswith(name,'Sanic.CobranzaMovil.Plugins.Reparto')`.
+
+Ambos necesitan el equipo "CM · Cartera sin cobrador · &lt;entorno&gt;" y su rol mínimo (`scripts/seguridad/paso5_cartera_sin_cobrador.py`);
+sin él, la asignación sin cobrador falla sin tocar nada (sin reintento).
 
 ## Registro (qué crea el workflow)
 
@@ -77,7 +81,7 @@ Se usó **Moq y no FakeXrmEasy** (la skill de pruebas del equipo propone FakeXrm
 
 ```
 plugins/
-├── Sanic.CobranzaMovil.Plugins/        PanGuard, ClaveDesdeCuenta, CuentaDesdeInteraccion, PanDetector, Esquema, PluginBase
+├── Sanic.CobranzaMovil.Plugins/        un archivo por plugin, PanDetector, CarteraSinCobrador, Esquema, PluginBase
 └── Sanic.CobranzaMovil.Plugins.Tests/  xunit + Moq
 scripts/pan/paso5_plugins.py            registro idempotente por Web API
 .github/workflows/pan-plugin-cm.yml     compila, prueba y registra

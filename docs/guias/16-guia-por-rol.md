@@ -427,7 +427,6 @@ encabezado `MSCRMCallerID: <systemuserid>`, usando la cuenta de servicio de DEV.
 prueba (detalle en `docs/auditoria/00-lista-consolidada.md`):
 - **S-9:** el cobrador edita lo ya grabado.
 - **S-11:** el Supervisor escribe cualquier columna.
-- **S-7:** el flow regala permisos a "Solicitado por".
 - **S-4:** todos los roles CM pueden crear flows.
 
 **Cobrador:**

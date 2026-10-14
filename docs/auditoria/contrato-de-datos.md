@@ -315,6 +315,11 @@ Además `IN-1035` quedó sin geo (el `Patch` no espera ni valida `Location`; doc
 
 **Corrección propuesta:** en la rama sin usuario, (a) asignar a un *team* "Cartera sin cobrador" para quitarle el acceso al anterior, y (b) registrar el caso (tabla de log o correo). Prevenir en origen: validación server-side (plug-in/Custom API) que impida setear `as_agenteid` de un agente sin usuario, o KPI/alerta diaria de "asignaciones con agente sin usuario" (hoy `scrAgentes` cuenta *agentes* sin usuario, no asignaciones afectadas).
 
+**Estado (2026-10-14): cerrado en DEV.** El plugin asíncrono `RepartoAsignacion` le pasa la asignación activa sin agente o con
+agente sin usuario al equipo "CM · Cartera sin cobrador · DEV" (sin miembros; rol mínimo `SR | CM | Cartera sin cobrador`) y le
+revoca al cobrador anterior lo que no justifique otra asignación suya. Si el equipo no existe, falla sin tocar nada (trabajo
+del sistema fallido). Ver [catálogo C.3](../referencia/03-catalogo-de-tablas.md).
+
 ---
 
 ### DAT-08 — Vincular o cambiar el usuario del agente no propaga el owner
@@ -329,6 +334,10 @@ Además `IN-1035` quedó sin geo (el `Patch` no espera ni valida `Location`; doc
 **Impacto:** el onboarding real de un cobrador (crear agente en la carga → vincular usuario → entra a la app) deja su cartera vacía hasta la próxima carga; el reemplazo de un usuario deja la cartera con el usuario anterior.
 
 **Corrección propuesta:** segundo flow (o ampliar este) disparado por `ag_usuarioid` en `agente`: recorrer las asignaciones `Activa` del agente y re-ejecutar la lógica de owner (+ `GrantAccess` de las Especiales). Para desvincular: devolver las asignaciones al team "Cartera sin cobrador".
+
+**Estado (2026-10-14): cerrado en DEV.** El plugin asíncrono `RepartoPorAgente` (Update de `ag_usuarioid`) re-escribe el mismo
+agente en sus asignaciones activas mal repartidas, lo que dispara `RepartoAsignacion` en cada una: al vincular pasan al usuario,
+al desvincular vuelven al equipo "Cartera sin cobrador".
 
 ---
 
