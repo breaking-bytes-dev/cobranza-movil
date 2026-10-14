@@ -70,6 +70,14 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         }
 
         [Fact]
+        public void La_clave_primaria_en_el_Target_no_cuenta_como_columna()
+        {
+            var t = Cambio("sanic_cm_as_orden");
+            t["sanic_cm_tbl_asignacionid"] = t.Id;
+            Pasa(t, Localizador);
+        }
+
+        [Fact]
         public void El_Supervisor_cierra_al_rechazar()
         {
             Pasa(Cambio("sanic_cm_as_estado", "sanic_cm_as_motivo", "sanic_cm_as_fechacierre"), Supervisor);

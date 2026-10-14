@@ -38,7 +38,11 @@ namespace Sanic.CobranzaMovil.Plugins
             local.ExigirRegistro(Esquema.Interaccion, Esquema.EtapaPreOperation, Esquema.MensajeUpdate);
 
             var target = local.ObtenerTarget();
-            var columnas = target.Attributes.Keys.Where(c => c.StartsWith(Esquema.PrefijoColumnaCm, StringComparison.Ordinal)).ToList();
+            // El Target de Dataverse trae tambien la clave primaria (sanic_cm_tbl_interaccionid): no es una columna de negocio.
+            var clave = target.LogicalName + "id";
+            var columnas = target.Attributes.Keys
+                .Where(c => c.StartsWith(Esquema.PrefijoColumnaCm, StringComparison.Ordinal) && c != clave)
+                .ToList();
             if (columnas.Count == 0)
             {
                 local.Trace("el cambio no toca columnas de negocio; sin control.");

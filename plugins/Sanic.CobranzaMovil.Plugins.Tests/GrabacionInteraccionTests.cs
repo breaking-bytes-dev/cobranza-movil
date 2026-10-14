@@ -74,6 +74,23 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         }
 
         [Fact]
+        public void La_clave_primaria_en_el_Target_no_cuenta_como_columna()
+        {
+            // Dataverse agrega sanic_cm_tbl_interaccionid al Target de un Update (verificado en vivo, 2026-10-14).
+            var previa = Previa(Pendiente, null);
+            var t = Grabar(previa, "TRX-1");
+            t["sanic_cm_tbl_interaccionid"] = previa.Id;
+            Actualizar(t, previa, BackOffice).Ejecutar(new GrabacionInteraccion());
+            Assert.True(t.Contains(Fecha));
+
+            var soloClave = new Entity(Interaccion, previa.Id);
+            soloClave["sanic_cm_tbl_interaccionid"] = previa.Id;
+            var h = new Harness("Update", Interaccion).ConTarget(soloClave).RolesDelLlamador(BackOffice);
+            h.Ejecutar(new GrabacionInteraccion());
+            Assert.Equal(0, h.ConsultasAlServicio());
+        }
+
+        [Fact]
         public void Grabar_sin_codigo_se_rechaza()
         {
             var previa = Previa(Pendiente, null);
