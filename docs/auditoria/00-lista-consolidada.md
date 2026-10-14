@@ -80,6 +80,7 @@ Revisé por mi cuenta, fuera de los agentes, las afirmaciones más graves:
 |---|---|---|
 | 0 · Línea base | ✅ | Commits `49275f0`, `0f4d491` |
 | 1 · Exposición (S-1, S-2, S-8) | ✅ en DEV | [scripts/seguridad](../../scripts/seguridad/README.md): cascadas cortadas, auditoría transaccional, el flow comparte y revoca, backfill de 282 compartidos, Localizador en lectura Basic. Teléfono de User5 con primera sincronización limpia: 2 cuentas en vez de 1.004, y tarjetas completas (también resuelve F-1 para cobradores). Pendiente: los teléfonos que ya tenían el padrón lo conservan hasta reiniciarlos (ver README). 2026-10-05: perfil offline propio con asignaciones activas e historial de 90 días |
+| 4 · Integridad: S-9 y S-4 (roles CM) | ✅ / ⚠️ en DEV (2026-10-14) | El cobrador crea pero no edita ni reasigna lo capturado (`paso6_cobrador_solo_crea.py`); los roles CM operativos no crean flows (`paso7_sin_flows.py`). S-4 sigue parcial por `Basic User` y DLP |
 | 4 · Integridad: S-7 y F-7 (DAT-07/08) | ✅ en DEV (2026-10-14) | Plugins asíncronos `RepartoAsignacion` (reemplaza al flow de owner; sin agente o con agente sin usuario, la asignación pasa al equipo sin miembros "CM · Cartera sin cobrador" y el cobrador anterior la pierde) y `RepartoPorAgente` (vincular, cambiar o quitar el usuario re-reparte sus asignaciones). Ver [catálogo C.3](../referencia/03-catalogo-de-tablas.md) |
 | 4 · Integridad: S-6 | ✅ en DEV | Plugin `AprobacionEspecial` (solo Supervisor/Admin aprueban, rechazan o asignan agente a una Especial; la carga de Smelter, sin roles de CM, no se frena), flow que no comparte una Especial sin aprobar y app que no la muestra. Ver [localizador-bugs-codigo.md](localizador-bugs-codigo.md#cierre-app-25-24-16-08s-6-y-s-1-2026-10-05) |
 
@@ -93,12 +94,12 @@ trazas y definición del flow.
 | S-1 | ✅ Cerrado | — | Perfil offline propio: solo lo legible por el cobrador, asignaciones activas y 90 días de historial |
 | S-2 | ✅ Cerrado (Localizador) | Solicitante y Supervisor leen todas las cuentas y clientes (Global): lo necesitan para buscar cualquier cuenta al crear y aprobar Especiales. **Decisión de diseño**, no hueco | Mantener; revisarlo si cambia el proceso |
 | S-3 | ❌ Abierto (tenant) | Los datos offline quedan en el teléfono hasta desinstalar: sin borrado remoto, PIN ni cifrado exigido | Intune/MAM + Conditional Access en Entra antes de PROD. Lo hace un administrador del tenant |
-| S-4 | ❌ Abierto | **Todos los roles CM pueden crear flows** (verificado): un flow puede copiar lo que el usuario lee a su OneDrive o correo sin que se note. Los roles CM no dan "Exportar a Excel", pero los usuarios tienen otros roles ("Basic User") que pueden darlo. DLP no verificable con la cuenta de servicio | Quitar `prvCreateWorkflow` a los roles CM operativos; revisar la exportación en **todos** los roles de cada usuario; política DLP del entorno |
+| S-4 | ⚠️ Parcial (2026-10-14) | **Hecho:** los roles CM operativos (Localizador, Solicitante, Supervisor, BackOffice) ya no crean ni editan flows (`paso7_sin_flows.py`). **Falta, y no es de CM:** el rol de plataforma `Basic User`, que tienen todos, y roles de otras soluciones del entorno (MPPP, WFE, Procurement, Sigil, CH-SR) siguen dando crear flows y exportar a Excel; 0 políticas DLP; TDS endpoint encendido | En PROD: que los usuarios de CM tengan solo roles CM más un rol base propio sin crear flows ni exportar (en lugar de `Basic User`); política DLP del entorno; apagar o restringir el TDS endpoint. Lo decide el dueño del entorno o del tenant |
 | S-5 | ✅ Cerrado | — | Fase 2 de PAN: el número completo solo vive en la bóveda |
 | S-6 | ✅ Cerrado | — | Plugin `AprobacionEspecial` + compuerta del flow + filtro de la app |
 | S-7 | ✅ Cerrado (2026-10-14) | — | El reparto lo hace el plugin asíncrono `RepartoAsignacion` con el servicio del sistema (sin conexión personal; flow apagado) y la Especial aprobada se le comparte al Solicitante **solo si "Solicitado por" es quien la creó** (`createdby`). Verificado en vivo: creada por otro → no se comparte; creada por el Solicitante → sí |
 | S-8 | ✅ Cerrado | — | Auditoría activa en asignación, interacción, pago y agente |
-| S-9 | ❌ Abierto | El cobrador tiene **escritura sobre sus interacciones y pagos** y puede **reasignar pagos** (verificado): puede cambiar un monto, la fecha o el GPS después de grabar | **Prioridad 2.** Que el rol cree pero no edite, o un plugin que bloquee los campos clave después de grabar. Diseñarlo con la sincronización offline en mente (también actualiza registros) |
+| S-9 | ✅ Cerrado (2026-10-14) | El cobrador sigue poniendo desde el teléfono monto, recibo, GPS y fecha de captura al **crear** (es la captura) | El rol Localizador crea interacciones, pagos y actualizaciones de datos pero ya **no los edita ni los reasigna** (sin Write ni Assign; `paso6_cobrador_solo_crea.py`). Verificado en vivo: User5 recibe 403 al bajar el monto de su pago, editar su interacción o reasignar el pago; la app sigue capturando (suite F7 16/16) |
 | S-10 | ⚠️ Sin re-verificar | En la auditoría, la app del cobrador estaba compartida con User1 (BackOffice y agente de 66 asignaciones) y User9 (sin rol CM). Ver los compartidos requiere la API de administración de Power Apps | Compartir la app solo con el equipo "CM · Localizadores" |
 | S-11 | ❌ Abierto (mitigado) | El Supervisor escribe **cualquier columna de cualquier asignación** (Global). Desde S-6 lo que aprueba queda controlado, pero puede tocar cuenta, saldo, orden y tipo | Seguridad de columna sobre lo que no le corresponde |
 | S-12 | ❌ Abierto (tenant) | El entorno no es Managed, no tiene grupo de seguridad ni restricción por IP, y tiene 15 System Administrators | Centro de administración de Power Platform antes de PROD |
@@ -115,7 +116,7 @@ trazas y definición del flow.
 - Los accesos heredados que ya existían en DEV no se limpiaron (datos ficticios, por decisión). **En PROD hay que aplicar
   el cambio antes de la primera carga real.**
 
-**Orden recomendado:** S-9 (toca la plata), S-4 (S-7 cerrado el 2026-10-14). S-3, S-10 y S-12
+**Orden recomendado:** S-4 (lo que queda es de plataforma), S-11, S-13 (S-7 y S-9 cerrados el 2026-10-14). S-3, S-10 y S-12
 hay que pedírselos al administrador del tenant antes de PROD.
 
 ## Orden de corrección propuesto

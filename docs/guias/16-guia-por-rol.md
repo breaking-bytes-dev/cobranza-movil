@@ -113,8 +113,8 @@ Alcance: **U** = solo lo propio o lo compartido con el usuario; **G** = toda la 
 | Dirección / Teléfono | R: U | R/A/T: G | R: G | R: G | todo: G | C/R/W/A/T: G |
 
 Lo que dice la matriz en palabras:
-- **Localizador:** lee solo lo que el flow le comparte (sus cuentas asignadas) y crea interacciones, pagos y
-  actualizaciones de datos. **Puede editar lo que ya grabó** (S-9, abierto).
+- **Localizador:** lee solo lo que el reparto le comparte (sus cuentas asignadas) y crea interacciones, pagos y
+  actualizaciones de datos. **No puede editar ni reasignar lo que ya capturó** (S-9, cerrado 2026-10-14).
 - **Solicitante y Supervisor:** leen todas las cuentas y clientes porque necesitan buscar cualquiera. Es una decisión de
   diseño.
 - **BackOffice:** el **único** rol de persona que lee la bóveda: ve el número completo para transcribirlo al core.
@@ -169,7 +169,7 @@ Ajustes ("Aa"): tema día o noche y tamaño de letra.
 | Aprobar o asignarse una Especial (por la API) | Plugin `AprobacionEspecial` | Error "solo un Supervisor puede aprobar, rechazar o asignar el agente…" |
 | Crear una actualización de datos sin interacción, o con una interacción sin cuenta | Plugin `ActualizacionConInteraccion` | Error "…tiene que estar vinculada a una interaccion" |
 | Leer el número de tarjeta de una cuenta que no es suya | Bóveda con lectura "U" | No llega |
-| **Editar un pago o una interacción ya grabados** | **Nadie (S-9, abierto)** | **Hoy se puede.** Registrarlo si aparece en una prueba |
+| Que el cobrador edite o reasigne un pago, una interacción o una actualización de datos ya capturados | Rol Localizador sin Write ni Assign (S-9) | Error de privilegio (`prvWritesanic_cm_tbl_pago`, …) |
 
 **Al sincronizar**, el servidor completa:
 - la cuenta del pago;
@@ -425,9 +425,8 @@ encabezado `MSCRMCallerID: <systemuserid>`, usando la cuenta de servicio de DEV.
 
 **Huecos de seguridad abiertos**, que una prueba puede "lograr" y conviene registrar como hallazgo, no como falla de la
 prueba (detalle en `docs/auditoria/00-lista-consolidada.md`):
-- **S-9:** el cobrador edita lo ya grabado.
 - **S-11:** el Supervisor escribe cualquier columna.
-- **S-4:** todos los roles CM pueden crear flows.
+- **S-4:** los roles CM ya no crean flows, pero `Basic User` y roles de otras soluciones del entorno sí (y exportan a Excel).
 
 **Cobrador:**
 - El historial offline es de **90 días**; lo más viejo se ve solo con señal.

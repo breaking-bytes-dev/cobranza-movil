@@ -238,7 +238,7 @@ Perfil **propio** (reemplaza al autogenerado), publicado, creado por `scripts/pa
 Fuera del perfil: `producto`, `fiador`, `cargadiaria`, `usuarioapp`. Con "todas las filas que el usuario puede leer", al teléfono
 baja solo lo que es suyo o se le compartió.
 
-### C.6 Privilegios por rol (verificado 2026-10-06; ver `docs/guias/16-guia-por-rol.md` §3)
+### C.6 Privilegios por rol (verificado 2026-10-06, Localizador actualizado 2026-10-14; ver `docs/guias/16-guia-por-rol.md` §3)
 
 C = crear, R = leer, W = escribir, D = borrar, A = vincular (Append), T = ser vinculado (Append To), G = asignar dueño, S = compartir.
 Alcance: **U** = propio o compartido, **G** = toda la organización. Sin entrada = sin privilegios.
@@ -253,15 +253,20 @@ Alcance: **U** = propio o compartido, **G** = toda la organización. Sin entrada
 | cuenta | R:U · T:G | R/A/T:G | R:G | R:G | todo:G | C/R/W/A/T:G |
 | cuentapan (bóveda) | R:U | — | — | **R:G** | **—** | — |
 | asignacion | R/W/A/T:U | **C:G**, R/W:U, A/T:G | R/W/A/T:G | R:G | todo:G | C/R/W/A/T/G:G |
-| interaccion | C/R/W/A/T:U | — | R:G | R/W/A:G | todo:G | — |
-| pago | C/R/W/A/T/G:U | — | R:G | R:G | todo:G | — |
-| actualizaciondatos | C/R/W/A/T:U | — | — | R:G | todo:G | — |
+| interaccion | C/R/A/T:U (sin W: S-9) | — | R:G | R/W/A:G | todo:G | — |
+| pago | C/R/A/T:U (sin W ni G: S-9) | — | R:G | R:G | todo:G | — |
+| actualizaciondatos | C/R/A/T:U (sin W: S-9) | — | — | R:G | todo:G | — |
 | cargadiaria | — | — | — | R:G | todo:G | C/R/W/A/T:G |
 | usuarioapp | — | — | — | — | — | — |
 
 (`todo:G` = C, R, W, D, A, T, G y S en alcance Global.) **Solo Admin tiene Delete**, en las 12 tablas de datos de CM (no en `cuentapan` ni
 `usuarioapp`, donde no tiene ningún privilegio). `Solicitante` y `Supervisor` leen todas las cuentas y clientes a propósito (necesitan buscar
 cualquiera: S-2, decisión de diseño).
+
+**Flows (S-4, 2026-10-14):** Localizador, Solicitante, Supervisor y BackOffice ya no tienen los privilegios de crear, editar,
+borrar, asignar, compartir, vincular ni activar procesos, ni `prvFlow` (`scripts/seguridad/paso7_sin_flows.py`); conservan leer y
+ejecutar procesos. **En DEV no alcanza:** los usuarios también tienen el rol de plataforma `Basic User` y roles de otras
+soluciones del entorno que les dan crear flows y exportar a Excel. Ver S-4 en `docs/auditoria/00-lista-consolidada.md`.
 
 ---
 
@@ -790,8 +795,8 @@ lo impone** (S-9).
 - **Nace:** en la **app del cobrador** (con o sin señal), solo el cobrador. Owner = él. Nada la crea fuera de la app.
 - **Estados:** `En el teléfono` (sin sincronizar) → **Pendiente** (el servidor asigna `IN-xxxx`) → **Grabado** (el BackOffice transcribe al core:
   código, fecha, "grabado por"; desde la cola *Por transcribir*).
-- **Grabado es terminal solo por costumbre:** el servidor no impide volver a transcribir ni que el **cobrador edite** su interacción después (Write:U;
-  S-9, abierto). El BackOffice también tiene Write global.
+- **Grabado es terminal para el cobrador:** su rol crea pero no edita la interacción (S-9, cerrado 2026-10-14). El servidor no impide
+  volver a transcribir: el BackOffice tiene Write global (DAT-11).
 - **En el teléfono:** últimos 90 días (por fecha de modificación).
 - **Fin:** **no se borra.** Es el rastro de auditoría.
 
@@ -850,7 +855,7 @@ Un **pago** cobrado al cliente, **hijo de una interacción**. La relación **1:N
 ### Ciclo de vida
 - **Nace:** en la **app de campo**, hijo de una interacción. Owner = el localizador. El plugin completa cuenta y N° de interacción al crear en el servidor.
 - **Sin estados:** no se aprueba ni se cierra; es un hecho registrado. El BackOffice lo ve al transcribir y en el arqueo (*Transcritas hoy*).
-- **Vive:** se pretende append-only, pero el cobrador tiene `Write` y `Assign` sobre sus pagos (S-9, abierto: puede cambiar monto, fecha o reasignarlo).
+- **Vive:** append-only para el cobrador: crea, pero no edita ni reasigna (S-9, cerrado 2026-10-14). Nadie fuera de Admin tiene `Write` sobre pagos.
 - **En el teléfono:** últimos 90 días.
 - **Fin:** **no se borra** de rutina (registro financiero).
 
