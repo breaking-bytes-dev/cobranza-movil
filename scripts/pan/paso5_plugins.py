@@ -9,11 +9,13 @@ REGLA DE PanGuard (paso 8 del plan):
   pasos se crean DESACTIVADOS. Un paso PanGuard que ya existe conserva su estado, salvo que se pida:
     --activar-panguard      activa los pasos PanGuard (paso 8)
     --desactivar-panguard   los desactiva (rollback)
-  Los pasos de ClaveDesdeCuenta, CuentaDesdeInteraccion, AprobacionEspecial, ActualizacionConInteraccion, EmailDesdeUsuario y
-  RepartoAsignacion quedan activos.
+  Los pasos de ClaveDesdeCuenta, CuentaDesdeInteraccion, AprobacionEspecial, ActualizacionConInteraccion, EmailDesdeUsuario,
+  RepartoAsignacion y RepartoPorAgente quedan activos.
 
-RepartoAsignacion es el unico ASINCRONO (PostOperation, borra el trabajo del sistema si termina bien): reemplaza al flow
-"Cambio de Owner en Asignaciones". Nunca sincrono: correria dentro del trozo de 100 filas de Smelter (2 minutos por mensaje).
+RepartoAsignacion y RepartoPorAgente son ASINCRONOS (PostOperation, borran el trabajo del sistema si termina bien).
+RepartoAsignacion reemplaza al flow "Cambio de Owner en Asignaciones"; nunca sincrono: correria dentro del trozo de 100 filas
+de Smelter (2 minutos por mensaje). RepartoPorAgente (DAT-08) re-reparte las asignaciones de un agente al cambiar su usuario.
+Ambos necesitan el equipo "Cartera sin cobrador" (scripts/seguridad/paso5_cartera_sin_cobrador.py).
 
 Credenciales: variables de entorno DATAVERSE_URL, PP_CLIENT_ID, PP_CLIENT_SECRET, PP_TENANT_ID (las mismas
 secrets del repo). En local, si faltan, se leen de pp_secrets.env (gitignored). Nunca se imprimen.
@@ -103,6 +105,12 @@ def definir_pasos():
             filtro=cols if mensaje == 'Update' else [], columnas=cols + ['sanic_cm_as_solicitadopor'], legacy=False,
             imagen=None, etapa=ETAPA_POSTOPERATION, modo=MODO_ASINCRONO,
             descripcion='Reparto: dueno al cobrador, compartidos de cuenta/cliente/fiador y revocacion al anterior (asincrono)'))
+    # RepartoPorAgente (DAT-08): al vincular, cambiar o quitar el usuario del agente, re-reparte sus asignaciones. ASINCRONO.
+    pasos.append(dict(
+        tipo=NS + 'RepartoPorAgente', mensaje='Update', entidad=P + 'agente', panguard=False,
+        filtro=['sanic_cm_ag_usuarioid'], columnas=['sanic_cm_ag_usuarioid'], legacy=False,
+        imagen=None, etapa=ETAPA_POSTOPERATION, modo=MODO_ASINCRONO,
+        descripcion='DAT-08: al cambiar el usuario del agente, re-reparte sus asignaciones activas (asincrono)'))
     for p in pasos:
         p.setdefault('etapa', ETAPA_PREOPERATION)
         p.setdefault('modo', MODO_SINCRONO)
