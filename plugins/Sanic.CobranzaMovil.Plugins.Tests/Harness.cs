@@ -22,6 +22,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         public readonly Mock<IServiceProvider> Provider = new Mock<IServiceProvider>();
 
         public readonly ParameterCollection Inputs = new ParameterCollection();
+        public readonly ParameterCollection Outputs = new ParameterCollection();
         public readonly EntityImageCollection PreImages = new EntityImageCollection();
         public readonly List<string> Trazas = new List<string>();
 
@@ -33,6 +34,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             Context.SetupGet(c => c.UserId).Returns(UsuarioLlamador);
             Context.SetupGet(c => c.Depth).Returns(1);
             Context.SetupGet(c => c.InputParameters).Returns(Inputs);
+            Context.SetupGet(c => c.OutputParameters).Returns(Outputs);
             Context.SetupGet(c => c.PreEntityImages).Returns(PreImages);
             Context.SetupGet(c => c.PostEntityImages).Returns(new EntityImageCollection());
 

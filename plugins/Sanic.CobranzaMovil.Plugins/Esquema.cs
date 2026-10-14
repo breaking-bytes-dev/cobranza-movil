@@ -100,6 +100,23 @@ namespace Sanic.CobranzaMovil.Plugins
         public const int GrabacionGrabado = 2;
         public const string AgenteNombre = "sanic_cm_ag_nombre";
 
+        // Custom API SolicitarEspecial (DAT-14): mensaje global, sin entidad; corre en la etapa principal (30)
+        public const string MensajeSolicitarEspecial = "sanic_cm_SolicitarEspecial";
+        public const string EntidadNinguna = "none";
+        public const int EtapaMainOperation = 30;
+        public const string ParamCuentaId = "CuentaId";
+        public const string ParamRetiroNio = "RetiroNio";
+        public const string ParamRetiroUsd = "RetiroUsd";
+        public const string ParamNotas = "Notas";
+        public const string SalidaAsignacionId = "AsignacionId";
+        public const string SalidaResultado = "Resultado";
+        public const string SalidaSolicitadoPor = "SolicitadoPor";
+        public const string SalidaEstadoAprobacion = "EstadoAprobacion";
+        public const string ResultadoCreada = "creada";
+        public const string ResultadoReactivada = "reactivada";
+        public const string ResultadoYaExiste = "ya existe";
+        public const string UsuarioNombreCompleto = "fullname";
+
         // Agente <-> usuario (app del cobrador: gblAgente busca por Lower(User().Email), que es el UPN)
         public const string AgenteUsuario = "sanic_cm_ag_usuarioid";
         public const string AgenteEmail = "sanic_cm_ag_emailusuario";
