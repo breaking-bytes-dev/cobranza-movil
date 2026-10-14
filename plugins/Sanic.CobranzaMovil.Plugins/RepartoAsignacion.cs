@@ -17,10 +17,13 @@ namespace Sanic.CobranzaMovil.Plugins
     ///     cobrador anterior.
     ///
     /// Que hace, sobre el estado ACTUAL de la asignacion (lo lee al correr: converge, no repite el evento):
-    ///  - Activa, con agente con usuario, y no es una Especial sin aprobar (S-6):
-    ///    1) pasa el dueno al usuario del agente (antes de mirar otras asignaciones: ver RevocarSiNoQuedaOtra);
-    ///    2) si es Especial con solicitante, se la comparte (lectura, escritura, anexar);
-    ///    3) le comparte en lectura la cuenta, el cliente y el fiador;
+    ///  - Activa, y no es una Especial sin aprobar (S-6):
+    ///    1) pasa el dueno al usuario del agente o, si el agente no tiene usuario o no hay agente, al equipo
+    ///       "Cartera sin cobrador" (DAT-07; antes no hacia nada y el cobrador anterior la conservaba). Va antes de
+    ///       mirar otras asignaciones: ver RevocarSiNoQuedaOtra;
+    ///    2) si es Especial, se la comparte (lectura, escritura, anexar) al solicitante SOLO si "Solicitado por" es
+    ///       quien la creo (S-7: "Solicitado por" es editable, createdby no);
+    ///    3) si hay cobrador, le comparte en lectura la cuenta, el cliente y el fiador;
     ///    4) si cambio el dueno, al dueno anterior le revoca cuenta, cliente y fiador que ya no justifique otra
     ///       asignacion activa suya.
     ///  - Cerrada: al dueno actual le revoca lo que ya no justifique otra asignacion activa suya.
@@ -75,7 +78,7 @@ namespace Sanic.CobranzaMovil.Plugins
             var id = local.Context.PrimaryEntityId;
             var asignacion = Leer(svc, Esquema.Asignacion, id, Esquema.AsignacionEstado, Esquema.AsignacionTipo,
                 Esquema.AsignacionEstadoAprobacion, Esquema.AsignacionAgente, Esquema.AsignacionCuentaId,
-                Esquema.AsignacionSolicitadoPor, Esquema.Propietario);
+                Esquema.AsignacionSolicitadoPor, Esquema.CreadoPor, Esquema.Propietario);
             if (asignacion == null)
             {
                 local.Trace("la asignacion ya no existe; nada que repartir.");
@@ -88,7 +91,7 @@ namespace Sanic.CobranzaMovil.Plugins
 
             if (asignacion.GetAttributeValue<bool?>(Esquema.AsignacionEstado) == true)
             {
-                Repartir(local, svc, asignacion, dueno, cuentaRef, pasos);
+                Repartir(local, svc, asignacion, dueno, cuentaRef, pasos, Nombre);
             }
             else if (dueno != null)
             {
@@ -101,7 +104,7 @@ namespace Sanic.CobranzaMovil.Plugins
         }
 
         private static void Repartir(LocalContext local, IOrganizationService svc, Entity asignacion, EntityReference dueno,
-            EntityReference cuentaRef, Pasos pasos)
+            EntityReference cuentaRef, Pasos pasos, string nombre)
         {
             var tipo = asignacion.GetAttributeValue<OptionSetValue>(Esquema.AsignacionTipo);
             var aprobacion = asignacion.GetAttributeValue<OptionSetValue>(Esquema.AsignacionEstadoAprobacion);
@@ -113,47 +116,56 @@ namespace Sanic.CobranzaMovil.Plugins
             }
 
             var agenteRef = asignacion.GetAttributeValue<EntityReference>(Esquema.AsignacionAgente);
-            if (agenteRef == null)
-            {
-                local.Trace("sin agente: no se reparte.");
-                return;
-            }
-            var agente = Leer(svc, Esquema.Agente, agenteRef.Id, Esquema.AgenteUsuario);
+            var agente = agenteRef == null ? null : Leer(svc, Esquema.Agente, agenteRef.Id, Esquema.AgenteUsuario);
             var usuarioRef = agente == null ? null : agente.GetAttributeValue<EntityReference>(Esquema.AgenteUsuario);
-            if (usuarioRef == null)
+            var cobrador = usuarioRef == null ? null : new EntityReference(Esquema.Usuario, usuarioRef.Id);
+
+            // Sin cobrador, la asignacion pasa a la cartera sin cobrador (DAT-07). Si ese equipo no existe, falla sin
+            // tocar nada: mejor un trabajo fallido visible que revocarle al dueno algo que sigue siendo suyo.
+            EntityReference nuevoDueno = cobrador;
+            if (nuevoDueno == null)
             {
-                local.Trace("el agente no tiene usuario: no se reparte.");
-                return;
+                local.Trace(agenteRef == null ? "sin agente: pasa a la cartera sin cobrador."
+                    : "el agente no tiene usuario: pasa a la cartera sin cobrador.");
+                nuevoDueno = CarteraSinCobrador.Exigir(svc, nombre);
             }
 
-            var cobrador = new EntityReference(Esquema.Usuario, usuarioRef.Id);
             var asignacionRef = new EntityReference(Esquema.Asignacion, asignacion.Id);
-            var cambiaDueno = dueno == null || dueno.Id != cobrador.Id;
+            var cambiaDueno = dueno == null || dueno.Id != nuevoDueno.Id;
             var cuenta = cuentaRef == null ? null : LeerCuenta(svc, cuentaRef.Id);
 
             // 1) Dueno primero: si dos asignaciones del mismo cliente se reasignan a la vez y cada una mueve su dueno
             //    ANTES de buscar las otras del anterior, al menos una ve a la otra ya movida y revoca el cliente.
             if (cambiaDueno)
             {
-                pasos.Correr("pasar el dueno al cobrador", () =>
+                pasos.Correr(cobrador != null ? "pasar el dueno al cobrador" : "pasar el dueno a la cartera sin cobrador", () =>
                 {
                     var cambio = new Entity(Esquema.Asignacion, asignacion.Id);
-                    cambio[Esquema.Propietario] = cobrador;
+                    cambio[Esquema.Propietario] = nuevoDueno;
                     svc.Update(cambio);
                 });
             }
 
-            // 2) La Especial aprobada se le comparte a quien la pidio (como hacia el flow).
+            // 2) La Especial aprobada se le comparte a quien la pidio, solo si la pidio quien la creo (S-7): "Solicitado
+            //    por" lo editan Solicitante, Supervisor y Localizador; createdby no se puede editar.
             var solicitante = asignacion.GetAttributeValue<EntityReference>(Esquema.AsignacionSolicitadoPor);
+            var creador = asignacion.GetAttributeValue<EntityReference>(Esquema.CreadoPor);
             if (esEspecial && solicitante != null)
             {
-                pasos.Correr("compartir la asignacion con el solicitante", () => Compartir(svc, asignacionRef,
-                    new EntityReference(Esquema.Usuario, solicitante.Id),
-                    AccessRights.ReadAccess | AccessRights.WriteAccess | AccessRights.AppendAccess));
+                if (creador != null && creador.Id == solicitante.Id)
+                {
+                    pasos.Correr("compartir la asignacion con el solicitante", () => Compartir(svc, asignacionRef,
+                        new EntityReference(Esquema.Usuario, solicitante.Id),
+                        AccessRights.ReadAccess | AccessRights.WriteAccess | AccessRights.AppendAccess));
+                }
+                else
+                {
+                    local.Trace("S-7: \"Solicitado por\" no es quien creo la Especial; no se le comparte a nadie.");
+                }
             }
 
-            // 3) Lectura de cuenta, cliente y fiador para el cobrador.
-            if (cuentaRef != null)
+            // 3) Lectura de cuenta, cliente y fiador para el cobrador (la cartera sin cobrador no comparte nada).
+            if (cobrador != null && cuentaRef != null)
             {
                 pasos.Correr("compartir la cuenta", () => Compartir(svc, Ref(Esquema.Cuenta, cuentaRef), cobrador, AccessRights.ReadAccess));
                 var cliente = cuenta == null ? null : cuenta.GetAttributeValue<EntityReference>(Esquema.CuentaCliente);
