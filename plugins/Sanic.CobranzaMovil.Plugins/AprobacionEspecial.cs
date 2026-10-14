@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using Microsoft.Xrm.Sdk;
-using Microsoft.Xrm.Sdk.Query;
 
 namespace Sanic.CobranzaMovil.Plugins
 {
@@ -24,12 +21,7 @@ namespace Sanic.CobranzaMovil.Plugins
     /// </summary>
     public sealed class AprobacionEspecial : PluginBase
     {
-        private static readonly string[] RolesQueAprueban =
-        {
-            Esquema.PrefijoRolCm + "Supervisor",
-            Esquema.PrefijoRolCm + "Admin",
-            Esquema.PrefijoRolCm + "Servicio - Cobranza",
-        };
+        private static readonly string[] RolesQueAprueban = { RolesCm.Supervisor, RolesCm.Admin, RolesCm.Servicio };
 
         protected override string Nombre
         {
@@ -116,49 +108,11 @@ namespace Sanic.CobranzaMovil.Plugins
             return v == null ? (int?)null : v.Value;
         }
 
-        /// <summary>
-        /// Roles del llamador (directos y por equipo). Se leen con el servicio del sistema: un Solicitante no
-        /// tiene por que poder leer la tabla de roles.
-        /// </summary>
+        /// <summary>Roles del llamador (directos y por equipo); sin roles de CM no se frena (SYSTEM / Smelter, administradores).</summary>
         private static bool PuedeAprobar(LocalContext local)
         {
-            var nombres = new List<string>();
-            nombres.AddRange(NombresDeRoles(local, RolesDirectos(local.Context.UserId)));
-            nombres.AddRange(NombresDeRoles(local, RolesPorEquipo(local.Context.UserId)));
-
-            var tieneRolCm = false;
-            foreach (var n in nombres)
-            {
-                if (n == null || !n.StartsWith(Esquema.PrefijoRolCm, StringComparison.Ordinal)) continue;
-                tieneRolCm = true;
-                if (Array.IndexOf(RolesQueAprueban, n) >= 0) return true;
-            }
-            // Sin roles de CM no es una persona de la operacion (SYSTEM / Smelter, administradores): no se frena.
-            return !tieneRolCm;
-        }
-
-        private static IEnumerable<string> NombresDeRoles(LocalContext local, QueryExpression q)
-        {
-            var filas = local.ServicioSistema.RetrieveMultiple(q);
-            if (filas == null) yield break;
-            foreach (var r in filas.Entities) yield return r.GetAttributeValue<string>("name");
-        }
-
-        private static QueryExpression RolesDirectos(Guid usuario)
-        {
-            var q = new QueryExpression(Esquema.Rol) { ColumnSet = new ColumnSet("name") };
-            var ur = q.AddLink("systemuserroles", "roleid", "roleid");
-            ur.LinkCriteria.AddCondition("systemuserid", ConditionOperator.Equal, usuario);
-            return q;
-        }
-
-        private static QueryExpression RolesPorEquipo(Guid usuario)
-        {
-            var q = new QueryExpression(Esquema.Rol) { ColumnSet = new ColumnSet("name") };
-            var tr = q.AddLink("teamroles", "roleid", "roleid");
-            var tm = tr.AddLink("teammembership", "teamid", "teamid");
-            tm.LinkCriteria.AddCondition("systemuserid", ConditionOperator.Equal, usuario);
-            return q;
+            var roles = RolesCm.DelLlamador(local);
+            return roles.SinRolesCm || roles.TieneAlguno(RolesQueAprueban);
         }
     }
 }

@@ -75,27 +75,27 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         }
 
         [Fact]
-        public void No_hace_nada_si_el_pago_no_trae_interaccion()
+        public void Rechaza_un_pago_sin_interaccion()
         {
+            // DAT-13: pg_interaccion era ApplicationRequired, que el servidor no exige.
             var target = new Entity(Pago, Guid.NewGuid());
+            target[PgCuenta] = new EntityReference(Cuenta, Guid.NewGuid());
+            target[PgNumero] = "IN-1001";
             var h = new Harness("Create", Pago).ConTarget(target);
 
-            h.Ejecutar(new CuentaDesdeInteraccion());
-
-            Assert.False(target.Contains(PgCuenta));
+            var ex = Assert.Throws<InvalidPluginExecutionException>(() => h.Ejecutar(new CuentaDesdeInteraccion()));
+            Assert.Contains("interaccion", ex.Message);
             Assert.Equal(0, h.RetrievesAlServicio());
         }
 
         [Fact]
-        public void No_hace_nada_si_la_interaccion_es_nula()
+        public void Rechaza_un_pago_con_la_interaccion_nula()
         {
             var target = new Entity(Pago, Guid.NewGuid());
             target[PgInteraccion] = null;
             var h = new Harness("Create", Pago).ConTarget(target);
 
-            h.Ejecutar(new CuentaDesdeInteraccion());
-
-            Assert.False(target.Contains(PgCuenta) && target[PgCuenta] != null);
+            Assert.Throws<InvalidPluginExecutionException>(() => h.Ejecutar(new CuentaDesdeInteraccion()));
             Assert.Equal(0, h.RetrievesAlServicio());
         }
 

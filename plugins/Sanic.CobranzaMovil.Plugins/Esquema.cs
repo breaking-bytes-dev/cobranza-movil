@@ -67,6 +67,39 @@ namespace Sanic.CobranzaMovil.Plugins
         public const string EquipoTipo = "teamtype";
         public const int EquipoTipoDueno = 0;
 
+        // Columnas de la asignacion que escriben las personas (ColumnasAsignacion, S-11) y la carga (CargaSobreAsignacion)
+        public const string PrefijoColumnaAsignacion = "sanic_cm_as_";
+        public const string AsignacionOrden = "sanic_cm_as_orden";
+        public const string AsignacionMotivo = "sanic_cm_as_motivo";
+        public const string AsignacionMotivoRechazo = "sanic_cm_as_motivorechazo";
+        public const string AsignacionFechaCierre = "sanic_cm_as_fechacierre";
+        public const string AsignacionFechaAsignacion = "sanic_cm_as_fechasignacion";
+        public const string AsignacionUltimaCarga = "sanic_cm_as_ultimacarga";
+        public const string AsignacionResolutor = "sanic_cm_as_resolutorid";
+        public const string AsignacionNotas = "sanic_cm_as_notas";
+        public const string AsignacionRetiroNio = "sanic_cm_as_retironio";
+        public const string AsignacionRetiroUsd = "sanic_cm_as_retirousd";
+        public const int TipoDiaria = 1;
+        public const int TipoIncobrable = 2;
+        public const int AprobacionBorrador = 1;
+        public const int AprobacionPendiente = 2;
+
+        // Motivos de cierre que pone el sistema: la reconciliacion del backoffice (DAT-10) y la reclasificacion (DAT-15)
+        public const string MotivoFueraDeCartera = "fuera de cartera";
+        public const string PrefijoMotivoReclasificada = "Reclasificada a ";
+
+        // Interaccion: grabacion en el CORE (DAT-11) y alta desde el telefono (DAT-13, SEC-08)
+        public const string PrefijoColumnaCm = "sanic_cm_";
+        public const string InteraccionAgente = "sanic_cm_in_agente";
+        public const string InteraccionNombreAgente = "sanic_cm_in_nombreagente";
+        public const string InteraccionEstadoGrabacion = "sanic_cm_in_estadograbacion";
+        public const string InteraccionCodigoGrabacion = "sanic_cm_in_codigograbacion";
+        public const string InteraccionFechaGrabacion = "sanic_cm_in_fechagrabacion";
+        public const string InteraccionGrabadoPor = "sanic_cm_in_grabadopor";
+        public const int GrabacionPendiente = 1;
+        public const int GrabacionGrabado = 2;
+        public const string AgenteNombre = "sanic_cm_ag_nombre";
+
         // Agente <-> usuario (app del cobrador: gblAgente busca por Lower(User().Email), que es el UPN)
         public const string AgenteUsuario = "sanic_cm_ag_usuarioid";
         public const string AgenteEmail = "sanic_cm_ag_emailusuario";

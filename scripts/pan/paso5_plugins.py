@@ -10,12 +10,14 @@ REGLA DE PanGuard (paso 8 del plan):
     --activar-panguard      activa los pasos PanGuard (paso 8)
     --desactivar-panguard   los desactiva (rollback)
   Los pasos de ClaveDesdeCuenta, CuentaDesdeInteraccion, AprobacionEspecial, ActualizacionConInteraccion, EmailDesdeUsuario,
-  RepartoAsignacion y RepartoPorAgente quedan activos.
+  RepartoAsignacion, RepartoPorAgente, ColumnasAsignacion, CargaSobreAsignacion, Reclasificacion, InteraccionDelCobrador y
+  GrabacionInteraccion quedan activos.
 
 RepartoAsignacion y RepartoPorAgente son ASINCRONOS (PostOperation, borran el trabajo del sistema si termina bien).
 RepartoAsignacion reemplaza al flow "Cambio de Owner en Asignaciones"; nunca sincrono: correria dentro del trozo de 100 filas
 de Smelter (2 minutos por mensaje). RepartoPorAgente (DAT-08) re-reparte las asignaciones de un agente al cambiar su usuario.
 Ambos necesitan el equipo "Cartera sin cobrador" (scripts/seguridad/paso5_cartera_sin_cobrador.py).
+Reclasificacion es PostOperation SINCRONO: cierra la asignacion del otro tipo en la misma transaccion que la fila de la carga.
 
 Credenciales: variables de entorno DATAVERSE_URL, PP_CLIENT_ID, PP_CLIENT_SECRET, PP_TENANT_ID (las mismas
 secrets del repo). En local, si faltan, se leen de pp_secrets.env (gitignored). Nunca se imprimen.
@@ -111,6 +113,41 @@ def definir_pasos():
         filtro=['sanic_cm_ag_usuarioid'], columnas=['sanic_cm_ag_usuarioid'], legacy=False,
         imagen=None, etapa=ETAPA_POSTOPERATION, modo=MODO_ASINCRONO,
         descripcion='DAT-08: al cambiar el usuario del agente, re-reparte sus asignaciones activas (asincrono)'))
+    # ColumnasAsignacion (S-11): cada rol de CM escribe solo las columnas de la asignacion que usa su pantalla. Sin filtro.
+    pasos.append(dict(
+        tipo=NS + 'ColumnasAsignacion', mensaje='Update', entidad=P + 'asignacion', panguard=False, filtro=[],
+        columnas=['sanic_cm_as_orden', 'sanic_cm_as_estadoaprobacion'], legacy=False, imagen=None,
+        descripcion='S-11: cada rol de CM escribe solo las columnas de la asignacion que usa su pantalla'))
+    # CargaSobreAsignacion (DAT-10, DAT-31): la carga reabre lo que cerro el sistema y no pisa la fecha de asignacion.
+    cols = ['sanic_cm_as_estado', 'sanic_cm_as_motivo', 'sanic_cm_as_tipo', 'sanic_cm_as_fechasignacion']
+    pasos.append(dict(
+        tipo=NS + 'CargaSobreAsignacion', mensaje='Update', entidad=P + 'asignacion', panguard=False,
+        filtro=['sanic_cm_as_ultimacarga'], columnas=cols + ['sanic_cm_as_ultimacarga', 'sanic_cm_as_fechacierre'], legacy=False,
+        imagen=dict(nombre=IMAGEN_PREVIA, atributos=cols),
+        descripcion='DAT-10/31: la carga reabre la Diaria/Incobrable que cerro el sistema y no pisa la fecha de asignacion'))
+    # Reclasificacion (DAT-15): una sola activa entre Diaria e Incobrable por cuenta. PostOperation SINCRONO.
+    for mensaje in ('Create', 'Update'):
+        cols = ['sanic_cm_as_tipo', 'sanic_cm_as_estado', 'sanic_cm_as_cuentaid']
+        pasos.append(dict(
+            tipo=NS + 'Reclasificacion', mensaje=mensaje, entidad=P + 'asignacion', panguard=False,
+            filtro=['sanic_cm_as_ultimacarga', 'sanic_cm_as_estado', 'sanic_cm_as_tipo'] if mensaje == 'Update' else [],
+            columnas=cols + ['sanic_cm_as_motivo', 'sanic_cm_as_fechacierre'], legacy=False,
+            imagen=dict(nombre=IMAGEN_PREVIA, atributos=cols) if mensaje == 'Update' else None,
+            etapa=ETAPA_POSTOPERATION, modo=MODO_SINCRONO,
+            descripcion='DAT-15: al traer la cuenta con el otro tipo, cierra la Diaria/Incobrable anterior (sincrono)'))
+    # InteraccionDelCobrador (DAT-13, SEC-08): cuenta y agente obligatorios; el agente del cobrador lo pone el servidor.
+    pasos.append(dict(
+        tipo=NS + 'InteraccionDelCobrador', mensaje='Create', entidad=P + 'interaccion', panguard=False, filtro=[],
+        columnas=['sanic_cm_in_cuentaid', 'sanic_cm_in_agente', 'sanic_cm_in_nombreagente', 'sanic_cm_in_estadograbacion'],
+        legacy=False, imagen=None,
+        descripcion='DAT-13/SEC-08: cuenta y agente obligatorios; el agente del cobrador lo pone el servidor'))
+    # GrabacionInteraccion (DAT-11): la grabacion en el CORE la controla el servidor. Sin filtro.
+    cols = ['sanic_cm_in_estadograbacion', 'sanic_cm_in_codigograbacion']
+    pasos.append(dict(
+        tipo=NS + 'GrabacionInteraccion', mensaje='Update', entidad=P + 'interaccion', panguard=False, filtro=[],
+        columnas=cols + ['sanic_cm_in_fechagrabacion', 'sanic_cm_in_grabadopor'], legacy=False,
+        imagen=dict(nombre=IMAGEN_PREVIA, atributos=cols),
+        descripcion='DAT-11: no se vuelve a grabar una interaccion grabada; fecha y usuario de grabacion del servidor'))
     for p in pasos:
         p.setdefault('etapa', ETAPA_PREOPERATION)
         p.setdefault('modo', MODO_SINCRONO)
@@ -312,7 +349,7 @@ def main():
                 'sdkmessageid@odata.bind': '/sdkmessages(%s)' % mensaje_id,
                 'sdkmessagefilterid@odata.bind': '/sdkmessagefilters(%s)' % filtro_msg_id}
             if filtro: cuerpo['filteringattributes'] = filtro
-            b = accion('crear paso: %s [%s, filtro=%s]' % (p['nombre'], 'PostOperation, asincrono' if asincrono else 'PreOperation, sincrono', filtro or '-'),
+            b = accion('crear paso: %s [%s, filtro=%s]' % (p['nombre'], '%s, %s' % ('PostOperation' if p['etapa'] == ETAPA_POSTOPERATION else 'PreOperation', 'asincrono' if asincrono else 'sincrono'), filtro or '-'),
                        'POST', 'sdkmessageprocessingsteps', cuerpo, {**sol, 'Prefer': 'return=representation'})
             paso_id = b['sdkmessageprocessingstepid'] if b else None
             resumen['creados'] += 1

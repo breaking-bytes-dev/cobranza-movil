@@ -5,7 +5,7 @@ using Microsoft.Xrm.Sdk.Query;
 namespace Sanic.CobranzaMovil.Plugins
 {
     /// <summary>
-    /// En el Create de un pago con pg_interaccion informado, completa lo que falte de la interaccion:
+    /// En el Create de un pago exige pg_interaccion (DAT-13) y completa lo que falte de la interaccion:
     /// - pg_cuentaid con in_cuentaid: el modo offline solo admite un nivel de lookup (pago -> interaccion -> cuenta no funciona).
     /// - pg_numerointeraccion con in_numerointeraccion (APP-05): es un autonumerico que asigna el servidor; offline la app
     ///   no lo conoce, y el backoffice busca los pagos de una interaccion por ese numero.
@@ -26,18 +26,18 @@ namespace Sanic.CobranzaMovil.Plugins
 
             var target = local.ObtenerTarget();
 
+            // DAT-13: todo pago cuelga de una interaccion (pg_interaccion era ApplicationRequired, que el servidor no exige).
+            var interaccion = target.GetAttributeValue<EntityReference>(Esquema.PagoInteraccion);
+            if (interaccion == null)
+            {
+                throw local.Error("el pago tiene que estar vinculado a una interaccion.");
+            }
+
             var faltaCuenta = target.GetAttributeValue<EntityReference>(Esquema.PagoCuentaId) == null;
             var faltaNumero = string.IsNullOrWhiteSpace(target.GetAttributeValue<string>(Esquema.PagoNumeroInteraccion));
             if (!faltaCuenta && !faltaNumero)
             {
                 local.Trace("el pago ya trae cuenta y numero de interaccion; sin cambios.");
-                return;
-            }
-
-            var interaccion = target.GetAttributeValue<EntityReference>(Esquema.PagoInteraccion);
-            if (interaccion == null)
-            {
-                local.Trace("el pago no trae {0}; sin cambios.", Esquema.PagoInteraccion);
                 return;
             }
 
