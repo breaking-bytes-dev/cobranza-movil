@@ -7,6 +7,7 @@
 > - **Fecha:** 2026-10-03/04 · **Entorno:** DEV (`org36e60d9d`) · **Modo:** solo lectura (GET sobre Dataverse + lectura de código).
 > - **No se corrigió nada.** Todo lo que figura como "corrección propuesta" es una propuesta con tradeoffs, no un cambio aplicado.
 > - **Smelter:** solo se leyó (template `Cobranza movil` en DEV: 12 table mappings, column mappings, alt keys). No se tocó.
+> - **Cierres posteriores:** el texto de cada hallazgo es la evidencia del 2026-10-03/04 y no se reescribió. Lo que se corrigió después lleva al final de su sección una nota **Estado (fecha)**.
 
 ## 0. Cómo leer este documento
 
@@ -365,6 +366,11 @@ al desvincular vuelven al equipo "Cartera sin cobrador".
 
 **Corrección propuesta:** mapear `estado` en Smelter con valor fijo `true` *solo para* Diaria/Incobrable (cambio de configuración de la carga: pedirlo a quien administra Smelter, yo no lo toqué), o flow sobre `as_ultimacarga` que reabra Diarias cerradas con motivo "fuera de cartera". Test mínimo: cerrar una Diaria, volver a cargar su CSV y mirar `as_estado`.
 
+**Estado (2026-10-14): cerrado en DEV.** El plugin `CargaSobreAsignacion` (PreOperation, Update de asignación filtrado por
+`as_ultimacarga`) reabre una Diaria o Incobrable que cerró el sistema (motivo "fuera de cartera" o "Reclasificada a …") cuando la
+carga la trae de vuelta. No reabre los cierres hechos por una persona ni las Especiales. No se tocó Smelter. Verificado en vivo,
+incluido que una asignación "Pagada" no se reabre. Ver [catálogo C.2](../referencia/03-catalogo-de-tablas.md).
+
 ---
 
 ### DAT-11 — Sin seguridad de columnas ni invariantes en servidor
@@ -380,6 +386,15 @@ al desvincular vuelven al equipo "Cartera sin cobrador".
 **Impacto:** la integridad de la evidencia de campo y el anti-doble-carga dependen de que nadie use otra herramienta (Advanced Find, API, otra app).
 
 **Corrección propuesta:** (1) FLS para `as_*` (todo menos `orden`) y `in_*` de captura; (2) un plug-in/real-time workflow síncrono en `interaccion` que rechace pasar a `Grabado` si ya lo está o sin `codigograbacion`, y estampe `fechagrabacion/grabadopor` con `InitiatingUserId`/`UtcNow`; (3) chequeo de concurrencia en el Patch (re-leer estado antes de escribir). Tradeoff: FLS rompe cualquier flujo que hoy escriba esas columnas con el rol equivocado — probar cada pantalla.
+
+**Estado (2026-10-14): cerrado en DEV.** En lugar de seguridad de columnas, dos plugins del servidor. `GrabacionInteraccion`
+(Update de interacción): una interacción Grabada no se vuelve a grabar ni cambia su código (la segunda persona del BackOffice
+recibe un error en vez de pisar la grabación), pasar a Grabado exige el código, la fecha y el usuario de grabación los pone el
+servidor y el BackOffice solo puede escribir las columnas de grabación. La transcripción del backoffice ya no manda fecha ni
+usuario y busca la interacción por id. `ColumnasAsignacion` (Update de asignación, S-11): cada rol escribe solo las columnas de
+su pantalla. Verificado en vivo: grabar da 200 con fecha y usuario del servidor, volver a grabar da 400, el BackOffice editando el
+comentario da 400, el Supervisor cambiando el retiro da 400 y el cobrador cambiando el orden da 200. **Límite:** dos grabaciones
+en el mismo milisegundo podrían pasar las dos, porque el plugin lee el estado previo antes de que la fila quede bloqueada.
 
 ---
 
@@ -401,6 +416,12 @@ Los diseños dependen de ella: DEC-016 ("historial de reasignaciones"), componen
 
 **Corrección propuesta:** pasar a `SystemRequired`/validación server-side (plug-in o Custom API) lo que de verdad es invariante (`as_numerocuenta` + `as_cuentaid` + `as_tipo`; `in_cuentaid`; `pg_interaccion`); limpiar `AS-2000/2001/2002`. Mientras tanto, completar `as_numerocuenta` desde `as_cuentaid` por flow.
 
+**Estado (2026-10-14): cerrado en DEV.** El plugin `InteraccionDelCobrador` (Create de interacción) exige cuenta y agente; cuando
+la crea un cobrador, el agente es el vinculado a su usuario (lo pone el servidor, aunque la app mande otro) y la interacción nace
+Pendiente, sin código, fecha ni usuario de grabación (también cierra SEC-08). `CuentaDesdeInteraccion` rechaza un pago sin
+interacción. Verificado en vivo: sin cuenta da 400, con otro agente se reemplaza por el del usuario, con Grabado se guarda
+Pendiente y un pago sin interacción da 400.
+
 ---
 
 ### DAT-14 — Solicitante: anti-duplicado ciego y re-solicitud bloqueada
@@ -410,6 +431,11 @@ Los diseños dependen de ella: DEC-016 ("historial de reasignaciones"), componen
 Además `Rechazar` (`scrAprobaciones.pa.yaml:836-844`) deja `Estado = true`: la Especial rechazada sigue "ACTIVA" y el aviso dice "esperá a que el Admin la cierre" (Cierres sí la lista, `scrCierres.pa.yaml:18-22`), así que el Solicitante queda bloqueado hasta que el Admin intervenga.
 
 **Corrección propuesta:** hacer el anti-duplicado con una Custom API/flow que corra con permisos de servicio y devuelva estado ("existe activa/cerrada/rechazada"); al rechazar, poner `Estado=false` (o permitir reabrir una Rechazada propia).
+
+**Estado (2026-10-14): parcial.** Hecho: Rechazar cierra la Especial (estado inactivo, motivo "Rechazada" y fecha de cierre), así
+que el Solicitante original puede volver a pedirla; Nueva solicitud muestra un mensaje claro cuando la cuenta ya tiene una Especial
+pedida por otra persona. **Sigue abierto:** un Solicitante no ve la Especial de otro (lectura Basic) y hace falta una decisión del
+dueño: una Custom API que corra con el servicio del sistema o una lectura más amplia.
 
 ---
 
@@ -422,6 +448,12 @@ Además `Rechazar` (`scrAprobaciones.pa.yaml:836-844`) deja `Estado = true`: la 
 - DEC-021 (reclasificación: al aparecer como Incobrable, cerrar la Diaria) **no está implementada**: no hay mapping ni flow. Una cuenta que cambia de Diaria a Incobrable queda con dos asignaciones activas en el teléfono.
 
 **Corrección propuesta:** agrupar por cuenta en el teléfono (`GroupBy` por `NumeroCuenta`) antes de sumar/crear; implementar DEC-021 como flow sobre `asignacion` (al crear/actualizar Diaria/Incobrable activa, cerrar la otra con `Motivo = "Reclasificada a {tipo}"`, sin tocar Especiales).
+
+**Estado (2026-10-14): cerrado en DEV.** El plugin `Reclasificacion` (PostOperation síncrono, Create y Update de asignación) deja
+una sola activa entre Diaria e Incobrable por cuenta: al llegar el otro tipo, cierra la anterior con motivo "Reclasificada a
+{tipo}". Las Especiales conviven (DEC-021). En la app del cobrador, el saldo total de la ficha del cliente suma por cuenta
+distinta, así que una cuenta con Diaria más Especial aprobada ya no cuenta su saldo dos veces. Verificado en vivo en las dos
+direcciones.
 
 ---
 
@@ -436,6 +468,9 @@ Además `Rechazar` (`scrAprobaciones.pa.yaml:836-844`) deja `Estado = true`: la 
 
 **Corrección propuesta:** inicializar `orden` secuencial por cobrador (flow tras el owner o en la carga), único; que la BR (o mejor, el flow) lo haga sin empates; el teléfono debe actualizar por `[AS] Numero`/GUID y solo `Estado = true`.
 
+**Estado (2026-10-14): cerrado.** La app numera de 1 a n sin empates (APP-23) y la regla de negocio en borrador "Orden inicial" se
+eliminó, así que ya no puede activarse y poner todo en 1.
+
 ---
 
 ### DAT-17 — `Email Usuario` vs `[AG] Usuario`
@@ -444,6 +479,10 @@ Además `Rechazar` (`scrAprobaciones.pa.yaml:836-844`) deja `Estado = true`: la 
 **Evidencia:** el login del teléfono usa el **texto** (`LOC/App.pa.yaml:91`), el filtro de agentes asignables, el KPI "agentes sin usuario" y las listas de `scrAgentes` usan el **texto** (`scrAprobaciones.pa.yaml:637`, `scrInicio.pa.yaml:92`, `scrAgentes.pa.yaml:74,101,119…`), pero el **flow de owner usa el lookup** `[AG] Usuario`. Hoy se escriben juntos (`scrAgentes.pa.yaml:572-576`), y en DEV los 4 agentes vinculados están consistentes (`Email Usuario` = correo principal = UPN, minúsculas). Se desacoplan si: cambia el correo principal / UPN del usuario, alguien edita el agente desde otra vía (MDA, flow, API), o el correo `User().Email` del dispositivo difiere del `internalemailaddress` (invitados B2B: p. ej. el usuario "Playwright Dev User" tiene correo `@gmail.com`).
 
 **Corrección propuesta:** una sola fuente. Que `Email Usuario` sea una columna calculada/mantenida por flow desde `[AG] Usuario` (o eliminar el texto y resolver `gblAgente` por la relación `systemuser`). Mientras tanto, KPI/filtros por `[AG] Usuario <> Blank()`.
+
+**Estado (2026-10-14): cerrado en DEV.** Una sola fuente: el backoffice escribe solo el lookup `[AG] Usuario` y el plugin
+`EmailDesdeUsuario` completa `Email Usuario` con el UPN en minúsculas. Además el backoffice identifica al usuario por el Entra
+object id (`'Azure AD Object ID' = User().EntraObjectId`) y no por correo o UPN.
 
 ---
 
@@ -468,6 +507,11 @@ Además `Rechazar` (`scrAprobaciones.pa.yaml:836-844`) deja `Estado = true`: la 
 
 **Corrección propuesta:** pasar `Interacción→Pago` y `Cliente→CargaDiaria` a *Referential, Restrict Delete*; en `Cuenta→Asignación` poner `Assign/Share/Reparent = NoCascade` (la asignación tiene su propio owner por diseño). Tradeoff: tocar relaciones en una solución con datos requiere ventana de cambio.
 
+**Estado (2026-10-14): cerrado en DEV.** `paso1_cascadas_auditoria.py` pasó `Interacción→Pago`, `Interacción→ActualizaciónDatos` y
+`Cliente→CargaDiaria` a Delete = Restrict, y `Cuenta→Asignación` a Assign = NoCascade (Share y Reparent ya estaban cortados desde
+el 2026-10-03 y el 2026-10-06). Ya no se puede borrar una interacción con pagos ni un cliente con carga diaria, y reasignar la
+cuenta no baja a sus asignaciones.
+
 ---
 
 ### DAT-19 — Actualización de datos: el ciclo no cierra
@@ -484,6 +528,9 @@ Además `Rechazar` (`scrAprobaciones.pa.yaml:836-844`) deja `Estado = true`: la 
 - Se asume que el core es verdad y el CSV de mañana trae el cambio; mientras tanto, el teléfono muestra el dato viejo (que el cobrador acaba de corregir).
 
 **Corrección propuesta:** columna de estado/resolución en AD (`Pendiente/Aplicada/Descartada`) llenada en la transcripción; decidir si se aplica a maestros (acción Admin "aplicar") o si el core es el único destino; alinear longitudes; alinear lectura de roles con el doc o corregir el doc.
+
+**Estado (2026-10-14): cerrado por decisión del dueño.** La actualización de datos termina en el core del banco, así que no hacen
+falta más estados ni una acción de aplicar a los maestros: la opción "el core es el único destino" de la corrección propuesta.
 
 ---
 
@@ -521,6 +568,8 @@ Además `Rechazar` (`scrAprobaciones.pa.yaml:836-844`) deja `Estado = true`: la 
 
 **Corrección propuesta:** en el refresco, recargar las colecciones maestras (o resolverlas con `LookUp` directo al data source en vez de a colecciones).
 
+**Estado (2026-10-14): cerrado en DEV.** El "↻" recarga los maestros (cuentas, clientes, direcciones, teléfonos y agentes).
+
 ---
 
 ### DAT-24 — Asignaciones cerradas nunca salen del dispositivo
@@ -529,6 +578,9 @@ Además `Rechazar` (`scrAprobaciones.pa.yaml:836-844`) deja `Estado = true`: la 
 **Evidencia:** el perfil autogenerado trae **todas** las asignaciones legibles (Basic = las propias) sin filtro por `as_estado`, y cerrar una asignación solo cambia `as_estado` (`statecode` sigue Activo, el owner sigue siendo el cobrador). La app descarta las cerradas con `Filter(Estado = true)` en memoria, pero siguen sincronizándose y creciendo: la reconciliación cierra Diarias a diario, así que cada cobrador acumula históricos para siempre (más las `Cuentas` en cascada de DAT-06).
 
 **Corrección propuesta:** perfil con filtro `sanic_cm_as_estado eq true` en `asignacion` (y `Related rows only` para el resto), o desactivar (`statecode = 1`) al cerrar, o archivar.
+
+**Estado (2026-10-14): cerrado en DEV.** El perfil offline filtra solo las asignaciones activas (`as_estado = 1`), así que las
+cerradas salen del teléfono en la próxima sincronización.
 
 ---
 
@@ -564,10 +616,18 @@ Además `Rechazar` (`scrAprobaciones.pa.yaml:836-844`) deja `Estado = true`: la 
 
 `DefaultFormValue = 2` (Pendiente aprobación) en `sanic_cm_as_estadoaprobacion`; `as_tipo` default = 3 (Especial). SM no mapea `estadoaprobacion`, así que las Diarias/Incobrables nuevas de la próxima carga nacerán "pendientes de aprobación" (las 801 Diarias actuales están en `1 = Borrador`; 3 en `2`). No rompe hoy porque las vistas/KPIs filtran por tipo = Especial, pero cualquier consulta sin ese filtro sobrecuenta. **Propuesta:** dejar `null`/sin default y setear Pendiente solo al crear una Especial.
 
+**Estado (2026-10-14): cerrado en DEV.** El plugin `AprobacionEspecial` hace que una Diaria o Incobrable nazca en Borrador. El default
+de la columna queda en Pendiente, porque las Especiales del CSV lo necesitan para entrar en la cola del Supervisor. Se corrigieron
+las 6 filas existentes.
+
 ### DAT-29 — Reasignación manual sin UI
 **Severidad:** Baja · **Confianza:** Verificado
 
 DEC-012/022 dicen que el Supervisor reasigna Especiales y el Admin las Incobrables; en canvas **no existe** esa pantalla (el único `Patch` de `as_agenteid` es el de Aprobar y el de reactivación con `Blank()`). En el formulario MDA la BR `Bloqueo de asignacion aprobada o rechazada` bloquea `as_agenteid` cuando `estadoaprobacion ∈ {3,4}` (solo en formulario). Resultado: la única forma real de reasignar es editar por fuera. **Propuesta:** definir el camino (pantalla "Reasignar") y que dispare el flow de owner.
+
+**Estado (2026-10-14): cerrado en DEV.** Pantalla *Reasignar* del backoffice (`scrReasignar`): el Supervisor reasigna las Especiales
+aprobadas activas y el Admin también las Incobrables activas. Solo escribe el agente; el plugin de reparto mueve el dueño y los
+compartidos. Las Diarias no se reasignan a mano: gana el CSV.
 
 ### DAT-30 — Huérfanos
 **Severidad:** Baja · **Confianza:** Verificado
@@ -578,6 +638,9 @@ DEC-012/022 dicen que el Supervisor reasigna Especiales y el Admin las Incobrabl
 **Severidad:** Baja · **Confianza:** Verificado
 
 `IN-/AS-/PG-/AD-{SEQNUM:4}` (seed 1000; en DEV 0 duplicados). Se usan como clave de `LookUp` en `Patch` (`'[IN] Numero de Interaccion' = …`, `'[AS] Numero' = …`) sin alt key. El ancho es mínimo, no máximo (al llegar a 10000 crece a 5 dígitos; si algo ordena como texto, se desordena). SM sobrescribe `as_fechasignacion` con `FechaCarga` en cada upsert, pisando la fecha de la solicitud de una Especial que viniera en el CSV. **Propuesta:** usar el GUID para parchear; alt key sobre los autonumber si se mantiene el patrón.
+
+**Estado (2026-10-14): cerrado en DEV en lo de `fechasignacion`.** El plugin `CargaSobreAsignacion` ya no pisa `as_fechasignacion`
+si tenía valor, así que queda la fecha de alta (y la de solicitud de una Especial del CSV) y `ultimacarga` sigue diciendo la última.
 
 ### DAT-32 — Drift documentación vs build
 **Severidad:** Baja · **Confianza:** Verificado

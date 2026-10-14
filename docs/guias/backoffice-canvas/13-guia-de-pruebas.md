@@ -240,12 +240,12 @@ En scrInicio, cada uno ve SOLO sus KPIs y sus cards de acceso. [ ] OK [ ] Falla
 2. Panel de una Rechazada: card roja con el motivo. Panel de una Aprobada: fila Localizador.
 [ ] OK [ ] Falla
 
-### F6 🔴 — scrAprobaciones: aprobar (con Comp-14) y rechazar
+### F6 🔴 — scrAprobaciones: aprobar (con reparto) y rechazar
 
 1. Como U-SUP: la solicitud de F4 está en la cola (FIFO, la más vieja arriba). Abrila: cuenta, retiro, notas completas.
 2. "✓ Aprobar y asignar" deshabilitado sin localizador; el combo solo ofrece agentes activos CON `Email Usuario`.
 3. Elegí agente y aprobá. **Esperado inmediato:** fila fuera de la cola sin recargar, Notify verde; en Dataverse: `Aprobado` + `[AS] Agente` + `[AS] Resolutor` = U-SUP.
-4. **Verificación Comp-14 🔴:** esperá 1–2 min y revisá en Dataverse el **Owner (Propietario)** del registro: cambió al usuario del agente asignado. Sin ese cambio no hay aislamiento ni sync al celular — es falla del flow, pero BLOQUEA el cierre igual.
+4. **Verificación del reparto (`RepartoAsignacion`) 🔴:** esperá 1–2 min y revisá en Dataverse el **Owner (Propietario)** del registro: cambió al usuario del agente asignado. Sin ese cambio no hay aislamiento ni sync al celular — es falla del plugin, pero BLOQUEA el cierre igual.
 5. Con otra solicitud: "Rechazar" deshabilitado sin motivo (espacios no cuentan); rechazá con motivo. **Esperado:** `Rechazada` + `Motivo de rechazo` + `Resolutor` en Dataverse; U-SOL la ve roja con el motivo en F5.
 [ ] OK [ ] Falla
 
@@ -357,7 +357,7 @@ el error CRUDO para que el usuario lo lea y lo reporte. Probalo con un fallo REA
 | F3 | Arqueo inmutable | 🔴 | [ ] OK [ ] ✗ |
 | F4 | Crear solicitud (validación + anti-duplicado) | 🔴 | [ ] OK [ ] ✗ |
 | F5 | Mis solicitudes por estado | 🟡 | [ ] OK [ ] ✗ |
-| F6 | Aprobar/rechazar + owner por Comp-14 | 🔴 | [ ] OK [ ] ✗ |
+| F6 | Aprobar/rechazar + owner por `RepartoAsignacion` | 🔴 | [ ] OK [ ] ✗ |
 | F7 | Monitoreo de carga | 🟡 | [ ] OK [ ] ✗ |
 | F8 | Reconciliación: umbral + cierre en lote | 🔴 | [ ] OK [ ] ✗ |
 | F9 | Cierres por tipo con motivo | 🔴 | [ ] OK [ ] ✗ |

@@ -97,28 +97,35 @@ Alcance: **U** = solo lo propio o lo compartido con el usuario; **G** = toda la 
 
 ---
 
-## 3. Matriz de privilegios (Dataverse, verificada el 2026-10-06)
+## 3. Matriz de privilegios (Dataverse, verificada el 2026-10-06; escritura por columna al 2026-10-14)
 
 | Tabla | Localizador | Solicitante | Supervisor | BackOffice | Admin | Servicio |
 |---|---|---|---|---|---|---|
-| Asignación | R/W/A/T: U | **C: G**, R/W: U, A/T: G | R/W/A/T: **G** | R: G | todo: G | C/R/W/A/T/G: G |
+| Asignación | R/W/A/T: U (W solo `orden`) | **C: G**, R/W: U, A/T: G (W solo las columnas de re-solicitud) | R/W/A/T: **G** (W solo aprobación, agente y cierre) | R: G | todo: G | C/R/W/A/T/G: G |
 | Cuenta | R: U | R/A/T: G | R: G | R: G | todo: G | C/R/W/A/T: G |
 | Cliente | R: U | R/A/T: G | R: G | R: G | todo: G | C/R/W/A/T: G |
 | PAN de cuentas (bóveda) | R: U | — | — | **R: G** | — | — |
-| Interacción | C/R/W/A/T: U | — | R: G | R/**W**/A: G | todo: G | — |
-| Pago | C/R/W/A/T/**G**: U | — | R: G | R: G | todo: G | — |
-| Actualización de datos | C/R/W/A/T: U | — | — | R: G | todo: G | — |
+| Interacción | C/R/A/T: U | — | R: G | R/**W**/A: G (W solo grabación) | todo: G | — |
+| Pago | C/R/A/T: U | — | R: G | R: G | todo: G | — |
+| Actualización de datos | C/R/A/T: U | — | — | R: G | todo: G | — |
 | Agente | R/T: G | R/T: G | R/T: G | R: G | todo: G | C/R/W/A/T: G |
 | Carga diaria | — | — | — | R: G | todo: G | C/R/W/A/T: G |
 | Dirección / Teléfono | R: U | R/A/T: G | R: G | R: G | todo: G | C/R/W/A/T: G |
 
 Lo que dice la matriz en palabras:
 - **Localizador:** lee solo lo que el reparto le comparte (sus cuentas asignadas) y crea interacciones, pagos y
-  actualizaciones de datos. **No puede editar ni reasignar lo que ya capturó** (S-9, cerrado 2026-10-14).
+  actualizaciones de datos. **No puede editar ni reasignar lo que ya capturó** (S-9, cerrado 2026-10-14). Sobre la asignación
+  escribe **solo el orden** de su ruta.
 - **Solicitante y Supervisor:** leen todas las cuentas y clientes porque necesitan buscar cualquiera. Es una decisión de
-  diseño.
-- **BackOffice:** el **único** rol de persona que lee la bóveda: ve el número completo para transcribirlo al core.
+  diseño. El Solicitante escribe, de la asignación, solo las columnas de volver a pedir una Especial; el Supervisor, solo
+  aprobación, agente, resolutor, motivo de rechazo, estado, motivo y fecha de cierre.
+- **BackOffice:** el **único** rol de persona que lee la bóveda: ve el número completo para transcribirlo al core. De la
+  interacción escribe solo las columnas de grabación.
 - **Admin:** puede todo, incluso borrar.
+- **Quién hace cumplir lo de las columnas:** el privilegio de la tabla no distingue columnas, así que lo hacen los plugins
+  `ColumnasAsignacion` (S-11) y `GrabacionInteraccion` (DAT-11). Un rol de CM que no figura arriba no escribe ninguna columna de
+  la asignación. No se frenan quienes no tienen roles de CM (la carga de Smelter, SYSTEM), Admin ni Servicio.
+- **Trazas de plugins:** solo Admin y Servicio las leen (S-13, cerrado 2026-10-14). En PROD, nivel de trazas en "Exception".
 
 ---
 
@@ -164,18 +171,22 @@ Ajustes ("Aa"): tema día o noche y tamaño de letra.
 
 | Intento | Quién lo frena | Resultado |
 |---|---|---|
-| Ver cuentas, clientes, interacciones o pagos de otro cobrador | Rol en "U" + compartidos del flow | No llegan, ni a la app ni a la API |
-| Ver una Especial antes de que se apruebe | Flow (no comparte) + app (filtro) | No aparece |
+| Ver cuentas, clientes, interacciones o pagos de otro cobrador | Rol en "U" + compartidos del reparto (plugin `RepartoAsignacion`) | No llegan, ni a la app ni a la API |
+| Ver una Especial antes de que se apruebe | Plugin `RepartoAsignacion` (no comparte) + app (filtro) | No aparece |
 | Aprobar o asignarse una Especial (por la API) | Plugin `AprobacionEspecial` | Error "solo un Supervisor puede aprobar, rechazar o asignar el agente…" |
 | Crear una actualización de datos sin interacción, o con una interacción sin cuenta | Plugin `ActualizacionConInteraccion` | Error "…tiene que estar vinculada a una interaccion" |
 | Leer el número de tarjeta de una cuenta que no es suya | Bóveda con lectura "U" | No llega |
 | Que el cobrador edite o reasigne un pago, una interacción o una actualización de datos ya capturados | Rol Localizador sin Write ni Assign (S-9) | Error de privilegio (`prvWritesanic_cm_tbl_pago`, …) |
+| Escribir en la asignación algo que no sea el orden (por ejemplo, cerrarla o cambiar el agente) | Plugin `ColumnasAsignacion` (S-11) | Error 400 que nombra la columna |
+| Crear una interacción sin cuenta o sin agente, o con el agente de otro cobrador | Plugin `InteraccionDelCobrador` (DAT-13, SEC-08) | Sin cuenta: error 400. Con otro agente: el servidor lo reemplaza por el vinculado a su usuario |
+| Crear una interacción ya Grabada, o con código, fecha o usuario de grabación | Plugin `InteraccionDelCobrador` | Se guarda como Pendiente, sin esos datos |
+| Crear un pago sin interacción | Plugin `CuentaDesdeInteraccion` (DAT-13) | Error 400 |
 
 **Al sincronizar**, el servidor completa:
 - la cuenta del pago;
 - el N° de interacción del pago (plugin `CuentaDesdeInteraccion`);
-- el agente: la app lo busca por el correo del agente, que el plugin `EmailDesdeUsuario` mantiene igual al UPN del
-  usuario, en minúsculas.
+- el agente de la interacción: es el vinculado al usuario del cobrador (plugin `InteraccionDelCobrador`). La app lo busca por
+  el correo del agente, que el plugin `EmailDesdeUsuario` mantiene igual al UPN del usuario, en minúsculas.
 
 ### 4.4 Cómo probarlo a mano (teléfono)
 
@@ -223,8 +234,11 @@ NODE_PATH=../backoffice-canvas/node_modules node grupo2.js
 
 **Reglas de "Enviar":**
 - Exige cuenta, tipo, retiro mayor que 0 y motivo.
-- Si la cuenta ya tiene una Especial **activa**, avisa y no crea nada.
-- Si tiene una **cerrada**, la **reactiva** (el mismo registro, con los datos nuevos).
+- Si la cuenta ya tiene una Especial **activa**, avisa y no crea nada. Si la pidió otra persona, el mensaje lo dice.
+- Si tiene una **cerrada**, la **reactiva** (el mismo registro, con los datos nuevos). Una Especial **rechazada** queda cerrada
+  (motivo "Rechazada"), así que quien la pidió puede volver a pedirla.
+- **Limitación abierta (DAT-14):** el Solicitante no ve la Especial que pidió otra persona (lectura Basic), así que en ese caso
+  puede recibir un error en vez del aviso. Falta una decisión del dueño.
 
 ### 5.2 Qué le impide el servidor
 
@@ -232,10 +246,11 @@ NODE_PATH=../backoffice-canvas/node_modules node grupo2.js
 |---|---|---|
 | Crear una Especial **con agente** o **ya aprobada** (por la API) | Plugin `AprobacionEspecial` | Error "solo un Supervisor…" |
 | Aprobar, rechazar o cambiar el agente de una Especial | Plugin `AprobacionEspecial` | Error "solo un Supervisor…" |
+| Escribir en la asignación columnas que no sean las de volver a pedir (por ejemplo, el retiro de otra, el estado o el motivo de cierre) | Plugin `ColumnasAsignacion` (S-11) | Error 400 que nombra la columna |
 | Leer pagos, carga diaria o el número completo | Rol sin esos privilegios | 403 o vacío |
 | Ver Especiales de otros solicitantes | Rol en "U" (solo las suyas o compartidas) | No aparecen |
 
-Después de que se aprueba (el dueño pasa al cobrador), el Solicitante **sigue viendo** su Especial: el flow se la comparte.
+Después de que se aprueba (el dueño pasa al cobrador), el Solicitante **sigue viendo** su Especial: el plugin `RepartoAsignacion` se la comparte (solo si "Solicitado por" es quien la creó, S-7).
 
 ### 5.3 Cómo probarlo a mano (User2)
 
@@ -262,10 +277,11 @@ Después de que se aprueba (el dueño pasa al cobrador), el Solicitante **sigue 
 |---|---|
 | **Inicio** | Ver POR APROBAR y "Cobrado hoy" |
 | **Aprobaciones** | Ver la cola de Especiales **pendientes y activas de todos los solicitantes**. Elegir una y: **aprobar eligiendo el localizador** (buscador de agentes activos con usuario) o **rechazar con motivo** |
+| **Reasignar** (desde 2026-10-14) | Buscar una asignación por cliente, cuenta o localizador (el Supervisor ve las **Especiales aprobadas y activas**), elegir el **nuevo localizador** (activo y con usuario) y confirmar. Solo escribe el agente: el plugin de reparto mueve el dueño y los compartidos. Las Diarias no se reasignan a mano: gana el CSV |
 | **Cartera por localizador** (desde 2026-10-09) | Ver cada localizador con sus asignaciones **activas** por tipo (Diaria / Incobrable / Especial). Al elegir uno se abre el detalle: cliente, cuenta enmascarada, tipo, estado de aprobación, mora y saldo. Solo lectura. Las Especiales en Borrador o Pendiente cuentan acá aunque el cobrador no las vea en el teléfono |
 | **Historial de Especiales** (desde 2026-10-09) | Ver las Especiales **aprobadas y rechazadas**: quién la pidió, quién la resolvió, a qué localizador fue, motivo de rechazo, retiro y si sigue activa o cerrada. Filtros por resultado, por los últimos 7/30/90 días (último cambio) y por activas/cerradas. Solo lectura |
 
-Al **aprobar** se guardan, en un solo cambio: estado Aprobado, el agente y el Supervisor como resolutor. Después, el flow:
+Al **aprobar** se guardan, en un solo cambio: estado Aprobado, el agente y el Supervisor como resolutor. Después, el plugin asíncrono `RepartoAsignacion` (catálogo, C.3):
 - pasa el dueño de la asignación al usuario del agente;
 - le comparte la cuenta y el cliente al cobrador.
 
@@ -277,21 +293,21 @@ En unos segundos la Especial le aparece al cobrador en la próxima sincronizaci�
 |---|---|
 | Aprobar o rechazar | **Permitido** (es su función). El plugin lo reconoce aunque el rol le llegue por equipo |
 | Crear una solicitud | No tiene privilegio de creación |
-| **Escribir cualquier otra columna de cualquier asignación** (por la API) | **Hoy se puede** (S-11, abierto: escritura Global) |
+| **Escribir cualquier otra columna de cualquier asignación** (por la API) | Plugin `ColumnasAsignacion` (S-11, cerrado 2026-10-14): solo puede escribir aprobación, agente, resolutor, motivo de rechazo, estado, motivo y fecha de cierre. Error 400 que nombra la columna |
 
 ### 6.3 Cómo probarlo a mano (User3)
 
 | # | Paso | Resultado esperado |
 |---|---|---|
-| SU-1 | Abrir el backoffice | Menú con solo Inicio y Aprobaciones |
+| SU-1 | Abrir el backoffice | Menú con Inicio, Aprobaciones, Reasignar, Cartera por localizador e Historial de Especiales |
 | SU-2 | Aprobaciones | La Especial QA del Solicitante (SO-3) está en la cola. "Aprobar" deshabilitado hasta elegir un localizador |
 | SU-3 | Buscar el localizador QA (User5) → Aprobar | La fila sale de la cola. En pocos segundos, el dueño de la asignación es User5 |
 | SU-4 | Teléfono de User5 → Cartera (sincronizar) | La Especial aparece, con su retiro y nota |
-| SU-5 | Otra Especial QA → Rechazar sin motivo | Deshabilitado. Con motivo: sale de la cola como **Rechazada** y nunca llega al teléfono |
+| SU-5 | Otra Especial QA → Rechazar sin motivo | Deshabilitado. Con motivo: sale de la cola como **Rechazada**, queda cerrada (motivo "Rechazada") y nunca llega al teléfono |
 
 ### 6.4 Pruebas automáticas
 
-Fase C: R-04, E-01c, D-02f, F-03, F-03c (el flow mueve el dueño) y F-03b.
+Fase C: R-04, E-01c, D-02f, F-03, F-03c (el plugin mueve el dueño) y F-03b.
 
 ---
 
@@ -305,8 +321,9 @@ Fase C: R-04, E-01c, D-02f, F-03, F-03c (el flow mueve el dueño) y F-03b.
 | **Por transcribir** | Cola de las interacciones **pendientes** de todos los cobradores (la más vieja primero). Para cada una ve: cliente, cuenta con el **número completo** (bóveda; el único rol que lo ve), comentario, pagos y la actualización de datos (antes y después). Escribe el **código del core**: **Enter (o Tab) lleva el foco a "Grabar" y Enter otra vez graba** (desde 2026-10-09: Power Apps no distingue Enter de Tab ni de un clic afuera, y antes cualquiera de los tres grababa) |
 | **Transcritas hoy** | Arqueo del día: lo que **él** grabó hoy, con sus pagos. Solo lectura |
 
-**Al grabar** se guarda: estado Grabado, código (en mayúsculas, hasta 10), fecha y "grabado por". Después avanza a la
-siguiente. Si falla, avisa y la interacción **queda** en la cola.
+**Al grabar** la app manda el estado Grabado y el código (en mayúsculas, hasta 10); la **fecha** y "grabado por" los pone el
+servidor (DAT-11). Después avanza a la siguiente. Si falla, avisa y la interacción **queda** en la cola. Si otra persona del
+BackOffice la grabó antes, el servidor devuelve un error y no pisa su grabación.
 
 ### 7.2 Qué le impide el servidor
 
@@ -314,6 +331,9 @@ siguiente. Si falla, avisa y la interacción **queda** en la cola.
 |---|---|
 | Escribir pagos, clientes, teléfonos o direcciones | Sin privilegio |
 | Crear o aprobar asignaciones | Sin privilegio |
+| Volver a grabar una interacción ya Grabada, o cambiarle el código | Plugin `GrabacionInteraccion` (DAT-11): error 400 |
+| Pasar a Grabado sin código | Plugin `GrabacionInteraccion`: error 400 |
+| Editar otra columna de la interacción (el comentario, por ejemplo) | Plugin `GrabacionInteraccion`: solo puede escribir las columnas de grabación. Error 400 |
 | Leer el número completo | **Permitido** (es su función). Cualquier otro rol de persona recibe 403 o vacío |
 
 ### 7.3 Cómo probarlo a mano (User1)
@@ -340,6 +360,7 @@ Fase D: R-02, E-01d, D-02g, D-02h, F-01, F-01b, H-03 y R-06a/b (multirol).
 | **Inicio** | Ver CARGA DE HOY, DIARIAS FUERA DE CARTERA, AGENTES SIN USUARIO y "Cobrado hoy" |
 | **Monitoreo de carga** | Ver si llegó la carga del día (filas, cuentas, clientes, última carga). Solo lectura |
 | **Reconciliación** | Ver las Diarias que **desaparecieron** de la última carga y **cerrarlas en lote** ("fuera de cartera"). Freno: no deja cerrar si superan el 30% o si no hay carga de hoy |
+| **Reasignar** (desde 2026-10-14) | Igual que el Supervisor, pero **además** de las Especiales aprobadas activas ve las **Incobrables activas**. Solo escribe el agente; el plugin de reparto mueve el dueño y los compartidos |
 | **Cierres** | Cerrar a mano Incobrables (Recuperada, Baja/castigada, Fuera de cartera) y Especiales (Gestión completada, Ya no aplica, Solicitud errónea), con detalle opcional |
 | **Agentes y usuarios** | **Vincular** un agente a un usuario, cambiarlo, **desvincularlo**, activarlo o desactivarlo. **＋ Nuevo agente** (desde 2026-10-09): nombre (tiene que ser **exacto** al que manda el banco en el CSV, o la próxima carga crea otro agente) y usuario opcional; bloquea nombres repetidos |
 | **Cargar archivo** | Subir el CSV del día sin entrar a Smelter: **＋ Elegir el archivo .csv** → **Validar (prueba en seco)** → si sale *Terminada* con 0 fallos se habilita **Cargar** → confirmar. Muestra solo contadores (filas, procesadas, éxitos, fallos, omitidas); si hay fallos dice *Avisá a soporte con el nombre de la carga*. Abajo, **Mis últimas cargas** (por *Creado por*: el job queda a nombre del team «CM · Admin y Carga», porque el rol Smelter Operador llega por el team) |
@@ -358,10 +379,10 @@ en minúsculas. Es lo que la app del cobrador usa para saber quién es.
 
 | # | Paso | Resultado esperado |
 |---|---|---|
-| AD-1 | Abrir el backoffice | Menú Admin (6 pantallas) |
+| AD-1 | Abrir el backoffice | Menú Admin (Inicio y 7 pantallas, entre ellas Reasignar) |
 | AD-2 | Monitoreo | Los conteos coinciden con la carga del día |
 | AD-3 | Reconciliación sin carga de hoy | Card de bloqueo y "Cerrar" **deshabilitado**. **No pulsar el cierre en lote con datos reales** |
-| AD-4 | Cierres → la Especial QA aprobada en SU-3 → "Gestión completada" | Se cierra. En la próxima sincronización desaparece del teléfono y el cobrador deja de ver su cuenta (el flow revoca el compartido) |
+| AD-4 | Cierres → la Especial QA aprobada en SU-3 → "Gestión completada" | Se cierra. En la próxima sincronización desaparece del teléfono y el cobrador deja de ver su cuenta (el plugin `RepartoAsignacion` revoca el compartido) |
 | AD-5 | Agentes → vincular un agente QA a un usuario QA | El correo del agente queda igual al UPN del usuario, en minúsculas |
 | AD-6 | Datos maestros → crear un cliente QA con un CIF existente | Aviso de duplicado; no crea |
 
@@ -405,9 +426,18 @@ encabezado `MSCRMCallerID: <systemuserid>`, usando la cuenta de servicio de DEV.
 |---|---|---|
 | User5 (Localizador) | `PATCH` de su Especial QA a `estadoaprobacion = 3` | 400 "solo un Supervisor…" |
 | User5 | `POST` de una actualización de datos sin interacción | 400 "…vinculada a una interaccion" |
+| User5 | `PATCH` del orden de su asignación | 200 |
+| User5 | `PATCH` de su asignación para cerrarla (estado) | 400 (S-11) |
+| User3 (Supervisor) | `PATCH` del retiro de una asignación | 400 (S-11) |
+| User5 | `POST` de una interacción sin cuenta | 400 (DAT-13) |
+| User5 | `POST` de una interacción con el agente de otro cobrador, o ya Grabada | Se guarda con el agente de User5 y Pendiente (DAT-13, SEC-08) |
+| User5 | `POST` de un pago sin interacción | 400 (DAT-13) |
+| User1 (BackOffice) | `PATCH` para grabar una interacción Pendiente, con código | 200, con la fecha y el usuario que pone el servidor (DAT-11) |
+| User1 | `PATCH` para grabar otra vez la misma interacción | 400 (DAT-11) |
+| User1 | `PATCH` del comentario de una interacción | 400 (DAT-11) |
 | User2 (Solicitante) | `POST` de una Especial con agente | 400 "solo un Supervisor…" |
 | User2 / User3 / User4 | `GET` de la bóveda `sanic_cm_tbl_cuentapans` | 403 o vacío (H-01) |
-| Sin roles de CM (carga de Smelter) | `POST` de una Especial en Borrador con agente | Se permite. El flow **no** la comparte hasta que se aprueba |
+| Sin roles de CM (carga de Smelter) | `POST` de una Especial en Borrador con agente | Se permite. El plugin `RepartoAsignacion` **no** la reparte hasta que se aprueba |
 
 ---
 
@@ -418,14 +448,12 @@ encabezado `MSCRMCallerID: <systemuserid>`, usando la cuenta de servicio de DEV.
 - El rol se deduce del **nombre del equipo** ("CM · Solicitantes · …"): renombrar un equipo deja al usuario "Sin acceso".
 
 **Identificación del usuario en el backoffice.**
-- La app compara `'Primary Email' = Lower(User().Email)`, pero `User().Email` es el **UPN**.
-- En DEV el UPN y el correo coinciden en todos los usuarios, así que no falla.
-- Si en PROD un usuario tiene un correo distinto de su cuenta de inicio de sesión, verá "Sin acceso". Mismo problema que
-  se corrigió en la app del cobrador el 2026-10-06; está pendiente en el backoffice.
+- El backoffice identifica al usuario por su **Entra object id** (`'Azure AD Object ID' = User().EntraObjectId`) y no por el
+  correo o el UPN. Un cambio de correo o de UPN no deja a nadie sin identidad.
+- El rol se sigue deduciendo del equipo al que pertenece el usuario (ver arriba).
 
 **Huecos de seguridad abiertos**, que una prueba puede "lograr" y conviene registrar como hallazgo, no como falla de la
 prueba (detalle en `docs/auditoria/00-lista-consolidada.md`):
-- **S-11:** el Supervisor escribe cualquier columna.
 - **S-4:** los roles CM ya no crean flows, pero `Basic User` y roles de otras soluciones del entorno sí (y exportan a Excel).
 
 **Cobrador:**

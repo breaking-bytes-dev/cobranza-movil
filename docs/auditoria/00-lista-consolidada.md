@@ -7,6 +7,8 @@
 > - [localizador-bugs-codigo.md](localizador-bugs-codigo.md) (APP-01…33)
 > - [contrato-de-datos.md](contrato-de-datos.md) (DAT-01…32)
 >
+> **Lo que queda abierto se sigue en [01-pendientes.md](01-pendientes.md)**, con la propuesta de cada ítem.
+>
 > Los 87 hallazgos se agrupan en **32 ítems** sin duplicados. Confianza: **V** = verificado (dispositivo, datos o metadata), **C** = verificado en código, **P** = probable, **H** = hipótesis.
 
 ## Verificaciones independientes del consolidador
@@ -53,13 +55,13 @@ Revisé por mi cuenta, fuera de los agentes, las afirmaciones más graves:
 | F-4 | 🔴 Crítica | **Pagos offline invisibles al transcribir**: se vinculan por un autonumérico que offline está vacío, y el backoffice une por ese texto | APP-05, DAT-03 | C / P |
 | F-5 | 🔴 Crítica | **"Fecha del pago" nunca se escribe**: "Cobrado hoy" y el arqueo del backoffice dan 0; "hoy" del teléfono usa la fecha de creación del servidor | DAT-02, APP-20, APP-21, DAT-27 | V |
 | F-6 | 🟠 Alta | **El Pedido Especial muestra datos de la cuenta y no de la solicitud**: C$ 0.00, o incluso un monto ajeno (AS-2001: C$ 46.048,91 en lugar de C$ 1.000) | APP-06, DAT-01 | V |
-| F-7 | 🟠 Alta | **Huecos del flow de owner**: con agente sin usuario no hace nada (871 de 1008 asignaciones); vincular el usuario después no propaga el owner; las asignaciones cerradas o reasignadas no salen del teléfono | DAT-07, DAT-08, DAT-24 | V / P |
+| F-7 | 🟠 Alta | **Huecos del flow de owner**: con agente sin usuario no hace nada (871 de 1008 asignaciones); vincular el usuario después no propaga el owner; las asignaciones cerradas o reasignadas no salen del teléfono | DAT-07, DAT-08, DAT-24 (cerrados en DEV: ver [01-pendientes.md](01-pendientes.md)) | V / P |
 | F-8 | 🟠 Alta | **Sin validaciones de entrada**: pagos sin recibo, sin tope de monto, recibos duplicados; actualización de datos sin largo ni formato (el rechazo llega diferido en el sync) | APP-10, APP-24, APP-32, DAT-21, DAT-22 | C |
 | F-9 | 🟠 Alta | **Estado global sucio**: `varAsig` arrastra el tipo y la Especial de otra cuenta; las pestañas comparten variable; `colClientes` tiene dos esquemas | APP-07, APP-17, APP-19 | C |
 | F-10 | 🟠 Alta | **Escrituras masivas de `Orden`** sobre todas las asignaciones (incluso ajenas o inactivas), que marcan "limpio" aunque fallen; `Orden` sin inicializar (la regla de negocio quedó en borrador) | APP-13, APP-23, DAT-16 | V |
 | F-11 | 🟠 Alta | **Sincronización opaca**: "Sincronizado" con solo tener red; última sincronización fija; el botón no trae cartera; no hay `ShowHostInfo`/`Connection.Sync` | APP-14, L-7 | V |
 | F-12 | 🟡 Media | **GPS con 2 decimales (~1 km)**, null sin aviso, "capturada" siempre fijo | APP-11, DAT-05 | V |
-| F-13 | 🟡 Media | **Ciclo de vida de datos incompleto**: una Diaria reconciliada que reaparece no se reactiva; la actualización de datos no tiene cierre; el backoffice no puede crear cuentas; nombre y CIF duplicados en cuenta y cliente; email en texto contra lookup; `ApplicationRequired` no se exige en servidor; el anti-duplicado del Solicitante no ve todo; grano asignación contra cuenta; cascadas | DAT-10, 13…20, 26 | V / P |
+| F-13 | 🟡 Media | **Ciclo de vida de datos incompleto**: una Diaria reconciliada que reaparece no se reactiva; la actualización de datos no tiene cierre; el backoffice no puede crear cuentas; nombre y CIF duplicados en cuenta y cliente; email en texto contra lookup; `ApplicationRequired` no se exige en servidor; el anti-duplicado del Solicitante no ve todo; grano asignación contra cuenta; cascadas | DAT-10, 13…20, 26 (estado actual en [01-pendientes.md](01-pendientes.md)) | V / P |
 | F-14 | 🟡 Media | **Las respuestas rápidas pisan lo tipeado**; el comentario pasa al cliente siguiente | APP-18 | V |
 
 ## P2: calidad, accesibilidad y proceso
@@ -70,7 +72,7 @@ Revisé por mi cuenta, fuera de los agentes, las afirmaciones más graves:
 | Q-2 | 🟡 Media | **Accesibilidad**: 0 etiquetas accesibles, contraste 2,58:1 en 41 textos, toques de ~19 dp; textos recortados al agrandar la letra | APP-25, APP-31 | C / V |
 | Q-3 | 🟡 Media | **Formatos**: "U$" sin formato, fechas según el idioma del dispositivo, rótulos engañosos, buscador que arranca con el placeholder como texto, conteo de interacciones por CIF | APP-16, APP-22, APP-26 | V / C |
 | Q-4 | 🟢 Baja | Nota de desarrollador visible, mensajes técnicos, navegación que apila pantallas, la app publicada tiene 2 errores de análisis | APP-27, APP-29, APP-30 | V / P |
-| Q-5 | 🟢 Baja | Tablas y columnas huérfanas, autonumérico como clave de negocio, default de `estadoaprobacion` | DAT-28…31 | V |
+| Q-5 | 🟢 Baja | Tablas y columnas huérfanas, autonumérico como clave de negocio, default de `estadoaprobacion` | DAT-28…31 (estado actual en [01-pendientes.md](01-pendientes.md)) | V |
 
 ---
 
@@ -82,9 +84,10 @@ Revisé por mi cuenta, fuera de los agentes, las afirmaciones más graves:
 | 1 · Exposición (S-1, S-2, S-8) | ✅ en DEV | [scripts/seguridad](../../scripts/seguridad/README.md): cascadas cortadas, auditoría transaccional, el flow comparte y revoca, backfill de 282 compartidos, Localizador en lectura Basic. Teléfono de User5 con primera sincronización limpia: 2 cuentas en vez de 1.004, y tarjetas completas (también resuelve F-1 para cobradores). Pendiente: los teléfonos que ya tenían el padrón lo conservan hasta reiniciarlos (ver README). 2026-10-05: perfil offline propio con asignaciones activas e historial de 90 días |
 | 4 · Integridad: S-9 y S-4 (roles CM) | ✅ / ⚠️ en DEV (2026-10-14) | El cobrador crea pero no edita ni reasigna lo capturado (`paso6_cobrador_solo_crea.py`); los roles CM operativos no crean flows (`paso7_sin_flows.py`). S-4 sigue parcial por `Basic User` y DLP |
 | 4 · Integridad: S-7 y F-7 (DAT-07/08) | ✅ en DEV (2026-10-14) | Plugins asíncronos `RepartoAsignacion` (reemplaza al flow de owner; sin agente o con agente sin usuario, la asignación pasa al equipo sin miembros "CM · Cartera sin cobrador" y el cobrador anterior la pierde) y `RepartoPorAgente` (vincular, cambiar o quitar el usuario re-reparte sus asignaciones). Ver [catálogo C.3](../referencia/03-catalogo-de-tablas.md) |
+| 4 · Integridad: S-11, S-13, DAT-10/11/13/15/18/28/29/31 | ✅ en DEV (2026-10-14) | Plugins (ensamblado **1.0.6.1**, 24 pasos activos): `ColumnasAsignacion` (S-11: cada rol escribe solo las columnas de su pantalla), `GrabacionInteraccion` (DAT-11), `InteraccionDelCobrador` (DAT-13 y SEC-08), `CargaSobreAsignacion` (DAT-10 y DAT-31), `Reclasificacion` (DAT-15) y el Borrador de `AprobacionEspecial` (DAT-28). Cascadas de DAT-18 (`paso1_cascadas_auditoria.py`). Pantalla *Reasignar* del backoffice (DAT-29). Los roles CM operativos ya no leen trazas de plugins (S-13, `paso8_sin_trazas.py`). Trabajos diarios de borrado (DEC-019). Unas 825 asignaciones de SYSTEM repartidas (`paso11_reparto_pendiente.py`) y `paso3_reconciliar.py --revocar`. Verificado en vivo. Ver [catálogo C.2](../referencia/03-catalogo-de-tablas.md) y [01-pendientes.md](01-pendientes.md) |
 | 4 · Integridad: S-6 | ✅ en DEV | Plugin `AprobacionEspecial` (solo Supervisor/Admin aprueban, rechazan o asignan agente a una Especial; la carga de Smelter, sin roles de CM, no se frena), flow que no comparte una Especial sin aprobar y app que no la muestra. Ver [localizador-bugs-codigo.md](localizador-bugs-codigo.md#cierre-app-25-24-16-08s-6-y-s-1-2026-10-05) |
 
-## Estado verificado y recomendaciones de seguridad (2026-10-06)
+## Estado verificado y recomendaciones de seguridad (2026-10-06; S-11 y S-13 al 2026-10-14)
 
 Revisado contra DEV el 2026-10-06 con consultas a la API: privilegios de los roles, auditoría por tabla, configuración de
 trazas y definición del flow.
@@ -94,16 +97,16 @@ trazas y definición del flow.
 | S-1 | ✅ Cerrado | — | Perfil offline propio: solo lo legible por el cobrador, asignaciones activas y 90 días de historial |
 | S-2 | ✅ Cerrado (Localizador) | Solicitante y Supervisor leen todas las cuentas y clientes (Global): lo necesitan para buscar cualquier cuenta al crear y aprobar Especiales. **Decisión de diseño**, no hueco | Mantener; revisarlo si cambia el proceso |
 | S-3 | ❌ Abierto (tenant) | Los datos offline quedan en el teléfono hasta desinstalar: sin borrado remoto, PIN ni cifrado exigido | Intune/MAM + Conditional Access en Entra antes de PROD. Lo hace un administrador del tenant |
-| S-4 | ⚠️ Parcial (2026-10-14) | **Hecho:** los roles CM operativos (Localizador, Solicitante, Supervisor, BackOffice) ya no crean ni editan flows (`paso7_sin_flows.py`). **Falta, y no es de CM:** el rol de plataforma `Basic User`, que tienen todos, y roles de otras soluciones del entorno (MPPP, WFE, Procurement, Sigil, CH-SR) siguen dando crear flows y exportar a Excel; 0 políticas DLP; TDS endpoint encendido | En PROD: que los usuarios de CM tengan solo roles CM más un rol base propio sin crear flows ni exportar (en lugar de `Basic User`); política DLP del entorno; apagar o restringir el TDS endpoint. Lo decide el dueño del entorno o del tenant |
+| S-4 | ⚠️ Parcial · riesgo aceptado hasta la DLP (dueño, 2026-10-14) | **Hecho:** los roles CM operativos (Localizador, Solicitante, Supervisor, BackOffice) ya no crean ni editan flows (`paso7_sin_flows.py`). **Falta, y no es de CM:** el rol de plataforma `Basic User`, que tienen todos, y roles de otras soluciones del entorno (MPPP, WFE, Procurement, Sigil, CH-SR) siguen dando crear flows y exportar a Excel; 0 políticas DLP; TDS endpoint encendido | En PROD: que los usuarios de CM tengan solo roles CM más un rol base propio sin crear flows ni exportar (en lugar de `Basic User`); política DLP del entorno; apagar o restringir el TDS endpoint. Lo decide el dueño del entorno o del tenant |
 | S-5 | ✅ Cerrado | — | Fase 2 de PAN: el número completo solo vive en la bóveda |
 | S-6 | ✅ Cerrado | — | Plugin `AprobacionEspecial` + compuerta del flow + filtro de la app |
 | S-7 | ✅ Cerrado (2026-10-14) | — | El reparto lo hace el plugin asíncrono `RepartoAsignacion` con el servicio del sistema (sin conexión personal; flow apagado) y la Especial aprobada se le comparte al Solicitante **solo si "Solicitado por" es quien la creó** (`createdby`). Verificado en vivo: creada por otro → no se comparte; creada por el Solicitante → sí |
 | S-8 | ✅ Cerrado | — | Auditoría activa en asignación, interacción, pago y agente |
 | S-9 | ✅ Cerrado (2026-10-14) | El cobrador sigue poniendo desde el teléfono monto, recibo, GPS y fecha de captura al **crear** (es la captura) | El rol Localizador crea interacciones, pagos y actualizaciones de datos pero ya **no los edita ni los reasigna** (sin Write ni Assign; `paso6_cobrador_solo_crea.py`). Verificado en vivo: User5 recibe 403 al bajar el monto de su pago, editar su interacción o reasignar el pago; la app sigue capturando (suite F7 16/16) |
 | S-10 | ⚠️ Sin re-verificar | En la auditoría, la app del cobrador estaba compartida con User1 (BackOffice y agente de 66 asignaciones) y User9 (sin rol CM). Ver los compartidos requiere la API de administración de Power Apps | Compartir la app solo con el equipo "CM · Localizadores" |
-| S-11 | ❌ Abierto (mitigado) | El Supervisor escribe **cualquier columna de cualquier asignación** (Global). Desde S-6 lo que aprueba queda controlado, pero puede tocar cuenta, saldo, orden y tipo | Seguridad de columna sobre lo que no le corresponde |
+| S-11 | ✅ Cerrado (2026-10-14) | — | Plugin `ColumnasAsignacion` (PreOperation, Update de asignación): cada rol de CM escribe solo las columnas que usa su pantalla. Localizador, solo `as_orden`; Supervisor, aprobación, agente, resolutor, motivo de rechazo, estado, motivo y fecha de cierre; Solicitante, las de volver a pedir una Especial; otros roles de CM, ninguna. Quien no tiene roles de CM (Smelter/SYSTEM), Admin y Servicio no se frenan. Verificado en vivo: el Supervisor cambiando el retiro recibe 400, el cobrador cambiando el orden recibe 200 y el cobrador cerrando su asignación recibe 400 |
 | S-12 | ❌ Abierto (tenant) | El entorno no es Managed, no tiene grupo de seguridad ni restricción por IP, y tiene 15 System Administrators | Centro de administración de Power Platform antes de PROD |
-| S-13 | ❌ Abierto | Trazas de plugins en "All" (`plugintracelogsetting = 2`) y **todos los roles CM las pueden leer**. Nuestros plugins nunca trazan valores; los de otras soluciones del entorno, no se sabe | Trazas en "Exception" en PROD y quitar `prvReadPluginTraceLog` a los roles operativos |
+| S-13 | ✅ Cerrado en DEV (2026-10-14) · PROD: trazas en "Exception" | Las trazas siguen en "All" (`plugintracelogsetting = 2`) porque es una configuración de toda la organización y la usan otras soluciones; nuestros plugins nunca trazan valores | Los roles CM operativos (Localizador, Solicitante, Supervisor, BackOffice) ya no leen las trazas de plugins (`paso8_sin_trazas.py`); Admin y Servicio la conservan. **En PROD, poner el nivel de trazas en "Exception".** Del ítem original, el envío de la dirección del cliente a Google Maps (SEC-18) se aceptó por decisión del dueño (2026-10-14) |
 
 **S-14 (encontrado por la prueba integral, cerrado en DEV el 2026-10-06): lectura heredada por Reparent.**
 - Con Reparent = Cascade en Cliente→Cuenta y Cuenta→Asignación, cada carga de Smelter le daba al cobrador lectura heredada
@@ -116,8 +119,9 @@ trazas y definición del flow.
 - Los accesos heredados que ya existían en DEV no se limpiaron (datos ficticios, por decisión). **En PROD hay que aplicar
   el cambio antes de la primera carga real.**
 
-**Orden recomendado:** S-4 (lo que queda es de plataforma), S-11, S-13 (S-7 y S-9 cerrados el 2026-10-14). S-3, S-10 y S-12
-hay que pedírselos al administrador del tenant antes de PROD.
+**Orden recomendado:** S-7, S-9, S-11 y S-13 están cerrados (2026-10-14; S-13 en PROD requiere trazas en "Exception"). Lo que queda de S-4 es de plataforma y es
+riesgo aceptado hasta la DLP. S-3, S-10 y S-12 hay que pedírselos al administrador del tenant antes de PROD. El resto de lo abierto
+se sigue en [01-pendientes.md](01-pendientes.md).
 
 ## Orden de corrección propuesto
 

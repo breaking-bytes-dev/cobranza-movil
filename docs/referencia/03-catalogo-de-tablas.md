@@ -3,7 +3,7 @@
 > Referencia **única y consolidada** de cada tabla de la solución `cm_core_cobranzamovil`: definición, campos y tipos,
 > llaves, relaciones y cascadas, import, ciclo de vida, cómo borrar y consideraciones al borrar.
 >
-> **Última actualización: 2026-10-06.** Los campos, llaves, cascadas, pasos de plugin, privilegios, perfil offline y la
+> **Última actualización: 2026-10-14** (plugins, privilegios, cascadas de DAT-18 y retención de datos; lo demás, 2026-10-06). Los campos, llaves, cascadas, pasos de plugin, privilegios, perfil offline y la
 > plantilla de Smelter se **verificaron en vivo contra DEV** con consultas de solo lectura (`EntityDefinitions`,
 > `sdkmessageprocessingsteps`, `RetrieveRolePrivilegesRole`, `mobileofflineprofileitems`, `sanic_tbl_smlt_*`).
 > **Cuando la metadata y un documento discrepan, manda la metadata**, y la discrepancia queda anotada (§D).
@@ -13,7 +13,7 @@
 > `scripts/seguridad/*`, `plugins/`. El detalle histórico de diseño sigue en `componentes/` y `decisiones/`.
 
 **Cómo leer las columnas "Req."** `Sí` = `ApplicationRequired` en la metadata: lo exigen las apps y formularios, **el
-servidor no lo hace cumplir** (DAT-13); `—` = opcional. Los montos son `Decimal`, no `Money`. Todas las tablas son
+servidor no lo hace cumplir**, salvo la cuenta y el agente de la interacción y la interacción del pago (DAT-13: plugins de C.2); `—` = opcional. Los montos son `Decimal`, no `Money`. Todas las tablas son
 **de propiedad de usuario** (`UserOwned`). No se listan las columnas auxiliares `*name` / `*yominame` de los lookups.
 
 ## Convenciones de borrado (modelo, DEC-023, y estado real verificado)
@@ -25,12 +25,12 @@ servidor no lo hace cumplir** (DAT-13); `—` = opcional. Los montos son `Decima
   registrada, **bloquea** el borrado y detiene la cascada.
 - Efecto buscado: *"se borra el cliente y toda su data, salvo que haya interacciones; ahí se bloquea todo"*.
 
-**Estado real en DEV (2026-10-06, `OneToManyRelationships.CascadeConfiguration`):**
+**Estado real en DEV (2026-10-06, `OneToManyRelationships.CascadeConfiguration`; con el cambio de DAT-18 del 2026-10-14):**
 
-- `Cascade` de borrado: `cliente → direccion / telefono / cuenta / cargadiaria`, `cuenta → asignacion / cuentapan`,
-  `interaccion → pago / actualizaciondatos`.
-- `Restrict` de borrado: **solo** los padres de catálogo → hijo: `agente → cuenta / asignacion / interaccion / cargadiaria`,
-  `producto → cuenta`, `fiador → cuenta`.
+- `Cascade` de borrado: `cliente → direccion / telefono / cuenta`, `cuenta → asignacion / cuentapan`.
+- `Restrict` de borrado: los padres de catálogo → hijo: `agente → cuenta / asignacion / interaccion / cargadiaria`,
+  `producto → cuenta`, `fiador → cuenta`; y, desde el 2026-10-14 (DAT-18), `cliente → cargadiaria`, `interaccion → pago` e
+  `interaccion → actualizaciondatos`.
 - `RemoveLink` (borra el padre y deja el hijo con el lookup vacío): `cuenta → interaccion`, `cuenta → pago`,
   `cuenta → cargadiaria`, y `systemuser → agente / asignacion (resolutor, solicitado por) / interaccion (grabado por) / usuarioapp`.
 - **El candado `cuenta → interaccion = Restrict` NO existe.** El catálogo anterior lo daba por "confirmado" y es falso:
@@ -42,8 +42,9 @@ servidor no lo hace cumplir** (DAT-13); `—` = opcional. Los montos son `Decima
 - **Quién puede borrar:** solo el rol `SR | CM | Admin` (`Delete: Global`) y solo por la API; ninguna app borra
   (`ciclo-de-vida-de-los-datos.md`, "idea central"; no se recorrieron las apps para re-verificarlo). Los scripts de QA y de migración borran con ese rol. Smelter **nunca** borra
   (todas sus tablas son upsert: `createifnotexists` y `updateifexists` en `true`, sin mapeos de borrado).
-- **Retención de `cargadiaria` (DEC-019): no implementada.** En DEV no hay ningún job de Bulk Deletion sobre ella (los
-  12 jobs recurrentes existentes son de plataforma y de otras soluciones). La tabla solo crece.
+- **Retención de `cargadiaria` (DEC-019), 2026-10-14:** un trabajo de Bulk Deletion **diario** borra las filas de más de **60 días**
+  (decisión del dueño). Otro trabajo diario borra los fiadores sin nombre (ver `fiador`). Los crea
+  `scripts/seguridad/paso10_borrado_programado.py`.
 
 ---
 
@@ -68,12 +69,12 @@ servidor no lo hace cumplir** (DAT-13); `—` = opcional. Los montos son `Decima
 
 Notas:
 - Filas de DEV al 2026-10-06 (`$count`, solo orden de magnitud: son datos ficticios y de QA). `fiador` tiene más filas que `cuenta`
-  (2785 contra 1010): origen **no confirmado**.
+  (2785 contra 1010): origen explicado el 2026-10-14, ver `fiador`.
 - "Perfil offline" = lista de las 10 tablas del perfil `Cobranza Movil - Cobrador` (§C.5). Todas las tablas tienen `ChangeTracking`
   activo salvo `cargadiaria` y `usuarioapp`.
 - La numeración 1 a 12 se conserva respecto del catálogo anterior; `cuentapan` y `usuarioapp` se agregan al final como 13 y 14.
 
-## B. Relaciones y cascadas (verificado 2026-10-06)
+## B. Relaciones y cascadas (verificado 2026-10-06; DAT-18 aplicado y verificado el 2026-10-14)
 
 Cada fila es una relación 1:N real (`OneToManyRelationships` de las tablas CM). `NC` = `NoCascade`.
 
@@ -82,14 +83,14 @@ Cada fila es una relación 1:N real (`OneToManyRelationships` de las tablas CM).
 | cliente → direccion | `dr_clienteid` | Cascade | Cascade | Cascade | Cascade | Cascade |
 | cliente → telefono | `tl_clienteid` | Cascade | Cascade | Cascade | Cascade | Cascade |
 | cliente → cuenta | `ct_clienteid` | Cascade | Cascade | NC | NC | **NC** |
-| cliente → cargadiaria | `cd_clienteid` | Cascade | Cascade | NC | NC | **NC** |
+| cliente → cargadiaria | `cd_clienteid` | **Restrict** | Cascade | NC | NC | **NC** |
 | cuenta → cuentapan | `cp_cuentaid` | Cascade | Cascade | Cascade | Cascade | Cascade |
-| cuenta → asignacion | `as_cuentaid` | Cascade | Cascade | NC | NC | **NC** |
+| cuenta → asignacion | `as_cuentaid` | Cascade | **NC** | NC | NC | **NC** |
 | cuenta → interaccion | `in_cuentaid` | **RemoveLink** | NC | NC | NC | NC |
 | cuenta → pago | `pg_cuentaid` | **RemoveLink** | NC | NC | NC | NC |
 | cuenta → cargadiaria | `cd_cuenta` | **RemoveLink** | NC | NC | NC | NC |
-| interaccion → pago | `pg_interaccion` | Cascade | Cascade | Cascade | Cascade | Cascade |
-| interaccion → actualizaciondatos | `ad_interaccionid` | Cascade | Cascade | Cascade | Cascade | Cascade |
+| interaccion → pago | `pg_interaccion` | **Restrict** | Cascade | Cascade | Cascade | Cascade |
+| interaccion → actualizaciondatos | `ad_interaccionid` | **Restrict** | Cascade | Cascade | Cascade | Cascade |
 | agente → cuenta / asignacion / interaccion / cargadiaria | `ct_agenteid`, `as_agenteid`, `in_agente`, `cd_agenteid` | **Restrict** | NC | NC | NC | NC |
 | producto → cuenta | `ct_productoid` | **Restrict** | NC | NC | NC | NC |
 | fiador → cuenta | `ct_fiador` | **Restrict** | NC | NC | NC | NC |
@@ -99,7 +100,7 @@ Cada fila es una relación 1:N real (`OneToManyRelationships` de las tablas CM).
 - **Delete.** `Cascade` borra los hijos con el padre; `Restrict` impide borrar el padre mientras haya hijos; `RemoveLink` borra el
   padre y deja el lookup del hijo vacío (el hijo **no** se borra).
 - **Share = Cascade** (`cliente → direccion/telefono`, `cuenta → cuentapan`, `interaccion → pago/AD`): compartir el padre comparte
-  los hijos. Es el mecanismo por el que el cobrador, al recibir del flow la cuenta y el cliente, ve también la bóveda, las
+  los hijos. Es el mecanismo por el que el cobrador, al recibir del reparto (`RepartoAsignacion`, C.3) la cuenta y el cliente, ve también la bóveda, las
   direcciones y los teléfonos. En `cliente → cuenta`, `cliente → cargadiaria` y `cuenta → asignacion` **no** se propaga (desde
   la Fase 1, 2026-10-03), para que compartir un cliente no comparta todas sus cuentas.
 - **Reparent: cambio del 2026-10-06 (defecto 2 / S-14).** Estaba en `Cascade` en `cliente → cuenta`, `cliente → cargadiaria` y
@@ -109,9 +110,13 @@ Cada fila es una relación 1:N real (`OneToManyRelationships` de las tablas CM).
   `cliente → direccion/telefono` e `interaccion → pago/actualizacion`: ahí quien accede al padre es la misma audiencia que el
   diseño quiere. **Los accesos heredados que ya existían en DEV no se limpiaron** (datos ficticios); en PROD el cambio tiene
   que estar aplicado antes de la primera carga real.
-- **Assign = Cascade** sigue vigente en `cliente → cuenta / cargadiaria`, `cuenta → asignacion / cuentapan`: reasignar un cliente o
-  una cuenta (por ejemplo, "reasignar los registros de un usuario deshabilitado") baja en cascada y **pisa el dueño que puso el
-  flow** (DAT-18). Riesgo latente: hoy el dueño de cliente, cuenta y carga diaria es `SYSTEM` y nadie los reasigna.
+- **DAT-18 (2026-10-14):** `interaccion → pago`, `interaccion → actualizaciondatos` y `cliente → cargadiaria` pasaron a `Delete =
+  Restrict` (no se puede borrar una interacción con pagos ni un cliente con carga diaria), y `cuenta → asignacion` a `Assign =
+  NoCascade`: reasignar la cuenta ya no pisa el dueño que puso `RepartoAsignacion`. Lo aplica
+  `scripts/seguridad/paso1_cascadas_auditoria.py`.
+- **Assign = Cascade** sigue vigente en `cliente → cuenta / cargadiaria` y `cuenta → cuentapan`: reasignar un cliente o una
+  cuenta (por ejemplo, "reasignar los registros de un usuario deshabilitado") baja en cascada a esos hijos. Riesgo latente: hoy el
+  dueño de cliente, cuenta y carga diaria es `SYSTEM` y nadie los reasigna.
 
 ## C. Automatización del servidor, auditoría, perfil offline y privilegios
 
@@ -150,25 +155,31 @@ Cada fila es una relación 1:N real (`OneToManyRelationships` de las tablas CM).
 
 ### C.2 Plugins (ensamblado `Sanic.CobranzaMovil.Plugins`)
 
-**18 pasos, todos activos en DEV** (verificado `statecode = 0`, 2026-10-14, ensamblado 1.0.5.0). 15 son **PreOperation (20)**,
-**síncronos (0)** y ejecutan como el usuario que llama; los 2 de `RepartoAsignacion` y el de `RepartoPorAgente` son
-**PostOperation (40)**, **asíncronos (1)** y usan el servicio del sistema (ver C.3). Ninguno conoce la clave K ni escribe valores en trazas o mensajes de error.
+**24 pasos, todos activos en DEV** (verificado `statecode = 0`, 2026-10-14, ensamblado 1.0.6.1). 19 son **PreOperation (20)**,
+**síncronos (0)** y ejecutan como el usuario que llama; los 2 de `Reclasificacion` son **PostOperation (40) síncronos**; los 2 de
+`RepartoAsignacion` y el de `RepartoPorAgente` son **PostOperation (40)**, **asíncronos (1)** y usan el servicio del sistema (ver
+C.3). Los que dependen del rol (`AprobacionEspecial`, `ColumnasAsignacion`, `GrabacionInteraccion`, `InteraccionDelCobrador`) leen los
+roles de CM directos y por equipo; quien no tiene roles de CM (SYSTEM / Smelter, administradores) y Admin/Servicio no se frenan.
+Ninguno conoce la clave K ni escribe valores en trazas o mensajes de error.
 
 | Plugin | Tabla y mensaje | Filtro de Update | Qué hace |
 |--------|-----------------|------------------|----------|
 | `PanGuard` (6 pasos) | `cuenta`, `cargadiaria`, `cuentapan`: Create y Update | `ct_numerodecuenta`, `cd_numerocuenta`, `cp_name` | Rechaza un valor con **5 o más dígitos seguidos** (tolera espacio, guion o espacio duro entre dígitos). `****1234`, vacío y nulo pasan. Red de seguridad si una plantilla vuelve a escribir el número en claro |
 | `ClaveDesdeCuenta` (2) | `asignacion`: Create y Update | `as_cuentaid`, `as_clavepan` (+ `PreImage` con `as_cuentaid`) | Si hay cuenta, completa `as_clavepan` con la `ct_clavepan` de la cuenta; si viene otra distinta, **rechaza**. Así las apps no escriben la clave |
-| `CuentaDesdeInteraccion` (1) | `pago`: Create | — | Completa `pg_cuentaid` desde `in_cuentaid` de la interacción y `pg_numerointeraccion` desde `in_numerointeraccion` (el modo offline solo admite un nivel de lookup y no conoce el autonumérico) |
-| `AprobacionEspecial` (2) | `asignacion`: Create y Update | `as_agenteid`, `as_estadoaprobacion`, `as_tipo` (+ `PreImage`) | S-6. Sobre una **Especial**, solo Supervisor, Admin o `Servicio - Cobranza` pueden: pasarla a Aprobado o Rechazada, poner o cambiar el agente, o convertir en Especial una asignación que ya tiene agente. Frena a las **personas con algún rol `SR \| CM \|`** que no sean esos; no frena a SYSTEM (Smelter) ni a administradores sin roles de CM |
+| `CuentaDesdeInteraccion` (1) | `pago`: Create | — | DAT-13: rechaza un pago **sin interacción**. Completa `pg_cuentaid` desde `in_cuentaid` de la interacción y `pg_numerointeraccion` desde `in_numerointeraccion` (el modo offline solo admite un nivel de lookup y no conoce el autonumérico) |
+| `AprobacionEspecial` (2) | `asignacion`: Create y Update | `as_agenteid`, `as_estadoaprobacion`, `as_tipo` (+ `PreImage`) | S-6. Sobre una **Especial**, solo Supervisor, Admin o `Servicio - Cobranza` pueden: pasarla a Aprobado o Rechazada, poner o cambiar el agente, o convertir en Especial una asignación que ya tiene agente. Frena a las **personas con algún rol `SR \| CM \|`** que no sean esos; no frena a SYSTEM (Smelter) ni a administradores sin roles de CM. DAT-28: en el Create, una Diaria o Incobrable nace en **Borrador** (no "Pendiente aprobacion") |
 | `ActualizacionConInteraccion` (2) | `actualizaciondatos`: Create y Update | `ad_interaccionid` | APP-24. Exige una interacción **con cuenta** |
 | `EmailDesdeUsuario` (2) | `agente`: Create y Update | `ag_usuarioid` | `ag_emailusuario` = UPN del usuario vinculado en minúsculas; vacío si se desvincula |
 | `RepartoAsignacion` (2) | `asignacion`: Create y Update, **asíncrono** | `as_agenteid`, `as_estado`, `as_estadoaprobacion` | Reparto de la asignación al cobrador (o a la cartera sin cobrador): dueño, compartidos y revocación al anterior (C.3) |
 | `RepartoPorAgente` (1) | `agente`: Update, **asíncrono** | `ag_usuarioid` | DAT-08. Al vincular, cambiar o quitar el usuario, vuelve a escribir el mismo agente en sus asignaciones activas mal repartidas: eso dispara `RepartoAsignacion` en cada una (C.3) |
+| `ColumnasAsignacion` (1) | `asignacion`: Update | — (todas) | S-11. Cada rol escribe solo las columnas `as_*` de su pantalla: Localizador `as_orden`; Supervisor aprobación, agente, resolutor, motivo de rechazo, estado, motivo y fecha de cierre; Solicitante las de volver a pedir una Especial. Otro rol de CM: ninguna. El mensaje cita la columna, nunca el valor |
+| `CargaSobreAsignacion` (1) | `asignacion`: Update | `as_ultimacarga` (+ `PreImage`) | DAT-10: la carga **reabre** una Diaria o Incobrable cerrada por el sistema ("fuera de cartera" o "Reclasificada a …"); no reabre cierres de personas ni Especiales. DAT-31: no pisa `as_fechasignacion` si ya tenía valor |
+| `Reclasificacion` (2) | `asignacion`: Create y Update, **PostOperation síncrono** | `as_ultimacarga`, `as_estado`, `as_tipo` (+ `PreImage`) | DAT-15 (DEC-021): una sola activa entre Diaria e Incobrable por cuenta; al llegar el otro tipo cierra la anterior con motivo "Reclasificada a {tipo}". Las Especiales conviven |
+| `InteraccionDelCobrador` (1) | `interaccion`: Create | — | DAT-13 + SEC-08: exige cuenta y agente; si la crea un cobrador, el agente es el **vinculado a su usuario** (lo pone el servidor) y nace Pendiente de grabar |
+| `GrabacionInteraccion` (1) | `interaccion`: Update | — (todas) (+ `PreImage`) | DAT-11: una Grabada no se vuelve a grabar ni cambia su código; Grabado exige código; fecha y usuario de grabación los pone el servidor; el BackOffice escribe solo las columnas de grabación |
 
 Los pasos `PanGuard` de las columnas viejas (`as_`, `in_`, `pg_numerocuenta`) se retiraron cuando esas columnas se eliminaron
-(Fase 2, paso 8). Un paso mal registrado **falla cerrado**. Registro: `scripts/pan/paso5_plugins.py`. *(El README del
-ensamblado todavía describe 12 pasos `PanGuard` desactivados y no menciona `AprobacionEspecial`, `ActualizacionConInteraccion` ni
-`EmailDesdeUsuario`: está desactualizado respecto de DEV.)*
+(Fase 2, paso 8). Un paso mal registrado **falla cerrado**. Registro: `scripts/pan/paso5_plugins.py`; detalle en el README del ensamblado.
 
 ### C.3 Reparto de asignaciones: plugin `RepartoAsignacion` (reemplaza al flow de owner)
 
@@ -252,8 +263,8 @@ Alcance: **U** = propio o compartido, **G** = toda la organización. Sin entrada
 | agente | R/T:G | R/T:G | R/T:G | R:G | todo:G | C/R/W/A/T:G |
 | cuenta | R:U · T:G | R/A/T:G | R:G | R:G | todo:G | C/R/W/A/T:G |
 | cuentapan (bóveda) | R:U | — | — | **R:G** | **—** | — |
-| asignacion | R/W/A/T:U | **C:G**, R/W:U, A/T:G | R/W/A/T:G | R:G | todo:G | C/R/W/A/T/G:G |
-| interaccion | C/R/A/T:U (sin W: S-9) | — | R:G | R/W/A:G | todo:G | — |
+| asignacion | R/W/A/T:U (W solo `as_orden`: S-11) | **C:G**, R/W:U, A/T:G (W solo columnas de re-solicitud) | R/W/A/T:G (W solo aprobación, agente y cierre) | R:G | todo:G | C/R/W/A/T/G:G |
+| interaccion | C/R/A/T:U (sin W: S-9) | — | R:G | R/W/A:G (W solo grabación: DAT-11) | todo:G | — |
 | pago | C/R/A/T:U (sin W ni G: S-9) | — | R:G | R:G | todo:G | — |
 | actualizaciondatos | C/R/A/T:U (sin W: S-9) | — | — | R:G | todo:G | — |
 | cargadiaria | — | — | — | R:G | todo:G | C/R/W/A/T:G |
@@ -262,6 +273,10 @@ Alcance: **U** = propio o compartido, **G** = toda la organización. Sin entrada
 (`todo:G` = C, R, W, D, A, T, G y S en alcance Global.) **Solo Admin tiene Delete**, en las 12 tablas de datos de CM (no en `cuentapan` ni
 `usuarioapp`, donde no tiene ningún privilegio). `Solicitante` y `Supervisor` leen todas las cuentas y clientes a propósito (necesitan buscar
 cualquiera: S-2, decisión de diseño).
+
+Las restricciones "W solo …" las aplican los plugins `ColumnasAsignacion` y `GrabacionInteraccion` (C.2): el privilegio de la
+tabla no distingue columnas. **Trazas de plugins (S-13, 2026-10-14):** solo Admin y Servicio leen `plugintracelog`
+(`scripts/seguridad/paso8_sin_trazas.py`).
 
 **Flows (S-4, 2026-10-14):** Localizador, Solicitante, Supervisor y BackOffice ya no tienen los privilegios de crear, editar,
 borrar, asignar, compartir, vincular ni activar procesos, ni `prvFlow` (`scripts/seguridad/paso7_sin_flows.py`); conservan leer y
@@ -293,8 +308,9 @@ direcciones, teléfonos y la carga diaria. Su identidad de negocio es el **CIF**
 - **Alternate Key `sanic_cm_pk_cliente_cif`** (`sanic_cm_cl_cif`). Estado **Active**. El import deduplica y upsertea por CIF.
 
 ### Relaciones
-- Hijos: `direccion`, `telefono` (Delete/Assign/Share/Unshare/Reparent = Cascade); `cuenta`, `cargadiaria` (Delete y Assign = Cascade;
-  Share, Unshare y **Reparent = NoCascade**). Ver §B.
+- Hijos: `direccion`, `telefono` (Delete/Assign/Share/Unshare/Reparent = Cascade); `cuenta` (Delete y Assign = Cascade;
+  Share, Unshare y **Reparent = NoCascade**); `cargadiaria` (**Delete = Restrict** desde el 2026-10-14, Assign = Cascade; Share,
+  Unshare y Reparent = NoCascade). Ver §B.
 
 ### Import
 - **Origen:** CSV diario. Table Mapping `Cliente`, **orden 1** (es padre, va primero). Dedup `sanic_cm_cl_cif`.
@@ -306,24 +322,25 @@ direcciones, teléfonos y la carga diaria. Su identidad de negocio es el **CIF**
   El **Solicitante no crea clientes**: tiene `Create` vacío sobre `cliente` (la promesa de DEC-013/014 no se cumplió; DAT-20).
 - **Vive:** cada re-import **pisa** los campos mapeados. Lo que el Admin edita en Maestros (nombre y datos) **lo pisa la carga
   siguiente**, y las apps leen el nombre desde `cuenta.ct_nombrecliente`, no de acá (DAT-26). Es rastro de auditoría.
-- **Lo ve el cobrador** solo si el flow se lo compartió (junto con la cuenta asignada) y baja al teléfono por el perfil offline.
+- **Lo ve el cobrador** solo si el reparto (`RepartoAsignacion`) se lo compartió (junto con la cuenta asignada) y baja al teléfono por el perfil offline.
 - **Fin de vida (normal):** **soft** — un cliente sin cuentas queda dormido y se conserva. No se borra de rutina.
 
 ### Cómo borrar
-- **Relaciones salientes en `Cascade` (Delete):** `cliente → direccion`, `cliente → telefono`, `cliente → cuenta`,
-  `cliente → cargadiaria`. Y por la cuenta, a su vez: `asignacion` y `cuentapan` (bóveda).
-- Borrar un cliente **arrastra**: direcciones, teléfonos, cuentas, **sus asignaciones, su bóveda y su carga diaria** (las cargas
-  llegan por `cd_clienteid`). Solo el **Admin** puede, por la API (DAT-18).
+- **Relaciones salientes en `Cascade` (Delete):** `cliente → direccion`, `cliente → telefono`, `cliente → cuenta`. Y por la
+  cuenta, a su vez: `asignacion` y `cuentapan` (bóveda). `cliente → cargadiaria` es **`Restrict`** desde el 2026-10-14 (DAT-18).
+- Borrar un cliente **arrastra**: direcciones, teléfonos, cuentas, **sus asignaciones y su bóveda**. **No se puede** mientras tenga
+  filas de carga diaria (llegan por `cd_clienteid`). Solo el **Admin** puede, por la API.
 
 ### Consideraciones al borrar
 - **La cascada NO se bloquea por interacciones** (corrección respecto del catálogo anterior): `cuenta → interaccion` es `RemoveLink`.
   Si el cliente tiene cuentas con cobranza registrada, el borrado **procede** y las interacciones y pagos quedan **sin cuenta**
   (y sin camino a su cliente: la interacción no apunta al cliente). Comportamiento en ejecución **no confirmado**.
-- **`cliente → cargadiaria` borra el histórico financiero** del cliente aunque `cuenta → cargadiaria` sea `RemoveLink`.
+- **`cliente → cargadiaria` es `Restrict`** (DAT-18, 2026-10-14): el histórico financiero del cliente ya no se borra arrastrado
+  por el cliente; lo bloquea.
 - **Colisión de CIF:** un cliente creado a mano con un CIF que luego llega por CSV se **fusiona** (bien si el CIF es correcto;
   **duplica** si está mal).
 - **Caso real de borrado:** un pedido **legal de eliminación de datos** ("derecho al olvido"). Hoy no hay nada que obligue a
-  resolver primero la cobranza registrada: hay que hacerlo a mano (o poner en `Restrict` la relación `cuenta → interaccion`).
+  resolver primero la cobranza registrada: hay que hacerlo a mano (o poner en `Restrict` la relación `cuenta → interaccion`). Con carga diaria, el borrado del cliente se bloquea (DAT-18).
 
 ### Estado de la revisión
 **2026-10-06.** Verificado en vivo: campos y longitudes, alt key activa, cascadas, mapeo de Smelter, privilegios. Corrección: el
@@ -360,7 +377,7 @@ import crea **una fila por tipo**. `EC` = dirección donde recibe el estado de c
 ### Ciclo de vida
 - **Nace:** del **CSV** (la explosión por tipo) **o** por el **Admin** en Maestros (agrega; **no hay editar ni borrar en las apps**).
 - **Vive:** guarda el **dato ACTUAL**. El upsert por `cif + tipo` **pisa** el valor anterior. El histórico de cambios **no** vive acá:
-  los cambios que pide el cobrador quedan en `actualizaciondatos`, que **nadie aplica** a esta tabla (DAT-19).
+  los cambios que pide el cobrador quedan en `actualizaciondatos`, que **nadie aplica** a esta tabla: la actualización termina en el core del banco, por decisión del dueño (DAT-19, 2026-10-14).
 - **Teléfono del cobrador:** baja al teléfono por el Share en cascada del cliente. La app solo carga Casa y Trabajo; **EC** se importa pero
   no se muestra.
 - **Fin:** soft; se conserva mientras exista el cliente.
@@ -477,7 +494,7 @@ identidad de Entra. Es **padre** de `cuenta`, `asignacion`, `interaccion` y `car
 |--------------|--------|------|:----:|-------------|
 | Nombre | `sanic_cm_ag_nombre` | Text(200) | Sí | **Nombre principal.** Del CSV (`Agente`). **Alt key.** |
 | Usuario | `sanic_cm_ag_usuarioid` | Lookup → `systemuser` | Sí | **Operativo.** Identidad del cobrador; lo setea el **Admin** (no viene del CSV). Smelter crea agentes sin él, así que el servidor no lo exige. |
-| Email Usuario | `sanic_cm_ag_emailusuario` | Text(250), formato Email | — | **Derivado por el plugin `EmailDesdeUsuario`**: UPN del usuario en minúsculas. La app del cobrador identifica a su agente con `Lower(User().Email)`. |
+| Email Usuario | `sanic_cm_ag_emailusuario` | Text(250), formato Email | — | **Derivado por el plugin `EmailDesdeUsuario`**: UPN del usuario en minúsculas. La app del cobrador identifica a su agente con `Lower(User().Email)`. El backoffice solo escribe el lookup del usuario y el correo lo pone el plugin (DAT-17, cerrado 2026-10-14). |
 | Activo | `sanic_cm_ag_activo` | Yes/No (def. **Sí**) | — | **Soft-delete:** marca si el localizador está operativo. |
 
 ### Llaves
@@ -542,7 +559,7 @@ El **fiador** (fianza) del producto en mora. Es **padre** de `cuenta`. Cerca de 
 
 ### Ciclo de vida
 - **Nace:** del **CSV** (upsert por nombre). **Vive:** persiste. **Fin:** no se borra.
-- **No está en el perfil offline**; el flow **sí le comparte el fiador** al cobrador (junto con cuenta y cliente) y lo revoca al cerrar,
+- **No está en el perfil offline**; el reparto (`RepartoAsignacion`) **sí le comparte el fiador** al cobrador (junto con cuenta y cliente) y lo revoca al cerrar,
   aunque la tabla no baje al teléfono. **Sin auditoría de tabla.**
 
 ### Cómo borrar
@@ -552,7 +569,11 @@ El **fiador** (fianza) del producto en mora. Es **padre** de `cuenta`. Cerca de 
 - **Unicidad de `NombreFianza` (a VALIDAR con el área):** la alt key es por **nombre**. Si dos fianzas **distintas** comparten nombre
   exacto, el upsert las **colapsa en una**. Si no es único en el origen, hay que repensar la clave (agregar un identificador de fianza).
   Pregunta abierta al negocio.
-- En DEV hay **2785 fiadores para 1010 cuentas**: origen de la diferencia **no confirmado** (revisar cargas de QA).
+- En DEV había **2785 fiadores para 1010 cuentas** y el origen no se conocía. Se explicó el 2026-10-14: cada fila del CSV con
+  `NombreFianza` vacío hace que la carga cree un fiador sin nombre, porque la alt key no rige con NULL. Eran 2777 huérfanos y 8
+  reales. Un trabajo de Bulk Deletion **diario** borra los fiadores sin nombre (DEC-019; un fiador referenciado no se puede
+  borrar, porque `fiador → cuenta` es Restrict). **Pendiente:** la corrección de origen, que es configuración de Smelter (que la
+  plantilla no cree el fiador cuando viene vacío).
 
 ### Estado de la revisión
 **2026-10-06.** Verificado en vivo: campos, alt key activa, `Restrict`, mapeo. Abierto: unicidad de `NombreFianza`.
@@ -628,7 +649,7 @@ de asignación, interacción y pago).
 ### Relaciones
 - Entrante: `cliente → cuenta` (Delete y Assign = Cascade; Share, Unshare y Reparent = NoCascade). Catálogos `producto/agente/fiador →
   cuenta` = Restrict.
-- Saliente: `cuenta → cuentapan` (Cascade en todo), `cuenta → asignacion` (Delete y Assign = Cascade; Share/Unshare/Reparent = NoCascade),
+- Saliente: `cuenta → cuentapan` (Cascade en todo), `cuenta → asignacion` (Delete = Cascade; Assign, Share, Unshare y Reparent = NoCascade, Assign desde el 2026-10-14 por DAT-18),
   `cuenta → interaccion / pago / cargadiaria` (**RemoveLink**). Ver §B.
 
 ### Import
@@ -648,7 +669,7 @@ de asignación, interacción y pago).
 - **Nace:** **solo de Smelter** (upsert por `ct_clavepan`). No hay forma de crear una cuenta desde las apps: el Solicitante tiene `Create`
   vacío y el backoffice no tiene pantalla (DAT-20). La promesa original (DEC-013: el Solicitante crea la cuenta si no existe) no se cumple.
 - **Vive:** el upsert **PISA** cada día (saldos, mora, datos del cliente). La **historia financiera** → `cargadiaria`. Lo que el
-  cobrador ve de una cuenta es lo que el **flow le comparte** (con la asignación activa y, si es Especial, aprobada).
+  cobrador ve de una cuenta es lo que el **reparto le comparte** (`RepartoAsignacion`) (con la asignación activa y, si es Especial, aprobada).
 - **Dueño:** `SYSTEM` (muestra de 500 filas).
 - **Fin:** **soft.** "Fuera de cobranza" = sin asignación activa. No se borra de rutina.
 
@@ -665,7 +686,8 @@ de asignación, interacción y pago).
 - Hoy **nada protege la cobranza registrada** de un borrado de cuenta: solo que el único que puede borrar es el Admin por la API.
   Si se quiere el candado de DEC-023, hay que pasar `cuenta → interaccion` (y `→ pago`) a `Restrict`. Tradeoff: con `Restrict` ya no se podría
   borrar un cliente con cobranza sin antes tratar las interacciones; requiere ventana de cambio.
-- **Assign = Cascade** desde cliente y hacia asignación/bóveda: reasignar la cuenta pisa el dueño que puso el flow (DAT-18, latente).
+- **Assign:** `cliente → cuenta` y `cuenta → cuentapan` siguen en Cascade; `cuenta → asignacion` es **NoCascade** desde el 2026-10-14
+  (DAT-18): reasignar la cuenta ya no pisa el dueño que puso `RepartoAsignacion`.
 - **Estado actual vs histórico:** la cuenta se pisa; la evolución vive en `cargadiaria`.
 - **Lo que edita el Admin en Maestros sobre el cliente no cambia los denormalizados de la cuenta** (`ct_nombrecliente`, `ct_cifcliente`), y la
   próxima carga los vuelve a escribir (DAT-26).
@@ -709,7 +731,7 @@ día a día**.
   `sanic_cm_pk_cd_numerocuenta_fechacarga` (eliminada). Un registro por cuenta por día; mismo día re-subido = upsert (no duplica).
 
 ### Relaciones
-- Entrantes: `cliente → cargadiaria` (Delete y Assign = Cascade; Share/Unshare/**Reparent = NoCascade**), `cuenta → cargadiaria`
+- Entrantes: `cliente → cargadiaria` (**Delete = Restrict** desde el 2026-10-14, DAT-18; Assign = Cascade; Share/Unshare/**Reparent = NoCascade**), `cuenta → cargadiaria`
   (**RemoveLink**), `agente → cargadiaria` (Restrict). Es **hoja**.
 
 ### Import
@@ -725,13 +747,13 @@ día a día**.
   reconciliación compara contra la última carga; el resto del snapshot es histórico. No está en el perfil offline.
 - **Cobertura por tipo:** `Diaria` todos los días; `Incobrable` solo los días que aparece (esparso); `Especial` del CSV tiene snapshot el
   día que viene; `Especial` pedida en la app **no** (no está en el CSV).
-- **Fin:** **sin retención hoy.** DEC-019 prevé Bulk Deletion de `fechacarga < hoy − N`, pero **no está implementada** (§ convenciones). Crece
-  ~1 fila por cuenta por día.
+- **Fin:** **retención de 60 días** (DEC-019, decisión del dueño, 2026-10-14): un trabajo de Bulk Deletion diario borra las filas con
+  `fechacarga` de más de 60 días. Sin él, la tabla crecería ~1 fila por cuenta por día.
 
 ### Cómo borrar
-- **Entrante:** `cliente → cargadiaria` = **Cascade** (borrar el cliente borra su histórico). `cuenta → cargadiaria` = **RemoveLink** (borrar la
+- **Entrante:** `cliente → cargadiaria` = **Restrict** desde el 2026-10-14 (DAT-18): no se puede borrar un cliente que tenga histórico. `cuenta → cargadiaria` = **RemoveLink** (borrar la
   cuenta deja la fila con `cd_cuenta` vacío, no la borra).
-- **Retención (DEC-019):** pendiente. Hay que crear el job de Bulk Deletion recurrente (ventana N a definir).
+- **Retención (DEC-019):** hecha el 2026-10-14. Bulk Deletion diario de las filas de más de 60 días (`scripts/seguridad/paso10_borrado_programado.py`).
 - Es **hoja**: borrado seguro (no arrastra nada).
 
 ### Consideraciones al borrar
@@ -739,8 +761,7 @@ día a día**.
   solo el histórico.
 - **Crece rápido** (decenas de millones por año a escala) → la tabla a vigilar. Sin `ChangeTracking` (no viaja al teléfono).
 - **No confundir con `asignacion`:** `cargadiaria` = histórico financiero; `asignacion` = cartera viva.
-- Borrar un **cliente** borra su histórico financiero aunque la relación con la cuenta no lo haga: propuesta abierta (DAT-18) de pasar
-  `cliente → cargadiaria` a `Restrict`.
+- Un **cliente** con histórico financiero **no se puede borrar**: `cliente → cargadiaria` es `Restrict` desde el 2026-10-14 (DAT-18).
 
 ### Estado de la revisión
 **2026-10-06.** Verificado en vivo: columnas (20), alt key `sanic_cm_ak_cd_clavepan_fecha` activa y la vieja eliminada, cascadas, mapeo, ausencia
@@ -753,8 +774,8 @@ requerido (el catálogo lo daba opcional).
 
 ### Definición
 Cada **interacción** del localizador con un cliente: **comentario libre**, GPS, si hubo pago, si hay datos a actualizar y el **write-back al
-core**. Se crea **en la app de campo (offline)** y es **el rastro de auditoría** de la cobranza. Se pretende append-only, pero el servidor **no
-lo impone** (S-9).
+core**. Se crea **en la app de campo (offline)** y es **el rastro de auditoría** de la cobranza. El cobrador la crea pero no la edita (S-9, cerrado
+2026-10-14) y el servidor controla su grabación (DAT-11).
 
 ### Campos
 
@@ -763,7 +784,7 @@ lo impone** (S-9).
 |--------------|--------|------|:----:|-------------|
 | Número de interacción | `sanic_cm_in_numerointeraccion` | Text(20), autonumérico **`IN-{SEQNUM:4}`** | auto | **Nombre principal.** Lo asigna el servidor al **sincronizar** (offline está vacío). Semilla 1000 según el contrato de datos; **no se pudo re-verificar** la semilla (es una acción). |
 | Cuenta | `sanic_cm_in_cuentaid` | Lookup → `cuenta` | Sí | La cuenta gestionada. |
-| Agente | `sanic_cm_in_agente` | Lookup → `agente` | Sí | El localizador (el de su correo). |
+| Agente | `sanic_cm_in_agente` | Lookup → `agente` | Sí | El localizador (el de su correo). Si la crea un cobrador, lo pone el servidor: el agente vinculado a su usuario (DAT-13/SEC-08). |
 | Nombre agente | `sanic_cm_in_nombreagente` | Text(200) | Sí | Nombre del agente copiado (texto). |
 | Comentario | `sanic_cm_in_comentario` | Multiline Text(2000) | Sí | **Texto libre** de la interacción. |
 | Fecha de captura | `sanic_cm_in_fechacaptura` | DateTime (Date and Time, hora local) | — | La pone el **teléfono** al registrar. |
@@ -777,40 +798,43 @@ lo impone** (S-9).
 | Campo lógico | Físico | Tipo | Req. | Descripción |
 |--------------|--------|------|:----:|-------------|
 | Estado de grabación | `sanic_cm_in_estadograbacion` | Choice `sanic_cm_choice_estadograbacioninteraccion`: **1 Pendiente** (def.), **2 Grabado** | — | Cola del backoffice: `Pendiente`. (El catálogo anterior decía "Grabada en core": el valor real es **Grabado**.) |
-| Código del core | `sanic_cm_in_codigograbacion` | Text(10) | — | Código con que el backoffice la grabó (en mayúsculas). |
-| Fecha de grabación | `sanic_cm_in_fechagrabacion` | DateTime | — | Cuándo la transcribió. |
-| Grabado por | `sanic_cm_in_grabadopor` | Lookup → `systemuser` | — | Qué backoffice. |
+| Código del core | `sanic_cm_in_codigograbacion` | Text(10) | — | Código con que el backoffice la grabó (en mayúsculas). Es obligatorio para pasar a Grabado (DAT-11). |
+| Fecha de grabación | `sanic_cm_in_fechagrabacion` | DateTime | — | Cuándo la transcribió. La pone el servidor (DAT-11). |
+| Grabado por | `sanic_cm_in_grabadopor` | Lookup → `systemuser` | — | Qué backoffice. Lo pone el servidor (DAT-11). |
 
 ### Llaves
 - **Ninguna.** Se crea en la app (no por import) → usa su **GUID**. Es un **hecho fechado**, no se deduplica.
 
 ### Relaciones
 - Entrantes: `cuenta → interaccion` (**RemoveLink**; nada se propaga), `agente → interaccion` (Restrict), `systemuser → interaccion` (`grabado por`, RemoveLink).
-- Salientes: `interaccion → pago` e `interaccion → actualizaciondatos` (Cascade en las cinco acciones: Share en cascada incluido).
+- Salientes: `interaccion → pago` e `interaccion → actualizaciondatos` (**Delete = Restrict** desde el 2026-10-14, DAT-18; las otras cuatro acciones, Cascade: Share en cascada incluido).
 
 ### Import
 - **N/A** — no viene del CSV. La crea la **app de campo**; el número lo asigna el servidor al sincronizar.
 
 ### Ciclo de vida
-- **Nace:** en la **app del cobrador** (con o sin señal), solo el cobrador. Owner = él. Nada la crea fuera de la app.
+- **Nace:** en la **app del cobrador** (con o sin señal), solo el cobrador. Owner = él. Nada la crea fuera de la app. El plugin `InteraccionDelCobrador` exige cuenta y agente y, si la crea un cobrador, pone el agente vinculado a su usuario y la deja Pendiente, sin código, fecha ni usuario de grabación (DAT-13, SEC-08).
 - **Estados:** `En el teléfono` (sin sincronizar) → **Pendiente** (el servidor asigna `IN-xxxx`) → **Grabado** (el BackOffice transcribe al core:
   código, fecha, "grabado por"; desde la cola *Por transcribir*).
-- **Grabado es terminal para el cobrador:** su rol crea pero no edita la interacción (S-9, cerrado 2026-10-14). El servidor no impide
-  volver a transcribir: el BackOffice tiene Write global (DAT-11).
+- **Grabado es terminal:** el cobrador crea pero no edita la interacción (S-9, cerrado 2026-10-14) y el plugin `GrabacionInteraccion`
+  impide volver a grabarla o cambiar su código (DAT-11, 2026-10-14): la segunda persona del BackOffice recibe un error en vez de
+  pisar la grabación. La fecha y el usuario de grabación los pone el servidor, y el BackOffice solo escribe las columnas de
+  grabación. **Límite:** dos grabaciones en el mismo milisegundo podrían pasar las dos (el plugin lee la versión previa antes de
+  bloquear la fila).
 - **En el teléfono:** últimos 90 días (por fecha de modificación).
 - **Fin:** **no se borra.** Es el rastro de auditoría.
 
 ### Cómo borrar
 - **Entrante:** `cuenta → interaccion` = **RemoveLink**, **no `Restrict`** (corrección del catálogo anterior, que lo marcaba "CONFIRMADO"). Una
   cuenta con interacciones **sí se puede borrar** y las interacciones quedan sin cuenta; **no existe el candado** que el modelo suponía.
-- **Salientes:** `interaccion → pago` y `interaccion → actualizaciondatos` = **Cascade** (el pago y la actualización son parte del registro).
-- **Efecto neto:** borrar una interacción borra sus **pagos** (dato financiero) y su actualización de datos; DAT-18 propone pasar `interaccion →
-  pago` a `Restrict`.
+- **Salientes:** `interaccion → pago` y `interaccion → actualizaciondatos` = **Restrict** desde el 2026-10-14 (DAT-18): el pago y la actualización son parte del registro y lo protegen.
+- **Efecto neto:** una interacción con **pagos** (dato financiero) o con actualización de datos **no se puede borrar** (DAT-18,
+  2026-10-14); antes arrastraba ambos.
 
 ### Consideraciones al borrar
 - **El candado de auditoría del modelo de borrado está en la capa de privilegios** (solo Admin tiene Delete), **no en las relaciones**.
 - **Offline:** el número es server-assigned al sync; GPS opcional (la app avisa y pide confirmación si falta).
-- **Anti-doble-carga:** el filtro `estadograbacion = Pendiente` evita que dos backoffice la graben dos veces.
+- **Anti-doble-carga:** el filtro `estadograbacion = Pendiente` evita que dos backoffice la graben dos veces, y desde el 2026-10-14 el servidor también (`GrabacionInteraccion`, DAT-11).
 - **Auditoría de tabla activa** (desde 2026-10-06).
 - El plugin `CuentaDesdeInteraccion` lee de esta tabla al crear un pago (`in_cuentaid`, `in_numerointeraccion`).
 
@@ -847,27 +871,27 @@ Un **pago** cobrado al cliente, **hijo de una interacción**. La relación **1:N
   caso de un pago sin cuenta resoluble.
 
 ### Relaciones
-- Entrantes: `interaccion → pago` (Cascade en todo) y `cuenta → pago` (**RemoveLink**).
+- Entrantes: `interaccion → pago` (Delete = Restrict desde el 2026-10-14; el resto, Cascade) y `cuenta → pago` (**RemoveLink**).
 
 ### Import
 - **N/A** — no viene del CSV. La crea la **app de campo** cuando el cobrador marca `aplicapago`.
 
 ### Ciclo de vida
-- **Nace:** en la **app de campo**, hijo de una interacción. Owner = el localizador. El plugin completa cuenta y N° de interacción al crear en el servidor.
+- **Nace:** en la **app de campo**, hijo de una interacción. Owner = el localizador. El plugin `CuentaDesdeInteraccion` rechaza un pago sin interacción (DAT-13) y completa cuenta y N° de interacción al crear en el servidor.
 - **Sin estados:** no se aprueba ni se cierra; es un hecho registrado. El BackOffice lo ve al transcribir y en el arqueo (*Transcritas hoy*).
 - **Vive:** append-only para el cobrador: crea, pero no edita ni reasigna (S-9, cerrado 2026-10-14). Nadie fuera de Admin tiene `Write` sobre pagos.
 - **En el teléfono:** últimos 90 días.
 - **Fin:** **no se borra** de rutina (registro financiero).
 
 ### Cómo borrar
-- **Entrante:** `interaccion → pago` = **Cascade** — se va con su interacción. `cuenta → pago` = **RemoveLink** (borrar la cuenta lo deja sin cuenta pero no lo borra).
+- **Entrante:** `interaccion → pago` = **Restrict** desde el 2026-10-14 (DAT-18): una interacción con pagos no se borra. `cuenta → pago` = **RemoveLink** (borrar la cuenta lo deja sin cuenta pero no lo borra).
 - Es **hoja**. En la práctica nunca se borra solo.
 
 ### Consideraciones al borrar
 - **Decimal, no Money:** cada pago lleva **su** moneda.
 - **Unicidad del recibo:** la clave `recibo + cuenta + moneda` cubre el duplicado en una cuenta; **no** cubre el mismo recibo en cuentas distintas. La
   clave que se propuso (`localizador + numerorecibo`) no se implementó.
-- El pago es el dato más sensible por plata y el menos protegido hoy en el servidor (S-9).
+- El pago es el dato más sensible por plata: el cobrador lo crea pero no lo edita ni lo reasigna (S-9, cerrado 2026-10-14).
 
 ### Estado de la revisión
 **2026-10-06.** Verificado en vivo: columnas (11), alt key activa, cascadas, plugin `CuentaDesdeInteraccion` activo, choice con valores.
@@ -895,7 +919,7 @@ aprobación (solo relevante para las Especiales).
 | Tipo | `sanic_cm_as_tipo` | Choice `sanic_choice_cm_tipoasignacion`: **1 Diaria**, **2 Incobrable**, **3 Especial** (def. **3**) | — | Ciclo de vida por tipo. |
 | Estado | `sanic_cm_as_estado` | **Yes/No** (Sí = **Activa**, No = **Cerrada**; def. Sí) | — | Vigencia. (No es un Choice como decía el catálogo anterior.) |
 | Orden | `sanic_cm_as_orden` | Whole Number (-1 a 4000) | — | Prioridad del localizador; el cobrador la cambia desde la app, también sin conexión. **Smelter no la escribe.** |
-| Fecha de asignación | `sanic_cm_as_fechasignacion` | DateTime | — | Smelter la **sobrescribe con `FechaCarga`** en cada upsert (DAT-31: pisa la fecha de solicitud de una Especial del CSV). |
+| Fecha de asignación | `sanic_cm_as_fechasignacion` | DateTime | — | Smelter la mapea con `FechaCarga` en cada upsert, pero desde el 2026-10-14 el plugin `CargaSobreAsignacion` **no la pisa si ya tenía valor** (DAT-31): queda la fecha de alta, y la fecha de solicitud de una Especial del CSV ya no se pierde. |
 | Última carga | `sanic_cm_as_ultimacarga` | DateTime | — | = `FechaCarga`; la setea el import en cada upsert. Base de la reconciliación (DEC-018). |
 | Motivo | `sanic_cm_as_motivo` | Text(500) | — | Motivo de cierre (Reconciliación o Cierres). |
 | Fecha de cierre | `sanic_cm_as_fechacierre` | DateTime | — | Cuándo se cerró. |
@@ -905,18 +929,18 @@ aprobación (solo relevante para las Especiales).
 **Solo Especiales (workflow de aprobación)**
 | Campo lógico | Físico | Tipo | Req. | Descripción |
 |--------------|--------|------|:----:|-------------|
-| Estado de aprobación | `sanic_cm_as_estadoaprobacion` | Choice `sanic_choice_cm_estadoaprobacionespecial`: **1 Borrador**, **2 Pendiente aprobación** (def. **2**), **3 Aprobado**, **4 Rechazada** | — | Gobierna la aprobación. |
+| Estado de aprobación | `sanic_cm_as_estadoaprobacion` | Choice `sanic_choice_cm_estadoaprobacionespecial`: **1 Borrador**, **2 Pendiente aprobación** (def. **2**), **3 Aprobado**, **4 Rechazada** | — | Gobierna la aprobación. Una Diaria o Incobrable nace en **Borrador** (DAT-28, plugin `AprobacionEspecial`); el default de la columna sigue en Pendiente porque las Especiales del CSV lo necesitan para entrar en la cola del Supervisor. |
 | Resolutor | `sanic_cm_as_resolutorid` | Lookup → `systemuser` | — | Quién aprueba o rechaza. Escrita, nunca leída por las apps. |
 | Solicitado por | `sanic_cm_as_solicitadopor` | Lookup → `systemuser` | — | El **Solicitante**. `RepartoAsignacion` le **comparte la Especial aprobada** solo si es quien la creó (`createdby`): el campo lo editan varios roles (S-7, cerrado). |
 | Motivo de rechazo | `sanic_cm_as_motivorechazo` | Text(2000, área de texto) | — | Si el Supervisor rechaza. |
-| Propietario | `ownerid` | Owner | Sí | Lo mueve el **flow** al usuario del agente. |
+| Propietario | `ownerid` | Owner | Sí | Lo mueve el plugin `RepartoAsignacion` al usuario del agente (C.3). |
 
 ### Llaves
 - **Alt key compuesta `sanic_cm_ak_as_clavepan_tipo`** (`as_tipo` + `as_clavepan`). **Active.** Reemplaza a `sanic_cm_altkey_NumeroCuentaxTipo` (eliminada). Una
   asignación por (cuenta, tipo): coexisten `{Diaria|Incobrable}` + `Especial`, nunca Diaria + Incobrable (DEC-021, regla de negocio, **no** una clave).
 
 ### Relaciones
-- Entrante `cuenta → asignacion`: Delete y Assign = Cascade; Share, Unshare y **Reparent = NoCascade** (§B). `agente → asignacion` = Restrict. `systemuser →`
+- Entrante `cuenta → asignacion`: Delete = Cascade; Assign (desde el 2026-10-14, DAT-18), Share, Unshare y **Reparent = NoCascade** (§B). `agente → asignacion` = Restrict. `systemuser →`
   `as_resolutorid` y `as_solicitadopor` = RemoveLink. Es **hoja**.
 
 ### Import
@@ -926,26 +950,33 @@ aprobación (solo relevante para las Especiales).
 - **NO mapea** `as_estado` (nace Activa por el default), **`as_estadoaprobacion`** (nace **Pendiente aprobación** por el default de la columna: una Especial nueva
   del CSV entra sola en la cola del Supervisor y, como no se manda, **la carga diaria no pisa** una ya aprobada, DEC-022), `as_orden`, `as_motivo`, retiro ni notas.
   Una Especial por CSV con agente queda **sin compartir** hasta que el Supervisor la aprueba.
-- **Owner:** lo mueve el **flow**, no Smelter. El **plugin `ClaveDesdeCuenta`** completa o valida la clave en cada Create/Update.
-- **Reclasificación (DEC-021, Diaria ↔ Incobrable): no está implementada** (DAT-15): el import no cierra el otro tipo activo.
-- Una Diaria **cerrada** que **reaparece** en el CSV **no se reactiva** (DAT-10): el upsert actualiza `ultimacarga` pero no `estado`.
+- **Owner:** lo mueve el plugin **`RepartoAsignacion`**, no Smelter. El **plugin `ClaveDesdeCuenta`** completa o valida la clave en cada Create/Update.
+- **Reclasificación (DEC-021, Diaria ↔ Incobrable), DAT-15 (2026-10-14):** el plugin `Reclasificacion` deja una sola activa entre
+  Diaria e Incobrable por cuenta; al llegar el otro tipo, cierra la anterior con motivo "Reclasificada a {tipo}" (verificado en las
+  dos direcciones). Las Especiales conviven. En la app del cobrador, el saldo total de la ficha del cliente suma por cuenta
+  distinta: una cuenta con Diaria más Especial aprobada ya no cuenta su saldo dos veces.
+- **Reapertura (DAT-10, 2026-10-14):** una Diaria o Incobrable **cerrada por el sistema** ("fuera de cartera" o "Reclasificada a …") que
+  **reaparece** en el CSV se **reabre** (`CargaSobreAsignacion`). No se reabre lo que cerró una persona (por ejemplo "Pagada") ni las Especiales.
+- **DAT-28:** una Diaria o Incobrable que llega por CSV nace en Borrador (lo fuerza `AprobacionEspecial`); las Especiales del CSV siguen naciendo Pendiente.
 
 ### Ciclo de vida (por tipo)
 | Tipo | Nace | Reasigna | Cierra | Notas |
 |------|------|----------|--------|-------|
-| **Diaria** | CSV diario (Smelter) | Gana el CSV; no hay pantalla de reasignación (DAT-29) | **Admin**: *Reconciliación* cierra en lote las que **no vinieron** en la última carga ("fuera de cartera"); freno de la app: no deja si superan el **30%** o si no hay carga de hoy | Es freno de la app, no del servidor |
-| **Incobrable** | CSV (1 a 2 por mes) | Admin (gana el CSV) | **Admin**: *Cierres* (Recuperada, Baja o castigada, Fuera de cartera) | Persiste; no se reconcilia |
-| **Especial** | App del **Solicitante** (nace **Pendiente**, sin agente) o CSV (nace **Pendiente**) | **Supervisor** al aprobar | **Admin**: *Cierres* (Gestión completada, Ya no aplica, Solicitud errónea) | Ver estados abajo |
+| **Diaria** | CSV diario (Smelter) | Gana el CSV; no se reasigna a mano (la pantalla *Reasignar* no incluye Diarias: DAT-29) | **Admin**: *Reconciliación* cierra en lote las que **no vinieron** en la última carga ("fuera de cartera"); freno de la app: no deja si superan el **30%** o si no hay carga de hoy | Es freno de la app, no del servidor. El sistema también la cierra al llegar el otro tipo (DAT-15) |
+| **Incobrable** | CSV (1 a 2 por mes) | Admin, en la pantalla *Reasignar* (gana el CSV) | **Admin**: *Cierres* (Recuperada, Baja o castigada, Fuera de cartera) | Persiste; no se reconcilia. El sistema la cierra si llega como Diaria (DAT-15) |
+| **Especial** | App del **Solicitante** (nace **Pendiente**, sin agente) o CSV (nace **Pendiente**) | **Supervisor** al aprobar; después, en la pantalla *Reasignar* (aprobadas activas) | **Admin**: *Cierres* (Gestión completada, Ya no aplica, Solicitud errónea) | Ver estados abajo |
 
 **Estados de una Especial:** `Pendiente` → `Aprobado` (Supervisor, **eligiendo el cobrador**) o `Rechazada` (con motivo) → `Cerrada` (Admin). El Solicitante puede
-volver a pedir una `Cerrada`: **reactiva el mismo registro**. Una `Rechazada` sigue **Activa** y bloquea volver a pedirla hasta que el Admin la cierra (DAT-14).
-`Borrador` solo se alcanza por la API; las **47 Especiales en Borrador** de DEV son de la carga mock anterior al cambio del default y no aparecen en la cola de
+volver a pedir una `Cerrada`: **reactiva el mismo registro**. **Rechazar cierra la Especial** (estado inactivo, motivo "Rechazada" y fecha de cierre), así que el
+Solicitante original puede volver a pedirla (DAT-14, parcial, 2026-10-14). Nueva solicitud muestra un mensaje claro si la cuenta ya tiene una Especial pedida por otra
+persona. **Sigue abierto:** un Solicitante no ve la Especial de otro (Read Basic); hace falta una decisión del dueño (Custom API o lectura más amplia).
+En una Especial, `Borrador` solo se alcanza por la API (las Diarias e Incobrables nacen en Borrador: DAT-28; las 6 filas que había en DEV se corrigieron); las **47 Especiales en Borrador** de DEV son de la carga mock anterior al cambio del default y no aparecen en la cola de
 Aprobaciones (que muestra solo Pendientes). Reglas del servidor: solo Supervisor, Admin o `Servicio - Cobranza` aprueban, rechazan o ponen agente (plugin `AprobacionEspecial`);
-el flow **no comparte** una Especial sin aprobar.
+el reparto **no comparte** una Especial sin aprobar.
 
-- **Lo que ve el cobrador:** asignaciones **activas** (el perfil offline filtra `as_estado = 1`) y, si es Especial, **aprobada**; baja por el flow + perfil offline.
-- **Lo que cambia el cobrador:** solo `as_orden`, también sin conexión.
-- **Quién crea:** Smelter; el Solicitante (`C:G`). **Quién cambia:** Supervisor (`W:G`, todas las columnas: S-11, abierto), Admin, `Servicio - Cobranza`.
+- **Lo que ve el cobrador:** asignaciones **activas** (el perfil offline filtra `as_estado = 1`) y, si es Especial, **aprobada**; baja por el reparto + perfil offline.
+- **Lo que cambia el cobrador:** solo `as_orden`, también sin conexión. El servidor lo impone (`ColumnasAsignacion`, S-11).
+- **Quién crea:** Smelter; el Solicitante (`C:G`). **Quién cambia:** Supervisor (`W:G`, pero solo aprobación, agente, resolutor, motivo de rechazo, estado, motivo y fecha de cierre: S-11, cerrado 2026-10-14), el Solicitante (solo las columnas de volver a pedir una Especial), Admin y `Servicio - Cobranza`. El agente también se cambia en la pantalla *Reasignar* del backoffice (DAT-29): el Supervisor sobre Especiales aprobadas activas, el Admin además sobre Incobrables activas; solo escribe el agente y `RepartoAsignacion` mueve el dueño y los compartidos.
 - **Auditoría:** activa a nivel de tabla (historial de reasignaciones, DEC-016).
 
 ### Cómo borrar
@@ -954,11 +985,11 @@ el flow **no comparte** una Especial sin aprobar.
 - Solo el Admin tiene `Delete`; ninguna app borra asignaciones.
 
 ### Consideraciones al borrar
-- **CERRAR ≠ BORRAR:** el fin de vida es **`as_estado = No` (Cerrada)** (Reconciliación, Cierres o el flow), no un borrado. Las cerradas **se conservan** como rastro.
-  El teléfono las saca en la próxima sincronización (el flow revoca el acceso y el filtro del perfil las excluye).
+- **CERRAR ≠ BORRAR:** el fin de vida es **`as_estado = No` (Cerrada)** (Reconciliación, Cierres, Rechazar o la reclasificación), no un borrado. Las cerradas **se conservan** como rastro.
+  El teléfono las saca en la próxima sincronización (`RepartoAsignacion` revoca el acceso y el filtro del perfil las excluye).
 - **Borrado físico** (opcional, muy posterior): bulk-delete de `Cerradas` viejas (más de 1 año), si hiciera falta; no hay job. La tabla crece lento.
 - **Owner:** si el agente no tiene `ag_usuarioid`, la asignación pasa al equipo "Cartera sin cobrador" y ningún localizador la ve (DAT-07; vista de control "agentes sin usuario" en el inicio del Admin).
-- **Assign = Cascade** desde `cuenta` o `cliente`: reasignar la cuenta o el cliente pisa el dueño que puso el flow (DAT-18, latente).
+- **Assign:** desde el 2026-10-14 (DAT-18), `cuenta → asignacion` es `NoCascade`: reasignar la cuenta o el cliente ya no pisa el dueño que puso `RepartoAsignacion`.
 - Antes del 2026-10-06 `Reparent` estaba en Cascade y el cobrador heredaba lectura de **todas las asignaciones** de sus clientes (defecto 2 / S-14).
 
 ### Estado de la revisión
@@ -1005,7 +1036,7 @@ pedidos** que la **oficina transcribe al core** — el cobrador no edita los dat
 - **Nace:** en la **app de campo** (offline), hija de una interacción. Owner = el localizador. El plugin `ActualizacionConInteraccion` rechaza una sin interacción o con una
   interacción sin cuenta.
 - **Vive:** el BackOffice ve el "antes / después" (cruza con `telefono` y `direccion` por CIF) y **lo tipea a mano en el core**. **Nadie lo aplica** a los datos maestros de CM:
-  se renuevan recién con la próxima carga, si el core los actualizó. **Sin estados ni cierre (DAT-19, abierto).**
+  se renuevan recién con la próxima carga, si el core los actualizó. **Sin estados ni cierre: termina en el core por decisión del dueño (DAT-19, cerrado 2026-10-14).**
 - **Fin:** se va con su interacción; no se borra de rutina.
 
 ### Cómo borrar
@@ -1015,7 +1046,7 @@ pedidos** que la **oficina transcribe al core** — el cobrador no edita los dat
 - **Es una SOLICITUD, no el dato vivo:** no modifica `cliente`/`telefono`/`direccion`.
 - Para saber de qué cliente es hay que seguir `actualización → interacción → cuenta → CIF`. Si se borra la cuenta (`RemoveLink`), ese camino se corta.
 - Sin privilegio para Solicitante ni Supervisor; lo lee el BackOffice y lo edita el cobrador dueño.
-- El **proceso de aplicación** al master sigue **sin diseño** (DAT-19).
+- No hay proceso de aplicación al master, a propósito: la actualización termina en el core del banco y los maestros los renueva la carga (DAT-19, decisión del dueño, 2026-10-14).
 
 ### Estado de la revisión
 **2026-10-06.** Verificado en vivo: columnas (10), sin alt key, cascada, plugin activo, privilegios. Discrepancia: autonumérico `AD-{SEQNUM:4}`.
@@ -1044,7 +1075,7 @@ respeta la de fila y porque el nombre principal no puede protegerse por columna.
 
 ### Relaciones
 - Entrante `cuenta → cuentapan`: **Cascade en las cinco acciones** (Delete, Assign, Share, Unshare, Reparent). Es **hoja**.
-  El Share en cascada es la **única** vía por la que el cobrador la lee: ve el número solo de las cuentas que el flow le compartió.
+  El Share en cascada es la **única** vía por la que el cobrador la lee: ve el número solo de las cuentas que el reparto le compartió.
 
 ### Import
 - **Table Mapping `Cuenta PAN (bóveda)`**, **orden 4** (después de `cuenta`). Dedup `cp_clavepan`. Mapea: `HMAC(NumeroCuenta) → cp_clavepan`, `TRIM(NumeroCuenta) →
@@ -1119,7 +1150,7 @@ Cuando metadata y documentos discrepan, manda la metadata. Lo que se corrigió e
 | 14 | Admin con `Read Global` sobre la bóveda (diseño Fase 2) | Sin ningún privilegio sobre `cuentapan` |
 | 15 | README de los plugins: 12 `PanGuard` desactivados, 3 plugins | 15 pasos activos, 6 `PanGuard` (los de columnas viejas se retiraron), 6 plugins |
 | 16 | Solicitante crea cliente y cuenta (DEC-013/014) | Solo el Admin crea clientes (Maestros); **nadie crea cuentas** fuera de Smelter |
-| 17 | `DAT-18` (contrato de datos): Reparent y Share en Cascade en `cliente → cuenta` y `cuenta → asignacion` | Cortados (Share 2026-10-03, Reparent 2026-10-06) |
+| 17 | `DAT-18` (contrato de datos): Reparent y Share en Cascade en `cliente → cuenta` y `cuenta → asignacion` | Cortados (Share 2026-10-03, Reparent 2026-10-06); `Assign` de `cuenta → asignacion` y los `Restrict` de borrado, 2026-10-14 |
 
 **No confirmado** en esta revisión: comportamiento real de los borrados en cascada y de `RemoveLink` sobre lookups requeridos (DEV de solo lectura); semillas de los autonuméricos;
 disparador en vivo del flow; origen de `ct_tipoproducto` y del volumen de `fiador`; contenido de `sanic_tbl_smlt_hmackey` y de `cp_pan` (no se leen por diseño).

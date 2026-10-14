@@ -36,8 +36,8 @@ relacionadas). Ver [guía 13](13-perfil-offline-rendimiento.md).
 - **El código de la app ya está diseñado para esto** — carga "lo que hay en el dispositivo".
 
 **Requisitos para que funcione:**
-1. **Owner de las asignaciones = el localizador** (automatización owner, [componente 14](../referencia/componentes/14-automatizacion-owner-asignacion.md)).
-   Hoy en Dev las asignaciones son de SYSTEM (el flujo nunca corrió) → por eso en el celu no se acota.
+1. **Owner de las asignaciones = el localizador** (plugin asíncrono `RepartoAsignacion`, [catálogo, C.3](../referencia/03-catalogo-de-tablas.md); reemplazó al flow del [componente 14](../referencia/componentes/14-automatizacion-owner-asignacion.md), que quedó apagado).
+   Si el agente no tiene usuario, la asignación va al equipo "CM · Cartera sin cobrador" y no baja a ningún celu.
 2. **Perfil offline configurado** con las relaciones correctas (tabla raíz = Asignacion `All rows`;
    resto `Related rows` por su lookup). Detalle en guía 13.
 
@@ -57,6 +57,6 @@ En el navegador (Play) **no hay perfil offline** → carga org-wide. Mitigación
 
 ## 5. Acciones pendientes para producción
 
-- [ ] Correr/activar la **automatización de owner** (comp 14) → asignaciones dueñas del localizador.
+- [ ] Verificar que **`RepartoAsignacion`** esté activo en el entorno (C.3) → asignaciones dueñas del localizador.
 - [ ] **Configurar el perfil offline** (guía 13) y sincronizar en un celu de prueba.
 - [ ] Verificar con Monitor que `OnStart` baja de segundos a **décimas** con el perfil acotado.

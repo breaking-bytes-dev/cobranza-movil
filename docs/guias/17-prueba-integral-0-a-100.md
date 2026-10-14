@@ -167,5 +167,5 @@ Automatizado: `node run.js --carga-ui` hace F1 por esta pantalla (checks F1u-01.
 | 5 | Supervisor | Aprobar con localizador, rechazar con motivo | `AprobacionEspecial` (solo Supervisor), compuerta S-6 del reparto |
 | 6 | Cobrador | Cobro, validaciones, sin señal, GPS, actualización de datos, ruta | `CuentaDesdeInteraccion`, `ActualizacionConInteraccion`, clave alterna del recibo |
 | 7 | BackOffice | Transcripción con el número completo, arqueo | Lectura de la bóveda solo para BackOffice |
-| 8 | Admin | Cierre de Incobrable y Especial | Flow: revoca el compartido |
+| 8 | Admin | Cierre de Incobrable y Especial | `RepartoAsignacion` revoca el compartido |
 | 9 | Solicitante | Seguimiento | Compartido al solicitante |

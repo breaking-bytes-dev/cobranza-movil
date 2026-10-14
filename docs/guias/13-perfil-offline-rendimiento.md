@@ -59,7 +59,7 @@ los pagos ligados a tus interacciones. (No hace falta tildar `User`.)
   esa parte queda vacía offline): asignacion, cuenta, cliente, direccion, telefono, producto, fiador,
   agente, interaccion, pago.
 - Las reglas de propiedad (`owner`) dependen de que el **owner esté seteado** = el `systemuser` del
-  localizador ([componente 14](../referencia/componentes/14-automatizacion-owner-asignacion.md)). Si el
+  localizador (lo hace el plugin `RepartoAsignacion`, [catálogo, C.3](../referencia/03-catalogo-de-tablas.md)). Si el
   owner no está, el filtro "filas que poseo" no baja nada.
 
 ## 3. Ajuste complementario (App Settings)

@@ -942,9 +942,17 @@ Armá **`conNav`** = **`cmpNav`** (§C.10) en `conMaster`, con **Cartera** como 
 > ```
 > Text = If(Connection.Connected,"↻ Buscar actualizaciones","Sin conexión — no se puede sincronizar")
 > Fill=gblC.teal  Color=gblC.white  RadiusAll=14  Height=54  Ancho=Llenar
-> DisplayMode = If(Connection.Connected && varPend>0, DisplayMode.Edit, DisplayMode.Disabled)
-> OnSelect = Refresh(sanic_cm_tbl_interaccion); Refresh(sanic_cm_tbl_pago); Notify("Actualizando…", NotificationType.Information)
+> DisplayMode = If(Connection.Connected, DisplayMode.Edit, DisplayMode.Disabled)
+> OnSelect = Refresh(sanic_cm_tbl_interaccion); Refresh(sanic_cm_tbl_pago); Refresh(sanic_cm_tbl_actualizaciondatos); Refresh(sanic_cm_tbl_asignacion); Refresh(sanic_cm_tbl_cuenta); Refresh(sanic_cm_tbl_cuentapan);
+>             Set(varRecargarCartera, true); Set(varCliCargado, Blank()); Set(varPend, <conteo de pendientes>); Notify("Actualizando…", NotificationType.Information)
 > ```
+> `varRecargarCartera = true` hace que la Cartera, al volver a mostrarse (`OnVisible`), recargue también `colCuentas`, `colDirecciones` y `colTelefonos`.
+
+> **`btnSyncCompleta`** *(Botón)*: `Text="⟳ Sincronización completa"` · `Fill=gblC.chipBg` · `Color=gblC.ink2` · `RadiusAll=14` · `Height=54` · `Ancho=Llenar` · `Visible=Host.OfflineEnabled`
+> ```
+> OnSelect = ShowHostInfo(HostInfo.OfflineSync)
+> ```
+> Abre el estado del dispositivo; ahí el cobrador toca «Buscar actualizaciones» (Check for updates) para revisar toda su cartera y quitar lo que ya no le corresponde. Debajo va `lblSyncCompletaHint` (`Size=gblT.fxs`, `Color=gblC.muted`, `Visible=Host.OfflineEnabled`) con esa explicación.
 
 > **`lblCapTit`** *(Etiqueta `cmpSecTitle`)*: `Text="Capturas de hoy"`
 > **`galCap`** *(Galería vertical)*: `Items=varCapHoy`

@@ -181,13 +181,13 @@ Agregá páginas (**+ Agregar página → Vista y formulario basados en tabla**)
 Estas tres van juntas y **no se pueden probar sin la carga real**:
 
 1. **La carga (import Smelter).**
-2. **Comp 14 — automatización de owner.** Setea `owner = localizador`. Sin esto: NO hay aislamiento real del
+2. **Reparto de owner** (plugin `RepartoAsignacion`, que reemplazó al flow del comp 14; [catálogo, C.3](../referencia/03-catalogo-de-tablas.md)). Setea `owner = localizador`. Sin esto: NO hay aislamiento real del
    localizador (prueba E5) NI las Especiales aprobadas bajan al celular.
 3. **Reconciliación de Diarias desaparecidas (DEC-018).** Página personalizada (preview + umbral + cierre en
    lote). Depende de `sanic_cm_as_ultimacarga`, que solo se llena con el import → no se puede construir/probar
    antes.
 
-> Hasta que corra la carga y comp 14, el backoffice de **oficina funciona** (transcripción, solicitudes,
+> Hasta que corra la carga y el reparto de owner, el backoffice de **oficina funciona** (transcripción, solicitudes,
 > aprobaciones, cierres), pero el **puente al campo** (Especial aprobada → celular) y el **aislamiento entre
 > localizadores** quedan pendientes de ese bloque.
 </content>

@@ -9,10 +9,9 @@
 > - `AccessibleLabel` en galerías y buscador, foco visible; `ShowScrollbar = false`. Filas de agentes sin overlay (no clicables); filas de `galUsrAge` con overlay `btnFilaUsrAge`.
 
 > **Por qué esta pantalla importa (leelo antes de construir):** la app del localizador identifica
-> al agente que entra por **`'Email Usuario'`** (`LookUp` contra `User().Email`) y el Cloud Flow
-> **Comp-14** asigna el *owner* de cada asignación por **`'[AG] Usuario'`**. Un agente activo SIN
-> usuario vinculado = **no entra a la app del celular** Y **sus asignaciones no se aíslan** (quedan
-> visibles para otros). La vista "sin usuario" de esta pantalla debe estar **VACÍA** antes de operar.
+> al agente que entra por **`'Email Usuario'`** (`LookUp` contra `User().Email`) y el plugin
+> `RepartoAsignacion` asigna el *owner* de cada asignación por **`'[AG] Usuario'`**. Un agente activo SIN
+> usuario vinculado = **no entra a la app del celular** y **sus asignaciones van al equipo "CM · Cartera sin cobrador"** (sin miembros: nadie las ve). La vista "sin usuario" de esta pantalla debe estar **VACÍA** antes de operar.
 
 **Propósito:** el Admin liga cada localizador (`'CM | TBL | Agentes'`) a su usuario de Entra
 (`Users`) y lo activa/desactiva. Filas **NO clicables** — toda la acción vive en los botones de

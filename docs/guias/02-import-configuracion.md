@@ -60,8 +60,8 @@ Puebla la asignación operativa **Diaria/Incobrable** desde el CSV (las Especial
 | `cuenta` | `sanic_cm_as_cuentaid` | `NumeroCuenta` |
 | `agente` | `sanic_cm_as_agenteid` | `Agente` |
 
-> El **owner** de la asignación **NO** lo pone Smelter: lo setea un **plugin/flow** en Create/Update desde
-> `agente.sanic_cm_ag_usuarioid` (Comp. 01 §6, Comp. 12). Es lógica de negocio, no import.
+> El **owner** de la asignación **NO** lo pone Smelter: lo setea el plugin asíncrono `RepartoAsignacion` en Create/Update desde
+> `agente.sanic_cm_ag_usuarioid` (si el agente no tiene usuario, queda en el equipo "CM · Cartera sin cobrador"). Es lógica de negocio, no import. Detalle en [catálogo, C.3](../referencia/03-catalogo-de-tablas.md).
 
 ---
 
@@ -137,7 +137,7 @@ El CSV trae **texto**, así que el upsert necesita el **valor**:
 
 `Diaria` e `Incobrable` son **mutuamente excluyentes** (clasificación del core); `Especial` es ortogonal.
 Como la alt key es `numerocuenta + tipo`, un cambio de core-type crearía una fila nueva y dejaría la vieja
-activa. Por eso, al procesar el import, una lógica **automática** (junto al plugin de owner): cuando una
+activa. Por eso, al procesar el import, una lógica **automática** (junto al reparto de `RepartoAsignacion`): cuando una
 cuenta llega con un core-type, **cierra su otro core-type activo** (`estado = Cerrada`,
 motivo *"Reclasificada a {tipo}"*). **Automática y segura** porque es **presence-driven** (no la engaña un
 archivo truncado). **Nunca** toca una `Especial`.
@@ -173,7 +173,7 @@ Una cuenta **`Diaria`** que deja de venir en la carga quedaría `Activa` colgada
 2. Cargar el **día 1** (`test-data/cobranza-mock-1000.csv`).
 3. Verificar: maestras pobladas, `cuenta` con sus lookups, `cargadiaria` con 1 fila/cuenta, `asignacion`
    con `tipo` correcto, `estado = Activa` y `ultimacarga = 2026-06-20`.
-4. Verificar el **owner** de `asignacion` (lo setea el plugin/flow) = el localizador esperado.
+4. Verificar el **owner** de `asignacion` (lo setea el plugin `RepartoAsignacion`) = el localizador esperado.
 5. **Reimportar el día 1** → confirmar **idempotencia** (no duplica; mismo conteo).
 6. Cargar el **día 2** (`...-dia2.csv`) → `cuenta` sigue en 1000 (pisa), `cargadiaria` en 2000 (acumula),
    ~75 reasignaciones. Correr el **sweep** → las cuentas del día 1 ausentes en el día 2 quedan `Cerrada`.
@@ -184,6 +184,5 @@ Una cuenta **`Diaria`** que deja de venir en la carga quedaría `Activa` colgada
 ## 11. Dependencias y siguiente
 
 - **Depende de:** el modelo de datos (Fase 1) construido y las alt keys activas.
-- **Pendiente (lógica de negocio, otra fase):** el **plugin/flow de owner** de `asignacion` y el **flujo de
-  aprobación de Especiales**.
+- **Pendiente (lógica de negocio, otra fase):** el **flujo de aprobación de Especiales** (el reparto de `asignacion` ya lo hace el plugin `RepartoAsignacion`).
 - **Siguiente fase:** App de Oficina (Backoffice/Admin) — Fase 3.

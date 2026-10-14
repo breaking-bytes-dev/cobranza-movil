@@ -247,7 +247,7 @@ Notas completas y sección de resolución (desde acá, posiciones RELATIVAS — 
 | | TemplateSize / Height | `48` / `Min(Max(Self.AllItemsCount, 1), 3) * Self.TemplateHeight` |
 | | Fill / BorderColor / BorderThickness | `gblC.card` / `gblC.borde` / `1` |
 | | Visible | `IsBlank(varAgeAprb) && Len(Trim(txtBuscarAgeAprb.Text)) >= 2` |
-| | Items | `With({t: If(Len(Trim(txtBuscarAgeAprb.Text)) < 2, "§§", Trim(txtBuscarAgeAprb.Text))}, Filter('CM \| TBL \| Agentes', '[AG] Activo' = true && 'Email Usuario' <> Blank() && StartsWith('[AG] Nombre', t)))` — todo delegable; solo agentes activos CON usuario (sin usuario Comp-14 no puede pasarles el owner); centinela `"§§"` con < 2 caracteres (B-19, B-06) |
+| | Items | `With({t: If(Len(Trim(txtBuscarAgeAprb.Text)) < 2, "§§", Trim(txtBuscarAgeAprb.Text))}, Filter('CM \| TBL \| Agentes', '[AG] Activo' = true && 'Email Usuario' <> Blank() && StartsWith('[AG] Nombre', t)))` — todo delegable; solo agentes activos CON usuario (sin usuario, `RepartoAsignacion` las deja en el equipo "Cartera sin cobrador"); centinela `"§§"` con < 2 caracteres (B-19, B-06) |
 | | OnSelect | `Set(varAgeAprb, ThisItem)` |
 | `lblNomFilaAgeAprb` / `lblMailFilaAgeAprb` | Text | `ThisItem.'[AG] Nombre'` / `ThisItem.'Email Usuario'` |
 | `btnFilaAgeAprb` (overlay) | Text | `"Asignar a " & ThisItem.'[AG] Nombre'` · transparente, `Select(Parent)`, `TabIndex 0` |
@@ -285,7 +285,7 @@ Patch('CM | TBL | Asignacions',
 );
 // (código vigente: todo envuelto en IfError — B-03; el Notify va ANTES de limpiar varAgeAprb)
 Notify("✓ Aprobada — asignada a " & varAgeAprb.'[AG] Nombre' &
-    ". El flujo de owner la baja al celular del localizador.",
+    ". El reparto la baja al celular del localizador.",
     NotificationType.Success, 2500);
 Remove(colAprobAprb,
     LookUp(colAprobAprb, '[AS] Numero' = varSelAprb.'[AS] Numero'));
@@ -295,7 +295,7 @@ Set(varAgeAprb, Blank());
 Reset(txtBuscarAgeAprb)
 ```
 
-> Al setear `'[AS] Agente'`, el Cloud Flow **Comp-14** cambia el OWNER del registro al usuario
+> Al setear `'[AS] Agente'`, el plugin asíncrono `RepartoAsignacion` (catálogo, C.3) cambia el OWNER del registro al usuario
 > del agente → eso dispara el aislamiento por propietario y la sincronización offline: la
 > asignación aparece en el celular del localizador sin que esta app haga nada más. Por eso la
 > notificación lo anuncia — la app solo aprueba; el reparto es del backend.
@@ -337,7 +337,7 @@ flota encima del panel).
 - [ ] Con 0–1 caracteres la galería de localizadores no aparece; con ≥ 2 ofrece SOLO agentes activos CON `Email Usuario` cuyo nombre empieza así, con el texto visible (B-04). Tocar uno muestra la tarjeta con "Cambiar".
 - [ ] "✓ Aprobar y asignar" está deshabilitado sin localizador; "Rechazar" sin motivo (espacios no cuentan).
 - [ ] Aprobar: la fila desaparece de la cola SIN recargar, Notify verde, y en Dataverse el registro
-      queda `Aprobado` + `'[AS] Agente'` + `'[AS] Resolutor'` (y el owner cambia solo — Comp-14).
+      queda `Aprobado` + `'[AS] Agente'` + `'[AS] Resolutor'` (y el owner cambia solo — `RepartoAsignacion`).
 - [ ] Rechazar: registro `Rechazada` con `'Motivo de rechazo'` y `'[AS] Resolutor'` grabados.
 - [ ] Vaciar la cola muestra "🎉 Nada por aprobar"; «↻ Actualizar» re-colecta y cierra el panel.
 - [ ] Cero banda azul de delegación en Studio (filtro de cola y `galAgeAprb.Items` delegables; el resto en memoria).
