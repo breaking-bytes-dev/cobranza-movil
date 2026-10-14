@@ -381,7 +381,13 @@ Screens:
                               LayoutMinHeight: =16
                               LayoutMinWidth: =16
                               Size: =gblT.fbase
-                              Text: =IfError(Text(DateValue(varCuenta.'[CT] Fecha Pago'), "dd/mm/yyyy"), varCuenta.'[CT] Fecha Pago')
+                              Text: |-
+                                =With({f: Trim(varCuenta.'[CT] Fecha Pago')},
+                                    // DAT-26: la carga trae aaaa-mm-dd (casi todas) o dd/mm/aaaa. Se arma el texto a mano: DateValue dependia del
+                                    // idioma del telefono y en ingles leia 05/07 como 7 de mayo.
+                                    If(IsMatch(f, "\d{4}-\d{2}-\d{2}", MatchOptions.BeginsWith),
+                                        Mid(f, 9, 2) & "/" & Mid(f, 6, 2) & "/" & Left(f, 4),
+                                        f))
                   - conFila_UltimoPago:
                       Control: GroupContainer@1.5.0
                       Variant: AutoLayout

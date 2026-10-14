@@ -85,6 +85,9 @@ async function f7(ctx) {
       await abrirCuenta(ctx, app, A, 'Diaria');
       const tipo = await lo.texto(app, 'Text1_1');
       ctx.chk('F7-06', tipo === 'Diaria', `Detalle de la cuenta A (${mask(A)}): tipo "${tipo}"`);
+      // DAT-26: el CSV QA trae FechaPago "2026-10-20" (aaaa-mm-dd); la app la muestra dd/mm/aaaa sin depender del idioma.
+      const fechaPago = await lo.texto(app, 'lblTelVal_3').catch(() => '');
+      ctx.chk('F7-06b', fechaPago === '20/10/2026', `Detalle de la cuenta A: fecha de pago "${fechaPago}" (esperado "20/10/2026")`);
     });
     await ctx.paso('F7-07', 'cobro', async () => {
       // 1) Lo pedido: cobrar sobre la cuenta A (Diaria, y además con una Especial aprobada).
