@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Xrm.Sdk;
 
 namespace Sanic.CobranzaMovil.Plugins
@@ -14,6 +15,8 @@ namespace Sanic.CobranzaMovil.Plugins
     /// Quien no tiene roles de CM no se frena: SYSTEM (identidad de la carga de Smelter, sin roles) y los
     /// administradores del entorno. Las Especiales del CSV no llegan al cobrador hasta que se aprueban: eso lo
     /// cuidan el flow (no comparte) y la app (no muestra), sin romper la carga.
+    ///
+    /// S-7: en el alta, una persona de CM solo puede poner "Solicitado por" a si misma (<see cref="SolicitadoPor"/>).
     ///
     /// Solo consulta roles si el cambio es de los controlados. Nunca traza ni cita valores del registro.
     /// Registro: PreOperation sincrono. Create y Update de sanic_cm_tbl_asignacion; el Update filtrado por
@@ -33,7 +36,13 @@ namespace Sanic.CobranzaMovil.Plugins
             local.ExigirRegistro(Esquema.Asignacion, Esquema.EtapaPreOperation, Esquema.MensajeCreate, Esquema.MensajeUpdate);
 
             var target = local.ObtenerTarget();
-            if (local.EsMensaje(Esquema.MensajeCreate)) SinAprobacionSiNoEsEspecial(local, target);
+            RolesCm roles = null;
+            Func<RolesCm> rolesDelLlamador = () => roles ?? (roles = RolesCm.DelLlamador(local));
+            if (local.EsMensaje(Esquema.MensajeCreate))
+            {
+                SinAprobacionSiNoEsEspecial(local, target);
+                SolicitadoPor.ExigirQueSeaElLlamador(local, target, rolesDelLlamador);
+            }
             Entity previa = null;
             if (local.EsMensaje(Esquema.MensajeUpdate))
             {
@@ -52,7 +61,7 @@ namespace Sanic.CobranzaMovil.Plugins
                 return;
             }
 
-            if (PuedeAprobar(local))
+            if (PuedeAprobar(rolesDelLlamador()))
             {
                 local.Trace("el llamador puede aprobar Especiales.");
                 return;
@@ -125,9 +134,8 @@ namespace Sanic.CobranzaMovil.Plugins
         }
 
         /// <summary>Roles del llamador (directos y por equipo); sin roles de CM no se frena (SYSTEM / Smelter, administradores).</summary>
-        private static bool PuedeAprobar(LocalContext local)
+        private static bool PuedeAprobar(RolesCm roles)
         {
-            var roles = RolesCm.DelLlamador(local);
             return roles.SinRolesCm || roles.TieneAlguno(RolesQueAprueban);
         }
     }

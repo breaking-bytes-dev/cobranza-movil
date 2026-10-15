@@ -12,7 +12,7 @@ namespace Sanic.CobranzaMovil.Plugins
     ///
     /// - Localizador: el orden de su cartera.
     /// - Supervisor: aprobar, rechazar (y cerrar al rechazar, DAT-14), asignar o reasignar el agente (DAT-29).
-    /// - Solicitante: volver a pedir una Especial cerrada (scrNuevaSolicitud).
+    /// - Solicitante: volver a pedir una Especial cerrada (scrNuevaSolicitud); "Solicitado por" solo a si mismo (S-7).
     /// - Cualquier otro rol de CM: ninguna (falla cerrado).
     /// Sin roles de CM (la carga, los plugins con el servicio del sistema) y Admin/Servicio no se frenan.
     /// Solo se controlan las columnas de negocio (prefijo sanic_cm_as_); el dueno se cambia con Assign.
@@ -78,6 +78,7 @@ namespace Sanic.CobranzaMovil.Plugins
             var prohibidas = columnas.Where(c => !permitidas.Contains(c)).OrderBy(c => c, StringComparer.Ordinal).ToList();
             if (prohibidas.Count == 0)
             {
+                SolicitadoPor.ExigirQueSeaElLlamador(local, local.ObtenerTarget(), () => roles);
                 local.Trace("{0} columna(s) permitidas para el rol.", columnas.Count);
                 return;
             }

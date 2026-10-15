@@ -162,5 +162,49 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             Assert.DoesNotContain("4111", ex.Message);
             Assert.DoesNotContain("4111", h.TodoElTexto());
         }
+    
+
+        // ------------------------------------------------------------------ S-7: "Solicitado por"
+
+        private static Entity ConSolicitadoPor(Guid usuario)
+        {
+            var t = Cambio("sanic_cm_as_estado", "sanic_cm_as_estadoaprobacion");
+            t["sanic_cm_as_solicitadopor"] = new EntityReference("systemuser", usuario);
+            return t;
+        }
+
+        [Fact]
+        public void S7_el_Solicitante_se_pone_a_si_mismo_como_Solicitado_por()
+        {
+            Pasa(ConSolicitadoPor(Harness.UsuarioLlamador), Solicitante);
+        }
+
+        [Fact]
+        public void S7_el_Solicitante_no_pone_a_otro_como_Solicitado_por()
+        {
+            // RepartoAsignacion comparte la Especial aprobada con "Solicitado por": poniendo a otro, el Solicitante le
+            // regalaria lectura y escritura de la Especial a un tercero.
+            var otro = Guid.NewGuid();
+            var h = Actualizar(ConSolicitadoPor(otro), Solicitante);
+            var ex = Assert.Throws<InvalidPluginExecutionException>(() => h.Ejecutar(new ColumnasAsignacion()));
+            Assert.Contains("Solicitado por", ex.Message);
+            Assert.DoesNotContain(otro.ToString(), ex.Message);
+            Assert.DoesNotContain(otro.ToString(), h.TodoElTexto());
+        }
+
+        [Theory]
+        [InlineData(Admin)]
+        [InlineData(Servicio)]
+        public void S7_Admin_y_Servicio_ponen_a_cualquiera_como_Solicitado_por(string rol)
+        {
+            Pasa(ConSolicitadoPor(Guid.NewGuid()), rol);
+        }
+
+        [Fact]
+        public void S7_sin_roles_de_CM_se_pone_a_cualquiera_como_Solicitado_por()
+        {
+            // SolicitarEspecial reactiva con el servicio del sistema y pone a quien la pidio.
+            Pasa(ConSolicitadoPor(Guid.NewGuid()));
+        }
     }
 }

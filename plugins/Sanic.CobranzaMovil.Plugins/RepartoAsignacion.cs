@@ -21,8 +21,8 @@ namespace Sanic.CobranzaMovil.Plugins
     ///    1) pasa el dueno al usuario del agente o, si el agente no tiene usuario o no hay agente, al equipo
     ///       "Cartera sin cobrador" (DAT-07; antes no hacia nada y el cobrador anterior la conservaba). Va antes de
     ///       mirar otras asignaciones: ver RevocarSiNoQuedaOtra;
-    ///    2) si es Especial, se la comparte (lectura, escritura, anexar) al solicitante SOLO si "Solicitado por" es
-    ///       quien la creo (S-7: "Solicitado por" es editable, createdby no);
+    ///    2) si es Especial, se la comparte (lectura, escritura, anexar) a "Solicitado por" (S-7: una persona de CM
+    ///       solo puede ponerse a si misma, ver SolicitadoPor);
     ///    3) si hay cobrador, le comparte en lectura la cuenta, el cliente y el fiador;
     ///    4) si cambio el dueno, al dueno anterior le revoca cuenta, cliente y fiador que ya no justifique otra
     ///       asignacion activa suya.
@@ -78,7 +78,7 @@ namespace Sanic.CobranzaMovil.Plugins
             var id = local.Context.PrimaryEntityId;
             var asignacion = Leer(svc, Esquema.Asignacion, id, Esquema.AsignacionEstado, Esquema.AsignacionTipo,
                 Esquema.AsignacionEstadoAprobacion, Esquema.AsignacionAgente, Esquema.AsignacionCuentaId,
-                Esquema.AsignacionSolicitadoPor, Esquema.CreadoPor, Esquema.Propietario);
+                Esquema.AsignacionSolicitadoPor, Esquema.Propietario);
             if (asignacion == null)
             {
                 local.Trace("la asignacion ya no existe; nada que repartir.");
@@ -146,22 +146,15 @@ namespace Sanic.CobranzaMovil.Plugins
                 });
             }
 
-            // 2) La Especial aprobada se le comparte a quien la pidio, solo si la pidio quien la creo (S-7): "Solicitado
-            //    por" lo editan Solicitante, Supervisor y Localizador; createdby no se puede editar.
+            // 2) La Especial aprobada se le comparte a quien la pidio (S-7). "Solicitado por" no lo elige el cliente: una
+            //    persona de CM solo puede ponerse a si misma (SolicitadoPor). Antes se exigia ademas que fuera quien la
+            //    creo, y quien reactivaba con SolicitarEspecial una Especial creada por otro la perdia al aprobarse.
             var solicitante = asignacion.GetAttributeValue<EntityReference>(Esquema.AsignacionSolicitadoPor);
-            var creador = asignacion.GetAttributeValue<EntityReference>(Esquema.CreadoPor);
             if (esEspecial && solicitante != null)
             {
-                if (creador != null && creador.Id == solicitante.Id)
-                {
-                    pasos.Correr("compartir la asignacion con el solicitante", () => Compartir(svc, asignacionRef,
-                        new EntityReference(Esquema.Usuario, solicitante.Id),
-                        AccessRights.ReadAccess | AccessRights.WriteAccess | AccessRights.AppendAccess));
-                }
-                else
-                {
-                    local.Trace("S-7: \"Solicitado por\" no es quien creo la Especial; no se le comparte a nadie.");
-                }
+                pasos.Correr("compartir la asignacion con el solicitante", () => Compartir(svc, asignacionRef,
+                    new EntityReference(Esquema.Usuario, solicitante.Id),
+                    AccessRights.ReadAccess | AccessRights.WriteAccess | AccessRights.AppendAccess));
             }
 
             // 3) Lectura de cuenta, cliente y fiador para el cobrador (la cartera sin cobrador no comparte nada).

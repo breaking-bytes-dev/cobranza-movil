@@ -402,33 +402,47 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         }
 
         [Fact]
-        public void S7_si_Solicitado_por_no_es_quien_creo_la_Especial_no_se_comparte_con_nadie()
+        public void S7_la_Especial_reactivada_por_otro_se_comparte_con_quien_la_pidio_aunque_no_la_haya_creado()
         {
-            // "Solicitado por" lo editan Solicitante, Supervisor y Localizador: cambiandolo se le regalaba lectura,
-            // escritura y anexar a un tercero. Quien la creo (createdby) no se puede editar.
-            var m = new Mundo();
+            // SolicitarEspecial (DAT-14) reactiva una Especial cerrada que creo otra persona y pone "Solicitado por" =
+            // quien la pide. Antes S-7 exigia "Solicitado por" = createdby y el que la reactivaba la perdia de vista al
+            // aprobarse. "Solicitado por" ya no lo elige el cliente: una persona de CM solo puede ponerse a si misma
+            // (AprobacionEspecial en el alta, ColumnasAsignacion en la edicion).
+            var m = new Mundo("Update");
             var a = m.Fila(Asignacion, m.AsignacionId);
             a["sanic_cm_as_tipo"] = new OptionSetValue(Especial);
             a["sanic_cm_as_estadoaprobacion"] = new OptionSetValue(Aprobado);
             a["sanic_cm_as_solicitadopor"] = new EntityReference(Usuario, m.Solicitante);
             a["createdby"] = new EntityReference(Usuario, m.Anterior);
-            m.Ejecutar(); // no lanza: el resto del reparto sigue
+            m.Ejecutar();
 
-            Assert.DoesNotContain(m.Grants, g => g.Target.LogicalName == Asignacion);
+            Assert.True(m.Compartio(Asignacion, m.AsignacionId, m.Solicitante,
+                AccessRights.ReadAccess | AccessRights.WriteAccess | AccessRights.AppendAccess));
+            Assert.DoesNotContain(m.Grants, g => g.Target.LogicalName == Asignacion
+                && g.PrincipalAccess.Principal.Id == m.Anterior);
             Assert.Equal(m.Cobrador, Assert.Single(m.Updates).GetAttributeValue<EntityReference>("ownerid").Id);
-            Assert.True(m.Compartio(Cuenta, m.CuentaId, m.Cobrador, AccessRights.ReadAccess));
-            Assert.Contains("S-7", m.H.TodoElTexto());
         }
 
         [Fact]
-        public void S7_la_Especial_se_lee_con_su_creador()
+        public void S7_una_Especial_sin_Solicitado_por_no_se_comparte_con_nadie()
+        {
+            var m = new Mundo();
+            var a = m.Fila(Asignacion, m.AsignacionId);
+            a["sanic_cm_as_tipo"] = new OptionSetValue(Especial);
+            a["sanic_cm_as_estadoaprobacion"] = new OptionSetValue(Aprobado);
+            m.Ejecutar();
+            Assert.DoesNotContain(m.Grants, g => g.Target.LogicalName == Asignacion);
+        }
+
+        [Fact]
+        public void S7_la_Especial_se_lee_con_su_solicitante()
         {
             var m = new Mundo();
             ColumnSet leidas = null;
             m.H.Service.Setup(s => s.Retrieve(Asignacion, m.AsignacionId, It.IsAny<ColumnSet>()))
                 .Returns<string, Guid, ColumnSet>((t, id, cs) => { leidas = cs; return m.Fila(Asignacion, id); });
             m.Ejecutar();
-            Assert.Contains("createdby", leidas.Columns);
+            Assert.Contains("sanic_cm_as_solicitadopor", leidas.Columns);
         }
 
         // ------------------------------------------------------------------ sin cobrador (DAT-07)

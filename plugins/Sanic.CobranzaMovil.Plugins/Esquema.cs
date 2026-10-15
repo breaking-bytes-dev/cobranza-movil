@@ -58,7 +58,6 @@ namespace Sanic.CobranzaMovil.Plugins
         public const string CuentaId = "sanic_cm_tbl_cuentaid";
         public const string CuentaCliente = "sanic_cm_ct_clienteid";
         public const string CuentaFiador = "sanic_cm_ct_fiador";
-        public const string CreadoPor = "createdby"; // S-7: no editable, a diferencia de "Solicitado por"
 
         // Cartera sin cobrador (DAT-07/08): equipo dueno, sin miembros, de las asignaciones cuyo agente no tiene usuario.
         // El nombre lleva el entorno al final, como los demas equipos de CM: "CM · Cartera sin cobrador · DEV".

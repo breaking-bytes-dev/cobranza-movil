@@ -288,5 +288,54 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             Assert.DoesNotContain(agente.ToString(), ex.Message);
             Assert.DoesNotContain(agente.ToString(), h.TodoElTexto());
         }
+    
+
+        // ------------------------------------------------------------------ S-7: "Solicitado por" en el alta
+
+        private static Entity EspecialPedidaPor(Guid usuario)
+        {
+            var t = Nueva(Especial, Pendiente, conAgente: false);
+            t["sanic_cm_as_solicitadopor"] = new EntityReference("systemuser", usuario);
+            return t;
+        }
+
+        [Fact]
+        public void S7_el_Solicitante_crea_la_Especial_a_su_nombre_sin_consultar_roles()
+        {
+            var h = Crear(EspecialPedidaPor(Harness.UsuarioLlamador), Solicitante);
+            h.Ejecutar(new AprobacionEspecial());
+            Assert.Equal(0, h.ConsultasAlServicio());
+        }
+
+        [Theory]
+        [InlineData(Solicitante)]
+        [InlineData(Localizador)]
+        [InlineData(BackOffice)]
+        [InlineData(Supervisor)]
+        public void S7_una_persona_de_CM_no_crea_la_Especial_a_nombre_de_otro(string rol)
+        {
+            // RepartoAsignacion comparte la Especial aprobada con "Solicitado por": a nombre de otro, le regalaria
+            // lectura y escritura a un tercero.
+            var otro = Guid.NewGuid();
+            var h = Crear(EspecialPedidaPor(otro), rol);
+            var ex = Assert.Throws<InvalidPluginExecutionException>(() => h.Ejecutar(new AprobacionEspecial()));
+            Assert.Contains("Solicitado por", ex.Message);
+            Assert.DoesNotContain(otro.ToString(), ex.Message);
+            Assert.DoesNotContain(otro.ToString(), h.TodoElTexto());
+        }
+
+        [Theory]
+        [InlineData(Admin)]
+        [InlineData(Servicio)]
+        public void S7_Admin_y_Servicio_crean_a_nombre_de_cualquiera(string rol)
+        {
+            Crear(EspecialPedidaPor(Guid.NewGuid()), rol).Ejecutar(new AprobacionEspecial());
+        }
+
+        [Fact]
+        public void S7_sin_roles_de_CM_se_crea_a_nombre_de_cualquiera()
+        {
+            Crear(EspecialPedidaPor(Guid.NewGuid()), new string[0]).Ejecutar(new AprobacionEspecial());
+        }
     }
 }
