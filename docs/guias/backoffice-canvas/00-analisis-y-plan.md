@@ -112,7 +112,7 @@ La app necesita saber el rol SIN leer roles de seguridad (canvas no puede). **Co
 |---|---|---|---|
 | `sanic_cm_ua_usuarioid` | `[UA[ Usuario` ⚠ typo en Dev — renombrar a `[UA] Usuario` | **Lookup → Users** | La identidad. Las fórmulas siguen a IntelliSense |
 | `sanic_cm_ua_nombre` | `[UA] Nombre` | Texto | Campo primario |
-| `sanic_cm_ua_rol` | `[UA] Rol` | **Choice MULTI-SELECT local** `sanic_cm_tbl_usuarioapp_sanic_cm_ua_rol`: 1=Backoffice · 2=Solicitante · 3=Supervisor · 4=Admin | Una persona puede tener VARIOS roles |
+| `sanic_cm_ua_rol` | `[UA] Rol` | **(Histórico: la tabla `usuarioapp` se borró el 2026-10-15, DAT-30; ya no existe.)** **Choice MULTI-SELECT local** `sanic_cm_tbl_usuarioapp_sanic_cm_ua_rol`: 1=Backoffice · 2=Solicitante · 3=Supervisor · 4=Admin | Una persona puede tener VARIOS roles |
 | `sanic_cm_ua_activo` | `[UA] Activo` | Sí/No | Soft-delete |
 
 - **Modelo multi-rol en la app**: `gblRol` es el texto de TODAS las etiquetas unidas con `|`

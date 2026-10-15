@@ -12,7 +12,6 @@
   <EntityRelationship Name="business_unit_sanic_cm_tbl_pago" />
   <EntityRelationship Name="business_unit_sanic_cm_tbl_producto" />
   <EntityRelationship Name="business_unit_sanic_cm_tbl_telefono" />
-  <EntityRelationship Name="business_unit_sanic_cm_tbl_usuarioapp" />
   <EntityRelationship Name="lk_sanic_cm_tbl_actualizaciondatos_createdby" />
   <EntityRelationship Name="lk_sanic_cm_tbl_actualizaciondatos_modifiedby" />
   <EntityRelationship Name="lk_sanic_cm_tbl_agente_createdby" />
@@ -37,8 +36,6 @@
   <EntityRelationship Name="lk_sanic_cm_tbl_producto_modifiedby" />
   <EntityRelationship Name="lk_sanic_cm_tbl_telefono_createdby" />
   <EntityRelationship Name="lk_sanic_cm_tbl_telefono_modifiedby" />
-  <EntityRelationship Name="lk_sanic_cm_tbl_usuarioapp_createdby" />
-  <EntityRelationship Name="lk_sanic_cm_tbl_usuarioapp_modifiedby" />
   <EntityRelationship Name="owner_sanic_cm_tbl_actualizaciondatos" />
   <EntityRelationship Name="owner_sanic_cm_tbl_agente" />
   <EntityRelationship Name="owner_sanic_cm_tbl_asignacion" />
@@ -51,7 +48,6 @@
   <EntityRelationship Name="owner_sanic_cm_tbl_pago" />
   <EntityRelationship Name="owner_sanic_cm_tbl_producto" />
   <EntityRelationship Name="owner_sanic_cm_tbl_telefono" />
-  <EntityRelationship Name="owner_sanic_cm_tbl_usuarioapp" />
   <EntityRelationship Name="sanic_cm_tbl_actualizaciondatos_cm_ad_interaccionid_sanic_cm_tbl_interaccion" />
   <EntityRelationship Name="sanic_cm_tbl_agente_cm_ag_usuarioid_systemuser" />
   <EntityRelationship Name="sanic_cm_tbl_asignacion_cm_as_agenteid_sanic_cm_tbl_agente" />
@@ -71,7 +67,6 @@
   <EntityRelationship Name="sanic_cm_tbl_interaccion_cm_in_grabadopor_systemuser" />
   <EntityRelationship Name="sanic_cm_tbl_pago_cm_pg_interaccion_sanic_cm_tbl_interaccion" />
   <EntityRelationship Name="sanic_cm_tbl_telefono_cm_tl_clienteid_sanic_cm_tbl_cliente" />
-  <EntityRelationship Name="sanic_cm_tbl_usuarioapp_cm_ua_usuarioid_systemuser" />
   <EntityRelationship Name="team_sanic_cm_tbl_actualizaciondatos" />
   <EntityRelationship Name="team_sanic_cm_tbl_agente" />
   <EntityRelationship Name="team_sanic_cm_tbl_asignacion" />
@@ -84,7 +79,6 @@
   <EntityRelationship Name="team_sanic_cm_tbl_pago" />
   <EntityRelationship Name="team_sanic_cm_tbl_producto" />
   <EntityRelationship Name="team_sanic_cm_tbl_telefono" />
-  <EntityRelationship Name="team_sanic_cm_tbl_usuarioapp" />
   <EntityRelationship Name="user_sanic_cm_tbl_actualizaciondatos" />
   <EntityRelationship Name="user_sanic_cm_tbl_agente" />
   <EntityRelationship Name="user_sanic_cm_tbl_asignacion" />
@@ -97,5 +91,4 @@
   <EntityRelationship Name="user_sanic_cm_tbl_pago" />
   <EntityRelationship Name="user_sanic_cm_tbl_producto" />
   <EntityRelationship Name="user_sanic_cm_tbl_telefono" />
-  <EntityRelationship Name="user_sanic_cm_tbl_usuarioapp" />
 </EntityRelationships>

@@ -87,7 +87,7 @@ cada teléfono baja *todas* las cuentas/clientes/direcciones/teléfonos que el r
 | DAT-27 | Media | "Hoy" del teléfono por `Created On` (hora de sync) en vez de fecha de captura; filtro `= Today()` imposible | Verificado |
 | DAT-28 | Baja | `estadoaprobacion` default = Pendiente: las Diarias/Incobrables nacen "pendientes de aprobación" | Verificado |
 | DAT-29 | Baja | Reasignación manual sin UI en canvas; la BR de bloqueo la impide en el formulario MDA | Verificado |
-| DAT-30 | Baja | Huérfanos: `usuarioapp`, `producto`/`fiador` (solo import), `ct_agenteid`; dirección EC no se muestra | Verificado |
+| DAT-30 | Baja | Huérfanos: `usuarioapp` (borrada el 2026-10-15), `producto`/`fiador` (solo import), `ct_agenteid`; dirección EC no se muestra | Verificado |
 | DAT-31 | Baja | Números autonumber usados como clave de negocio sin alt key; `fechasignacion` pisada por el import | Verificado |
 | DAT-32 | Baja | Drift de documentación vs build (formatos, precisión, roles, cascadas) | Verificado |
 
@@ -191,7 +191,7 @@ Leyenda: **SM** = Smelter (import CSV diario) · **LOC** = app del cobrador · *
 | `direccion` (alt key `dr_tipo`+`dr_cif`), `telefono` (alt key `tl_cif`+`tl_tipo`) | SM, BO-a (Maestros: **solo agrega**) | LOC (OnStart filtra Casa/Trabajo), BO (Transcripción "antes", Maestros) | `EC` no se carga en el teléfono. |
 | `cargadiaria` (alt key `cd_numerocuenta`+`cd_fechacarga`, DateOnly) | SM | BO (Monitoreo: `CountIf` y `nfUltimaCarga`) | Resto del snapshot: solo histórico (nadie lo lee). Todas las filas de DEV: `2026-06-20`. |
 | `producto`, `fiador` | SM | — | ⚠ Declaradas como data source en LOC pero sin fórmula que las lea; fuera del perfil offline autogenerado. |
-| `usuarioapp` | — | — | ⚠ Tabla huérfana: 0 referencias en ambas apps, 0 privilegios en todos los roles. El rol se deriva de roles/teams (`gblRol`). |
+| `usuarioapp` | — | — | ⚠ Tabla huérfana: 0 referencias en ambas apps, 0 privilegios en todos los roles. El rol se deriva de roles/teams (`gblRol`). **Borrada el 2026-10-15 (DAT-30).** |
 
 ---
 
@@ -632,7 +632,7 @@ compartidos. Las Diarias no se reasignan a mano: gana el CSV.
 ### DAT-30 — Huérfanos
 **Severidad:** Baja · **Confianza:** Verificado
 
-`sanic_cm_tbl_usuarioapp`: 0 usos y 0 privilegios (¿eliminar?). `producto`/`fiador`: solo import; las apps usan los textos denormalizados. `ct_agenteid`, `ct_tipoasignacion`, `ct_productoid`, `ct_fiador`: escritas por SM, nunca leídas. `cargadiaria`: snapshot solo de histórico (más 1.000 filas por día; Monitoreo lee solo `FechaCarga`). `[AS] Resolutor`: escrita, nunca leída. La dirección **EC** se importa pero el teléfono solo carga Casa/Trabajo (`LOC/App.pa.yaml:86`) — pero el cobrador puede capturar un cambio de EC sin ver el actual. `[CT] Total saldo vencido`/`Contagiado USD`: leídas, ok.
+`sanic_cm_tbl_usuarioapp`: 0 usos y 0 privilegios (borrada el 2026-10-15, DAT-30). `producto`/`fiador`: solo import; las apps usan los textos denormalizados. `ct_agenteid`, `ct_tipoasignacion`, `ct_productoid`, `ct_fiador`: escritas por SM, nunca leídas. `cargadiaria`: snapshot solo de histórico (más 1.000 filas por día; Monitoreo lee solo `FechaCarga`). `[AS] Resolutor`: escrita, nunca leída. La dirección **EC** se importa pero el teléfono solo carga Casa/Trabajo (`LOC/App.pa.yaml:86`) — pero el cobrador puede capturar un cambio de EC sin ver el actual. `[CT] Total saldo vencido`/`Contagiado USD`: leídas, ok.
 
 ### DAT-31 — Autonumber como clave de negocio / `fechasignacion`
 **Severidad:** Baja · **Confianza:** Verificado

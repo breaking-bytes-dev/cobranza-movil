@@ -92,7 +92,6 @@
       <RootComponent type="1" schemaName="sanic_cm_tbl_pago" behavior="0" />
       <RootComponent type="1" schemaName="sanic_cm_tbl_producto" behavior="0" />
       <RootComponent type="1" schemaName="sanic_cm_tbl_telefono" behavior="0" />
-      <RootComponent type="1" schemaName="sanic_cm_tbl_usuarioapp" behavior="0" />
       <RootComponent type="1" schemaName="systemuser" behavior="1" />
       <RootComponent type="20" id="{0ed5c9cb-fd76-f111-ab0e-70a8a5b226fd}" behavior="0" />
       <RootComponent type="20" id="{6488515d-fe76-f111-ab0e-70a8a5b226fd}" behavior="0" />

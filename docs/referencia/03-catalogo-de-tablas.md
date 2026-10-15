@@ -32,7 +32,7 @@ servidor no lo hace cumplir**, salvo la cuenta y el agente de la interacción y 
   `producto → cuenta`, `fiador → cuenta`; y, desde el 2026-10-14 (DAT-18), `cliente → cargadiaria`, `interaccion → pago` e
   `interaccion → actualizaciondatos`.
 - `RemoveLink` (borra el padre y deja el hijo con el lookup vacío): `cuenta → interaccion`, `cuenta → pago`,
-  `cuenta → cargadiaria`, y `systemuser → agente / asignacion (resolutor, solicitado por) / interaccion (grabado por) / usuarioapp`.
+  `cuenta → cargadiaria`, y `systemuser → agente / asignacion (resolutor, solicitado por) / interaccion (grabado por)` (y `usuarioapp`, borrada el 2026-10-15).
 - **El candado `cuenta → interaccion = Restrict` NO existe.** El catálogo anterior lo daba por "confirmado" y es falso:
   la metadata dice `RemoveLink`. Borrar una cuenta (o un cliente, que cascadea a sus cuentas) **no se bloquea** por tener
   interacciones: estas y sus pagos sobreviven **sin cuenta**. El comportamiento en ejecución **no se probó** (DEV es de
@@ -65,14 +65,14 @@ servidor no lo hace cumplir**, salvo la cuenta y el agente de la interacción y 
 | 11 | `sanic_cm_tbl_asignacion` | CM \| TBL \| Asignacion | `as_numero` | Sí | Sí | 1011 | Smelter; Solicitante; Supervisor/Admin cierran y reasignan |
 | 12 | `sanic_cm_tbl_actualizaciondatos` | CM \| TBL \| Actualizacion de dato | `ad_numero` | Sí | Sí | 2 | App del cobrador |
 | 13 | `sanic_cm_tbl_cuentapan` | CM \| TBL \| PAN de cuenta (**nueva**, bóveda) | `cp_name` (enmascarado) | Sí | Sí | 1010 | Solo Smelter |
-| 14 | `sanic_cm_tbl_usuarioapp` | CM \| TBL \| Usuario App | `ua_nombre` | **No** | No | 0 | Nadie (huérfana) |
+| 14 | ~~`sanic_cm_tbl_usuarioapp`~~ | ~~CM \| TBL \| Usuario App~~ | ~~`ua_nombre`~~ | — | — | — | **Borrada el 2026-10-15 (DAT-30)**: era huérfana |
 
 Notas:
 - Filas de DEV al 2026-10-06 (`$count`, solo orden de magnitud: son datos ficticios y de QA). `fiador` tiene más filas que `cuenta`
   (2785 contra 1010): origen explicado el 2026-10-14, ver `fiador`.
 - "Perfil offline" = lista de las 10 tablas del perfil `Cobranza Movil - Cobrador` (§C.5). Todas las tablas tienen `ChangeTracking`
-  activo salvo `cargadiaria` y `usuarioapp`.
-- La numeración 1 a 12 se conserva respecto del catálogo anterior; `cuentapan` y `usuarioapp` se agregan al final como 13 y 14.
+  activo salvo `cargadiaria` (y `usuarioapp`, borrada el 2026-10-15).
+- La numeración 1 a 12 se conserva respecto del catálogo anterior; `cuentapan` y `usuarioapp` se agregan al final como 13 y 14 (la 14 se borró el 2026-10-15, DAT-30).
 
 ## B. Relaciones y cascadas (verificado 2026-10-06; DAT-18 aplicado y verificado el 2026-10-14)
 
@@ -94,7 +94,7 @@ Cada fila es una relación 1:N real (`OneToManyRelationships` de las tablas CM).
 | agente → cuenta / asignacion / interaccion / cargadiaria | `ct_agenteid`, `as_agenteid`, `in_agente`, `cd_agenteid` | **Restrict** | NC | NC | NC | NC |
 | producto → cuenta | `ct_productoid` | **Restrict** | NC | NC | NC | NC |
 | fiador → cuenta | `ct_fiador` | **Restrict** | NC | NC | NC | NC |
-| systemuser → agente / asignacion (2) / interaccion / usuarioapp | `ag_usuarioid`, `as_resolutorid`, `as_solicitadopor`, `in_grabadopor`, `ua_usuarioid` | RemoveLink | NC | NC | NC | NC |
+| systemuser → agente / asignacion (2) / interaccion / ~~usuarioapp~~ (borrada 2026-10-15) | `ag_usuarioid`, `as_resolutorid`, `as_solicitadopor`, `in_grabadopor`, ~~`ua_usuarioid`~~ | RemoveLink | NC | NC | NC | NC |
 
 **Cómo se lee:**
 - **Delete.** `Cascade` borra los hijos con el padre; `Restrict` impide borrar el padre mientras haya hijos; `RemoveLink` borra el
@@ -226,7 +226,7 @@ El plugin lee el estado **actual** de la asignación (converge, no repite el eve
 
 ### C.4 Auditoría
 
-- **Auditoría de tabla activa** en 11 de 14 tablas; **apagada** en `producto`, `fiador` y `usuarioapp`. Se encendió en
+- **Auditoría de tabla activa** en 11 de 14 tablas; **apagada** en `producto`, `fiador` y `usuarioapp` (borrada el 2026-10-15; hoy son 11 de 13 tablas). Se encendió en
   `asignacion`, `interaccion`, `pago`, `agente`, `actualizaciondatos` y `cargadiaria` el 2026-10-06 (S-8,
   `paso1_cascadas_auditoria.py`); el historial de reasignaciones (DEC-016) vive acá.
 - **Columna `cp_pan`: auditoría apagada y fuera de búsqueda avanzada** (`IsAuditEnabled = false`, `IsValidForAdvancedFind = false`).
@@ -246,7 +246,7 @@ Perfil **propio** (reemplaza al autogenerado), publicado, creado por `scripts/pa
 | Filtro propio: **solo activas** (`as_estado = 1`) | `asignacion` |
 | Filtro propio: **modificado en los últimos 90 días** | `interaccion`, `pago`, `actualizaciondatos` |
 
-Fuera del perfil: `producto`, `fiador`, `cargadiaria`, `usuarioapp`. Con "todas las filas que el usuario puede leer", al teléfono
+Fuera del perfil: `producto`, `fiador`, `cargadiaria` (y `usuarioapp`, borrada el 2026-10-15). Con "todas las filas que el usuario puede leer", al teléfono
 baja solo lo que es suyo o se le compartió.
 
 ### C.6 Privilegios por rol (verificado 2026-10-06, Localizador actualizado 2026-10-14; ver `docs/guias/16-guia-por-rol.md` §3)
@@ -268,10 +268,10 @@ Alcance: **U** = propio o compartido, **G** = toda la organización. Sin entrada
 | pago | C/R/A/T:U (sin W ni G: S-9) | — | R:G | R:G | todo:G | — |
 | actualizaciondatos | C/R/A/T:U (sin W: S-9) | — | — | R:G | todo:G | — |
 | cargadiaria | — | — | — | R:G | todo:G | C/R/W/A/T:G |
-| usuarioapp | — | — | — | — | — | — |
+| ~~usuarioapp~~ (borrada 2026-10-15) | — | — | — | — | — | — |
 
 (`todo:G` = C, R, W, D, A, T, G y S en alcance Global.) **Solo Admin tiene Delete**, en las 12 tablas de datos de CM (no en `cuentapan` ni
-`usuarioapp`, donde no tiene ningún privilegio). `Solicitante` y `Supervisor` leen todas las cuentas y clientes a propósito (necesitan buscar
+`usuarioapp`, que no tenía ningún privilegio y se borró el 2026-10-15). `Solicitante` y `Supervisor` leen todas las cuentas y clientes a propósito (necesitan buscar
 cualquiera: S-2, decisión de diseño).
 
 Las restricciones "W solo …" las aplican los plugins `ColumnasAsignacion` y `GrabacionInteraccion` (C.2): el privilegio de la
@@ -1105,11 +1105,13 @@ Discrepancia: Admin sin privilegios. No confirmado: contenido de la bóveda (no 
 
 ---
 
-## 14. `sanic_cm_tbl_usuarioapp` — Usuario App (huérfana)
+## 14. `sanic_cm_tbl_usuarioapp` — Usuario App (BORRADA el 2026-10-15)
+
+> **Tabla borrada de DEV el 2026-10-15 (DAT-30), con aprobación del dueño, y quitada de `solutions/unpacked`.** Motivo: era huérfana (0 filas, 0 privilegios en todos los roles, 0 dependencias de borrado, ninguna app la usaba). El detalle de abajo queda como registro histórico de lo que era; ya no existe en el entorno ni en la solución.
 
 ### Definición
 Tabla **sin uso**: 0 filas, 0 referencias en ambas apps, 0 privilegios en todos los roles CM (verificado). El rol de cada persona se deriva de los **roles y equipos** de Dataverse
-(`gblRol`), no de esta tabla. Candidata a **eliminarse** (DAT-30).
+(`gblRol`), no de esta tabla. Fue **eliminada** (DAT-30).
 
 ### Campos
 | Campo lógico | Físico | Tipo | Req. | Descripción |
@@ -1121,7 +1123,7 @@ Tabla **sin uso**: 0 filas, 0 referencias en ambas apps, 0 privilegios en todos 
 
 ### Llaves, import, ciclo de vida, borrado
 - **Sin llaves, sin import, sin ciclo de vida.** Sin auditoría de tabla, sin `ChangeTracking`, fuera del perfil offline.
-- `systemuser → usuarioapp`: RemoveLink. Nada la referencia. Se puede **borrar o eliminar** sin impacto conocido (solo falta decidir).
+- `systemuser → usuarioapp`: RemoveLink. Nada la referenciaba: se **borró** sin impacto (2026-10-15).
 
 ### Estado de la revisión
 **2026-10-06.** Verificado en vivo: columnas, 0 filas, 0 privilegios en los 6 roles CM. No confirmado: referencias desde otras soluciones del entorno.
