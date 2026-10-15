@@ -601,7 +601,7 @@ y `cuentapan`, y referencia de `interaccion`, `pago` y `cargadiaria`.
 | Últimos 4 | `sanic_cm_ct_ultimos4` | Text(4) | — | Para buscar (Solicitante, búsqueda rápida). |
 | Cliente | `sanic_cm_ct_clienteid` | Lookup → `cliente` | Sí | Resuelto por `CIF`. |
 | Producto | `sanic_cm_ct_productoid` | Lookup → `producto` | Sí | Resuelto por `CodigoProducto`. |
-| Agente | `sanic_cm_ct_agenteid` | Lookup → `agente` | — | Resuelto por `Agente`. Escrita por Smelter, **nunca leída** por las apps (DAT-30). |
+| Agente | `sanic_cm_ct_agenteid` | Lookup → `agente` | — | Resuelto por `Agente`. Escrita por Smelter, **nunca leída** por las apps. **Solo carga** (decisión del dueño, 2026-10-15, DAT-30): se conserva porque borrarla exige quitar su mapeo en la plantilla de Smelter. |
 | Fiador | `sanic_cm_ct_fiador` | Lookup → `fiador` | — | Resuelto por `NombreFianza`. |
 
 **Denormalizados para las apps** (texto; las apps leen **estos**, no los de `cliente` ni `fiador`)
@@ -633,7 +633,7 @@ y `cuentapan`, y referencia de `interaccion`, `pago` y `cargadiaria`.
 | Fecha último pago | `sanic_cm_ct_fechaultimopago` | DateTime (Date and Time, hora local) | `FechaUltimoPago` |
 | Fecha de pago | `sanic_cm_ct_fechapago` | **Text(100)** | `FechaPago` — **es texto, no fecha**; en DEV mezcla `20/07/2026` y `2026-07-17` (DAT-26) |
 | Ciclo | `sanic_cm_ct_ciclo` | Text(10) | `Ciclo` |
-| Tipo de asignación | `sanic_cm_ct_tipoasignacion` | Text(200) | `TipoAsignacion` (`Diaria`/`Incobrable`/`Especial`); texto. La `asignacion` toma el tipo directo del CSV, no de acá |
+| Tipo de asignación | `sanic_cm_ct_tipoasignacion` | Text(200) | `TipoAsignacion` (`Diaria`/`Incobrable`/`Especial`); texto. La `asignacion` toma el tipo directo del CSV, no de acá. **Solo carga**, nadie la lee (DAT-30, 2026-10-15) |
 | Tipo especial | `sanic_cm_ct_tipoespecial` | Text(200) | `TipoEspecial` |
 | Nota | `sanic_cm_ct_nota` | Text(400) | `Nota` |
 
