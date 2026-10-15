@@ -24,13 +24,6 @@ jobs:
             -d "client_id=$CID" -d "client_secret=$SECRET" -d "grant_type=client_credentials" -d "scope=$URL/.default" | jq -r .access_token)
           H="Authorization: Bearer $TOKEN"; A="Accept: application/json"
 
-          for T in sanic_cm_tbl_usuarioapp; do
-            echo "===================== $T ====================="
-            curl -s -H "$H" -H "$A" \
-              "$URL/api/data/v9.2/EntityDefinitions(LogicalName='$T')/Attributes?\$select=LogicalName,AttributeType,DisplayName" \
-              | jq -r '.value[] | select(.LogicalName|startswith("sanic_")) | "  \(.LogicalName)  [\(.AttributeType)]  \"\(.DisplayName.UserLocalizedLabel.Label // "?")\""' | sort
-          done
-
           echo "===================== CHOICES GLOBALES ====================="
           for C in sanic_choice_cm_rolbackoffice; do
             curl -s -H "$H" -H "$A" \
