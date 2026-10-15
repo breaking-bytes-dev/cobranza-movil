@@ -85,6 +85,8 @@ def actualizar_app(cust, nombre, ldr, perfil):
     m2 = re.search(r'<CdsDependencies>(.*?)</CdsDependencies>', bloque, re.S)
     dep = json.loads(html.unescape(m2.group(1))); tablas = {d['logicalname'] for d in dep['cdsdependencies'] if d.get('componenttype') == 1}
     for v in ldr.values():
+        # La fuente "Environment" (Custom APIs) va en DatabaseReferences pero no es una tabla: Studio no la pone en CdsDependencies.
+        if v['entitySetName'] == 'Environment': continue
         if v['logicalName'] not in tablas: dep['cdsdependencies'].append({'componenttype': 1, 'logicalname': v['logicalName']})
     if perfil:  # la dependencia 161 (perfil offline) apunta al personalizado, no al autogenerado
         dep['cdsdependencies'] = [d for d in dep['cdsdependencies'] if d.get('componenttype') != 161] + [{'dependencyid': perfil, 'componenttype': 161}]
