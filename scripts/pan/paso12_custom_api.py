@@ -92,7 +92,7 @@ APIS = [
         ],
         respuesta=[
             ('JobId', GUID, 'Id del Import Job de Smelter (sin estado: la app lo pone En cola despues de la espera)'),
-            ('Advertencias', TEXTO, 'Avisos para el Admin, uno por linea (fecha de carga usada, datos de cliente o fiador existentes, tipo)'),
+            ('Advertencias', TEXTO, 'Avisos para el Admin, uno por linea'),
         ]),
 ]
 

@@ -659,6 +659,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             Assert.StartsWith("alta-manual-", archivo);
             Assert.EndsWith(".csv", archivo);
             Assert.DoesNotContain(Pan, archivo);
+            Assert.False(System.Text.RegularExpressions.Regex.IsMatch(archivo, @"\d{13,}"), "el nombre del archivo no puede parecer un numero de tarjeta");
             Assert.Equal("token-1", e.Pedidos[1]["FileContinuationToken"]);
             var commit = e.Pedidos[2];
             Assert.Equal("text/csv", commit["MimeType"]);

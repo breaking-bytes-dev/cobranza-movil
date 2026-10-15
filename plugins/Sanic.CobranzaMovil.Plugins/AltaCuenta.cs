@@ -241,7 +241,8 @@ namespace Sanic.CobranzaMovil.Plugins
             }
             try
             {
-                Subir(local.Service, jobId, "alta-manual-" + ahora.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture) + ".csv", archivo);
+                // Fecha y hora separadas por un guion: 14 digitos seguidos parecerian un numero de tarjeta para un escaner PCI.
+                Subir(local.Service, jobId, "alta-manual-" + ahora.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) + ".csv", archivo);
             }
             catch (FaultException<OrganizationServiceFault> ex)
             {
