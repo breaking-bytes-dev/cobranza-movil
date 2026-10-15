@@ -1652,6 +1652,9 @@ Screens:
                           // Carga real terminada: el formulario se limpia (también el número de tarjeta).
                           If(varEstAlt = 2 && Coalesce(varJobAlt.'[IJ] Fail Count', 0) = 0,
                               Set(varHechaAlt, varTipoHechaAlt);
+                              // Smelter escribe por fuera de las fuentes de la app: las otras pantallas no ven la cuenta nueva sin Refresh.
+                              Refresh('CM | TBL | Cuentas');
+                              Refresh('CM | TBL | Asignacions');
                               Set(varValidoAlt, false);
                               Select(btnLimpiarAlt),
                               Set(varValidoAlt, false)

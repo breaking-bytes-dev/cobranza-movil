@@ -606,6 +606,9 @@ Screens:
                                 Reset(txtRetiroNioNva);
                                 Reset(txtRetiroUsdNva);
                                 Reset(txtMotivoNva);
+                                // La API escribe por fuera de la fuente de la app: sin Refresh, Mis solicitudes leía la caché
+                                // y no mostraba la Especial recién creada (F4-08, 2026-10-15). Con Patch esto no pasaba.
+                                Refresh('CM | TBL | Asignacions');
                                 Navigate(scrMisSolicitudes)
                             ),
                             Notify("No se pudo enviar la solicitud de la cuenta " & _cta & ": " & FirstError.Message, NotificationType.Error)
