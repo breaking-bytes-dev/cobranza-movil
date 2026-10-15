@@ -19,6 +19,7 @@ EditorState:
     - scrHistorialEspeciales
     - scrMonitoreo
     - scrCargaArchivo
+    - scrAltaCuenta
     - scrReconciliacion
     - scrCierres
     - scrAgentes

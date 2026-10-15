@@ -196,27 +196,34 @@ ComponentDefinitions:
                             },
                             {
                                 Orden: 12,
+                                Icono: "🪪",
+                                Titulo: "Alta de cuenta",
+                                Ruta: "alt",
+                                Roles: "Admin"
+                            },
+                            {
+                                Orden: 13,
                                 Icono: "🧹",
                                 Titulo: "Reconciliación",
                                 Ruta: "rec",
                                 Roles: "Admin"
                             },
                             {
-                                Orden: 13,
+                                Orden: 14,
                                 Icono: "🔒",
                                 Titulo: "Cierres",
                                 Ruta: "cie",
                                 Roles: "Admin"
                             },
                             {
-                                Orden: 14,
+                                Orden: 15,
                                 Icono: "🏍️",
                                 Titulo: "Agentes y usuarios",
                                 Ruta: "age",
                                 Roles: "Admin"
                             },
                             {
-                                Orden: 15,
+                                Orden: 16,
                                 Icono: "👥",
                                 Titulo: "Datos maestros",
                                 Ruta: "mae",
@@ -240,6 +247,7 @@ ComponentDefinitions:
                         "hes",  Navigate(scrHistorialEspeciales),
                         "mon",  Navigate(scrMonitoreo),
                         "car",  Navigate(scrCargaArchivo),
+                        "alt",  Navigate(scrAltaCuenta),
                         "rec",  Navigate(scrReconciliacion),
                         "cie",  Navigate(scrCierres),
                         "age",  Navigate(scrAgentes),

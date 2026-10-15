@@ -9,10 +9,10 @@ const NAV = {
   BackOffice: ['Inicio', 'Por transcribir', 'Transcritas hoy'],
   Solicitante: ['Inicio', 'Nueva solicitud', 'Mis solicitudes'],
   Supervisor: ['Inicio', 'Aprobaciones', 'Cartera por localizador', 'Historial de Especiales'],
-  Admin: ['Inicio', 'Monitoreo de carga', 'Cargar archivo', 'Reconciliación', 'Cierres', 'Agentes y usuarios', 'Datos maestros'],
+  Admin: ['Inicio', 'Monitoreo de carga', 'Cargar archivo', 'Alta de cuenta', 'Reconciliación', 'Cierres', 'Agentes y usuarios', 'Datos maestros'],
 };
 const ORDEN = ['Inicio', 'Por transcribir', 'Transcritas hoy', 'Nueva solicitud', 'Mis solicitudes', 'Aprobaciones', 'Cartera por localizador', 'Historial de Especiales',
-  'Monitoreo de carga', 'Cargar archivo', 'Reconciliación', 'Cierres', 'Agentes y usuarios', 'Datos maestros'];
+  'Monitoreo de carga', 'Cargar archivo', 'Alta de cuenta', 'Reconciliación', 'Cierres', 'Agentes y usuarios', 'Datos maestros'];
 const navEsperada = (...roles) => ORDEN.filter(t => roles.some(r => NAV[r].includes(t)));
 
 // Sección de KPIs de Inicio por rol (contenedores de scrInicio).
