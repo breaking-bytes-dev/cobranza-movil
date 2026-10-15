@@ -117,6 +117,44 @@ namespace Sanic.CobranzaMovil.Plugins
         public const string ResultadoYaExiste = "ya existe";
         public const string UsuarioNombreCompleto = "fullname";
 
+        // Custom API AltaCuenta (DAT-20): el Admin da de alta una cuenta como una importacion de UNA fila de Smelter
+        public const string MensajeAltaCuenta = "sanic_cm_AltaCuenta";
+        public const string ParamProductoId = "ProductoId";
+        public const string ParamAgenteId = "AgenteId";
+        public const string ParamEsPrueba = "EsPrueba";
+        public const string SalidaJobId = "JobId";
+        public const string SalidaAdvertencias = "Advertencias";
+        public const string AgenteActivo = "sanic_cm_ag_activo";
+        public const string Producto = "sanic_cm_tbl_producto";
+        public const string ProductoCodigo = "sanic_cm_pr_codigo";
+        public const string ProductoTipo = "sanic_cm_pr_tipo";
+        public const string ClienteCif = "sanic_cm_cl_cif";
+        public const string ClienteNombre = "sanic_cm_cl_nombre";
+        public const string ClienteDepartamento = "sanic_cm_cl_departamento";
+        public const string ClienteDistrito = "sanic_cm_cl_distrito";
+        public const string ClienteTrabajo = "sanic_cm_cl_trabajo";
+        public const string Direccion = "sanic_cm_tbl_direccion";
+        public const string DireccionCif = "sanic_cm_dr_cif";
+        public const string DireccionTipo = "sanic_cm_dr_tipo";
+        public const string DireccionTexto = "sanic_cm_dr_direccion";
+        public const string Telefono = "sanic_cm_tbl_telefono";
+        public const string TelefonoCif = "sanic_cm_tl_cif";
+        public const string TelefonoTipo = "sanic_cm_tl_tipo";
+        public const string TelefonoNumero = "sanic_cm_tl_numero";
+        public const string FiadorNombre = "sanic_cm_fi_nombre";
+        public const string FiadorDireccion = "sanic_cm_fi_direccion";
+        public const string CuentaUltimos4 = "sanic_cm_ct_ultimos4";
+        public const string CargaDiariaFecha = "sanic_cm_cd_fechacarga";
+        // Smelter (otro equipo): solo se crean Import Jobs, como la pantalla "Cargar archivo" del backoffice
+        public const string PlantillaSmelter = "sanic_tbl_smlt_importtemplate";
+        public const string PlantillaSmelterNombre = "sanic_smlt_it_name";
+        public const string NombrePlantillaCobranza = "Cobranza movil";
+        public const string JobSmelter = "sanic_tbl_smlt_importjob";
+        public const string JobSmelterNombre = "sanic_smlt_ij_name";
+        public const string JobSmelterPlantilla = "sanic_smlt_ij_importtemplateid";
+        public const string JobSmelterEsPrueba = "sanic_smlt_ij_isdryrun";
+        public const string JobSmelterArchivo = "sanic_smlt_ij_sourcefile";
+
         // Agente <-> usuario (app del cobrador: gblAgente busca por Lower(User().Email), que es el UPN)
         public const string AgenteUsuario = "sanic_cm_ag_usuarioid";
         public const string AgenteEmail = "sanic_cm_ag_emailusuario";

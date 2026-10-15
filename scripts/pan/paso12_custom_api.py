@@ -1,49 +1,99 @@
-"""DAT-14 (a): registrar (o verificar) la Custom API global sanic_cm_SolicitarEspecial en DEV.
-Ver plugins/Sanic.CobranzaMovil.Plugins/SolicitarEspecial.cs (comportamiento) y docs/auditoria/01-pendientes.md (DAT-14).
+"""Registrar (o verificar) las Custom APIs globales de Cobranza Movil en DEV:
+- DAT-14 (a): sanic_cm_SolicitarEspecial (plugins/Sanic.CobranzaMovil.Plugins/SolicitarEspecial.cs), desde 1.0.7.0.
+- DAT-20 (camino A): sanic_cm_AltaCuenta (plugins/Sanic.CobranzaMovil.Plugins/AltaCuenta.cs), desde 1.0.8.0.
+Ver docs/auditoria/01-pendientes.md.
 
-Requisito: el ensamblado Sanic.CobranzaMovil.Plugins 1.0.7.0 o posterior ya registrado con paso5_plugins.py (trae el tipo
-SolicitarEspecial). Si el tipo de plugin no existe en el ensamblado, este script lo registra.
+Requisito: el ensamblado Sanic.CobranzaMovil.Plugins ya registrado con paso5_plugins.py en la version que trae el tipo de
+cada API. Si el tipo de plugin no existe en el ensamblado, este script lo registra.
 
 Idempotente: la API, sus parametros y sus propiedades de respuesta se buscan por nombre unico; lo que ya existe no se
 duplica. Dataverse no deja cambiar el tipo de un parametro, si es opcional, ni el enlace o si es funcion de la API: si lo
 registrado no coincide con lo definido aca, el script se detiene y lo dice (hay que borrar y recrear a mano).
 Por defecto solo MUESTRA el plan (solo hace GET). Aplica con --aplicar.
 
-La app (scrNuevaSolicitud) la llama con Environment.sanic_cm_SolicitarEspecial({...}): hay que agregar la fuente
-"Environment" en Studio. Sin privilegio de ejecucion propio: quien puede pedirla lo decide el plugin (rol Solicitante,
-Admin o Servicio, y que el llamador pueda leer la cuenta).
+Las apps las llaman con Environment.sanic_cm_<API>({...}): hay que agregar la fuente "Environment" en Studio. Sin
+privilegio de ejecucion propio: quien puede llamarlas lo decide cada plugin (SolicitarEspecial: Solicitante, Admin o Servicio
+y que pueda leer la cuenta; AltaCuenta: solo Admin o Servicio).
 
 Credenciales: las mismas que paso5_plugins.py (variables de entorno o pp_secrets.env). Nunca se imprimen.
-Uso: python3 scripts/pan/paso12_custom_api.py [--aplicar] [--solucion cm_core_cobranzamovil]
+Uso: python3 scripts/pan/paso12_custom_api.py [--aplicar] [--solucion cm_core_cobranzamovil] [--api sanic_cm_AltaCuenta]
 """
 import argparse, os, sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from paso5_plugins import Dataverse, cargar_config, ENSAMBLADO, NS, SOLUCION_POR_DEFECTO  # noqa: E402
 
-API = 'sanic_cm_SolicitarEspecial'
-TIPO_PLUGIN = NS + 'SolicitarEspecial'
 ENLACE_GLOBAL, PASOS_NINGUNO = 0, 0
 # Tipos de parametro de Custom API (customapifieldtype)
-DECIMAL, ENTERO, TEXTO, GUID = 2, 7, 10, 12
+BOOLEANO, DECIMAL, ENTERO, TEXTO, GUID = 0, 2, 7, 10, 12
 
-DEFINICION = dict(
-    uniquename=API, name=API, displayname='CM - Solicitar Especial',
-    description='DAT-14: crea, reactiva o avisa que ya existe la asignacion Especial de una cuenta. '
-                'Valida el rol del llamador y que pueda leer la cuenta.',
-    bindingtype=ENLACE_GLOBAL, isfunction=False, isprivate=False, allowedcustomprocessingsteptype=PASOS_NINGUNO)
 
-PARAMETROS = [  # (nombre, tipo, opcional, descripcion)
-    ('CuentaId', GUID, False, 'Id de la cuenta (sanic_cm_tbl_cuenta)'),
-    ('Notas', TEXTO, False, 'Tipo y motivo de la solicitud (sin numeros de tarjeta; hasta 2000 caracteres)'),
-    ('RetiroNio', DECIMAL, True, 'Retiro en cordobas (0 a 1.000.000.000)'),
-    ('RetiroUsd', DECIMAL, True, 'Retiro en dolares (0 a 1.000.000.000)'),
-]
-RESPUESTA = [  # (nombre, tipo, descripcion)
-    ('AsignacionId', GUID, 'Id de la asignacion Especial creada, reactivada o existente'),
-    ('Resultado', TEXTO, '"creada", "reactivada" o "ya existe"'),
-    ('SolicitadoPor', TEXTO, 'Si ya existe: nombre de quien la pidio; si no, vacio'),
-    ('EstadoAprobacion', ENTERO, 'Estado de aprobacion (2 = Pendiente, 3 = Aprobado, 4 = Rechazada)'),
+def definicion(api, nombre_visible, descripcion):
+    return dict(uniquename=api, name=api, displayname=nombre_visible, description=descripcion,
+                bindingtype=ENLACE_GLOBAL, isfunction=False, isprivate=False, allowedcustomprocessingsteptype=PASOS_NINGUNO)
+
+
+APIS = [
+    dict(
+        api='sanic_cm_SolicitarEspecial', tipo='SolicitarEspecial', version=(1, 0, 7),
+        definicion=definicion('sanic_cm_SolicitarEspecial', 'CM - Solicitar Especial',
+                              'DAT-14: crea, reactiva o avisa que ya existe la asignacion Especial de una cuenta. '
+                              'Valida el rol del llamador y que pueda leer la cuenta.'),
+        parametros=[  # (nombre, tipo, opcional, descripcion)
+            ('CuentaId', GUID, False, 'Id de la cuenta (sanic_cm_tbl_cuenta)'),
+            ('Notas', TEXTO, False, 'Tipo y motivo de la solicitud (sin numeros de tarjeta; hasta 2000 caracteres)'),
+            ('RetiroNio', DECIMAL, True, 'Retiro en cordobas (0 a 1.000.000.000)'),
+            ('RetiroUsd', DECIMAL, True, 'Retiro en dolares (0 a 1.000.000.000)'),
+        ],
+        respuesta=[  # (nombre, tipo, descripcion)
+            ('AsignacionId', GUID, 'Id de la asignacion Especial creada, reactivada o existente'),
+            ('Resultado', TEXTO, '"creada", "reactivada" o "ya existe"'),
+            ('SolicitadoPor', TEXTO, 'Si ya existe: nombre de quien la pidio; si no, vacio'),
+            ('EstadoAprobacion', ENTERO, 'Estado de aprobacion (2 = Pendiente, 3 = Aprobado, 4 = Rechazada)'),
+        ]),
+    dict(
+        api='sanic_cm_AltaCuenta', tipo='AltaCuenta', version=(1, 0, 8),
+        definicion=definicion('sanic_cm_AltaCuenta', 'CM - Alta de cuenta',
+                              'DAT-20: el Admin da de alta una cuenta como una importacion de una fila con la plantilla '
+                              '"Cobranza movil" de Smelter. Devuelve el Import Job sin estado (la app lo pone En cola).'),
+        parametros=[
+            ('CIF', TEXTO, False, 'CIF del cliente (hasta 20 caracteres)'),
+            ('Cliente', TEXTO, True, 'Nombre del cliente; obligatorio si el cliente es nuevo (si existe, se usa el de Dataverse)'),
+            ('DireccionCasa', TEXTO, True, 'Direccion de la casa (cliente nuevo)'),
+            ('DireccionEC', TEXTO, True, 'Direccion del estado de cuenta (cliente nuevo)'),
+            ('DireccionTrabajo', TEXTO, True, 'Direccion del trabajo (cliente nuevo)'),
+            ('Departamento', TEXTO, True, 'Departamento (cliente nuevo)'),
+            ('Distrito', TEXTO, True, 'Distrito (cliente nuevo)'),
+            ('Trabajo', TEXTO, True, 'Empleador (cliente nuevo)'),
+            ('NumeroCelular', TEXTO, True, 'Celular (cliente nuevo)'),
+            ('NumeroCasa', TEXTO, True, 'Telefono de la casa (cliente nuevo)'),
+            ('NumeroCuenta', TEXTO, False, 'Numero de tarjeta: 13 a 19 digitos, Luhn. Nunca se guarda en tablas de CM'),
+            ('SaldoVencidoNIO', DECIMAL, False, 'Saldo vencido en cordobas'),
+            ('SaldoVencidoUSD', DECIMAL, False, 'Saldo vencido en dolares'),
+            ('TotalSaldoVencido', DECIMAL, False, 'Total del saldo vencido'),
+            ('ContagiadoUSD', DECIMAL, True, 'Contagiado en dolares'),
+            ('PagoMinimoNIO', DECIMAL, True, 'Pago minimo en cordobas'),
+            ('PagoMinimoUSD', DECIMAL, True, 'Pago minimo en dolares'),
+            ('DiasMora', ENTERO, False, 'Dias de mora'),
+            ('NivelMora', ENTERO, False, 'Nivel de mora'),
+            ('FechaUltimoPago', TEXTO, True, 'Fecha del ultimo pago, aaaa-mm-dd'),
+            ('FechaPago', TEXTO, True, 'Fecha de pago, aaaa-mm-dd'),
+            ('Ciclo', TEXTO, True, 'Ciclo'),
+            ('ProductoId', GUID, False, 'Id del producto (sanic_cm_tbl_producto) existente'),
+            ('AgenteId', GUID, False, 'Id del agente (sanic_cm_tbl_agente) existente y activo'),
+            ('NombreFianza', TEXTO, True, 'Nombre del fiador'),
+            ('DireccionFianza', TEXTO, True, 'Direccion del fiador (si existe, se usa la de Dataverse)'),
+            ('RetiroNIO', DECIMAL, True, 'Retiro en cordobas'),
+            ('RetiroUSD', DECIMAL, True, 'Retiro en dolares'),
+            ('TipoEspecial', TEXTO, True, 'Tipo de Especial'),
+            ('Nota', TEXTO, True, 'Nota (sin numeros de tarjeta; hasta 2000 caracteres)'),
+            ('TipoAsignacion', TEXTO, False, 'Diaria, Incobrable o Especial'),
+            ('EsPrueba', BOOLEANO, False, 'true = prueba en seco de Smelter; false = carga real'),
+        ],
+        respuesta=[
+            ('JobId', GUID, 'Id del Import Job de Smelter (sin estado: la app lo pone En cola despues de la espera)'),
+            ('Advertencias', TEXTO, 'Avisos para el Admin, uno por linea (fecha de carga usada, datos de cliente o fiador existentes, tipo)'),
+        ]),
 ]
 
 
@@ -51,6 +101,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--solucion', default=SOLUCION_POR_DEFECTO)
     ap.add_argument('--aplicar', action='store_true')
+    ap.add_argument('--api', help='registrar solo esta API (nombre unico); por defecto, todas')
     a = ap.parse_args()
 
     dv = Dataverse(cargar_config())
@@ -70,20 +121,34 @@ def main():
     if not dv.get("solutions?$select=uniquename&$filter=uniquename eq '%s'" % a.solucion)['value']:
         raise SystemExit('No existe la solucion ' + a.solucion)
 
+    apis = [x for x in APIS if not a.api or x['api'] == a.api]
+    if not apis:
+        raise SystemExit('No hay una API llamada %s' % a.api)
+    for x in apis:
+        registrar(dv, accion, sol, a.solucion, mod, x)
+
+    print('listo.' if mod else 'plan (sin cambios). Aplicar con --aplicar.')
+
+
+def registrar(dv, accion, sol, solucion, mod, x):
+    API, TIPO_PLUGIN, DEFINICION = x['api'], NS + x['tipo'], x['definicion']
+    PARAMETROS, RESPUESTA, minima = x['parametros'], x['respuesta'], x['version']
+    print('--- ' + API)
     # 1) Ensamblado y tipo de plugin ------------------------------------------------------------
     r = dv.get("pluginassemblies?$select=pluginassemblyid,version&$filter=name eq '%s'" % ENSAMBLADO)['value']
     if not r:
-        raise SystemExit('No esta registrado el ensamblado %s: correr antes paso5_plugins.py con la dll 1.0.7.0' % ENSAMBLADO)
+        raise SystemExit('No esta registrado el ensamblado %s: correr antes paso5_plugins.py' % ENSAMBLADO)
     ensamblado_id, version = r[0]['pluginassemblyid'], r[0].get('version') or '?'
     print('ensamblado %s %s' % (ENSAMBLADO, version))
-    if tuple(int(x) for x in version.split('.')[:3] if x.isdigit()) < (1, 0, 7):
-        print('AVISO   el ensamblado registrado es anterior a 1.0.7.0: no trae SolicitarEspecial. Registrar la dll nueva antes de aplicar.')
+    if tuple(int(n) for n in version.split('.')[:3] if n.isdigit()) < minima:
+        print('AVISO   el ensamblado registrado es anterior a %s: no trae %s. Registrar la dll nueva antes de aplicar.'
+              % ('.'.join(str(n) for n in minima) + '.0', x['tipo']))
     t = dv.get("plugintypes?$select=plugintypeid&$filter=_pluginassemblyid_value eq %s and typename eq '%s'"
                % (ensamblado_id, TIPO_PLUGIN))['value']
     tipo_id = t[0]['plugintypeid'] if t else None
     if not tipo_id:
         b = accion('registrar tipo de plugin ' + TIPO_PLUGIN, 'POST', 'plugintypes',
-                   {'typename': TIPO_PLUGIN, 'name': TIPO_PLUGIN, 'friendlyname': 'SolicitarEspecial',
+                   {'typename': TIPO_PLUGIN, 'name': TIPO_PLUGIN, 'friendlyname': x['tipo'],
                     'pluginassemblyid@odata.bind': '/pluginassemblies(%s)' % ensamblado_id}, {'Prefer': 'return=representation'})
         if b: tipo_id = b['plugintypeid']
 
@@ -105,7 +170,7 @@ def main():
     else:
         cuerpo = dict(DEFINICION)
         if tipo_id: cuerpo['PluginTypeId@odata.bind'] = '/plugintypes(%s)' % tipo_id
-        b = accion('crear Custom API %s (global, accion, sin pasos personalizados) en la solucion %s' % (API, a.solucion),
+        b = accion('crear Custom API %s (global, accion, sin pasos personalizados) en la solucion %s' % (API, solucion),
                    'POST', 'customapis', cuerpo, sol)
         if b: api_id = b['customapiid']
 
@@ -132,8 +197,6 @@ def main():
         asegurar('customapirequestparameters', nombre, tipo, descripcion, opcional)
     for nombre, tipo, descripcion in RESPUESTA:
         asegurar('customapiresponseproperties', nombre, tipo, descripcion)
-
-    print('listo.' if mod else 'plan (sin cambios). Aplicar con --aplicar.')
 
 
 if __name__ == '__main__':
