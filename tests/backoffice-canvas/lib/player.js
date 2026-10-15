@@ -11,6 +11,7 @@ const fs = require('fs');
 const path = require('path');
 const { chromium } = require('playwright');
 const cfg = require('./config');
+const version = require('./version');
 
 const ES_DV = /crm\d*\.dynamics\.com\/api\/data/;
 
@@ -95,7 +96,18 @@ function sesionSinCacheDeApp(usuario) {
   return s;
 }
 
-async function abrirApp(browser, usuario, { viewport = { width: 1600, height: 950 }, etiqueta = 'carga' } = {}) {
+// F7: abre la app y verifica que DEV sirva la versión desplegada (pie de la nav). En el diseño móvil la nav no se ve:
+// ahí no se verifica.
+async function abrirApp(browser, usuario, opts = {}) {
+  const ancho = (opts.viewport || { width: 1600 }).width;
+  return version.abrirVerificada('backoffice', {
+    abrir: () => abrirAppUnaVez(browser, usuario, opts),
+    leer: async (app) => (ancho < 920 ? undefined : texto(app, 'lblVersionNavCmp', { timeout: 10000 }).catch(() => null)),
+    cerrar: (app) => cerrar(app),
+  });
+}
+
+async function abrirAppUnaVez(browser, usuario, { viewport = { width: 1600, height: 950 }, etiqueta = 'carga' } = {}) {
   const ctx = await browser.newContext({
     storageState: sesionSinCacheDeApp(usuario), viewport, timezoneId: 'America/Managua',
   });

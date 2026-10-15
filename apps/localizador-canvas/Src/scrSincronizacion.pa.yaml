@@ -329,6 +329,17 @@ Screens:
                   Size: =gblT.fxs
                   Text: ="Abre el estado del dispositivo. Ahí tocá «Buscar actualizaciones» (Check for updates) para revisar toda tu cartera y quitar lo que ya no te corresponde."
                   Visible: =Host.OfflineEnabled
+            - lblVersionSync:
+                Control: Label@2.5.1
+                Properties:
+                  AlignInContainer: =AlignInContainer.Stretch
+                  AutoHeight: =true
+                  Color: =gblC.muted
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  Size: =gblT.fxs
+                  Text: |-
+                    ="Versión de la app: " & nfVersion
             - lblCapTit:
                 Control: Label@2.5.1
                 Properties:

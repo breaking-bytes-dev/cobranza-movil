@@ -33,6 +33,10 @@ App:
       CuentaMasc(ult4:Text): Text =
           If(IsBlank(ult4), "••••", "•••• " & ult4);
 
+      // F7: versión desplegada. paso7_desplegar reemplaza "dev" por "<commit> <aaaa-mm-dd HH:MM UTC>" al empaquetar;
+      // las suites la leen en la app servida para no probar una versión vieja.
+      nfVersion = "dev";
+
       // Breakpoint responsive único del proyecto (00 §7).
       // Si Studio rechaza App.ActiveScreen acá, mover nfMovil a cada pantalla como Parent.Width < 920.
       nfMovil = App.ActiveScreen.Width < 920;

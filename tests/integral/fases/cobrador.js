@@ -2,7 +2,7 @@
 // el cliente QA con sus cuentas, y un cobro real (interacción + pago) sobre la cuenta A desde la app.
 // El web player corre en LÍNEA: lo offline (sin señal, sincronización, "Ver número") se prueba en el teléfono (guía 17, 📱).
 const dv = require('../../backoffice-canvas/lib/dataverse');
-const { AGENTE, U, esperar } = require('../lib/ctx');
+const { AGENTE, U, esperar, dormir } = require('../lib/ctx');
 const ui = require('../lib/ui');
 const datos = require('../lib/datos');
 const { pl, c, lo } = ui;
@@ -10,6 +10,67 @@ const { pl, c, lo } = ui;
 // Espera a que la pantalla visible sea `scr`: tras un toque, la navegación del player puede tardar más que la espera de red
 // quieta y leer la pantalla UNA vez devuelve la anterior (F7-07, corrida de 2026-10-14). Devuelve la última pantalla vista.
 const esperarPantalla = (app, scr) => ui.esperarEstable(() => lo.pantalla(app), { timeout: 20000, listo: (p) => p === scr });
+
+// Espera a que no quede ningún aviso (Notify) en pantalla: si no, el aviso del intento anterior se lee como el del siguiente.
+async function sinAvisos(app, ms = 20000) {
+  const t = Date.now();
+  while (Date.now() - t < ms && (await pl.notificaciones(app)).length) await pl.esperar(app, 500);
+}
+
+// Toca Guardar en la interacción y devuelve el aviso. El player da el GPS de prueba; si aún no llegó, el primer toque
+// avisa y el segundo ("Guardar sin ubicación") guarda.
+async function guardarInteraccion(ctx, app) {
+  await sinAvisos(app);
+  await (await pl.visible(app, 'btnRegistrar_1')).click();
+  let n = await c.esperarNotif(app, /Guardado|ubicación|No se pudo|Ese número/i, 15000);
+  if (/ubicación/i.test(n || '') && !/Guardado|No se pudo/.test(n)) {
+    ctx.nota('sin GPS en el player: segundo toque en "Guardar sin ubicación"');
+    await sinAvisos(app);
+    await (await pl.visible(app, 'btnRegistrar_1')).click();
+    n = await c.esperarNotif(app, /Guardado|No se pudo|Ese número/i, 15000);
+  }
+  return n;
+}
+
+// APP-04: hace que el SERVIDOR rechace la próxima creación de una interacción, sin tocar datos ni agentes. Se le saca a
+// esa única request el vínculo a la cuenta y el plugin InteraccionDelCobrador la rechaza ("la interaccion tiene que tener
+// la cuenta"): el rechazo es real (Dataverse, PreOperation) y no se crea nada. Si no encuentra el vínculo, corta la
+// request (la app ve un error de red). Devuelve { estado, quitar() }.
+const ES_DV = /crm\d*\.dynamics\.com\/api\/data/;
+async function rechazarProximaInteraccion(app) {
+  const estado = { hecho: '' };
+  const sinCuenta = (json) => {
+    const o = JSON.parse(json); const k = Object.keys(o).filter((x) => /cuentaid@odata\.bind$/i.test(x));
+    if (!k.length) return null;
+    k.forEach((x) => delete o[x]); return JSON.stringify(o);
+  };
+  const handler = async (route) => {
+    const r = route.request();
+    if (estado.hecho || r.method() !== 'POST') return route.fallback();
+    let cuerpo = ''; try { const b = r.postDataBuffer(); cuerpo = b ? b.toString('utf8') : ''; } catch (e) { /* sin cuerpo */ }
+    const directa = /\/sanic_cm_tbl_interaccions(\?|$)/i.test(r.url());
+    const m = /^POST \S*sanic_cm_tbl_interaccions(\?\S*)? HTTP\/1\.1/im.exec(cuerpo);
+    if (!directa && !m) return route.fallback();
+    try {
+      if (directa) {
+        const nuevo = sinCuenta(cuerpo);
+        if (nuevo) { estado.hecho = 'request directa sin el vínculo a la cuenta'; return route.fallback({ postData: nuevo }); }
+      } else {
+        const i = cuerpo.indexOf('{', m.index), j = cuerpo.indexOf('\n--', i), fin = cuerpo.lastIndexOf('}', j < 0 ? cuerpo.length : j);
+        const nuevo = i > 0 && fin > i ? sinCuenta(cuerpo.slice(i, fin + 1)) : null;
+        if (nuevo) {
+          let parte = cuerpo.slice(m.index, i).replace(/Content-Length: \d+/i, `Content-Length: ${Buffer.byteLength(nuevo)}`);
+          estado.hecho = 'creación dentro del $batch sin el vínculo a la cuenta';
+          return route.fallback({ postData: cuerpo.slice(0, m.index) + parte + nuevo + cuerpo.slice(fin + 1) });
+        }
+      }
+    } catch (e) { /* cuerpo no reconocible: se corta abajo */ }
+    estado.hecho = 'request cortada (no se encontró el vínculo a la cuenta)';
+    return route.abort('failed');
+  };
+  await app.ctx.route(ES_DV, handler);
+  return { estado, quitar: () => app.ctx.unroute(ES_DV, handler) };
+}
 
 // Filas visibles de la galería de cuentas del cliente (galMini → conMini): [{ txt, caja }]
 async function filasCuentas(app) {
@@ -127,11 +188,21 @@ async function f7(ctx) {
       await pl.esperar(app, 1500);
       const hint = await lo.texto(app, 'lblHint').catch(() => '');
       ctx.chk('F7-08', hint === '' && (await lo.botonHabilitado(app, 'btnRegistrar_1')), `Interacción sobre ${cobro.clave} (${mask(cobro)}): formulario completo (comentario, pago C$ 25, recibo ${recibo}); hint "${hint}"`);
-      // El player da el GPS de prueba; si aún no llegó, el primer toque avisa y el segundo ("Guardar sin ubicación") guarda.
-      await (await pl.visible(app, 'btnRegistrar_1')).click();
-      let n = await c.esperarNotif(app, /Guardado|ubicación|No se pudo|Ese número/i, 15000);
-      if (/ubicación/i.test(n || '') && !/Guardado/.test(n)) { ctx.nota('sin GPS en el player: segundo toque en "Guardar sin ubicación"'); await (await pl.visible(app, 'btnRegistrar_1')).click(); n = await c.esperarNotif(app, /Guardado|No se pudo|Ese número/i, 15000); }
-      ctx.chk('F7-09', /✓ Guardado/.test(n || ''), `Interacción guardada: aviso "${n}"`);
+      // APP-04: primer intento rechazado por el servidor → la app avisa, no dice "✓ Guardado" y no deja pagos huérfanos.
+      const rechazo = await rechazarProximaInteraccion(app);
+      let n0;
+      try { n0 = await guardarInteraccion(ctx, app); } finally { await rechazo.quitar(); }
+      ctx.chk('F7-08b', !!rechazo.estado.hecho && /No se pudo guardar la interacción/.test(n0 || '') && !/Guardado/.test(n0 || ''),
+        `APP-04: el servidor rechaza la interacción (${rechazo.estado.hecho || 'no se interceptó ninguna creación'}) → aviso "${n0}"`);
+      await app.red.quieta(app.page, { quietoMs: 4000, maxMs: 30000 });
+      await dormir(5000);
+      const huerfI = (await dv.get(`sanic_cm_tbl_interaccions?$select=sanic_cm_tbl_interaccionid&$filter=sanic_cm_in_comentario eq '${comentario}'`)).value.length;
+      const huerfP = (await dv.get(`sanic_cm_tbl_pagos?$select=sanic_cm_tbl_pagoid&$filter=sanic_cm_pg_numerorecibo eq '${recibo}'`)).value.length;
+      ctx.chk('F7-08c', huerfI === 0 && huerfP === 0, `APP-04: tras el rechazo, Dataverse no tiene la interacción (${huerfI}) ni pagos huérfanos con el recibo ${recibo} (${huerfP})`);
+      ctx.chk('F7-08d', await pl.existeVisible(app, 'btnRegistrar_1'), 'APP-04: la app se queda en la interacción con lo cargado, lista para reintentar');
+      // Reintento sin rechazo: se guarda UNA vez (F7-10 y F7-12 cuentan exactamente 1 interacción y 1 pago).
+      const n = await guardarInteraccion(ctx, app);
+      ctx.chk('F7-09', /✓ Guardado/.test(n || ''), `Interacción guardada en el reintento: aviso "${n}"`);
       await app.red.quieta(app.page, { quietoMs: 4000, maxMs: 30000 });
       // Dataverse: interacción y pago
       const inter = await esperar(async () => {

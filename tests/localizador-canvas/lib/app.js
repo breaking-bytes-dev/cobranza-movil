@@ -5,13 +5,30 @@ const fs = require('fs');
 const path = require('path');
 const pl = require('../../backoffice-canvas/lib/player.js');
 const cfg = require('../../backoffice-canvas/lib/config.js');
+const version = require('../../backoffice-canvas/lib/version.js');
 
 const APP_ID = 'dc5e56bb-9598-4f68-baa5-c04dc56ccba4';
 const URL = `https://apps.powerapps.com/play/e/9c8994b8-b1bc-ee23-9184-2f6346502613/a/${APP_ID}?tenantId=7bcfee03-896e-4ad3-947b-8a2d9ce17974`;
 const CACHE_APP = /^(PAAppLoadCache-|PAPreloadKeyV2-)/;  // ver B-15 en el arnés del backoffice
 const esRuntime = f => /runtime-app\.[^/]*powerplatform\.com\/publishedapp/.test(f.url()) && !f.isDetached();
 
-async function abrir(browser, { usuario = 'user5', viewport = { width: 430, height: 860 } } = {}) {
+// F7: abre la app y verifica que DEV sirva la versión desplegada. El sello se ve en Sincronización: se entra por la
+// píldora de Inicio, se lee y se vuelve a Inicio.
+async function abrir(browser, opts = {}) {
+  return version.abrirVerificada('cobrador', {
+    abrir: () => abrirUnaVez(browser, opts),
+    leer: async (app) => {
+      await tocar(app, 'Button9', { esperaMs: 1500 });
+      const v = await pl.texto(app, 'lblVersionSync', { timeout: 20000 }).catch(() => null);
+      await tocar(app, 'Icon1', { esperaMs: 1500 });
+      await pl.visible(app, 'lblTitulo_1', { timeout: 20000 });
+      return v;
+    },
+    cerrar: async (app) => { try { await app.ctx.close(); } catch (e) { /* ya cerrado */ } },
+  });
+}
+
+async function abrirUnaVez(browser, { usuario = 'user5', viewport = { width: 430, height: 860 } } = {}) {
   const s = JSON.parse(fs.readFileSync(cfg.sesionPath(usuario), 'utf8'));
   for (const o of s.origins || []) o.localStorage = (o.localStorage || []).filter(i => !CACHE_APP.test(i.name));
   const ctx = await browser.newContext({ storageState: s, viewport, timezoneId: 'America/Managua', locale: 'es-NI',

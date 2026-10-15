@@ -7,9 +7,12 @@ Pasos: pac canvas pack de cada app (con chequeo de YAML: con la carpeta mal nomb
 → pac solution export → swap de los .msapp → DatabaseReferences/CdsDependencies desde LocalDatabaseReferences de cada app
 → pac solution import --publish-changes → restaura el estado de los pasos de plugin de CM y de los flows de la solución
 (verificado 2026-10-04: una importación con --activate-plugins ENCENDIÓ PanGuard y una sin él APAGÓ ClaveDesdeCuenta).
+Sello de versión (F7): cada app lleva en App.Formulas `nfVersion = "dev";`. Se empaqueta una COPIA de la carpeta con
+"<commit>[+dirty] <aaaa-mm-dd HH:MM UTC>" en lugar de "dev" (el repo no cambia), y tras importar se guarda en
+local/version-desplegada.json: las suites lo comparan con lo que muestra la app servida antes de probar.
 Usa el perfil activo de pac (SP de DEV). Después: paso3_reconciliar.py --aplicar.
 Uso: python3 scripts/pan/paso7_desplegar.py [--aplicar]"""
-import html, json, os, re, signal, subprocess, sys, tempfile, time, zipfile
+import datetime, html, json, os, re, shutil, signal, subprocess, sys, tempfile, time, zipfile
 import yaml
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'seguridad'))
 from dvlib import rq, get
@@ -53,11 +56,25 @@ def revisar_yaml(carpeta):
                     errores.append(f'{a}:{n} {ctl} no admite {m.group(1)}')
     if errores: raise SystemExit('YAML que Studio rechaza (la app no abriría):\n  ' + '\n  '.join(errores))
 
+def git(*args): return subprocess.run(['git', '-C', RAIZ, *args], capture_output=True, text=True).stdout.strip()
+SELLO_CUANDO = datetime.datetime.now(datetime.timezone.utc)
+VERSION = (git('rev-parse', '--short', 'HEAD') + ('+dirty' if git('status', '--porcelain', '--untracked-files=no') else '')
+           + ' ' + SELLO_CUANDO.strftime('%Y-%m-%d %H:%M'))
+MARCA = 'nfVersion = "dev";'
+def copia_sellada(carpeta, nombre):
+    copia = os.path.join(tmp, nombre + '-src'); shutil.copytree(os.path.join(RAIZ, carpeta), copia)
+    app = os.path.join(copia, 'Src', 'App.pa.yaml'); txt = open(app, encoding='utf-8').read()
+    if txt.count(MARCA) != 1: raise SystemExit(f'{nombre}: App.pa.yaml tiene que tener UNA vez `{MARCA}` (sello de versión, F7)')
+    open(app, 'w', encoding='utf-8').write(txt.replace(MARCA, f'nfVersion = "{VERSION}";'))
+    return copia
+print('versión que se sella en las apps:', VERSION)
+
 msapps = {}
 for carpeta, nombre, minimo in APPS:
-    revisar_yaml(carpeta)
+    fuentes = copia_sellada(carpeta, nombre)
+    revisar_yaml(fuentes)
     destino = os.path.join(tmp, nombre + '.msapp')
-    pac('canvas', 'pack', '--sources', os.path.join(RAIZ, carpeta), '--msapp', destino)
+    pac('canvas', 'pack', '--sources', fuentes, '--msapp', destino)
     z = zipfile.ZipFile(destino)
     yamls = [n for n in z.namelist() if n.endswith('.pa.yaml')]
     texto = b''.join(z.read(n) for n in yamls)
@@ -133,6 +150,9 @@ try:
     for intento in range(10):
         try:
             for l in pac('solution', 'import', '--path', deploy, '--force-overwrite', '--publish-changes')[-3:]: print(' ', l)
+            json.dump({'version': VERSION, 'importado': datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'),
+                       'apps': [n for _, n, _ in APPS]}, open(os.path.join(RAIZ, 'local', 'version-desplegada.json'), 'w'), indent=1)
+            print('  versión desplegada:', VERSION, '(local/version-desplegada.json)')
             break
         except SystemExit as e:
             # Studio (también una sesión de solo lectura abierta en modo edición) deja la app "locked for editing" unos minutos.

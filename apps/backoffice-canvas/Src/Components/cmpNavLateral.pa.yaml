@@ -388,3 +388,18 @@ ComponentDefinitions:
                         Wrap: =false
                         X: =gblE.Pad + 36 + gblE.PadSm
                         Y: =gblE.PadSm + 23
+                  - lblVersionNavCmp:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =RGBA(255,255,255,0.55)
+                        FocusedBorderColor: =Color.White
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =14
+                        PaddingLeft: =0
+                        Size: =7
+                        Text: ="Versión " & nfVersion
+                        Width: =Parent.Width - (gblE.Pad + 36 + gblE.PadSm) - gblE.PadSm
+                        Wrap: =false
+                        X: =gblE.Pad + 36 + gblE.PadSm
+                        Y: =gblE.PadSm + 41
