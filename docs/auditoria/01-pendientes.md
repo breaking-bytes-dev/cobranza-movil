@@ -44,7 +44,6 @@
 | APP-11 | El GPS con 6 decimales nunca se probó con GPS real (el Android de pruebas no tiene) | Una captura desde tu teléfono con el GPS encendido; yo verifico los decimales en Dataverse | Dueño (teléfono) | Chico | Pendiente (decisión: seguir esperando) |
 | APP-04 | Nunca se probó qué pasa si falla el guardado de la interacción | Provocar el fallo desde el servidor en una prueba (por ejemplo, con un usuario QA sin agente vinculado, que `InteraccionDelCobrador` rechaza) y verificar que la app avise, no diga "✓ Guardado" y no deje huérfanos | CM | Mediano | Aprobado (2026-10-15), en curso |
 | APP-27 | El paquete base de las dos apps (`.msapr` del repo) dice `ParserErrorCount: 2` | **Verificado el 2026-10-15:** el backoffice guardado y publicado por vos en Studio **sigue diciendo 2**, y su App Checker no tiene ningún error de fórmula (352 avisos: accesibilidad y rendimiento). O sea, guardar en Studio no lo cambia y no es un error nuestro que Studio vea. El paquete base del backoffice ya es el de Studio (con Environment, `402a473`). La app del cobrador no se guardó en Studio (último guardado 27/07) | CM | — | Propuesta: cerrar sin más acción |
-| S-7 tras reactivar | Si un Solicitante reactiva (con `SolicitarEspecial`) una Especial cerrada que creó otra persona, la pierde de vista cuando se aprueba: S-7 la comparte solo si `solicitadopor` = `createdby` | Como `solicitadopor` ahora lo pone el servidor, S-7 puede compartir por `solicitadopor` solo | CM | Chico | Propuesta (después de DAT-14) |
 | F7 / versión servida | Las dos fallas de F7-03 mostraron la versión anterior de la app, una de ellas 1 minuto después de un despliegue correcto. Hipótesis: tras publicar, DEV sirve la versión vieja un rato | Estampar la versión (commit y hora) en las apps al desplegar, mostrarla en Sincronización y al pie del menú, y que la suite la compare antes de chequear (si no coincide, espera hasta 10 min y corta con un mensaje claro) | CM | Chico | Aprobado (2026-10-15), en curso |
 | Rol por pantalla | El backoffice decide qué pantallas mostrar con `gblRol`, del lado del cliente | Matriz rol × tabla × operación contra la API (suplantando a cada usuario QA). Ya hay pruebas por API de lo más sensible (S-9, S-11, DAT-11, DAT-13) | CM | Mediano | Propuesta (pediste que lo explique mejor) |
 
@@ -87,6 +86,12 @@ Cerrados en DEV antes del 2026-10-14 (detalle en [00-lista-consolidada.md](00-li
 - S-1, S-2 (Localizador), S-5, S-6, S-7, S-8, S-9 y S-14.
 - DAT-07, DAT-08 y DAT-12.
 - Los APP corregidos y verificados están en las secciones de cierre de [localizador-bugs-codigo.md](localizador-bugs-codigo.md) (2026-10-05 a 2026-10-07).
+
+Cerrados el 2026-10-15:
+
+| ID | Qué se hizo | Verificación |
+|---|---|---|
+| S-7 tras reactivar | `RepartoAsignacion` comparte la Especial aprobada con "Solicitado por", sin exigir que sea quien la creó. Para que esa columna no regale acceso a un tercero, una persona de CM solo puede ponerse a sí misma: `AprobacionEspecial` lo frena en el alta y `ColumnasAsignacion` en la edición (Admin, Servicio y SYSTEM no se frenan). Plugins 1.0.8.2 (`5034adf`), CI 386/386, 24 pasos activos | `tests/integral/apis/s7-reactivada.js` 8/8: el Admin la crea, User2 la reactiva, User3 la aprueba, el dueño pasa a User5 y User2 la sigue leyendo; User2 poniendo a otro en "Solicitado por" → 400 al editar y al crear. Regresión `solicitar-especial.js` 8/8 |
 
 Cerrados el 2026-10-14 (plugins 1.0.6.1, 24 pasos activos; prueba en vivo 17/17 y suite integral):
 
