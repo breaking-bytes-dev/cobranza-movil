@@ -135,6 +135,8 @@ App:
       ));
     OnStart: |-
       =// ===== App.OnStart =====
+      // F7: la nav (componente) no ve las fórmulas con nombre que solo usa ella (nfVersion llegaba vacía): va por variable.
+      Set(gblVersion, nfVersion);
       // 1) Tokens de color (identidad de la familia, modo día)
       Set(
           gblC,

@@ -398,7 +398,7 @@ ComponentDefinitions:
                         Height: =14
                         PaddingLeft: =0
                         Size: =7
-                        Text: ="Versión " & nfVersion
+                        Text: ="Versión " & gblVersion
                         Width: =Parent.Width - (gblE.Pad + 36 + gblE.PadSm) - gblE.PadSm
                         Wrap: =false
                         X: =gblE.Pad + 36 + gblE.PadSm
