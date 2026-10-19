@@ -136,17 +136,26 @@ namespace Sanic.CobranzaMovil.Plugins
             q.Criteria.AddCondition(Esquema.AsignacionCuentaId, ConditionOperator.Equal, cuentaId);
             var asignaciones = local.ServicioSistema.RetrieveMultiple(q);
             if (asignaciones == null) return false;
+            local.Trace("asignaciones de la cuenta a revisar: {0}.", asignaciones.Entities.Count);
 
             try
             {
                 foreach (var a in asignaciones.Entities)
                 {
                     var creada = a.GetAttributeValue<DateTime?>(Esquema.CreadoEl);
-                    if (creada.HasValue && EnUtc(creada.Value) > fecha) continue; // todavia no existia
+                    if (creada.HasValue && EnUtc(creada.Value) > fecha)
+                    {
+                        local.Trace("una asignacion todavia no existia a la fecha de captura.");
+                        continue;
+                    }
 
                     var duenoActual = a.GetAttributeValue<EntityReference>(Esquema.Propietario);
                     var dueno = ValorALaFecha<EntityReference>(local, a.Id, Esquema.Propietario, fecha, duenoActual);
-                    if (dueno == null || dueno.Id != local.Context.UserId) continue;
+                    if (dueno == null || dueno.Id != local.Context.UserId)
+                    {
+                        local.Trace("a la fecha de captura la asignacion no era del cobrador.");
+                        continue;
+                    }
 
                     var activa = ValorALaFecha<bool?>(local, a.Id, Esquema.AsignacionEstado, fecha,
                         a.GetAttributeValue<bool?>(Esquema.AsignacionEstado));
@@ -175,7 +184,11 @@ namespace Sanic.CobranzaMovil.Plugins
             };
             var respuesta = local.ServicioSistema.Execute(pedido) as RetrieveAttributeChangeHistoryResponse;
             var coleccion = respuesta == null ? null : respuesta.AuditDetailCollection;
-            if (coleccion == null) return actual;
+            if (coleccion == null)
+            {
+                local.Trace("{0}: la auditoria no devolvio coleccion; se toma el valor actual.", columna);
+                return actual;
+            }
 
             var posteriores = new List<KeyValuePair<DateTime, AttributeAuditDetail>>();
             foreach (var detalle in coleccion.AuditDetails.OfType<AttributeAuditDetail>())
@@ -186,9 +199,13 @@ namespace Sanic.CobranzaMovil.Plugins
                     posteriores.Add(new KeyValuePair<DateTime, AttributeAuditDetail>(EnUtc(cuando.Value), detalle));
                 }
             }
+            local.Trace("{0}: {1} cambio(s) auditado(s), {2} posterior(es) a la fecha de captura.", columna,
+                coleccion.AuditDetails.Count, posteriores.Count);
             if (posteriores.Count == 0) return actual;
 
             var primero = posteriores.OrderBy(p => p.Key).First().Value;
+            local.Trace("{0}: el cambio posterior trae valor anterior: {1}.", columna,
+                primero.OldValue != null && primero.OldValue.Contains(columna));
             return primero.OldValue == null || !primero.OldValue.Contains(columna)
                 ? default(T)
                 : primero.OldValue.GetAttributeValue<T>(columna);
