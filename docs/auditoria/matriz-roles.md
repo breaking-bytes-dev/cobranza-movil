@@ -1,6 +1,6 @@
 # Matriz de roles contra el servidor ("rol por pantalla")
 
-> Corrida `U9V` del 2026-10-19 17:38 UTC en DEV, generada por `tests/integral/seguridad/matriz.js`.
+> Corrida `6SL` del 2026-10-19 22:26 UTC en DEV, generada por `tests/integral/seguridad/matriz.js`.
 > Lo esperado está en [`tests/integral/seguridad/esperado.js`](../../tests/integral/seguridad/esperado.js), con el porqué de cada fila.
 
 **Cómo se lee.** Cada celda es lo que respondió el servidor cuando ese usuario, sin pasar por la app, intentó la operación: ✔ la hizo (código 2xx), ✘ la frenó (403 = sin privilegio, 400 = regla de un plugin, 404 = no la ve). Las filas son datos QA creados por la prueba y borrados al final.

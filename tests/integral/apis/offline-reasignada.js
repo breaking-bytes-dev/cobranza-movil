@@ -68,11 +68,27 @@ const iso = (ms) => new Date(ms).toISOString();
     await reasignar(U.sup);                       // User2 -> User3
     await dormir(15000);
     const tDespues = Date.now();
+    // La auditoria de Dataverse se escribe con demora (de segundos a algunos minutos): en el telefono la visita se sincroniza
+    // horas despues de la reasignacion, asi que aca se espera a que ambos cambios esten auditados antes de sincronizar.
+    const rotulo = (id) => (id === U.cob ? 'User5' : id === U.sol ? 'User2' : id === U.sup ? 'User3' : String(id || '').slice(0, 8));
+    const historia = async () => {
+      const h = await dv.get(`RetrieveAttributeChangeHistory(Target=@t,AttributeLogicalName='ownerid',PagingInfo=@p)?@t=${encodeURIComponent(JSON.stringify({ '@odata.id': `sanic_cm_tbl_asignacions(${asgId})` }))}&@p=${encodeURIComponent(JSON.stringify({ Count: 50, PageNumber: 1 }))}`);
+      return h.AuditDetailCollection.AuditDetails.filter((d) => d.OldValue || d.NewValue)
+        .map((d) => `${rotulo(d.OldValue && d.OldValue._ownerid_value)}->${rotulo(d.NewValue && d.NewValue._ownerid_value)}`);
+    };
+    let audit = [];
+    const t0 = Date.now();
+    while (Date.now() - t0 < 600000) { audit = await historia(); if (audit.includes('User2->User3') && audit.includes('User5->User2')) break; await dormir(15000); }
+    console.log(`  auditoría de ownerid (tras ${Math.round((Date.now() - t0) / 1000)} s de espera): ${audit.join(' · ')}`);
     const dueno = (await dv.get(`sanic_cm_tbl_asignacions(${asgId})?$select=_ownerid_value`))._ownerid_value;
     chk('OFF-02', dueno === U.sup, `reasignada dos veces; dueño actual User3: ${dueno === U.sup ? 'sí' : 'no'}`);
 
     // 1) antes de las dos reasignaciones: entra
     let r = await como('POST', 'sanic_cm_tbl_interaccions', cuerpo('A', iso(tAntes)), U.cob);
+    if (r.ok && !r.json) {
+      const f = (await dv.get(`sanic_cm_tbl_interaccions?$select=sanic_cm_tbl_interaccionid&$filter=sanic_cm_in_comentario eq '${PREFIJO} ${runid} A'`)).value[0];
+      r.json = f || {};
+    }
     chk('OFF-03', r.ok, `captura anterior a las reasignaciones: ${r.ok ? 'aceptada ' + r.status : r.msg.slice(0, 200)}`);
     if (r.ok) {
       const intId = r.json.sanic_cm_tbl_interaccionid;
@@ -82,7 +98,7 @@ const iso = (ms) => new Date(ms).toISOString();
         sanic_cm_pg_fecha: iso(tAntes), 'sanic_cm_pg_interaccion@odata.bind': `/sanic_cm_tbl_interaccions(${intId})` }, U.cob);
       chk('OFF-05', p.ok, `el pago colgado de esa visita entra: ${p.ok ? p.status : p.msg.slice(0, 200)}`);
       if (p.ok) {
-        const pg = await dv.get(`sanic_cm_tbl_pagos(${p.json.sanic_cm_tbl_pagoid})?$select=_sanic_cm_pg_cuentaid_value`);
+        const pg = (await dv.get(`sanic_cm_tbl_pagos?$select=_sanic_cm_pg_cuentaid_value&$filter=sanic_cm_pg_numerorecibo eq '${PREFIJO}-${runid}-R1'`)).value[0];
         chk('OFF-06', pg._sanic_cm_pg_cuentaid_value === ctaId, `el pago hereda la cuenta de la interacción: ${pg._sanic_cm_pg_cuentaid_value === ctaId ? 'sí' : 'no'}`);
       }
       const sup = await datos.leerComo(U.sup, `sanic_cm_tbl_interaccions(${intId})?$select=sanic_cm_in_comentario`);
