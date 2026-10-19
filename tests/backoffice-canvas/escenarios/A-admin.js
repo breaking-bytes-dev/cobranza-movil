@@ -5,9 +5,23 @@ const inf = require('../lib/informe');
 const v = require('../lib/verdad');
 const dv = require('../lib/dataverse');
 const cfg = require('../lib/config');
+const qa = require('../lib/datosqa');
 const c = require('./comun');
 
 module.exports = async function faseA(suite) {
+  // DEV no tiene carga diaria desde el borrado de 60 días: sin "última carga" la app no tiene corte y D-02a, D-02b y F-05
+  // no tienen contra qué compararse. Se siembra 1 fila QA con la fecha de la última carga REAL (la mayor 'Última carga'
+  // de las Diarias activas), así el estado es el de un DEV con cargas: el corte no cambia para las Diarias reales y, como
+  // la fecha es anterior a hoy, el cierre en lote sigue bloqueado (F-05). Una fila de HOY la prueba F (D-07, F-05b).
+  let carga = null;
+  if (!(await v.ultimaCarga())) {
+    const ult = (await dv.get('sanic_cm_tbl_asignacions?$select=sanic_cm_as_ultimacarga&$filter=sanic_cm_as_tipo eq 1 and sanic_cm_as_estado eq true and sanic_cm_as_ultimacarga ne null&$orderby=sanic_cm_as_ultimacarga desc&$top=1')).value[0];
+    const fecha = ult && ult.sanic_cm_as_ultimacarga.slice(0, 10);
+    if (fecha && fecha < v.hoy().fecha) {
+      carga = await qa.crearCargaHoy(suite.datos.cliente.sanic_cm_tbl_clienteid, suite.datos.cuentas[0], fecha);
+      console.log(`   🌱 fila QA de carga diaria con la fecha de la última carga real (${fecha})`);
+    } else inf.hallazgo(`A: DEV sin carga diaria y sin una 'Última carga' anterior a hoy en las Diarias (${fecha || 'ninguna'}): D-02a, D-02b y F-05 no tienen corte`);
+  }
   const app = await c.abrir(suite, 'user4', 'A', 'Admin');
   try {
     await inf.correr('R-05', 'User4 (Admin) ve SOLO la nav Admin e Inicio con su sección', 'Admin', async (e) => {
@@ -206,5 +220,8 @@ module.exports = async function faseA(suite) {
       e.check(n === 1, 'Dataverse: sigue habiendo 1 solo cliente con ese CIF', 1, n);
       await (await pl.boton(app, 'btnCancelarNvoMae')).click().catch(() => {});
     });
-  } finally { await pl.cerrar(app); }
+  } finally {
+    await pl.cerrar(app);
+    if (carga) console.log(`   🧹 fila QA de carga diaria borrada (HTTP ${await dv.del('sanic_cm_tbl_cargadiarias', carga.sanic_cm_tbl_cargadiariaid)})`);
+  }
 };

@@ -1,5 +1,5 @@
 // FASE C — User3 en su rol REAL (Supervisor): roles, KPI, aprobar la Especial QA de F-02 asignando
-// agente (+ verificación del flow de owner Comp-14) y rechazar otra Especial QA creada por API.
+// agente (+ verificación del reparto del plugin RepartoAsignacion) y rechazar otra Especial QA creada por API.
 const pl = require('../lib/player');
 const inf = require('../lib/informe');
 const v = require('../lib/verdad');
@@ -85,13 +85,14 @@ module.exports = async function faseC(suite) {
       e.evid(await pl.foto(app, 'F-03-aprobada'));
     });
 
-    await inf.correr('F-03c', 'Comp-14: al aprobar con agente, el owner pasa al usuario del agente (flow activo)', 'Supervisor', async (e) => {
+    await inf.correr('F-03c', 'Al aprobar con agente, el owner pasa al usuario del agente (plugin asíncrono RepartoAsignacion)', 'Supervisor', async (e) => {
       const esp = suite.datos.especialF02; const ag = suite.datos.agente;
-      const flow = (await dv.get("workflows?$select=statecode,statuscode,modifiedon&$filter=name eq 'Cloud Flow | CM | Cambio de Owner en Asignaciones'")).value[0];
-      e.check(flow && flow.statecode === 1, 'el flow "Cloud Flow | CM | Cambio de Owner en Asignaciones" está ACTIVADO', 'statecode 1 (Activated)', flow ? `statecode ${flow.statecode} (0 = Draft/apagado) · modificado ${flow.modifiedon}` : 'no existe');
+      // Desde el 2026-10-13 el reparto lo hace el plugin asíncrono RepartoAsignacion (el flow de owner quedó apagado).
+      const paso = (await dv.get("sdkmessageprocessingsteps?$select=name,statecode,mode&$filter=startswith(name,'Sanic.CobranzaMovil.Plugins.RepartoAsignacion')")).value;
+      e.check(paso.length > 0 && paso.every(x => x.statecode === 0 && x.mode === 1), 'los pasos de RepartoAsignacion están activos y son asíncronos', 'statecode 0, mode 1', paso.map(x => `${x.name}: statecode ${x.statecode}, mode ${x.mode}`));
       if (suite.datos.aprobacionUiImposible) {
         // La UI no deja elegir localizador (F-03): se hace la MISMA escritura que el Patch de btnAprobarAprb
-        // (estado Aprobado + agente + resolutor) por Web API sobre la Especial QA, para verificar el flow igual.
+        // (estado Aprobado + agente + resolutor) por Web API sobre la Especial QA, para verificar el reparto igual.
         if (!/^QA-E2E-CLAVE-/.test(esp.sanic_cm_as_clavepan || '')) throw new Error('Seguridad: Especial no QA');
         suite.datos.ownerAntesAprob = (await dv.get(`sanic_cm_tbl_asignacions(${esp.sanic_cm_tbl_asignacionid})?$select=_ownerid_value`))._ownerid_value;
         await dv.patch('sanic_cm_tbl_asignacions', esp.sanic_cm_tbl_asignacionid, {
@@ -100,15 +101,15 @@ module.exports = async function faseC(suite) {
           'sanic_cm_as_resolutorid@odata.bind': `/systemusers(${yo})`,
         });
         suite.datos.tAprob = Date.now(); suite.datos.aprobadaPorApi = true;
-        e.nota('Aprobación hecha POR API (misma escritura que la app; la UI está bloqueada por B-04) para observar el flow Comp-14.');
+        e.nota('Aprobación hecha POR API (misma escritura que la app; la UI está bloqueada por B-04) para observar el reparto del plugin.');
       }
       const a = await dv.get(`sanic_cm_tbl_asignacions(${esp.sanic_cm_tbl_asignacionid})?$select=_ownerid_value`);
       const ownerAntes = suite.datos.ownerAntesAprob || a._ownerid_value;
       let ownerDesp = a._ownerid_value;
-      const vueltas = flow && flow.statecode === 1 ? 18 : 3; // flow activo: hasta ~3 min; apagado: 30 s alcanzan para documentarlo
+      const vueltas = 18; // trabajo asíncrono: hasta ~3 min
       for (let i = 0; i < vueltas && ownerDesp === ownerAntes; i++) { await new Promise(r2 => setTimeout(r2, 10000)); ownerDesp = (await dv.get(`sanic_cm_tbl_asignacions(${esp.sanic_cm_tbl_asignacionid})?$select=_ownerid_value`))._ownerid_value; }
       const t = Date.now() - (suite.datos.tAprob || Date.now());
-      e.check(ownerDesp === ag._sanic_cm_ag_usuarioid_value, 'Comp-14: owner = usuario del agente (esperado ≤ 3 min)', ag._sanic_cm_ag_usuarioid_value, `${ownerDesp} (antes ${ownerAntes})`);
+      e.check(ownerDesp === ag._sanic_cm_ag_usuarioid_value, 'owner = usuario del agente (esperado ≤ 3 min)', ag._sanic_cm_ag_usuarioid_value, `${ownerDesp} (antes ${ownerAntes})`);
       e.nota(`owner antes ${ownerAntes} → después ${ownerDesp} · agente ${ag.sanic_cm_ag_nombre} (usuario ${ag._sanic_cm_ag_usuarioid_value}) · ~${Math.round(t / 1000)} s desde la aprobación`);
       suite.datos.ownerTrasAprob = ownerDesp;
 

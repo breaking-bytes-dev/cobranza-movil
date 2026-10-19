@@ -48,8 +48,8 @@ module.exports = async function faseB(suite) {
   const [cta1, , cta3, cta4] = suite.datos.cuentas;
   const ctaQA = cta1; // registro de la cuenta QA 0001 (se muestra como "•••• E2E1")
   const mQA = qa.mascara(ctaQA);
-  // Precondiciones de X-02 y F-02d (por API, solo cuentas QA):
-  //  · CTA-0003: Especial CERRADA cuyo dueño es el Service Principal → el Solicitante (Read nivel usuario) NO la ve.
+  // Precondiciones de X-02, F-02f y F-02d (por API, solo cuentas QA):
+  //  · CTA-0003: Especial CERRADA cuyo dueño es el Service Principal → el Solicitante (Read nivel usuario) NO la ve (X-02 y F-02f).
   //  · CTA-0004: Especial CERRADA cuyo dueño es User2 → la ve y la app debe REACTIVARLA.
   suite.datos.cerradaAjena = await qa.crearEspecialPendiente(cta3, cfg.usuarios.user3.id, 'X-02 cerrada ajena', { estado: false });
   suite.datos.cerradaPropia = await qa.crearEspecialPendiente(cta4, yo, 'F-02d cerrada propia', { estado: false, owner: yo });
@@ -183,21 +183,35 @@ module.exports = async function faseB(suite) {
       e.check(k === 1, 'Dataverse: sigue habiendo 1 sola Especial', 1, k);
     });
 
-    await inf.correr('X-02', 'Falla CONTROLADA de escritura (B-03): pedir Especial sobre una cuenta QA cuya Especial cerrada el Solicitante NO puede ver → la app muestra el error y NO da por hecho', 'Solicitante', async (e) => {
+    // Desde DAT-14 (2026-10-15) la Especial cerrada ajena ya no hace fallar el envío: SolicitarEspecial (servicio del sistema)
+    // la REACTIVA a nombre del Solicitante. La falla controlada de B-03 se provoca ahora con una regla del servidor: la API
+    // rechaza notas con 13 o más dígitos seguidos (podrían ser un número de tarjeta). La secuencia se arma en tiempo de
+    // ejecución y no es un número de tarjeta.
+    await inf.correr('X-02', 'Falla CONTROLADA de escritura (B-03): notas con 13 dígitos seguidos → el servidor rechaza, la app muestra el error y NO da por hecho', 'Solicitante', async (e) => {
       if (!busq || !busq.ok) { e.bloquear('depende del buscador de cuentas (F-02a)'); return; }
-      const cta = cta3; const mCta = qa.mascara(cta); const previa = suite.datos.cerradaAjena;
-      e.nota(`Precondición: ${previa.sanic_cm_as_numero} (cuenta ${mCta}) CERRADA y con dueño = Service Principal; el rol Solicitante lee asignaciones a nivel USUARIO → la app no la ve, intenta CREAR y Dataverse rechaza por la alt key cuenta+tipo.`);
-      const n = await pedirEspecial(app, cta, { nio: 77, motivo: 'QA-E2E falla controlada X-02', etiqueta: 'scrNuevaSolicitud(falla controlada)' });
-      e.check(new RegExp(`No se pudo enviar la solicitud de la cuenta ${mCta}`).test(n || ''), 'Notify de ERROR con el detalle (IfError)', `No se pudo enviar la solicitud de la cuenta ${mCta}: …`, n);
-      e.check(!/Solicitud enviada/.test(n || ''), 'NO anuncia "Solicitud enviada"', 'sin ✨', n);
+      const cta = cta3; const mCta = qa.mascara(cta);
+      const n = await pedirEspecial(app, cta, { nio: 77, motivo: `QA-E2E falla controlada X-02 ref ${'1'.repeat(13)}`, etiqueta: 'scrNuevaSolicitud(falla controlada)' });
+      e.check(new RegExp(`No se pudo enviar la solicitud de la cuenta ${mCta}`).test(n || ''), 'Notify de ERROR con el detalle (IfError)', `No se pudo enviar la solicitud de la cuenta ${mCta}: …`, (n || '').replace(/\d{13,}/g, '[13+ dígitos]'));
+      e.check(!/Solicitud enviada/.test(n || ''), 'NO anuncia "Solicitud enviada"', 'sin ✨', (n || '').replace(/\d{13,}/g, '[13+ dígitos]'));
       const sigue = await pl.existeVisible(app, 'lblCtaSelNva');
       const sel = sigue ? await pl.texto(app, 'lblCtaSelNva').catch(() => '') : '';
       e.check(sigue && sel.includes(mCta), 'se queda en Nueva solicitud con el formulario intacto (no Reset, no Navigate)', `lblCtaSelNva = ${mCta}`, sigue ? sel : 'navegó fuera');
-      const escr = c.erroresRed(app, 'B:scrNuevaSolicitud(falla controlada)');
-      e.nota(`respuesta de Dataverse: ${escr.join(' | ') || '(sin error en red)'}`);
       e.evid(await pl.foto(app, 'X-02-falla-controlada'));
       const rows = await especialesDe(cta);
       e.check(rows.length === 1 && rows[0].sanic_cm_as_estado === false, 'Dataverse: nada cambió (1 Especial, sigue CERRADA)', '1 · cerrada', `${rows.length} · ${rows.map(r => r.sanic_cm_as_estado)}`);
+    });
+
+    await inf.correr('F-02f', 'Especial CERRADA de otra persona que el Solicitante no ve → la app la REACTIVA a su nombre (DAT-14, SolicitarEspecial)', 'Solicitante', async (e) => {
+      if (!busq || !busq.ok) { e.bloquear('depende del buscador de cuentas (F-02a)'); return; }
+      const cta = cta3; const previa = suite.datos.cerradaAjena;
+      const n = await pedirEspecial(app, cta, { nio: 66, motivo: 'QA-E2E reactivación ajena F-02f', etiqueta: 'scrNuevaSolicitud(reactivar ajena)' });
+      e.check(/Solicitud enviada/.test(n || '') && /reactiv/i.test(n || ''), 'Notify "Solicitud enviada (se reactivó …)"', '✨ … se reactivó …', n);
+      const rows = await especialesDe(cta);
+      e.check(rows.length === 1 && rows[0].sanic_cm_tbl_asignacionid === previa.sanic_cm_tbl_asignacionid, 'Dataverse: el MISMO registro, sin duplicar', previa.sanic_cm_as_numero, rows.map(r => r.sanic_cm_as_numero || r.sanic_cm_tbl_asignacionid));
+      const a = await dv.get(`sanic_cm_tbl_asignacions(${previa.sanic_cm_tbl_asignacionid})?$select=sanic_cm_as_estado,sanic_cm_as_estadoaprobacion,_sanic_cm_as_solicitadopor_value,_ownerid_value`);
+      e.check(a.sanic_cm_as_estado === true && a.sanic_cm_as_estadoaprobacion === 2, 'activa y Pendiente de aprobación', 'true · 2', `${a.sanic_cm_as_estado} · ${a.sanic_cm_as_estadoaprobacion}`);
+      e.check(a._sanic_cm_as_solicitadopor_value === yo && a._ownerid_value === yo, 'solicitante y dueño = User2', yo, `${a._sanic_cm_as_solicitadopor_value} / ${a._ownerid_value}`);
+      e.evid(await pl.foto(app, 'F-02f-reactivada-ajena'));
     });
 
     await inf.correr('F-02d', 'Re-solicitar Especial sobre cuenta con Especial CERRADA PROPIA → la app REACTIVA el mismo registro (B-11)', 'Solicitante', async (e) => {

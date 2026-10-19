@@ -57,7 +57,7 @@ y se lo quita en la misma fase.
 |---|---|---|
 | A | User4 (Admin) | R-05, E-01a (sin banners ni 403 al abrir), D-02a (KPIs en la PRIMERA carga = API, B-01), D-02b..d, F-05, F-04c (Agentes: 0 escrituras al abrir, botón "Desvincular" aparte — nunca se pulsa; panel "Vincular/Cambiar": se abre, se busca un usuario (StartsWith delegado) y se CANCELA — nunca se toca una fila, B-04), D-03 (búsqueda delegada + B-13 DelayOutput), F-04b |
 | B | User2 (Solicitante) | R-03, E-01b, D-02e (frío + subtítulo "Tus solicitudes Especiales"), D-04, F-02a (buscador + galería: número + cliente, B-04), F-02 (crear por UI), F-02b (anti-duplicado), **X-02** (falla CONTROLADA de escritura, B-03: Especial cerrada que el Solicitante no ve → alt key → error mostrado, nada dado por hecho), **F-02d** (reactivar Especial cerrada propia, B-11), **D-05** (mínimo privilegio: sin consultas a Pagos/Carga ni 403) |
-| C | User3 (Supervisor) | R-04, E-01c, D-02f, F-03 (aprobar eligiendo localizador en buscador + galería, B-04), F-03c (owner → usuario del agente por Comp-14, hasta ~3 min, B-10), F-03b (rechazar) |
+| C | User3 (Supervisor) | R-04, E-01c, D-02f, F-03 (aprobar eligiendo localizador en buscador + galería, B-04), F-03c (owner → usuario del agente por el plugin asíncrono RepartoAsignacion, hasta ~3 min, B-10), F-03b (rechazar) |
 | D | User1 (Backoffice) | R-02, E-01d, D-02g, D-02h, F-01 (transcribir con el rol BO solo, B-02), F-01b |
 | E | User1 + Admin y Carga (temporal) | R-06a (multi-rol), R-06b (quitado → solo Backoffice) |
 | F | User4 (Admin) + 1 fila QA de carga HOY | F-04 (cerrar la Especial QA), D-07 (carga de hoy, B-07), F-05b (freno + lista completa sin tope de 500, B-12; el cierre en lote NUNCA se pulsa) |
