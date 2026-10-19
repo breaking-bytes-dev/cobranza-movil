@@ -72,6 +72,8 @@ Conviene juntarlos en un **runbook de pasaje a PROD** (`docs/guias/`), en orden 
 | SEC-18 | La app del cobrador manda la dirección del cliente a Google Maps al abrir el mapa | Dueño, 2026-10-14 | Si cumplimiento del banco lo objeta |
 | SEC-17 | En DEV los usuarios de prueba tienen roles de otras soluciones. En PROD solo tendrán roles CM | Dueño, 2026-10-14 | Al asignar roles en PROD |
 | SEC-20 | Todos los roles pueden listar usuarios (`prvReadUser`): lo necesita la plataforma | Dueño, 2026-10-14 | — |
+| Admin global | El Admin tiene alcance Global en todas las tablas de CM: puede borrar, reasignarse y compartir cualquier fila y crear o editar interacciones, pagos, cargas diarias y cuentas, aunque ninguna pantalla lo hace (matriz de roles) | Dueño, 2026-10-19 | Antes de PROD, si cumplimiento pide mínimo privilegio para el Admin |
+| Lectura de datos personales | BackOffice, Solicitante y Supervisor leen fiadores; Solicitante y Supervisor también direcciones y teléfonos, aunque ninguna de sus pantallas los muestra (matriz de roles) | Dueño, 2026-10-19 | Si cumplimiento del banco lo objeta |
 
 ## Cerrados
 
