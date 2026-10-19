@@ -133,5 +133,6 @@ Cerrados el 2026-10-14 (plugins 1.0.6.1, 24 pasos activos; prueba en vivo 17/17 
 | Reconciliación | `paso3_reconciliar.py` lista y, con `--revocar`, quita compartidos sobrantes | 0 sobrantes en DEV |
 | Backoffice: UPN | El backoffice identifica al usuario por su id de Entra | Suite (todos los roles entran) |
 | Suite | Esperas estables en los contadores de Inicio (F3, F5, F8) y en F7 | Suite integral |
+| Esperas frágiles en la suite | F5-03/05/09 se confirman por el dato en Dataverse (sondeo hasta 60 s); el aviso se sigue verificando si se ve (ventana de 30 s) y su ausencia, con el dato presente, queda como nota. F7 reintenta UNA vez la apertura de la app si no carga (el sello de versión no se reintenta) | Suite integral completa 130/130 contra DEV, sin reintentos usados, 0 restos (F11-02) |
 | Smelter DIAX | Los 2 trabajos DIAX borrados (con tu OK) | — |
 | Docs | "El flow reparte", README de plugins, sincronización completa (el botón existe; guía 05 corregida), catálogo, ciclo de vida, contrato de datos, guía por rol | — |

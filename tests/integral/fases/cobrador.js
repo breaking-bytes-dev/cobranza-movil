@@ -114,7 +114,7 @@ async function f7(ctx) {
   const esperadoCliente = 4; // A Diaria + A Especial + B Incobrable + C Especial (la Especial de B está Rechazada y no se ve)
   ctx.chk('F7-00', delCliente.length === esperadoCliente, `API (suplantando a User5): ve ${delCliente.length} asignaciones del cliente QA (esperado ${esperadoCliente}: A Diaria, A Especial, B Incobrable, C Especial; la Especial rechazada de B no)`);
 
-  const app = await ui.abrirCobrador();
+  const app = await ui.abrirCobrador(ctx);
   ctx.capturador = ui.capturador(ctx, app);
   try {
     await ctx.paso('F7-01', 'Cartera', async () => {

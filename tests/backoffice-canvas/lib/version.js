@@ -46,8 +46,10 @@ async function abrirVerificada(nombre, { abrir, leer, cerrar }) {
     }
     if (Date.now() - t0 + PAUSA_MS > MAX_MS) {
       await cerrar(app);
-      throw new Error(`DEV sirve la versión "${v}" de ${nombre}, se desplegó "${esp.version}" (import ${esp.importado}); `
+      const err = new Error(`DEV sirve la versión "${v}" de ${nombre}, se desplegó "${esp.version}" (import ${esp.importado}); `
         + `se reintentó ${intento} veces durante ${Math.round((Date.now() - t0) / 1000)} s`);
+      err.versionDistinta = true;   // no es una falla de carga: quien reintente la apertura NO debe reintentar esto
+      throw err;
     }
     console.log(`  ··· ${nombre}: DEV sirve "${v}", se desplegó "${esp.version}"; reabro en ${PAUSA_MS / 1000} s (intento ${intento})`);
     await cerrar(app);

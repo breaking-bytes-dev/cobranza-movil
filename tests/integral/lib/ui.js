@@ -18,14 +18,26 @@ async function abrirBackoffice(usuario, etiqueta) {
 }
 
 // Abre la app del cobrador (web player) como User5 en un Chromium NUEVO.
-async function abrirCobrador() {
-  console.log('  ··· abriendo la app del cobrador como user5 (carga en frío, 1 a 2 min)');
-  const browser = await pl.lanzar();
-  try {
-    const app = await lo.abrir(browser);
-    app.browser = browser;
-    return app;
-  } catch (e) { await browser.close().catch(() => {}); throw e; }
+// Si la app no carga (F7 del 2026-10-19: no apareció cmpNav_1), se REINTENTA UNA vez: se cierra el contexto/página (el Chromium
+// de ese intento) y se vuelve a abrir. El reintento queda en el log (y como nota en el informe si se pasa `ctx`). Un sello de
+// versión distinto del desplegado NO se reintenta acá: version.js ya espera hasta 10 min y su error es real (`versionDistinta`).
+async function abrirCobrador(ctx) {
+  for (let intento = 1; ; intento++) {
+    console.log(`  ··· abriendo la app del cobrador como user5 (carga en frío, 1 a 2 min)${intento > 1 ? ' — reintento' : ''}`);
+    const browser = await pl.lanzar();
+    try {
+      const app = await lo.abrir(browser);
+      app.browser = browser;
+      if (intento > 1 && ctx) ctx.nota(`la app del cobrador no cargó al primer intento; abrió en el reintento (${intento})`);
+      return app;
+    } catch (e) {
+      await browser.close().catch(() => {});
+      if (e.versionDistinta || intento >= 2) throw e;
+      const msg = `la app del cobrador no cargó (${String(e.message).split('\n')[0].slice(0, 200)}); cierro y reabro UNA vez`;
+      console.log(`  ··· ${msg}`);
+      if (ctx) ctx.nota(msg);
+    }
+  }
 }
 
 async function cerrar(app) {
