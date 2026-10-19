@@ -32,15 +32,13 @@
 |---|---|---|---|---|---|
 | Fiadores (origen) | La carga crea un fiador vacío por cada fila del CSV con `NombreFianza` en blanco (la clave alternativa por nombre no rige con NULL) | Corrección de origen en la plantilla de Smelter: no crear el fiador si viene vacío. Mientras tanto, el trabajo diario "CM - Fiadores sin nombre" los borra | Smelter (config) | Chico | Mitigado |
 | Revocación offline | El teléfono pierde una cuenta revocada recién en la próxima sincronización | Inherente a offline. Se mitiga en PROD con Intune (borrado tras N días sin conexión, S-3) | Tenant | — | Propuesta: aceptar |
-| Padrón viejo | Los teléfonos que tuvieron el padrón completo (antes de S-1) lo conservan hasta reiniciar la app | Borrar los datos de la app (o reinstalarla) en esos teléfonos: en DEV es el tuyo (User6). En PROD no aplica | Dueño | Chico | Pendiente (tu teléfono) |
 
 ## 3. Apps
 
 | ID | Problema | Propuesta | Quién | Esfuerzo | Estado |
 |---|---|---|---|---|---|
 | APP-11 | El GPS con 6 decimales nunca se probó con GPS real (el Android de pruebas no tiene) | Una captura desde tu teléfono con el GPS encendido; yo verifico los decimales en Dataverse | Dueño (teléfono) | Chico | Pendiente (decisión: seguir esperando) |
-| APP-27 | El paquete base de las dos apps (`.msapr` del repo) dice `ParserErrorCount: 2` | **Verificado el 2026-10-15:** el backoffice guardado y publicado por vos en Studio **sigue diciendo 2**, y su App Checker no tiene ningún error de fórmula (352 avisos: accesibilidad y rendimiento). O sea, guardar en Studio no lo cambia y no es un error nuestro que Studio vea. El paquete base del backoffice ya es el de Studio (con Environment, `402a473`). La app del cobrador no se guardó en Studio (último guardado 27/07) | CM | — | Propuesta: cerrar sin más acción |
-| Rol por pantalla | El backoffice decide qué pantallas mostrar con `gblRol`, del lado del cliente | Matriz rol × tabla × operación contra la API (suplantando a cada usuario QA). Ya hay pruebas por API de lo más sensible (S-9, S-11, DAT-11, DAT-13) | CM | Mediano | Propuesta (pediste que lo explique mejor) |
+| Rol por pantalla | El backoffice decide qué pantallas mostrar con `gblRol`, del lado del cliente | Matriz rol × tabla × operación contra la API (suplantando a cada usuario QA). Ya hay pruebas por API de lo más sensible (S-9, S-11, DAT-11, DAT-13) | CM | Mediano | Aprobado (2026-10-19), en curso |
 
 ## 4. Documentación
 
@@ -112,6 +110,8 @@ Cerrados el 2026-10-14 (plugins 1.0.6.1, 24 pasos activos; prueba en vivo 17/17 
 | DAT-14 (a) | Custom API `SolicitarEspecial` (1.0.8.1): crea, reactiva o avisa "ya existe, pedida por X". Nueva solicitud la usa y refresca Asignacions después (`bd151e7`, `bf2c7b9`) | API en vivo 8/8; pantallas `tests/integral/pantallas/alta-cuenta.js` 17/17; suite integral hasta F4 63/63 |
 | DAT-20 | Custom API `AltaCuenta` (1.0.8.1) + pantalla "Alta de cuenta" solo para el Admin: prueba en seco, carga real por Smelter (una fila), avisos del servidor, número enmascarado y borrado del formulario al terminar (`d0b7607`, `bd151e7`) | API en vivo 19/19; pantalla 17/17 (User1, User2 y User3 no la ven) |
 | DAT-30 (columnas) | `ct_agenteid` y `ct_tipoasignacion` documentadas como "solo carga" en el catálogo (se conservan: borrarlas exige tocar la plantilla de Smelter) | — |
+| APP-27 | Cerrado sin acción por decisión del dueño (2026-10-19): `ParserErrorCount: 2` lo escribe Studio mismo (sigue en 2 tras guardar y publicar el backoffice en Studio) y el App Checker da 0 errores de fórmula | Export de DEV del 2026-10-15: 352 avisos, ninguno de fórmula |
+| Padrón viejo | El dueño borró los datos de Power Apps en su teléfono (User6) y volvió a sincronizar con el perfil propio (S-1) | Paso del dueño, 2026-10-19 (no verificado desde CM: User6 no se usa para pruebas) |
 | DAT-30 (tabla) | Tabla `usuarioapp` borrada en DEV con tu OK: 0 filas, 0 dependencias para borrar, solo en la solución de CM, ninguna app la usa | `DELETE` 204 y después 404 (2026-10-15) |
 | DAT-26 (resto) | La fecha de pago del Detalle de la cuenta se arma como texto (`aaaa-mm-dd` → `dd/mm/aaaa`) sin depender del idioma del teléfono. Sin columna nueva ni cambio en Smelter: en DEV 1001 de 1010 cuentas vienen en `aaaa-mm-dd` y nadie ordena ni filtra por esa fecha | Suite hasta F7 99/99, check nuevo F7-06b |
 | DAT-29 | Pantalla "Reasignar" del backoffice: Supervisor (Especiales aprobadas) y Admin (también Incobrables) | Prueba de UI de la pantalla |
