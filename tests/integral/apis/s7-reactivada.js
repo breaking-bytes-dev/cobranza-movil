@@ -1,7 +1,8 @@
 // S-7 tras reactivar, en vivo (1.0.8.2). El Admin crea la Especial con SolicitarEspecial, se cierra, el Solicitante (User2)
 // la reactiva y el Supervisor (User3) la aprueba como lo hace la pantalla Aprobaciones. RepartoAsignacion pasa el dueño al
 // cobrador (User5) y le comparte la Especial a "Solicitado por" aunque no sea quien la creó: User2 la sigue leyendo.
-// Negativos: una persona de CM no puede poner a otro en "Solicitado por" (ni al editar ni al crear).
+// Negativos: una persona de CM no puede poner a otro en "Solicitado por" al crear; desde 1.0.8.4 (H1) el Solicitante no
+// edita ninguna columna de la asignación.
 // Limpieza con el prefijo QA. Sin PAN impreso.
 const path = require('path');
 process.chdir(path.join(__dirname, '..'));
@@ -63,9 +64,9 @@ const COLS = '$select=sanic_cm_as_estado,sanic_cm_as_estadoaprobacion,_ownerid_v
     chk('S7-05', ve.status === 200, `User2 la sigue leyendo aprobada aunque no la creó (antes de 1.0.8.2: la perdía): ${ve.status}`);
 
     r = await como('PATCH', `sanic_cm_tbl_asignacions(${espId})`, { 'sanic_cm_as_solicitadopor@odata.bind': `/systemusers(${U.sup})` }, U.sol);
-    chk('S7-06', !r.ok && /Solicitado por/.test(r.msg), `User2 pone a otro en "Solicitado por": ${r.ok ? 'PASÓ' : r.msg.slice(0, 160)}`);
+    chk('S7-06', !r.ok, `User2 pone a otro en "Solicitado por" (H1: el Solicitante no edita la asignación): ${r.ok ? 'PASÓ' : r.msg.slice(0, 160)}`);
     r = await como('PATCH', `sanic_cm_tbl_asignacions(${espId})`, { 'sanic_cm_as_solicitadopor@odata.bind': `/systemusers(${U.sol})` }, U.sol);
-    chk('S7-07', r.ok, `User2 se pone a sí mismo en "Solicitado por": ${r.ok ? r.status : r.msg.slice(0, 160)}`);
+    chk('S7-07', !r.ok, `User2 se pone a sí mismo en "Solicitado por" (H1, 1.0.8.4: tampoco): ${r.ok ? 'PASÓ' : r.msg.slice(0, 160)}`);
     r = await como('POST', 'sanic_cm_tbl_asignacions', {
       'sanic_cm_as_cuentaid@odata.bind': `/sanic_cm_tbl_cuentas(${cta.sanic_cm_tbl_cuentaid})`, sanic_cm_as_tipo: 3, sanic_cm_as_estado: true,
       sanic_cm_as_notas: 'QA S-7 a nombre de otro', 'sanic_cm_as_solicitadopor@odata.bind': `/systemusers(${U.sup})`,

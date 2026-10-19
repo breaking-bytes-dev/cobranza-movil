@@ -1,6 +1,6 @@
 # Matriz de roles contra el servidor ("rol por pantalla")
 
-> Corrida `ABO` del 2026-10-19 16:54 UTC en DEV, generada por `tests/integral/seguridad/matriz.js`.
+> Corrida `U9V` del 2026-10-19 17:38 UTC en DEV, generada por `tests/integral/seguridad/matriz.js`.
 > Lo esperado está en [`tests/integral/seguridad/esperado.js`](../../tests/integral/seguridad/esperado.js), con el porqué de cada fila.
 
 **Cómo se lee.** Cada celda es lo que respondió el servidor cuando ese usuario, sin pasar por la app, intentó la operación: ✔ la hizo (código 2xx), ✘ la frenó (403 = sin privilegio, 400 = regla de un plugin, 404 = no la ve). Las filas son datos QA creados por la prueba y borrados al final.
@@ -8,8 +8,8 @@
 | | Celdas |
 |---|---|
 | Probadas | 446 (413 de la matriz y 33 casos de columna) |
-| Coinciden con lo esperado | 371 |
-| **HUECO** (el servidor deja hacer algo que el rol no debería) | **8** |
+| Coinciden con lo esperado | 379 |
+| **HUECO** (el servidor deja hacer algo que el rol no debería) | **0** |
 | **DEMASIADO CERRADO** (el servidor frena algo que una pantalla necesita) | **0** |
 | EXPECTATIVA DUDOSA (ninguna pantalla lo usa; decide el dueño) | 67 (67 permitidas hoy) |
 | Limpieza | 0 restos |
@@ -18,18 +18,9 @@ Contexto: en DEV los usuarios de prueba también tienen roles de otras solucione
 
 ## Diferencias
 
-### HUECO (8)
+### HUECO (0)
 
-| Rol | Qué intentó | Esperado | Servidor | Detalle |
-|---|---|---|---|---|
-| Solicitante (User2) | editar la propia · asignacion | n | ✔ 200 |  |
-| Solicitante (User2) | COL-SOL-1: Solicitante cambia el retiro de su Especial Pendiente | n | ✔ 200 |  |
-| Solicitante (User2) | COL-SOL-4: Solicitante cambia el retiro de la Especial YA APROBADA (compartida por S-7) | n | ✔ 200 |  |
-| Solicitante (User2) | COL-SOL-5: Solicitante cierra la Especial aprobada | n | ✔ 200 |  |
-| Solicitante (User2) | COL-SOL-6: Solicitante cambia las notas de la Especial aprobada | n | ✔ 200 |  |
-| Solicitante (User2) | COL-SOL-7: Solicitante crea una Diaria activa con un agente (sin aprobación) | n | ✔ 201 |  |
-| Localizador (User5) | COL-COB-6: Cobrador registra una visita en una cuenta que NO es de su cartera | n | ✔ 201 |  |
-| Localizador (User5) | COL-COB-7: Cobrador registra un pago colgado de esa visita | n | ✔ 201 |  |
+Ninguna.
 
 ### DEMASIADO CERRADO (0)
 
@@ -111,11 +102,11 @@ Ninguna.
 
 Verificado en la corrida: ninguno de los roles de otras soluciones que tienen los usuarios QA (SEC-17) da privilegios sobre tablas de CM, así que todo lo de abajo sale de los roles y plugins de CM.
 
-| # | Hueco | Causa | Propuesta |
-|---|---|---|---|
-| H1 | Solicitante edita la Especial: la propia Pendiente (retiro, notas) y, ya aprobada y compartida por S-7, el retiro, las notas y hasta la cierra (Up asignación, COL-SOL-1, 4, 5 y 6) | El rol Solicitante tiene Write Basic en asignación; `ColumnasAsignacion` le deja retiro, notas, estado y motivo (era para volver a pedir una Especial cerrada desde la pantalla, que desde DAT-14 hace `SolicitarEspecial` con el servicio); `RepartoAsignacion` le comparte la aprobada con lectura, escritura y anexar | (1) Dejar al Solicitante sin columnas en `ColumnasAsignacion` (falla cerrado); (2) que el compartido de S-7 sea **solo lectura** (Mis solicitudes solo lee); (3) opcional: quitarle Write en asignación al rol. `SolicitarEspecial` no se rompe: crea con Create y reactiva con el servicio |
-| H2 | Solicitante crea una Diaria activa con un agente: el reparto se la manda al cobrador sin pasar por Aprobaciones (COL-SOL-7) | Create Global en asignación; `AprobacionEspecial` solo controla Especiales | En el alta, `AprobacionEspecial` exige que una persona de CM que no sea Supervisor, Admin o Servicio solo cree **Especiales Pendientes y sin agente** |
-| H3 | El cobrador registra una visita y un pago en una cuenta que **no es de su cartera** (COL-COB-6 y 7) | El rol Localizador tiene AppendTo Global en cuenta (lo exige el lookup); `InteraccionDelCobrador` pone el agente pero no mira la cartera | En `InteraccionDelCobrador`, si llama un Localizador: exigir que la cuenta tenga una asignación **activa de su cartera** (dueño = el llamador). El pago hereda la cuenta de la interacción (`CuentaDesdeInteraccion`), así que alcanza con frenar la interacción. Bajar AppendTo a Basic no sirve: el cobrador no es dueño de las cuentas, solo las tiene compartidas |
+| # | Hueco | Causa | Propuesta | Estado |
+|---|---|---|---|---|
+| H1 | Solicitante edita la Especial: la propia Pendiente (retiro, notas) y, ya aprobada y compartida por S-7, el retiro, las notas y hasta la cierra (Up asignación, COL-SOL-1, 4, 5 y 6) | El rol Solicitante tiene Write Basic en asignación; `ColumnasAsignacion` le deja retiro, notas, estado y motivo (era para volver a pedir una Especial cerrada desde la pantalla, que desde DAT-14 hace `SolicitarEspecial` con el servicio); `RepartoAsignacion` le comparte la aprobada con lectura, escritura y anexar | (1) Dejar al Solicitante sin columnas en `ColumnasAsignacion` (falla cerrado); (2) que el compartido de S-7 sea **solo lectura** (Mis solicitudes solo lee); (3) opcional: quitarle Write en asignación al rol. `SolicitarEspecial` no se rompe: crea con Create y reactiva con el servicio | Cerrado el 2026-10-19 (plugins 1.0.8.4) |
+| H2 | Solicitante crea una Diaria activa con un agente: el reparto se la manda al cobrador sin pasar por Aprobaciones (COL-SOL-7) | Create Global en asignación; `AprobacionEspecial` solo controla Especiales | En el alta, `AprobacionEspecial` exige que una persona de CM que no sea Supervisor, Admin o Servicio solo cree **Especiales Pendientes y sin agente** | Cerrado el 2026-10-19 (plugins 1.0.8.4) |
+| H3 | El cobrador registra una visita y un pago en una cuenta que **no es de su cartera** (COL-COB-6 y 7) | El rol Localizador tiene AppendTo Global en cuenta (lo exige el lookup); `InteraccionDelCobrador` pone el agente pero no mira la cartera | En `InteraccionDelCobrador`, si llama un Localizador: exigir que la cuenta tenga una asignación **activa de su cartera** (dueño = el llamador). El pago hereda la cuenta de la interacción (`CuentaDesdeInteraccion`), así que alcanza con frenar la interacción. Bajar AppendTo a Basic no sirve: el cobrador no es dueño de las cuentas, solo las tiene compartidas | Cerrado el 2026-10-19 (plugins 1.0.8.4) |
 
 **Dudosas: una decisión cada una.**
 
@@ -166,7 +157,7 @@ Verificado en la corrida: ninguno de los roles de otras soluciones que tienen lo
 |---|---|---|---|---|---|---|---|---|
 | cuenta | ✘ 403 | ✔ 200 |  | ✘ 403 |  | ✘ 403 | ✘ 403 | ✘ 403 |
 | cliente | ✘ 403 | ✔ 200 |  | ✘ 403 |  | ✘ 403 | ✘ 403 | ✘ 403 |
-| asignacion | ✔ 201 | ✘ 403 |  | ✘ 403 | ✔ 200 **HUECO** | ✘ 403 | ✘ 403 | ✘ 403 |
+| asignacion | ✔ 201 | ✘ 403 |  | ✘ 403 | ✘ 400 | ✘ 403 | ✘ 403 | ✘ 403 |
 | interaccion | ✘ 403 | ✘ 403 |  | ✘ 403 |  | ✘ 403 | ✘ 403 | ✘ 403 |
 | pago | ✘ 403 | ✘ 403 |  | ✘ 403 |  | ✘ 403 | ✘ 403 | ✘ 403 |
 | actualizacion | ✘ 403 | ✘ 403 |  | ✘ 403 |  | ✘ 403 | ✘ 403 | ✘ 403 |
@@ -218,7 +209,7 @@ Verificado en la corrida: ninguno de los roles de otras soluciones que tienen lo
 
 | ID | Rol | Caso | Esperado | Servidor | Por qué |
 |---|---|---|---|---|---|
-| COL-SOL-1 | Solicitante (User2) | Solicitante cambia el retiro de su Especial Pendiente | n | ✔ 200 | Desde DAT-14 ninguna pantalla del Solicitante edita la asignación |
+| COL-SOL-1 | Solicitante (User2) | Solicitante cambia el retiro de su Especial Pendiente | n | ✘ 400 | Desde DAT-14 ninguna pantalla del Solicitante edita la asignación |
 | COL-SOL-2 | Solicitante (User2) | Solicitante aprueba su propia Especial | n | ✘ 400 | S-6: solo Supervisor/Admin aprueban |
 | COL-SOL-3 | Solicitante (User2) | Solicitante se asigna el agente de su Especial | n | ✘ 400 | S-6: el agente lo pone el Supervisor |
 | COL-SUP-1 | Supervisor (User3) | Supervisor cambia el retiro | n | ✘ 400 | S-11: el Supervisor aprueba, no cambia montos |
@@ -227,9 +218,9 @@ Verificado en la corrida: ninguno de los roles de otras soluciones que tienen lo
 | COL-BO-A | BackOffice (User1) | BackOffice cambia las notas de la Especial | n | ✘ 403 | Ninguna pantalla del BackOffice edita asignaciones |
 | COL-COB-0 | Localizador (User5) | Cobrador cambia el orden de una Especial que no es suya | n | ✘ 403 | S-1: solo su cartera |
 | COL-SUP-4 | Supervisor (User3) | Supervisor aprueba con el localizador (como Aprobaciones) | s | ✔ 200 | Aprobaciones |
-| COL-SOL-4 | Solicitante (User2) | Solicitante cambia el retiro de la Especial YA APROBADA (compartida por S-7) | n | ✔ 200 | El monto aprobado no lo cambia quien la pidió |
-| COL-SOL-5 | Solicitante (User2) | Solicitante cierra la Especial aprobada | n | ✔ 200 | Cerrar es de Cierres (Admin), del cobrador al cobrar o del Supervisor al rechazar |
-| COL-SOL-6 | Solicitante (User2) | Solicitante cambia las notas de la Especial aprobada | n | ✔ 200 | Ninguna pantalla del Solicitante edita la asignación |
+| COL-SOL-4 | Solicitante (User2) | Solicitante cambia el retiro de la Especial YA APROBADA (compartida por S-7) | n | ✘ 403 | El monto aprobado no lo cambia quien la pidió |
+| COL-SOL-5 | Solicitante (User2) | Solicitante cierra la Especial aprobada | n | ✘ 403 | Cerrar es de Cierres (Admin), del cobrador al cobrar o del Supervisor al rechazar |
+| COL-SOL-6 | Solicitante (User2) | Solicitante cambia las notas de la Especial aprobada | n | ✘ 403 | Ninguna pantalla del Solicitante edita la asignación |
 | COL-COB-1 | Localizador (User5) | Cobrador cambia el orden de su Especial | s | ✔ 200 | Cartera: reordenar |
 | COL-COB-2 | Localizador (User5) | Cobrador cierra su Especial | n | ✘ 400 | S-11: el cobrador solo ordena |
 | COL-COB-3 | Localizador (User5) | Cobrador cambia el retiro | n | ✘ 400 | S-11 |
@@ -238,14 +229,14 @@ Verificado en la corrida: ninguno de los roles de otras soluciones que tienen lo
 | COL-ADM-1 | Admin (User4) | Admin cambia el retiro de una Especial aprobada | d | ✔ 200 | Ninguna pantalla del Admin cambia montos |
 | COL-SUP-5 | Supervisor (User3) | Supervisor reasigna el agente (como Reasignar) | s | ✔ 200 | Reasignar (DAT-29) |
 | COL-SUP-6 | Supervisor (User3) | Supervisor rechaza y cierra | s | ✔ 200 | Aprobaciones: rechazar cierra (DAT-14) |
-| COL-SOL-7 | Solicitante (User2) | Solicitante crea una Diaria activa con un agente (sin aprobación) | n | ✔ 201 | S-6: el Solicitante pide Especiales; las Diarias las trae la carga |
+| COL-SOL-7 | Solicitante (User2) | Solicitante crea una Diaria activa con un agente (sin aprobación) | n | ✘ 400 | S-6: el Solicitante pide Especiales; las Diarias las trae la carga |
+| COL-ADM-D | Admin (User4) | Admin crea una Diaria activa con un agente | n | ✘ 400 | H2: las Diarias solo llegan por la carga (dueño, 2026-10-19) |
 | COL-SOL-8 | Solicitante (User2) | Solicitante crea una Especial a nombre de otro | n | ✘ 400 | S-7: "Solicitado por" solo a sí mismo |
 | COL-BO-1 | BackOffice (User1) | BackOffice graba una interacción en el CORE | s | ✔ 200 | Transcripción |
 | COL-BO-2 | BackOffice (User1) | BackOffice vuelve a grabar con otro código | n | ✘ 400 | DAT-11: una grabada no se regraba |
 | COL-SUP-I | Supervisor (User3) | Supervisor graba una interacción | n | ✘ 403 | Solo el BackOffice graba |
 | COL-COB-I | Localizador (User5) | Cobrador marca como grabada su interacción | n | ✘ 403 | S-9 / DAT-11 |
-| COL-COB-6 | Localizador (User5) | Cobrador registra una visita en una cuenta que NO es de su cartera | n | ✔ 201 | S-1 / SEC-08: solo su cartera |
-| COL-COB-7 | Localizador (User5) | Cobrador registra un pago colgado de esa visita | n | ✔ 201 | S-1: cobrar en una cuenta ajena |
+| COL-COB-6 | Localizador (User5) | Cobrador registra una visita en una cuenta que NO es de su cartera | n | ✘ 400 | S-1 / SEC-08: solo su cartera |
 | COL-JOB-ADM | Admin (User4) | Admin (User4) crea un job de importación | s | ✔ 201 | Cargar archivo / Alta de cuenta |
 | COL-JOB-BO | BackOffice (User1) | BackOffice (User1) crea un job de importación | n | ✘ 403 | Solo el Admin carga |
 | COL-JOB-SOL | Solicitante (User2) | Solicitante (User2) crea un job de importación | n | ✘ 403 | Solo el Admin carga |

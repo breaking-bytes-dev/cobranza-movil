@@ -38,7 +38,6 @@
 | ID | Problema | Propuesta | Quién | Esfuerzo | Estado |
 |---|---|---|---|---|---|
 | APP-11 | El GPS con 6 decimales nunca se probó con GPS real (el Android de pruebas no tiene) | Una captura desde tu teléfono con el GPS encendido; yo verifico los decimales en Dataverse | Dueño (teléfono) | Chico | Pendiente (decisión: seguir esperando) |
-| Rol por pantalla | Matriz corrida el 2026-10-19 (`tests/integral/seguridad/matriz.js`, informe en [matriz-roles.md](matriz-roles.md)): 446 celdas, 371 coinciden, **8 huecos**, 0 demasiado cerrado y 67 dudosas (casi todas del Admin). Los huecos: el Solicitante edita y hasta cierra su Especial, también ya aprobada (H1); el Solicitante crea una Diaria con agente sin aprobación (H2); el cobrador registra visita y pago en una cuenta fuera de su cartera (H3). Ningún rol de otra solución da privilegios sobre CM | H1: Solicitante sin columnas en `ColumnasAsignacion` y compartido de S-7 solo lectura. H2: `AprobacionEspecial` deja crear solo Especiales Pendientes sin agente a quien no es Supervisor/Admin/Servicio. H3: `InteraccionDelCobrador` exige una asignación activa de su cartera. Dudosas: decidir mínimo privilegio del Admin y lecturas de fiador, dirección y teléfono | CM (después de tu decisión) | Mediano | Matriz hecha; huecos esperando tu OK |
 
 ## 4. Documentación
 
@@ -59,7 +58,7 @@ Conviene juntarlos en un **runbook de pasaje a PROD** (`docs/guias/`), en orden 
 | S-14 | Cascadas en NoCascade **antes** de la primera carga real (`paso1_cascadas_auditoria.py`) | CM |
 | Fase 2 | Pasos 2 y 8: el PAN fuera de las columnas auditadas; la clave K en Key Vault con identidad administrada; borrado automático del CSV de carga | CM + Tenant |
 | PCI | La rama `feat/hmac-transform` de Smelter tiene que llegar a `main`; validación de Luhn; revisión de un QSA; la factura de papel con el PAN completo, a cumplimiento del banco | Smelter / Dueño |
-| Despliegue | En orden: `paso1_cascadas_auditoria` (antes de la primera carga real); `paso5_cartera_sin_cobrador --entorno PRD`; registrar los plugins 1.0.8.3 y apagar el flow de owner; `paso12_custom_api` (AltaCuenta y SolicitarEspecial); `paso6`, `paso7` y `paso8`; `paso9` (no hace falta si el entorno nace limpio); `paso10` (borrado programado); `paso7_desplegar`; `paso3_reconciliar`; sincronizar `solutions/unpacked` (rol nuevo, privilegios, regla de negocio borrada, cascadas). `paso11` no hace falta en PROD | CM |
+| Despliegue | En orden: `paso1_cascadas_auditoria` (antes de la primera carga real); `paso5_cartera_sin_cobrador --entorno PRD`; registrar los plugins 1.0.8.4 y apagar el flow de owner; `paso12_custom_api` (AltaCuenta y SolicitarEspecial); `paso6`, `paso7` y `paso8`; `paso9` (no hace falta si el entorno nace limpio); `paso10` (borrado programado); `paso7_desplegar`; `paso3_reconciliar`; sincronizar `solutions/unpacked` (rol nuevo, privilegios, regla de negocio borrada, cascadas). `paso11` no hace falta en PROD | CM |
 | Offline | Documentar el perfil offline y cómo forzar una sincronización completa | CM |
 
 ---
@@ -86,6 +85,7 @@ Cerrados el 2026-10-19:
 
 | ID | Qué se hizo | Verificación |
 |---|---|---|
+| Rol por pantalla (H1, H2, H3) | Matriz de roles contra el servidor (`tests/integral/seguridad/matriz.js`, informe en [matriz-roles.md](matriz-roles.md)). Los 3 huecos, con tu OK, en plugins 1.0.8.4 (`dd79002`), sin tocar roles: **H1** el Solicitante no escribe columnas de la asignación y el compartido de S-7 es solo lectura (`ModifyAccess` baja los anteriores); **H2** Diarias e Incobrables solo las crea la carga (SYSTEM: Smelter, también el job de `AltaCuenta`) o el Servicio, ninguna persona de CM (Admin incluido), y tampoco se convierte una asignación en una; **H3** el cobrador solo registra interacciones (y por ellas pagos) en cuentas de su cartera (asignación activa cuyo dueño es su usuario) | CI 405/405; 24/24 pasos; matriz: 446 celdas, **0 huecos**, 0 demasiado cerrado (antes 8 huecos), COL-ADM-D nuevo (Admin crea Diaria → 400); `apis/*` 19/19, 8/8, 8/8, 7/7; suite integral hasta F7 102/102 |
 | S-7 (solicitante anterior) | Opción (b1) del dueño: al reactivar una Especial pedida por otra persona, `SolicitarEspecial` le quita el compartido de la asignación con el servicio del sistema (solo la asignación: cuenta, cliente y fiador son del reparto y de `paso3`). Si la revocación falla, la reactivación sigue y se traza el código (`f67b608`, plugins 1.0.8.3) | CI 391/391; 24/24 pasos; en vivo `apis/s7-anterior.js` 6/6 (el Admin pierde el compartido al reactivar User2 y el reparto no se lo devuelve); regresión `s7-reactivada` 8/8 y `solicitar-especial` 8/8 |
 
 Cerrados el 2026-10-15:

@@ -26,6 +26,12 @@ const compartidos = async (id) => {
   const r = await dv.get(`RetrieveSharedPrincipalsAndAccess(Target=@t)?@t=${t}`);
   return (r.PrincipalAccesses || []).map((p) => p.Principal.systemuserid || p.Principal.teamid || p.Principal.ownerid);
 };
+const permisos = async (id, usuario) => {
+  const t = encodeURIComponent(JSON.stringify({ '@odata.id': `sanic_cm_tbl_asignacions(${id})` }));
+  const r = await dv.get(`RetrieveSharedPrincipalsAndAccess(Target=@t)?@t=${t}`);
+  const p = (r.PrincipalAccesses || []).find((x) => (x.Principal.systemuserid || x.Principal.ownerid) === usuario);
+  return p ? p.AccessMask : null;
+};
 
 (async () => {
   const agente = (await dv.get(`sanic_cm_tbl_agentes?$select=sanic_cm_tbl_agenteid&$filter=sanic_cm_ag_nombre eq '${AGENTE}'`)).value[0];
@@ -79,6 +85,8 @@ const compartidos = async (id) => {
     const ve = await datos.leerComo(U.sol, `sanic_cm_tbl_asignacions(${espId})?$select=sanic_cm_as_estado`);
     chk('S7B-05', r.ok && esp._sanic_cm_as_solicitadopor_value === U.sol && comp.includes(U.sol) && ve.status === 200,
       `aprobada otra vez: compartida con User2 y User2 la lee (${ve.status})`);
+    const mask = await permisos(espId, U.sol);
+    chk('S7B-05b', mask === 'ReadAccess', `H1 (1.0.8.4): el compartido de User2 es solo lectura: ${mask}`);
     chk('S7B-06', !comp.includes(U.adm), `el reparto no se la vuelve a compartir al Admin: ${comp.includes(U.adm) ? 'NO' : 'sí'}`);
   } finally {
     const l = await datos.limpiar();
