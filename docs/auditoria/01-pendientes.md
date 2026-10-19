@@ -56,7 +56,7 @@ Conviene juntarlos en un **runbook de pasaje a PROD** (`docs/guias/`), en orden 
 | S-12 | Entorno Managed, grupo de seguridad, restricción por IP y menos System Administrators (hoy son 15) | Tenant |
 | S-13 | Trazas de plugins en "Exception" (en DEV los roles operativos ya no las leen) | CM |
 | S-14 | Cascadas en NoCascade **antes** de la primera carga real (`paso1_cascadas_auditoria.py`) | CM |
-| Fase 2 | Pasos 2 y 8: el PAN fuera de las columnas auditadas; la clave K en Key Vault con identidad administrada; borrado automático del CSV de carga | CM + Tenant |
+| Fase 2 | Pasos 2 y 8: el PAN fuera de las columnas auditadas; la clave K se queda en la tabla protegida de Smelter (opción A, riesgo aceptado: sin Key Vault); borrado automático del CSV de carga | CM + Tenant |
 | PCI | La rama `feat/hmac-transform` de Smelter tiene que llegar a `main`; validación de Luhn; revisión de un QSA; la factura de papel con el PAN completo, a cumplimiento del banco | Smelter / Dueño |
 | Despliegue | En orden: `paso1_cascadas_auditoria` (antes de la primera carga real); `paso1c_auditar_historia_especial` (auditoría de Solicitado por y Resolutor; `paso7_desplegar` no aplica metadatos); `paso5_cartera_sin_cobrador --entorno PRD`; registrar los plugins 1.0.8.5 y apagar el flow de owner; `paso12_custom_api` (AltaCuenta y SolicitarEspecial); `paso6`, `paso7` y `paso8`; `paso9` (no hace falta si el entorno nace limpio); `paso10` (borrado programado); `paso7_desplegar`; `paso3_reconciliar`; sincronizar `solutions/unpacked` (rol nuevo, privilegios, regla de negocio borrada, cascadas). `paso11` no hace falta en PROD | CM |
 | Offline | Documentar el perfil offline y cómo forzar una sincronización completa | CM |
@@ -73,6 +73,7 @@ Conviene juntarlos en un **runbook de pasaje a PROD** (`docs/guias/`), en orden 
 | SEC-20 | Todos los roles pueden listar usuarios (`prvReadUser`): lo necesita la plataforma | Dueño, 2026-10-14 | — |
 | Admin global | El Admin tiene alcance Global en todas las tablas de CM: puede borrar, reasignarse y compartir cualquier fila y crear o editar interacciones, pagos, cargas diarias y cuentas, aunque ninguna pantalla lo hace (matriz de roles) | Dueño, 2026-10-19 | Antes de PROD, si cumplimiento pide mínimo privilegio para el Admin |
 | Lectura de datos personales | BackOffice, Solicitante y Supervisor leen fiadores; Solicitante y Supervisor también direcciones y teléfonos, aunque ninguna de sus pantallas los muestra (matriz de roles) | Dueño, 2026-10-19 | Si cumplimiento del banco lo objeta |
+| Custodia de la K (opción A) | La clave K del HMAC del PAN vive en la tabla protegida de Smelter (`sanic_tbl_smlt_hmackey`, la lee SYSTEM), en la misma base que las claves que protege: los System Administrators y cualquier rol al que se le dé lectura de esa tabla pueden leerla, y viaja en los respaldos y copias del entorno. Con K y las claves se pueden recuperar los PAN. No se usa Key Vault. Descartadas: B (configuración segura del paso, exige cambiar el plugin de Smelter) y C (la calcula el banco). Mitigaciones: S-12 (menos System Administrators), ningún rol con lectura de la tabla, sin auditoría en esa tabla, rotación con re-clave y custodio documentado (PCI 3.6/3.7) | Dueño, 2026-10-19 | Si el QSA o cumplimiento del banco lo objeta |
 
 ## Cerrados
 
