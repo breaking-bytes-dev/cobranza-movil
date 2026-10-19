@@ -190,6 +190,11 @@ namespace Sanic.CobranzaMovil.Plugins
                 return actual;
             }
 
+            foreach (var d in coleccion.AuditDetails)
+            {
+                local.Trace("{0}: detalle de tipo {1}, registro de auditoria: {2}.", columna, d.GetType().Name,
+                    d.AuditRecord == null ? "ninguno" : string.Join(",", d.AuditRecord.Attributes.Keys));
+            }
             var posteriores = new List<KeyValuePair<DateTime, AttributeAuditDetail>>();
             foreach (var detalle in coleccion.AuditDetails.OfType<AttributeAuditDetail>())
             {
