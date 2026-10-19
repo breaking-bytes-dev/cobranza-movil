@@ -95,6 +95,9 @@ namespace Sanic.CobranzaMovil.Plugins
         public const string InteraccionCodigoGrabacion = "sanic_cm_in_codigograbacion";
         public const string InteraccionFechaGrabacion = "sanic_cm_in_fechagrabacion";
         public const string InteraccionGrabadoPor = "sanic_cm_in_grabadopor";
+        public const string InteraccionFechaCaptura = "sanic_cm_in_fechacaptura"; // la pone el telefono (APP-20), UTC al llegar
+        public const string CreadoEl = "createdon";
+        public const string AuditoriaCreadoEl = "createdon"; // columna del registro de auditoria
         public const int GrabacionPendiente = 1;
         public const int GrabacionGrabado = 2;
         public const string AgenteNombre = "sanic_cm_ag_nombre";

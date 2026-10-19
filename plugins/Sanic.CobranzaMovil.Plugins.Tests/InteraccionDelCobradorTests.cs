@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using Microsoft.Crm.Sdk.Messages;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Query;
 using Moq;
@@ -126,6 +129,323 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             // Dueno = el usuario: una cuenta de la "Cartera sin cobrador" (dueno el equipo) no es de nadie.
             Assert.Contains(c, x => x.AttributeName == "ownerid" && (Guid)x.Values[0] == Harness.UsuarioLlamador);
             Assert.Equal(1, q.TopCount);
+        }
+
+        // ------------------------------------------------------------------ H3 con tolerancia por fecha (1.0.8.5)
+        // El cobrador captura sin senal en una cuenta que era suya; mientras tanto el supervisor se la reasigno a otro. Si la
+        // fecha de captura (la pone el telefono) es de hasta 48 h atras (y no futura mas alla de 5 min de reloj) y a esa fecha
+        // la cuenta tenia una asignacion ACTIVA suya segun la auditoria del dueno y del estado, la interaccion entra.
+
+        private static readonly DateTime Ahora = new DateTime(2026, 10, 19, 12, 0, 0, DateTimeKind.Utc);
+        private const string InFechaCaptura = "sanic_cm_in_fechacaptura";
+        private static readonly Guid Pedro = Guid.Parse("22222222-2222-2222-2222-222222222222");
+        private static readonly Guid Ana = Guid.Parse("33333333-3333-3333-3333-333333333333");
+        private static readonly Guid Sistema = Guid.Parse("00000000-0000-0000-0000-0000000000aa");
+
+        private sealed class Cambio
+        {
+            public DateTime Cuando;
+            public object Antes, Despues;
+        }
+
+        private static Cambio DuenoCambia(TimeSpan haceCuanto, Guid antes, Guid despues)
+        {
+            return new Cambio { Cuando = Ahora - haceCuanto, Antes = new EntityReference("systemuser", antes), Despues = new EntityReference("systemuser", despues) };
+        }
+
+        private static Cambio EstadoCambia(TimeSpan haceCuanto, bool antes, bool despues)
+        {
+            return new Cambio { Cuando = Ahora - haceCuanto, Antes = antes, Despues = despues };
+        }
+
+        private sealed class HistoriaAsignacion
+        {
+            public Guid Id = Guid.NewGuid();
+            public DateTime CreadaEn = Ahora - TimeSpan.FromDays(30);
+            public Guid DuenoActual;
+            public bool ActivaAhora = true;
+            public Cambio[] Duenos = new Cambio[0];
+            public Cambio[] Estados = new Cambio[0];
+        }
+
+        private static AuditDetailCollection Auditoria(string columna, Cambio[] cambios)
+        {
+            var c = new AuditDetailCollection();
+            foreach (var x in cambios)
+            {
+                var antes = new Entity(Asignacion);
+                antes[columna] = x.Antes;
+                var despues = new Entity(Asignacion);
+                despues[columna] = x.Despues;
+                var registro = new Entity("audit", Guid.NewGuid());
+                registro["createdon"] = x.Cuando;
+                registro["action"] = new OptionSetValue(2);
+                c.AuditDetails.Add(new AttributeAuditDetail { AuditRecord = registro, OldValue = antes, NewValue = despues });
+            }
+            return c;
+        }
+
+        private static bool TieneCondicionDeDueno(QueryExpression q)
+        {
+            return q.Criteria.Conditions.Any(x => x.AttributeName == "ownerid");
+        }
+
+        /// <summary>
+        /// El cobrador (UsuarioLlamador) ya no es el dueno actual de ninguna asignacion activa (la consulta con el filtro de
+        /// dueno vuelve vacia) y la consulta historica (sin filtro de dueno) devuelve estas asignaciones con su auditoria.
+        /// </summary>
+        private static Harness Capturada(DateTime? captura, params HistoriaAsignacion[] asignaciones)
+        {
+            var agente = Guid.NewGuid();
+            var t = Nueva(true, agente);
+            if (captura.HasValue) t[InFechaCaptura] = captura.Value;
+            var h = Crear(t, new[] { Localizador }, AgenteDe(agente, "QA"));
+            var filas = new EntityCollection(asignaciones.Select(a =>
+            {
+                var e = new Entity(Asignacion, a.Id);
+                e["createdon"] = a.CreadaEn;
+                e["ownerid"] = new EntityReference("systemuser", a.DuenoActual);
+                e["sanic_cm_as_estado"] = a.ActivaAhora;
+                return e;
+            }).ToList());
+            h.Service.Setup(s => s.RetrieveMultiple(It.Is<QueryBase>(q => ((QueryExpression)q).EntityName == Asignacion)))
+                .Returns<QueryBase>(q => TieneCondicionDeDueno((QueryExpression)q) ? new EntityCollection() : filas);
+            h.Service.Setup(s => s.Execute(It.IsAny<OrganizationRequest>()))
+                .Returns<OrganizationRequest>(r =>
+                {
+                    var req = (RetrieveAttributeChangeHistoryRequest)r;
+                    var a = asignaciones.Single(x => x.Id == req.Target.Id);
+                    var coleccion = req.AttributeLogicalName == "ownerid" ? Auditoria("ownerid", a.Duenos)
+                        : req.AttributeLogicalName == "sanic_cm_as_estado" ? Auditoria("sanic_cm_as_estado", a.Estados)
+                        : new AuditDetailCollection();
+                    var resp = new RetrieveAttributeChangeHistoryResponse();
+                    resp.Results["AuditDetailCollection"] = coleccion;
+                    return resp;
+                });
+            return h;
+        }
+
+        private static void Ejecuta(Harness h)
+        {
+            h.Ejecutar(new InteraccionDelCobrador(() => Ahora));
+        }
+
+        private static InvalidPluginExecutionException Rechazada(Harness h)
+        {
+            return Assert.Throws<InvalidPluginExecutionException>(() => Ejecuta(h));
+        }
+
+        private static int Auditorias(Harness h)
+        {
+            return h.Service.Invocations.Count(i => i.Method.Name == "Execute");
+        }
+
+        private static HistoriaAsignacion ReasignadaAPedroHace(TimeSpan hace)
+        {
+            return new HistoriaAsignacion
+            {
+                DuenoActual = Pedro,
+                Duenos = new[] { DuenoCambia(hace, Harness.UsuarioLlamador, Pedro) },
+            };
+        }
+
+        [Fact]
+        public void Tolerancia_la_cuenta_era_suya_al_capturar_y_se_la_reasignaron_despues_entra()
+        {
+            var h = Capturada(Ahora - TimeSpan.FromHours(3), ReasignadaAPedroHace(TimeSpan.FromHours(1)));
+            Ejecuta(h);
+            Assert.Contains("tolerancia", h.TodoElTexto());
+        }
+
+        [Fact]
+        public void Tolerancia_la_captura_posterior_a_la_reasignacion_se_rechaza()
+        {
+            var h = Capturada(Ahora - TimeSpan.FromMinutes(30), ReasignadaAPedroHace(TimeSpan.FromHours(1)));
+            Assert.Contains("cartera", Rechazada(h).Message);
+        }
+
+        [Fact]
+        public void Tolerancia_captura_de_mas_de_48_horas_se_rechaza_sin_mirar_la_auditoria()
+        {
+            var h = Capturada(Ahora - TimeSpan.FromHours(49), ReasignadaAPedroHace(TimeSpan.FromHours(1)));
+            Assert.Contains("cartera", Rechazada(h).Message);
+            Assert.Equal(0, Auditorias(h));
+        }
+
+        [Fact]
+        public void Tolerancia_el_limite_de_48_horas_es_inclusivo()
+        {
+            Ejecuta(Capturada(Ahora - TimeSpan.FromHours(48), ReasignadaAPedroHace(TimeSpan.FromHours(1))));
+        }
+
+        [Fact]
+        public void Tolerancia_fecha_futura_mas_alla_del_margen_de_reloj_se_rechaza_sin_mirar_la_auditoria()
+        {
+            var h = Capturada(Ahora + TimeSpan.FromMinutes(6), ReasignadaAPedroHace(TimeSpan.FromHours(1)));
+            Assert.Contains("cartera", Rechazada(h).Message);
+            Assert.Equal(0, Auditorias(h));
+        }
+
+        [Fact]
+        public void Tolerancia_hasta_5_minutos_de_reloj_adelantado_se_evalua_pero_si_ya_no_era_suya_se_rechaza()
+        {
+            var h = Capturada(Ahora + TimeSpan.FromMinutes(4), ReasignadaAPedroHace(TimeSpan.FromHours(1)));
+            Assert.Contains("cartera", Rechazada(h).Message);
+            Assert.True(Auditorias(h) > 0);
+        }
+
+        [Fact]
+        public void Tolerancia_sin_fecha_de_captura_rige_la_regla_estricta()
+        {
+            var h = Capturada(null, ReasignadaAPedroHace(TimeSpan.FromHours(1)));
+            Assert.Contains("cartera", Rechazada(h).Message);
+            Assert.Equal(0, Auditorias(h));
+        }
+
+        [Fact]
+        public void Tolerancia_una_cuenta_que_nunca_fue_suya_se_rechaza()
+        {
+            var nunca = new HistoriaAsignacion
+            {
+                DuenoActual = Pedro,
+                Duenos = new[] { DuenoCambia(TimeSpan.FromHours(1), Sistema, Pedro) },
+            };
+            Assert.Contains("cartera", Rechazada(Capturada(Ahora - TimeSpan.FromHours(3), nunca)).Message);
+        }
+
+        [Fact]
+        public void Tolerancia_una_cuenta_sin_asignaciones_se_rechaza()
+        {
+            Assert.Contains("cartera", Rechazada(Capturada(Ahora - TimeSpan.FromHours(3))).Message);
+        }
+
+        [Fact]
+        public void Tolerancia_la_asignacion_que_siempre_fue_de_otro_sin_cambios_de_dueno_se_rechaza()
+        {
+            var siempreDePedro = new HistoriaAsignacion { DuenoActual = Pedro };
+            Assert.Contains("cartera", Rechazada(Capturada(Ahora - TimeSpan.FromHours(3), siempreDePedro)).Message);
+        }
+
+        [Fact]
+        public void Tolerancia_el_dueno_actual_entra_sin_mirar_la_auditoria()
+        {
+            var agente = Guid.NewGuid();
+            var t = Nueva(true, agente);
+            t[InFechaCaptura] = Ahora - TimeSpan.FromHours(100); // fuera de ventana: da igual, es el dueno actual
+            var h = Crear(t, new[] { Localizador }, AgenteDe(agente, "QA"));
+            Ejecuta(h);
+            Assert.Equal(0, Auditorias(h));
+        }
+
+        [Fact]
+        public void Tolerancia_reasignada_dos_veces_vale_el_dueno_a_la_fecha_de_captura()
+        {
+            // Juan -> Pedro (hace 5 h) -> Ana (hace 1 h)
+            Func<DateTime, Harness> con = captura => Capturada(captura, new HistoriaAsignacion
+            {
+                DuenoActual = Ana,
+                Duenos = new[]
+                {
+                    DuenoCambia(TimeSpan.FromHours(1), Pedro, Ana),
+                    DuenoCambia(TimeSpan.FromHours(5), Harness.UsuarioLlamador, Pedro),
+                },
+            });
+            Ejecuta(con(Ahora - TimeSpan.FromHours(8)));                                  // era de Juan
+            Assert.Contains("cartera", Rechazada(con(Ahora - TimeSpan.FromHours(3))).Message);   // era de Pedro
+            Assert.Contains("cartera", Rechazada(con(Ahora - TimeSpan.FromMinutes(30))).Message); // ya era de Ana
+        }
+
+        [Fact]
+        public void Tolerancia_el_tramo_intermedio_de_Juan_entra_y_el_anterior_de_Pedro_no()
+        {
+            // Pedro -> Juan (hace 4 h) -> Ana (hace 1 h): la captura de hace 2 h cae en el tramo de Juan.
+            Func<DateTime, Harness> con = captura => Capturada(captura, new HistoriaAsignacion
+            {
+                DuenoActual = Ana,
+                Duenos = new[]
+                {
+                    DuenoCambia(TimeSpan.FromHours(1), Harness.UsuarioLlamador, Ana),
+                    DuenoCambia(TimeSpan.FromHours(4), Pedro, Harness.UsuarioLlamador),
+                },
+            });
+            Ejecuta(con(Ahora - TimeSpan.FromHours(2)));
+            Assert.Contains("cartera", Rechazada(con(Ahora - TimeSpan.FromHours(6))).Message);
+        }
+
+        [Fact]
+        public void Tolerancia_la_asignacion_cerrada_despues_de_la_captura_entra()
+        {
+            var cerrada = new HistoriaAsignacion
+            {
+                DuenoActual = Harness.UsuarioLlamador,
+                ActivaAhora = false,
+                Estados = new[] { EstadoCambia(TimeSpan.FromHours(1), true, false) },
+            };
+            Ejecuta(Capturada(Ahora - TimeSpan.FromHours(3), cerrada));
+        }
+
+        [Fact]
+        public void Tolerancia_la_asignacion_cerrada_antes_de_la_captura_se_rechaza()
+        {
+            var cerrada = new HistoriaAsignacion
+            {
+                DuenoActual = Harness.UsuarioLlamador,
+                ActivaAhora = false,
+                Estados = new[] { EstadoCambia(TimeSpan.FromHours(5), true, false) },
+            };
+            Assert.Contains("cartera", Rechazada(Capturada(Ahora - TimeSpan.FromHours(3), cerrada)).Message);
+        }
+
+        [Fact]
+        public void Tolerancia_cerrada_siempre_y_sin_historial_de_estado_se_rechaza()
+        {
+            var cerrada = new HistoriaAsignacion { DuenoActual = Harness.UsuarioLlamador, ActivaAhora = false };
+            Assert.Contains("cartera", Rechazada(Capturada(Ahora - TimeSpan.FromHours(3), cerrada)).Message);
+        }
+
+        [Fact]
+        public void Tolerancia_una_asignacion_creada_despues_de_la_captura_no_cuenta()
+        {
+            var nueva = ReasignadaAPedroHace(TimeSpan.FromMinutes(10));
+            nueva.CreadaEn = Ahora - TimeSpan.FromHours(1); // nacio despues de la captura, aunque su primer dueno fuera Juan
+            Assert.Contains("cartera", Rechazada(Capturada(Ahora - TimeSpan.FromHours(3), nueva)).Message);
+        }
+
+        [Fact]
+        public void Tolerancia_alcanza_con_que_una_de_las_asignaciones_de_la_cuenta_fuera_suya()
+        {
+            var deOtro = new HistoriaAsignacion { DuenoActual = Pedro };
+            Ejecuta(Capturada(Ahora - TimeSpan.FromHours(3), deOtro, ReasignadaAPedroHace(TimeSpan.FromHours(1))));
+        }
+
+        [Fact]
+        public void Tolerancia_si_no_se_puede_leer_la_auditoria_falla_cerrado()
+        {
+            var h = Capturada(Ahora - TimeSpan.FromHours(3), ReasignadaAPedroHace(TimeSpan.FromHours(1)));
+            h.Service.Setup(s => s.Execute(It.IsAny<OrganizationRequest>()))
+                .Throws(new System.ServiceModel.FaultException<OrganizationServiceFault>(new OrganizationServiceFault { ErrorCode = unchecked((int)0x80040220) }));
+            Assert.Contains("cartera", Rechazada(h).Message);
+        }
+
+        [Fact]
+        public void Tolerancia_consulta_la_auditoria_de_la_asignacion_de_la_cuenta_con_el_servicio_del_sistema_y_no_traza_valores()
+        {
+            var a = ReasignadaAPedroHace(TimeSpan.FromHours(1));
+            var h = Capturada(Ahora - TimeSpan.FromHours(3), a);
+            Ejecuta(h);
+
+            var pedidos = h.Service.Invocations.Where(i => i.Method.Name == "Execute")
+                .Select(i => (RetrieveAttributeChangeHistoryRequest)i.Arguments[0]).ToList();
+            Assert.NotEmpty(pedidos);
+            Assert.All(pedidos, p => { Assert.Equal(a.Id, p.Target.Id); Assert.Equal(Asignacion, p.Target.LogicalName); });
+            Assert.Contains(pedidos, p => p.AttributeLogicalName == "ownerid");
+
+            var historica = h.Service.Invocations.Where(i => i.Method.Name == "RetrieveMultiple")
+                .Select(i => i.Arguments[0] as QueryExpression).Where(q => q != null && q.EntityName == Asignacion && !TieneCondicionDeDueno(q)).ToList();
+            Assert.Single(historica);
+            Assert.Contains(historica[0].Criteria.Conditions, x => x.AttributeName == "sanic_cm_as_cuentaid");
+            Assert.DoesNotContain(Pedro.ToString(), h.TodoElTexto());
+            Assert.DoesNotContain(Harness.UsuarioLlamador.ToString(), h.TodoElTexto());
         }
 
         [Fact]
