@@ -96,3 +96,16 @@ lib/datos.js      inventario por prefijo, limpieza, lectura suplantando a un usu
 lib/ui.js         abrir/cerrar apps (un Chromium a la vez), capturas seguras, filas de galería
 fases/*.js        carga (F0-F2) · admin (F3, F9) · solicitante (F4, F10) · supervisor (F5, F6) · cobrador (F7) · backoffice (F8)
 ```
+
+## Matriz de roles contra el servidor ("rol por pantalla")
+
+```bash
+cd tests/integral && NODE_PATH=../backoffice-canvas/node_modules node seguridad/matriz.js
+```
+
+Sin navegador: se hace pasar por User1 a User5 (nunca User6) y en cada tabla de CM intenta crear, leer, editar, borrar, reasignarse y
+compartir, más los casos de columna de la asignación y la interacción y el alta de un job de Smelter. Compara con
+`seguridad/esperado.js` (lo que cada rol debería poder hacer según sus pantallas, con el porqué) y escribe
+[docs/auditoria/matriz-roles.md](../../docs/auditoria/matriz-roles.md). Solo datos QA propios, borrados al final. Toma el lock de DEV
+(`local/dev.lock`) igual que las suites: su limpieza por prefijo borraría los datos de una corrida en paralelo.
+`--solo-informe resultados/matriz-<id>` rearma el informe sin volver a correr.

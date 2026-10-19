@@ -38,7 +38,7 @@
 | ID | Problema | Propuesta | Quién | Esfuerzo | Estado |
 |---|---|---|---|---|---|
 | APP-11 | El GPS con 6 decimales nunca se probó con GPS real (el Android de pruebas no tiene) | Una captura desde tu teléfono con el GPS encendido; yo verifico los decimales en Dataverse | Dueño (teléfono) | Chico | Pendiente (decisión: seguir esperando) |
-| Rol por pantalla | El backoffice decide qué pantallas mostrar con `gblRol`, del lado del cliente | Matriz rol × tabla × operación contra la API (suplantando a cada usuario QA). Ya hay pruebas por API de lo más sensible (S-9, S-11, DAT-11, DAT-13) | CM | Mediano | Aprobado (2026-10-19), en curso |
+| Rol por pantalla | Matriz corrida el 2026-10-19 (`tests/integral/seguridad/matriz.js`, informe en [matriz-roles.md](matriz-roles.md)): 446 celdas, 371 coinciden, **8 huecos**, 0 demasiado cerrado y 67 dudosas (casi todas del Admin). Los huecos: el Solicitante edita y hasta cierra su Especial, también ya aprobada (H1); el Solicitante crea una Diaria con agente sin aprobación (H2); el cobrador registra visita y pago en una cuenta fuera de su cartera (H3). Ningún rol de otra solución da privilegios sobre CM | H1: Solicitante sin columnas en `ColumnasAsignacion` y compartido de S-7 solo lectura. H2: `AprobacionEspecial` deja crear solo Especiales Pendientes sin agente a quien no es Supervisor/Admin/Servicio. H3: `InteraccionDelCobrador` exige una asignación activa de su cartera. Dudosas: decidir mínimo privilegio del Admin y lecturas de fiador, dirección y teléfono | CM (después de tu decisión) | Mediano | Matriz hecha; huecos esperando tu OK |
 
 ## 4. Documentación
 
