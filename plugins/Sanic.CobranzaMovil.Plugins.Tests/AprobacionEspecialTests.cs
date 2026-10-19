@@ -74,7 +74,6 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             var h = Crear(t, new string[0]);
             h.Ejecutar(new AprobacionEspecial());
             Assert.Equal(Borrador, t.GetAttributeValue<OptionSetValue>(Estado).Value);
-            Assert.Equal(0, h.ConsultasAlServicio());
         }
 
         [Fact]
@@ -126,12 +125,70 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             Rechaza(Crear(Nueva(null, Pendiente, conAgente: true), Solicitante));
         }
 
-        [Fact]
-        public void Una_Diaria_con_agente_no_se_controla()
+        // ------------------------------------------------------------------ H2: Diarias e Incobrables solo por carga
+
+        private static void RechazaH2(Harness h)
         {
-            var h = Crear(Nueva(Diaria, Borrador, conAgente: true), BackOffice);
-            h.Ejecutar(new AprobacionEspecial());
-            Assert.Equal(0, h.ConsultasAlServicio());
+            var ex = Assert.Throws<InvalidPluginExecutionException>(() => h.Ejecutar(new AprobacionEspecial()));
+            Assert.Contains("solo llegan por la carga", ex.Message);
+        }
+
+        [Theory]
+        [InlineData(Diaria, Solicitante)]
+        [InlineData(Diaria, BackOffice)]
+        [InlineData(Diaria, Localizador)]
+        [InlineData(Diaria, Supervisor)]
+        [InlineData(Diaria, Admin)]
+        [InlineData(2, Solicitante)]
+        [InlineData(2, Supervisor)]
+        [InlineData(2, Admin)]
+        public void H2_ninguna_persona_de_CM_crea_una_Diaria_o_Incobrable(int tipo, string rol)
+        {
+            // Dueno, 2026-10-19: "las diarias solo deberian venir por carga". La carga (Smelter, tambien el alta del
+            // Admin con AltaCuenta, que pasa por un job de Smelter) crea como SYSTEM, sin roles de CM.
+            RechazaH2(Crear(Nueva(tipo, null, conAgente: true), rol));
+            RechazaH2(Crear(Nueva(tipo, Borrador, conAgente: false), rol));
+        }
+
+        [Theory]
+        [InlineData(Diaria)]
+        [InlineData(2)]
+        public void H2_la_carga_y_el_Servicio_crean_Diarias_e_Incobrables(int tipo)
+        {
+            Crear(Nueva(tipo, null, conAgente: true), new string[0]).Ejecutar(new AprobacionEspecial());
+            Crear(Nueva(tipo, null, conAgente: true), "System Administrator").Ejecutar(new AprobacionEspecial());
+            Crear(Nueva(tipo, null, conAgente: true), Servicio).Ejecutar(new AprobacionEspecial());
+            Crear(Nueva(tipo, null, conAgente: true), Admin, Servicio).Ejecutar(new AprobacionEspecial());
+        }
+
+        [Theory]
+        [InlineData(Diaria, Admin)]
+        [InlineData(2, Supervisor)]
+        public void H2_convertir_en_Diaria_o_Incobrable_es_crear_una_y_tampoco_se_puede(int tipo, string rol)
+        {
+            var id = Guid.NewGuid();
+            var t = new Entity(Asignacion, id);
+            t[Tipo] = new OptionSetValue(tipo);
+            RechazaH2(Actualizar(t, Previa(id, Especial, Aprobado, Guid.NewGuid()), rol));
+        }
+
+        [Fact]
+        public void H2_la_carga_puede_reclasificar_y_reenviar_el_mismo_tipo_no_es_un_cambio()
+        {
+            var id = Guid.NewGuid();
+            var t = new Entity(Asignacion, id);
+            t[Tipo] = new OptionSetValue(2);
+            Actualizar(t, Previa(id, Diaria, Borrador, Guid.NewGuid())).Ejecutar(new AprobacionEspecial());
+
+            var mismo = new Entity(Asignacion, id);
+            mismo[Tipo] = new OptionSetValue(Diaria);
+            Actualizar(mismo, Previa(id, Diaria, Borrador, Guid.NewGuid()), Supervisor).Ejecutar(new AprobacionEspecial());
+        }
+
+        [Fact]
+        public void H2_el_Supervisor_sigue_aprobando_y_poniendo_agente_en_una_Especial()
+        {
+            Crear(Nueva(Especial, Aprobado, conAgente: true), Supervisor).Ejecutar(new AprobacionEspecial());
         }
 
         [Fact]

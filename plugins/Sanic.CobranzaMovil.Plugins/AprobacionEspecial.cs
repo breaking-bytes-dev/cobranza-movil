@@ -16,9 +16,11 @@ namespace Sanic.CobranzaMovil.Plugins
     /// administradores del entorno. Las Especiales del CSV no llegan al cobrador hasta que se aprueban: eso lo
     /// cuidan el flow (no comparte) y la app (no muestra), sin romper la carga.
     ///
+    /// H2: las Diarias e Incobrables solo las trae la carga (<see cref="SoloLaCargaTraeDiariasEIncobrables"/>).
+    ///
     /// S-7: en el alta, una persona de CM solo puede poner "Solicitado por" a si misma (<see cref="SolicitadoPor"/>).
     ///
-    /// Solo consulta roles si el cambio es de los controlados. Nunca traza ni cita valores del registro.
+    /// Solo consulta roles si el cambio es de los controlados (o es una Diaria o Incobrable, H2). Nunca traza ni cita valores del registro.
     /// Registro: PreOperation sincrono. Create y Update de sanic_cm_tbl_asignacion; el Update filtrado por
     /// agente, estado de aprobacion y tipo, con imagen previa "PreImage" de esas tres columnas.
     /// </summary>
@@ -54,6 +56,7 @@ namespace Sanic.CobranzaMovil.Plugins
                 }
                 previa = local.ObtenerImagenPrevia();
             }
+            SoloLaCargaTraeDiariasEIncobrables(local, target, previa, rolesDelLlamador);
 
             if (!CambioControlado(target, previa))
             {
@@ -82,6 +85,28 @@ namespace Sanic.CobranzaMovil.Plugins
             if (aprobacion != null && aprobacion.Value != Esquema.AprobacionPendiente) return;
             target[Esquema.AsignacionEstadoAprobacion] = new OptionSetValue(Esquema.AprobacionBorrador);
             local.Trace("DAT-28: Diaria o Incobrable nace en Borrador.");
+        }
+
+        /// <summary>
+        /// H2 (matriz de roles; dueno, 2026-10-19: "las diarias solo deberian venir por carga"). Crear una Diaria o
+        /// Incobrable, o convertir una asignacion en una, es cosa de la carga: Smelter crea como SYSTEM (sin roles de CM),
+        /// tambien el alta del Admin con AltaCuenta (pasa por un job de Smelter). Ninguna pantalla las crea. Antes un
+        /// Solicitante creaba una Diaria activa con agente y el reparto se la mandaba al cobrador sin aprobacion.
+        /// Frena a toda persona con roles de CM, Admin incluido; no frena al Servicio ni a quien no tiene roles de CM.
+        /// </summary>
+        private static void SoloLaCargaTraeDiariasEIncobrables(LocalContext local, Entity target, Entity previa, Func<RolesCm> roles)
+        {
+            if (!target.Contains(Esquema.AsignacionTipo)) return; // Create sin tipo: nace Especial
+            var tipo = target.GetAttributeValue<OptionSetValue>(Esquema.AsignacionTipo);
+            if (tipo == null || (tipo.Value != Esquema.TipoDiaria && tipo.Value != Esquema.TipoIncobrable)) return;
+            if (previa != null)
+            {
+                var antes = previa.GetAttributeValue<OptionSetValue>(Esquema.AsignacionTipo);
+                if (antes != null && antes.Value == tipo.Value) return;
+            }
+            var r = roles();
+            if (r.SinRolesCm || r.Tiene(RolesCm.Servicio)) return;
+            throw local.Error("las asignaciones Diarias e Incobrables solo llegan por la carga del banco; una persona no puede crearlas ni convertir otra en una.");
         }
 
         private static bool CambioControlado(Entity target, Entity previa)

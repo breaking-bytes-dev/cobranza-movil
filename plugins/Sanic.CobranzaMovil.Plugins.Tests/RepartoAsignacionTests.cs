@@ -165,6 +165,12 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
                     && g.PrincipalAccess.Principal.Id == usuario && g.PrincipalAccess.AccessMask == permisos);
             }
 
+            public bool Modifico(string tabla, Guid id, Guid usuario, AccessRights permisos)
+            {
+                return Operaciones.OfType<ModifyAccessRequest>().Any(g => g.Target.LogicalName == tabla && g.Target.Id == id
+                    && g.PrincipalAccess.Principal.Id == usuario && g.PrincipalAccess.AccessMask == permisos);
+            }
+
             public bool Revoco(string tabla, Guid id, Guid principal)
             {
                 return Revokes.Any(r => r.Target.LogicalName == tabla && r.Target.Id == id && r.Revokee.Id == principal);
@@ -398,7 +404,9 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             m.Ejecutar();
             Assert.Single(m.Updates);
             Assert.True(m.Compartio(Asignacion, m.AsignacionId, m.Solicitante,
-                AccessRights.ReadAccess | AccessRights.WriteAccess | AccessRights.AppendAccess));
+                AccessRights.ReadAccess));
+            // H1: el compartido es solo lectura y se baja a lectura si ya existia con mas permisos (ModifyAccess reemplaza).
+            Assert.True(m.Modifico(Asignacion, m.AsignacionId, m.Solicitante, AccessRights.ReadAccess));
         }
 
         [Fact]
@@ -417,7 +425,9 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             m.Ejecutar();
 
             Assert.True(m.Compartio(Asignacion, m.AsignacionId, m.Solicitante,
-                AccessRights.ReadAccess | AccessRights.WriteAccess | AccessRights.AppendAccess));
+                AccessRights.ReadAccess));
+            // H1: el compartido es solo lectura y se baja a lectura si ya existia con mas permisos (ModifyAccess reemplaza).
+            Assert.True(m.Modifico(Asignacion, m.AsignacionId, m.Solicitante, AccessRights.ReadAccess));
             Assert.DoesNotContain(m.Grants, g => g.Target.LogicalName == Asignacion
                 && g.PrincipalAccess.Principal.Id == m.Anterior);
             Assert.Equal(m.Cobrador, Assert.Single(m.Updates).GetAttributeValue<EntityReference>("ownerid").Id);

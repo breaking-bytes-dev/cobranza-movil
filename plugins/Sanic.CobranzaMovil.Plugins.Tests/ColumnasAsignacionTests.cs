@@ -106,20 +106,18 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         }
 
         [Fact]
-        public void El_Solicitante_reactiva_su_Especial_cerrada()
+        public void H1_el_Solicitante_no_edita_ninguna_columna_de_la_asignacion()
         {
-            // scrNuevaSolicitud, rama b): las columnas que escribe al volver a pedir una Especial cerrada.
-            Pasa(Cambio("sanic_cm_as_estado", "sanic_cm_as_estadoaprobacion", "sanic_cm_as_retironio", "sanic_cm_as_retirousd",
-                "sanic_cm_as_notas", "sanic_cm_as_solicitadopor", "sanic_cm_as_fechasignacion", "sanic_cm_as_agenteid",
-                "sanic_cm_as_resolutorid", "sanic_cm_as_motivo", "sanic_cm_as_motivorechazo", "sanic_cm_as_fechacierre"), Solicitante);
-        }
-
-        [Fact]
-        public void El_Solicitante_no_cambia_tipo_cuenta_ni_orden()
-        {
-            Rechaza(Cambio("sanic_cm_as_tipo"), Solicitante);
-            Rechaza(Cambio("sanic_cm_as_cuentaid"), Solicitante);
-            Rechaza(Cambio("sanic_cm_as_orden"), Solicitante);
+            // Matriz de roles H1 (dueno, 2026-10-19): volver a pedir una Especial cerrada lo hace SolicitarEspecial con el
+            // servicio del sistema (DAT-14); el Solicitante solo pide y lee. Antes editaba retiro y notas, y hasta cerraba
+            // la Especial que S-7 le compartia ya aprobada.
+            foreach (var columna in new[] { "sanic_cm_as_estado", "sanic_cm_as_estadoaprobacion", "sanic_cm_as_retironio",
+                "sanic_cm_as_retirousd", "sanic_cm_as_notas", "sanic_cm_as_solicitadopor", "sanic_cm_as_fechasignacion",
+                "sanic_cm_as_agenteid", "sanic_cm_as_resolutorid", "sanic_cm_as_motivo", "sanic_cm_as_motivorechazo",
+                "sanic_cm_as_fechacierre", "sanic_cm_as_tipo", "sanic_cm_as_cuentaid", "sanic_cm_as_orden" })
+            {
+                Rechaza(Cambio(columna), Solicitante);
+            }
         }
 
         [Fact]
@@ -174,22 +172,17 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         }
 
         [Fact]
-        public void S7_el_Solicitante_se_pone_a_si_mismo_como_Solicitado_por()
+        public void S7_H1_ni_el_Solicitante_ni_el_Supervisor_cambian_Solicitado_por()
         {
-            Pasa(ConSolicitadoPor(Harness.UsuarioLlamador), Solicitante);
-        }
-
-        [Fact]
-        public void S7_el_Solicitante_no_pone_a_otro_como_Solicitado_por()
-        {
-            // RepartoAsignacion comparte la Especial aprobada con "Solicitado por": poniendo a otro, el Solicitante le
-            // regalaria lectura y escritura de la Especial a un tercero.
+            // RepartoAsignacion comparte la Especial aprobada con "Solicitado por": ningun rol de persona lo edita.
             var otro = Guid.NewGuid();
-            var h = Actualizar(ConSolicitadoPor(otro), Solicitante);
-            var ex = Assert.Throws<InvalidPluginExecutionException>(() => h.Ejecutar(new ColumnasAsignacion()));
-            Assert.Contains("Solicitado por", ex.Message);
-            Assert.DoesNotContain(otro.ToString(), ex.Message);
-            Assert.DoesNotContain(otro.ToString(), h.TodoElTexto());
+            foreach (var rol in new[] { Solicitante, Supervisor })
+            {
+                Rechaza(ConSolicitadoPor(Harness.UsuarioLlamador), rol);
+                var h = Actualizar(ConSolicitadoPor(otro), rol);
+                Assert.Throws<InvalidPluginExecutionException>(() => h.Ejecutar(new ColumnasAsignacion()));
+                Assert.DoesNotContain(otro.ToString(), h.TodoElTexto());
+            }
         }
 
         [Theory]

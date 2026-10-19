@@ -15,6 +15,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         private const string Interaccion = "sanic_cm_tbl_interaccion";
         private const string Agente = "sanic_cm_tbl_agente";
         private const string Cuenta = "sanic_cm_tbl_cuenta";
+        private const string Asignacion = "sanic_cm_tbl_asignacion";
         private const string InCuenta = "sanic_cm_in_cuentaid";
         private const string InAgente = "sanic_cm_in_agente";
         private const string InNombreAgente = "sanic_cm_in_nombreagente";
@@ -55,7 +56,9 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             }
             var filasAgentes = new EntityCollection(new System.Collections.Generic.List<Entity>(agentesDelUsuario));
             h.Service.Setup(s => s.RetrieveMultiple(It.IsAny<QueryBase>()))
-                .Returns<QueryBase>(q => ((QueryExpression)q).EntityName == Agente ? filasAgentes : filasRoles);
+                .Returns<QueryBase>(q => ((QueryExpression)q).EntityName == Agente ? filasAgentes
+                    : ((QueryExpression)q).EntityName == Asignacion ? new EntityCollection(new System.Collections.Generic.List<Entity> { new Entity(Asignacion, Guid.NewGuid()) })
+                    : filasRoles);
             return h;
         }
 
@@ -73,6 +76,65 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         private static InvalidPluginExecutionException Rechaza(Harness h)
         {
             return Assert.Throws<InvalidPluginExecutionException>(() => h.Ejecutar(new InteraccionDelCobrador()));
+        }
+
+        // ------------------------------------------------------------------ H3: solo cuentas de su cartera
+
+        private static void FueraDeCartera(Harness h)
+        {
+            h.Service.Setup(s => s.RetrieveMultiple(It.Is<QueryBase>(q => ((QueryExpression)q).EntityName == Asignacion)))
+                .Returns(new EntityCollection());
+        }
+
+        private static QueryExpression ConsultaDeCartera(Harness h)
+        {
+            foreach (var inv in h.Service.Invocations)
+            {
+                if (inv.Method.Name != "RetrieveMultiple") continue;
+                var q = inv.Arguments[0] as QueryExpression;
+                if (q != null && q.EntityName == Asignacion) return q;
+            }
+            return null;
+        }
+
+        [Fact]
+        public void H3_el_cobrador_no_registra_visitas_en_una_cuenta_que_no_es_de_su_cartera()
+        {
+            var agente = Guid.NewGuid();
+            var t = Nueva(true, agente);
+            var h = Crear(t, new[] { Localizador }, AgenteDe(agente, "QA"));
+            FueraDeCartera(h);
+            var ex = Rechaza(h);
+            Assert.Contains("cartera", ex.Message);
+            Assert.DoesNotContain(t.GetAttributeValue<EntityReference>(InCuenta).Id.ToString(), ex.Message + h.TodoElTexto());
+        }
+
+        [Fact]
+        public void H3_la_cartera_es_una_asignacion_activa_de_esa_cuenta_cuyo_dueno_es_el_cobrador()
+        {
+            var agente = Guid.NewGuid();
+            var t = Nueva(true, agente);
+            var h = Crear(t, new[] { Localizador }, AgenteDe(agente, "QA"));
+            h.Ejecutar(new InteraccionDelCobrador());
+
+            var q = ConsultaDeCartera(h);
+            Assert.NotNull(q);
+            var c = q.Criteria.Conditions;
+            Assert.Contains(c, x => x.AttributeName == "sanic_cm_as_cuentaid" && x.Operator == ConditionOperator.Equal
+                && (Guid)x.Values[0] == t.GetAttributeValue<EntityReference>(InCuenta).Id);
+            Assert.Contains(c, x => x.AttributeName == "sanic_cm_as_estado" && (bool)x.Values[0]);
+            // Dueno = el usuario: una cuenta de la "Cartera sin cobrador" (dueno el equipo) no es de nadie.
+            Assert.Contains(c, x => x.AttributeName == "ownerid" && (Guid)x.Values[0] == Harness.UsuarioLlamador);
+            Assert.Equal(1, q.TopCount);
+        }
+
+        [Fact]
+        public void H3_el_Admin_no_necesita_cartera()
+        {
+            var h = Crear(Nueva(true, Guid.NewGuid()), new[] { Admin });
+            FueraDeCartera(h);
+            h.Ejecutar(new InteraccionDelCobrador());
+            Assert.Null(ConsultaDeCartera(h));
         }
 
         [Fact]

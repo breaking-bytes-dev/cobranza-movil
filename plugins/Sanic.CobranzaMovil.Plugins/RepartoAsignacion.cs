@@ -21,7 +21,7 @@ namespace Sanic.CobranzaMovil.Plugins
     ///    1) pasa el dueno al usuario del agente o, si el agente no tiene usuario o no hay agente, al equipo
     ///       "Cartera sin cobrador" (DAT-07; antes no hacia nada y el cobrador anterior la conservaba). Va antes de
     ///       mirar otras asignaciones: ver RevocarSiNoQuedaOtra;
-    ///    2) si es Especial, se la comparte (lectura, escritura, anexar) a "Solicitado por" (S-7: una persona de CM
+    ///    2) si es Especial, se la comparte (solo lectura, H1) a "Solicitado por" (S-7: una persona de CM
     ///       solo puede ponerse a si misma, ver SolicitadoPor);
     ///    3) si hay cobrador, le comparte en lectura la cuenta, el cliente y el fiador;
     ///    4) si cambio el dueno, al dueno anterior le revoca cuenta, cliente y fiador que ya no justifique otra
@@ -152,9 +152,19 @@ namespace Sanic.CobranzaMovil.Plugins
             var solicitante = asignacion.GetAttributeValue<EntityReference>(Esquema.AsignacionSolicitadoPor);
             if (esEspecial && solicitante != null)
             {
-                pasos.Correr("compartir la asignacion con el solicitante", () => Compartir(svc, asignacionRef,
-                    new EntityReference(Esquema.Usuario, solicitante.Id),
-                    AccessRights.ReadAccess | AccessRights.WriteAccess | AccessRights.AppendAccess));
+                // H1 (matriz de roles, 2026-10-19): solo lectura; "Mis solicitudes" no edita. GrantAccess no le quita
+                // permisos a un compartido que ya existia (los de antes eran lectura, escritura y anexar): ModifyAccess
+                // los reemplaza por lectura.
+                pasos.Correr("compartir la asignacion con el solicitante", () =>
+                {
+                    var quien = new EntityReference(Esquema.Usuario, solicitante.Id);
+                    Compartir(svc, asignacionRef, quien, AccessRights.ReadAccess);
+                    svc.Execute(new ModifyAccessRequest
+                    {
+                        Target = asignacionRef,
+                        PrincipalAccess = new PrincipalAccess { Principal = quien, AccessMask = AccessRights.ReadAccess },
+                    });
+                });
             }
 
             // 3) Lectura de cuenta, cliente y fiador para el cobrador (la cartera sin cobrador no comparte nada).

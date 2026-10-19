@@ -12,7 +12,8 @@ namespace Sanic.CobranzaMovil.Plugins
     ///
     /// - Localizador: el orden de su cartera.
     /// - Supervisor: aprobar, rechazar (y cerrar al rechazar, DAT-14), asignar o reasignar el agente (DAT-29).
-    /// - Solicitante: volver a pedir una Especial cerrada (scrNuevaSolicitud); "Solicitado por" solo a si mismo (S-7).
+    /// - Solicitante: ninguna (H1, matriz de roles 2026-10-19): pide y vuelve a pedir con la Custom API SolicitarEspecial,
+    ///   que escribe con el servicio del sistema; "Mis solicitudes" solo lee.
     /// - Cualquier otro rol de CM: ninguna (falla cerrado).
     /// Sin roles de CM (la carga, los plugins con el servicio del sistema) y Admin/Servicio no se frenan.
     /// Solo se controlan las columnas de negocio (prefijo sanic_cm_as_); el dueno se cambia con Assign.
@@ -31,15 +32,6 @@ namespace Sanic.CobranzaMovil.Plugins
                     Esquema.AsignacionEstadoAprobacion, Esquema.AsignacionAgente, Esquema.AsignacionResolutor,
                     Esquema.AsignacionMotivoRechazo, Esquema.AsignacionEstado, Esquema.AsignacionMotivo,
                     Esquema.AsignacionFechaCierre,
-                }
-            },
-            {
-                RolesCm.Solicitante, new[]
-                {
-                    Esquema.AsignacionEstado, Esquema.AsignacionEstadoAprobacion, Esquema.AsignacionRetiroNio,
-                    Esquema.AsignacionRetiroUsd, Esquema.AsignacionNotas, Esquema.AsignacionSolicitadoPor,
-                    Esquema.AsignacionFechaAsignacion, Esquema.AsignacionAgente, Esquema.AsignacionResolutor,
-                    Esquema.AsignacionMotivo, Esquema.AsignacionMotivoRechazo, Esquema.AsignacionFechaCierre,
                 }
             },
         };
