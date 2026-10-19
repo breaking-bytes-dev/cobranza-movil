@@ -61,9 +61,9 @@ Screens:
                   DropShadow: =DropShadow.None
                   Fill: =gblC.card
                   Height: |-
-                    =With({n: If(nfMovil, 2, 3)},
+                    =With({n: If(nfMovil, 2, 4)},
                         lblDatosAlt.Y + lblDatosAlt.Height + gblE.PadSm
-                            + RoundUp(If(cmbTipoAlt.Selected.Value = "Especial", 18, 16) / n, 0) * (62 + gblE.PadSm) + gblE.Pad)
+                            + RoundUp(If(cmbTipoAlt.Selected.Value = "Especial", 23, 21) / n, 0) * (62 + gblE.PadSm) + gblE.Pad)
                   RadiusBottomLeft: =gblE.Radio
                   RadiusBottomRight: =gblE.Radio
                   RadiusTopLeft: =gblE.Radio
@@ -99,12 +99,12 @@ Screens:
                         Size: =9
                         Text: ="CIF del cliente *"
                         Width: |-
-                          =With({n: If(nfMovil, 2, 3)},
+                          =With({n: If(nfMovil, 2, 4)},
                               (Parent.Width - 2*gblE.Pad - (n - 1)*gblE.PadSm) / n)
                         Wrap: =false
                         X: =gblE.Pad
                         Y: |-
-                          =With({n: If(nfMovil, 2, 3)},
+                          =With({n: If(nfMovil, 2, 4)},
                               lblDatosAlt.Y + lblDatosAlt.Height + gblE.PadSm + RoundDown(0 / n, 0) * (62 + gblE.PadSm))
                   - txtCifAlt:
                       Control: Classic/TextInput@2.3.2
@@ -142,10 +142,10 @@ Screens:
                         Width: =lblCifTitAlt.Width
                         Wrap: =false
                         X: |-
-                          =With({n: If(nfMovil, 2, 3)},
+                          =With({n: If(nfMovil, 2, 4)},
                               gblE.Pad + Mod(1, n) * (lblCifTitAlt.Width + gblE.PadSm))
                         Y: |-
-                          =With({n: If(nfMovil, 2, 3)},
+                          =With({n: If(nfMovil, 2, 4)},
                               lblDatosAlt.Y + lblDatosAlt.Height + gblE.PadSm + RoundDown(1 / n, 0) * (62 + gblE.PadSm))
                   - txtCliAlt:
                       Control: Classic/TextInput@2.3.2
@@ -183,10 +183,10 @@ Screens:
                         Width: =lblCifTitAlt.Width
                         Wrap: =false
                         X: |-
-                          =With({n: If(nfMovil, 2, 3)},
+                          =With({n: If(nfMovil, 2, 4)},
                               gblE.Pad + Mod(2, n) * (lblCifTitAlt.Width + gblE.PadSm))
                         Y: |-
-                          =With({n: If(nfMovil, 2, 3)},
+                          =With({n: If(nfMovil, 2, 4)},
                               lblDatosAlt.Y + lblDatosAlt.Height + gblE.PadSm + RoundDown(2 / n, 0) * (62 + gblE.PadSm))
                   - txtPanAlt:
                       Control: Classic/TextInput@2.3.2
@@ -225,10 +225,10 @@ Screens:
                         Width: =lblCifTitAlt.Width
                         Wrap: =false
                         X: |-
-                          =With({n: If(nfMovil, 2, 3)},
+                          =With({n: If(nfMovil, 2, 4)},
                               gblE.Pad + Mod(3, n) * (lblCifTitAlt.Width + gblE.PadSm))
                         Y: |-
-                          =With({n: If(nfMovil, 2, 3)},
+                          =With({n: If(nfMovil, 2, 4)},
                               lblDatosAlt.Y + lblDatosAlt.Height + gblE.PadSm + RoundDown(3 / n, 0) * (62 + gblE.PadSm))
                   - txtBuscarProdAlt:
                       Control: Classic/TextInput@2.3.2
@@ -323,10 +323,10 @@ Screens:
                         Width: =lblCifTitAlt.Width
                         Wrap: =false
                         X: |-
-                          =With({n: If(nfMovil, 2, 3)},
+                          =With({n: If(nfMovil, 2, 4)},
                               gblE.Pad + Mod(4, n) * (lblCifTitAlt.Width + gblE.PadSm))
                         Y: |-
-                          =With({n: If(nfMovil, 2, 3)},
+                          =With({n: If(nfMovil, 2, 4)},
                               lblDatosAlt.Y + lblDatosAlt.Height + gblE.PadSm + RoundDown(4 / n, 0) * (62 + gblE.PadSm))
                   - txtBuscarAgeAlt:
                       Control: Classic/TextInput@2.3.2
@@ -421,10 +421,10 @@ Screens:
                         Width: =lblCifTitAlt.Width
                         Wrap: =false
                         X: |-
-                          =With({n: If(nfMovil, 2, 3)},
+                          =With({n: If(nfMovil, 2, 4)},
                               gblE.Pad + Mod(5, n) * (lblCifTitAlt.Width + gblE.PadSm))
                         Y: |-
-                          =With({n: If(nfMovil, 2, 3)},
+                          =With({n: If(nfMovil, 2, 4)},
                               lblDatosAlt.Y + lblDatosAlt.Height + gblE.PadSm + RoundDown(5 / n, 0) * (62 + gblE.PadSm))
                   - cmbTipoAlt:
                       Control: Classic/ComboBox@2.4.0
@@ -461,10 +461,10 @@ Screens:
                         Width: =lblCifTitAlt.Width
                         Wrap: =false
                         X: |-
-                          =With({n: If(nfMovil, 2, 3)},
+                          =With({n: If(nfMovil, 2, 4)},
                               gblE.Pad + Mod(6, n) * (lblCifTitAlt.Width + gblE.PadSm))
                         Y: |-
-                          =With({n: If(nfMovil, 2, 3)},
+                          =With({n: If(nfMovil, 2, 4)},
                               lblDatosAlt.Y + lblDatosAlt.Height + gblE.PadSm + RoundDown(6 / n, 0) * (62 + gblE.PadSm))
                   - txtSvNioAlt:
                       Control: Classic/TextInput@2.3.2
@@ -503,10 +503,10 @@ Screens:
                         Width: =lblCifTitAlt.Width
                         Wrap: =false
                         X: |-
-                          =With({n: If(nfMovil, 2, 3)},
+                          =With({n: If(nfMovil, 2, 4)},
                               gblE.Pad + Mod(7, n) * (lblCifTitAlt.Width + gblE.PadSm))
                         Y: |-
-                          =With({n: If(nfMovil, 2, 3)},
+                          =With({n: If(nfMovil, 2, 4)},
                               lblDatosAlt.Y + lblDatosAlt.Height + gblE.PadSm + RoundDown(7 / n, 0) * (62 + gblE.PadSm))
                   - txtSvUsdAlt:
                       Control: Classic/TextInput@2.3.2
@@ -545,10 +545,10 @@ Screens:
                         Width: =lblCifTitAlt.Width
                         Wrap: =false
                         X: |-
-                          =With({n: If(nfMovil, 2, 3)},
+                          =With({n: If(nfMovil, 2, 4)},
                               gblE.Pad + Mod(8, n) * (lblCifTitAlt.Width + gblE.PadSm))
                         Y: |-
-                          =With({n: If(nfMovil, 2, 3)},
+                          =With({n: If(nfMovil, 2, 4)},
                               lblDatosAlt.Y + lblDatosAlt.Height + gblE.PadSm + RoundDown(8 / n, 0) * (62 + gblE.PadSm))
                   - txtTotalAlt:
                       Control: Classic/TextInput@2.3.2
@@ -587,10 +587,10 @@ Screens:
                         Width: =lblCifTitAlt.Width
                         Wrap: =false
                         X: |-
-                          =With({n: If(nfMovil, 2, 3)},
+                          =With({n: If(nfMovil, 2, 4)},
                               gblE.Pad + Mod(9, n) * (lblCifTitAlt.Width + gblE.PadSm))
                         Y: |-
-                          =With({n: If(nfMovil, 2, 3)},
+                          =With({n: If(nfMovil, 2, 4)},
                               lblDatosAlt.Y + lblDatosAlt.Height + gblE.PadSm + RoundDown(9 / n, 0) * (62 + gblE.PadSm))
                   - txtDiasAlt:
                       Control: Classic/TextInput@2.3.2
@@ -629,10 +629,10 @@ Screens:
                         Width: =lblCifTitAlt.Width
                         Wrap: =false
                         X: |-
-                          =With({n: If(nfMovil, 2, 3)},
+                          =With({n: If(nfMovil, 2, 4)},
                               gblE.Pad + Mod(10, n) * (lblCifTitAlt.Width + gblE.PadSm))
                         Y: |-
-                          =With({n: If(nfMovil, 2, 3)},
+                          =With({n: If(nfMovil, 2, 4)},
                               lblDatosAlt.Y + lblDatosAlt.Height + gblE.PadSm + RoundDown(10 / n, 0) * (62 + gblE.PadSm))
                   - txtNivelAlt:
                       Control: Classic/TextInput@2.3.2
@@ -671,10 +671,10 @@ Screens:
                         Width: =lblCifTitAlt.Width
                         Wrap: =false
                         X: |-
-                          =With({n: If(nfMovil, 2, 3)},
+                          =With({n: If(nfMovil, 2, 4)},
                               gblE.Pad + Mod(11, n) * (lblCifTitAlt.Width + gblE.PadSm))
                         Y: |-
-                          =With({n: If(nfMovil, 2, 3)},
+                          =With({n: If(nfMovil, 2, 4)},
                               lblDatosAlt.Y + lblDatosAlt.Height + gblE.PadSm + RoundDown(11 / n, 0) * (62 + gblE.PadSm))
                   - txtFPagoAlt:
                       Control: Classic/TextInput@2.3.2
@@ -712,10 +712,10 @@ Screens:
                         Width: =lblCifTitAlt.Width
                         Wrap: =false
                         X: |-
-                          =With({n: If(nfMovil, 2, 3)},
+                          =With({n: If(nfMovil, 2, 4)},
                               gblE.Pad + Mod(12, n) * (lblCifTitAlt.Width + gblE.PadSm))
                         Y: |-
-                          =With({n: If(nfMovil, 2, 3)},
+                          =With({n: If(nfMovil, 2, 4)},
                               lblDatosAlt.Y + lblDatosAlt.Height + gblE.PadSm + RoundDown(12 / n, 0) * (62 + gblE.PadSm))
                   - txtCelAlt:
                       Control: Classic/TextInput@2.3.2
@@ -753,10 +753,10 @@ Screens:
                         Width: =lblCifTitAlt.Width
                         Wrap: =false
                         X: |-
-                          =With({n: If(nfMovil, 2, 3)},
+                          =With({n: If(nfMovil, 2, 4)},
                               gblE.Pad + Mod(13, n) * (lblCifTitAlt.Width + gblE.PadSm))
                         Y: |-
-                          =With({n: If(nfMovil, 2, 3)},
+                          =With({n: If(nfMovil, 2, 4)},
                               lblDatosAlt.Y + lblDatosAlt.Height + gblE.PadSm + RoundDown(13 / n, 0) * (62 + gblE.PadSm))
                   - txtDirCasaAlt:
                       Control: Classic/TextInput@2.3.2
@@ -794,10 +794,10 @@ Screens:
                         Width: =lblCifTitAlt.Width
                         Wrap: =false
                         X: |-
-                          =With({n: If(nfMovil, 2, 3)},
+                          =With({n: If(nfMovil, 2, 4)},
                               gblE.Pad + Mod(14, n) * (lblCifTitAlt.Width + gblE.PadSm))
                         Y: |-
-                          =With({n: If(nfMovil, 2, 3)},
+                          =With({n: If(nfMovil, 2, 4)},
                               lblDatosAlt.Y + lblDatosAlt.Height + gblE.PadSm + RoundDown(14 / n, 0) * (62 + gblE.PadSm))
                   - txtFiadorAlt:
                       Control: Classic/TextInput@2.3.2
@@ -835,10 +835,10 @@ Screens:
                         Width: =lblCifTitAlt.Width
                         Wrap: =false
                         X: |-
-                          =With({n: If(nfMovil, 2, 3)},
+                          =With({n: If(nfMovil, 2, 4)},
                               gblE.Pad + Mod(15, n) * (lblCifTitAlt.Width + gblE.PadSm))
                         Y: |-
-                          =With({n: If(nfMovil, 2, 3)},
+                          =With({n: If(nfMovil, 2, 4)},
                               lblDatosAlt.Y + lblDatosAlt.Height + gblE.PadSm + RoundDown(15 / n, 0) * (62 + gblE.PadSm))
                   - txtNotaAlt:
                       Control: Classic/TextInput@2.3.2
@@ -861,6 +861,211 @@ Screens:
                         Width: =lblCifTitAlt.Width
                         X: =lblNotaTitAlt.X
                         Y: =lblNotaTitAlt.Y + 22
+                  - lblTelCasaTitAlt:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink2
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =18
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: ="Teléfono de la casa"
+                        Width: =lblCifTitAlt.Width
+                        Wrap: =false
+                        X: |-
+                          =With({n: If(nfMovil, 2, 4)},
+                              gblE.Pad + Mod(16, n) * (lblCifTitAlt.Width + gblE.PadSm))
+                        Y: |-
+                          =With({n: If(nfMovil, 2, 4)},
+                              lblDatosAlt.Y + lblDatosAlt.Height + gblE.PadSm + RoundDown(16 / n, 0) * (62 + gblE.PadSm))
+                  - txtTelCasaAlt:
+                      Control: Classic/TextInput@2.3.2
+                      Properties:
+                        AccessibleLabel: ="Teléfono de la casa"
+                        BorderColor: =gblC.borde
+                        Default: =""
+                        DisplayMode: =If(varOcupadoAlt || varValidoAlt, DisplayMode.Disabled, DisplayMode.Edit)
+                        Fill: =gblC.card
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        HintText: ="Cliente nuevo"
+                        RadiusBottomLeft: =10
+                        RadiusBottomRight: =10
+                        RadiusTopLeft: =10
+                        RadiusTopRight: =10
+                        Size: =10
+                        Width: =lblCifTitAlt.Width
+                        X: =lblTelCasaTitAlt.X
+                        Y: =lblTelCasaTitAlt.Y + 22
+                  - lblDirTrabTitAlt:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink2
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =18
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: ="Dirección del trabajo"
+                        Width: =lblCifTitAlt.Width
+                        Wrap: =false
+                        X: |-
+                          =With({n: If(nfMovil, 2, 4)},
+                              gblE.Pad + Mod(17, n) * (lblCifTitAlt.Width + gblE.PadSm))
+                        Y: |-
+                          =With({n: If(nfMovil, 2, 4)},
+                              lblDatosAlt.Y + lblDatosAlt.Height + gblE.PadSm + RoundDown(17 / n, 0) * (62 + gblE.PadSm))
+                  - txtDirTrabAlt:
+                      Control: Classic/TextInput@2.3.2
+                      Properties:
+                        AccessibleLabel: ="Dirección del trabajo"
+                        BorderColor: =gblC.borde
+                        Default: =""
+                        DisplayMode: =If(varOcupadoAlt || varValidoAlt, DisplayMode.Disabled, DisplayMode.Edit)
+                        Fill: =gblC.card
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        HintText: ="Cliente nuevo"
+                        RadiusBottomLeft: =10
+                        RadiusBottomRight: =10
+                        RadiusTopLeft: =10
+                        RadiusTopRight: =10
+                        Size: =10
+                        Width: =lblCifTitAlt.Width
+                        X: =lblDirTrabTitAlt.X
+                        Y: =lblDirTrabTitAlt.Y + 22
+                  - lblDeptoTitAlt:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink2
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =18
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: ="Departamento"
+                        Width: =lblCifTitAlt.Width
+                        Wrap: =false
+                        X: |-
+                          =With({n: If(nfMovil, 2, 4)},
+                              gblE.Pad + Mod(18, n) * (lblCifTitAlt.Width + gblE.PadSm))
+                        Y: |-
+                          =With({n: If(nfMovil, 2, 4)},
+                              lblDatosAlt.Y + lblDatosAlt.Height + gblE.PadSm + RoundDown(18 / n, 0) * (62 + gblE.PadSm))
+                  - txtDeptoAlt:
+                      Control: Classic/TextInput@2.3.2
+                      Properties:
+                        AccessibleLabel: ="Departamento"
+                        BorderColor: =gblC.borde
+                        Default: =""
+                        DisplayMode: =If(varOcupadoAlt || varValidoAlt, DisplayMode.Disabled, DisplayMode.Edit)
+                        Fill: =gblC.card
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        HintText: ="Cliente nuevo"
+                        RadiusBottomLeft: =10
+                        RadiusBottomRight: =10
+                        RadiusTopLeft: =10
+                        RadiusTopRight: =10
+                        Size: =10
+                        Width: =lblCifTitAlt.Width
+                        X: =lblDeptoTitAlt.X
+                        Y: =lblDeptoTitAlt.Y + 22
+                  - lblDistritoTitAlt:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink2
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =18
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: ="Distrito"
+                        Width: =lblCifTitAlt.Width
+                        Wrap: =false
+                        X: |-
+                          =With({n: If(nfMovil, 2, 4)},
+                              gblE.Pad + Mod(19, n) * (lblCifTitAlt.Width + gblE.PadSm))
+                        Y: |-
+                          =With({n: If(nfMovil, 2, 4)},
+                              lblDatosAlt.Y + lblDatosAlt.Height + gblE.PadSm + RoundDown(19 / n, 0) * (62 + gblE.PadSm))
+                  - txtDistritoAlt:
+                      Control: Classic/TextInput@2.3.2
+                      Properties:
+                        AccessibleLabel: ="Distrito"
+                        BorderColor: =gblC.borde
+                        Default: =""
+                        DisplayMode: =If(varOcupadoAlt || varValidoAlt, DisplayMode.Disabled, DisplayMode.Edit)
+                        Fill: =gblC.card
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        HintText: ="Cliente nuevo"
+                        RadiusBottomLeft: =10
+                        RadiusBottomRight: =10
+                        RadiusTopLeft: =10
+                        RadiusTopRight: =10
+                        Size: =10
+                        Width: =lblCifTitAlt.Width
+                        X: =lblDistritoTitAlt.X
+                        Y: =lblDistritoTitAlt.Y + 22
+                  - lblDirFiadorTitAlt:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink2
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =18
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: ="Dirección del fiador"
+                        Width: =lblCifTitAlt.Width
+                        Wrap: =false
+                        X: |-
+                          =With({n: If(nfMovil, 2, 4)},
+                              gblE.Pad + Mod(20, n) * (lblCifTitAlt.Width + gblE.PadSm))
+                        Y: |-
+                          =With({n: If(nfMovil, 2, 4)},
+                              lblDatosAlt.Y + lblDatosAlt.Height + gblE.PadSm + RoundDown(20 / n, 0) * (62 + gblE.PadSm))
+                  - txtDirFiadorAlt:
+                      Control: Classic/TextInput@2.3.2
+                      Properties:
+                        AccessibleLabel: ="Dirección del fiador"
+                        BorderColor: =gblC.borde
+                        Default: =""
+                        DisplayMode: =If(varOcupadoAlt || varValidoAlt, DisplayMode.Disabled, DisplayMode.Edit)
+                        Fill: =gblC.card
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        HintText: ="Si el fiador ya existe, se usa la suya"
+                        RadiusBottomLeft: =10
+                        RadiusBottomRight: =10
+                        RadiusTopLeft: =10
+                        RadiusTopRight: =10
+                        Size: =10
+                        Width: =lblCifTitAlt.Width
+                        X: =lblDirFiadorTitAlt.X
+                        Y: =lblDirFiadorTitAlt.Y + 22
                   - lblRetNioTitAlt:
                       Control: Label@2.5.1
                       Properties:
@@ -877,11 +1082,11 @@ Screens:
                         Width: =lblCifTitAlt.Width
                         Wrap: =false
                         X: |-
-                          =With({n: If(nfMovil, 2, 3)},
-                              gblE.Pad + Mod(16, n) * (lblCifTitAlt.Width + gblE.PadSm))
+                          =With({n: If(nfMovil, 2, 4)},
+                              gblE.Pad + Mod(21, n) * (lblCifTitAlt.Width + gblE.PadSm))
                         Y: |-
-                          =With({n: If(nfMovil, 2, 3)},
-                              lblDatosAlt.Y + lblDatosAlt.Height + gblE.PadSm + RoundDown(16 / n, 0) * (62 + gblE.PadSm))
+                          =With({n: If(nfMovil, 2, 4)},
+                              lblDatosAlt.Y + lblDatosAlt.Height + gblE.PadSm + RoundDown(21 / n, 0) * (62 + gblE.PadSm))
                   - txtRetNioAlt:
                       Control: Classic/TextInput@2.3.2
                       Properties:
@@ -921,11 +1126,11 @@ Screens:
                         Width: =lblCifTitAlt.Width
                         Wrap: =false
                         X: |-
-                          =With({n: If(nfMovil, 2, 3)},
-                              gblE.Pad + Mod(17, n) * (lblCifTitAlt.Width + gblE.PadSm))
+                          =With({n: If(nfMovil, 2, 4)},
+                              gblE.Pad + Mod(22, n) * (lblCifTitAlt.Width + gblE.PadSm))
                         Y: |-
-                          =With({n: If(nfMovil, 2, 3)},
-                              lblDatosAlt.Y + lblDatosAlt.Height + gblE.PadSm + RoundDown(17 / n, 0) * (62 + gblE.PadSm))
+                          =With({n: If(nfMovil, 2, 4)},
+                              lblDatosAlt.Y + lblDatosAlt.Height + gblE.PadSm + RoundDown(22 / n, 0) * (62 + gblE.PadSm))
                   - txtRetUsdAlt:
                       Control: Classic/TextInput@2.3.2
                       Properties:
@@ -1263,7 +1468,7 @@ Screens:
                           Set(varAgeAlt, Blank());
                           Reset(txtCifAlt); Reset(txtCliAlt); Reset(txtPanAlt); Reset(txtBuscarProdAlt); Reset(txtBuscarAgeAlt); Reset(cmbTipoAlt);
                           Reset(txtSvNioAlt); Reset(txtSvUsdAlt); Reset(txtTotalAlt); Reset(txtDiasAlt); Reset(txtNivelAlt); Reset(txtFPagoAlt);
-                          Reset(txtCelAlt); Reset(txtDirCasaAlt); Reset(txtFiadorAlt); Reset(txtNotaAlt); Reset(txtRetNioAlt); Reset(txtRetUsdAlt)
+                          Reset(txtCelAlt); Reset(txtDirCasaAlt); Reset(txtTelCasaAlt); Reset(txtDirTrabAlt); Reset(txtDeptoAlt); Reset(txtDistritoAlt); Reset(txtFiadorAlt); Reset(txtDirFiadorAlt); Reset(txtNotaAlt); Reset(txtRetNioAlt); Reset(txtRetUsdAlt)
                         Size: =10
                         Text: ="Limpiar formulario"
                         Width: =If(nfMovil, btnValidarAlt.Width, 180)
@@ -1383,7 +1588,12 @@ Screens:
                                 FechaPago: Trim(txtFPagoAlt.Text),
                                 NumeroCelular: Trim(txtCelAlt.Text),
                                 DireccionCasa: Trim(txtDirCasaAlt.Text),
+                                DireccionTrabajo: Trim(txtDirTrabAlt.Text),
+                                Departamento: Trim(txtDeptoAlt.Text),
+                                Distrito: Trim(txtDistritoAlt.Text),
+                                NumeroCasa: Trim(txtTelCasaAlt.Text),
                                 NombreFianza: Trim(txtFiadorAlt.Text),
+                                DireccionFianza: Trim(txtDirFiadorAlt.Text),
                                 Nota: Trim(txtNotaAlt.Text),
                                 RetiroNIO: If(cmbTipoAlt.Selected.Value = "Especial", Value(txtRetNioAlt.Text), Blank()),
                                 RetiroUSD: If(cmbTipoAlt.Selected.Value = "Especial", Value(txtRetUsdAlt.Text), Blank()),

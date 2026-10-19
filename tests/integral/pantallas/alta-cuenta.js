@@ -22,6 +22,8 @@ const chk = (id, cond, txt) => { cond ? ok++ : mal++; console.log(`${cond ? '✓
 
 const runid = 'ALU' + Date.now().toString(36).slice(-4).toUpperCase();
 const CIF = `${PREFIJO}-${runid}`, NOMBRE = `${PREFIJO} ${runid}`;
+// Campos opcionales de la opción (b) (2026-10-19): ubican al cliente en la calle. El teléfono tiene 8 dígitos (nunca 13 o más).
+const EXTRA = { dirTrab: `${PREFIJO} ${runid} oficina`, depto: `${PREFIJO} Managua`, distrito: `${PREFIJO} D-1`, telCasa: '22501234', dirFiador: `${PREFIJO} ${runid} casa del fiador` };
 const ESTADO_FINAL = /Prueba en seco limpia|Alta hecha|marcó la fila con error|Falló/;
 
 // Lee lblEstadoAlt hasta que diga algo final (o vence el plazo). Smelter tarda entre 30 s y unos minutos.
@@ -57,7 +59,8 @@ async function altaPorPantalla(prodCodigo, pan) {
     r = await c.elegirEnBuscador(app, { buscador: 'txtBuscarAgeAlt', galeria: 'galAgeAlt', buscar: AGENTE, opcion: AGENTE, cambiar: 'btnCambiarAgeAlt' });
     if (!r.ok) throw new Error(`no se pudo elegir el agente QA (filas: ${r.textos.slice(0, 4).join(' / ')})`);
     for (const [n, v] of [['txtSvNioAlt', '900'], ['txtSvUsdAlt', '0'], ['txtTotalAlt', '900'], ['txtDiasAlt', '30'], ['txtNivelAlt', '1'],
-      ['txtFPagoAlt', '2026-10-20'], ['txtFiadorAlt', `${NOMBRE} Fiador`], ['txtNotaAlt', `${PREFIJO} alta por pantalla`], ['txtRetNioAlt', '300']]) await pl.escribir(app, n, v);
+      ['txtFPagoAlt', '2026-10-20'], ['txtFiadorAlt', `${NOMBRE} Fiador`], ['txtDirFiadorAlt', EXTRA.dirFiador], ['txtTelCasaAlt', EXTRA.telCasa], ['txtDirTrabAlt', EXTRA.dirTrab],
+      ['txtDeptoAlt', EXTRA.depto], ['txtDistritoAlt', EXTRA.distrito], ['txtNotaAlt', `${PREFIJO} alta por pantalla`], ['txtRetNioAlt', '300']]) await pl.escribir(app, n, v);
     await pl.esperar(app, 1500);
     const falta = await pl.texto(app, 'lblFaltaAlt');
     const aviso = await pl.texto(app, 'lblTipoAvisoAlt');
@@ -149,6 +152,14 @@ async function navSinAlta(usuario, rol, id) {
     chk('ALTUI-10', cts.length === 1 && cta.sanic_cm_ct_ultimos4 === pan.slice(-4) && !/\d{13,19}/.test(cta.sanic_cm_ct_numerodecuenta || ''),
       `Dataverse: 1 cuenta del CIF, últimos 4 correctos, sin el número completo ("${cta?.sanic_cm_ct_numerodecuenta || ''}")`);
     if (!cta) throw new Error('la carga real no creó la cuenta');
+    const cli = (await dv.get(`sanic_cm_tbl_clientes?$select=sanic_cm_cl_departamento,sanic_cm_cl_distrito&$filter=sanic_cm_cl_cif eq '${CIF}'`)).value[0] || {};
+    const dirs = (await dv.get(`sanic_cm_tbl_direccions?$select=sanic_cm_dr_direccion,sanic_cm_dr_tipo&$filter=sanic_cm_dr_cif eq '${CIF}'`)).value;
+    const tels = (await dv.get(`sanic_cm_tbl_telefonos?$select=sanic_cm_tl_numero,sanic_cm_tl_tipo&$filter=sanic_cm_tl_cif eq '${CIF}'`)).value;
+    const fia = (await dv.get(`sanic_cm_tbl_fiadors?$select=sanic_cm_fi_direccion&$filter=sanic_cm_fi_nombre eq '${NOMBRE} Fiador'`)).value[0] || {};
+    const dirTrab = dirs.find((d) => d.sanic_cm_dr_direccion === EXTRA.dirTrab), telCasa = tels.find((x) => x.sanic_cm_tl_numero === EXTRA.telCasa);
+    chk('ALTUI-10b', cli.sanic_cm_cl_departamento === EXTRA.depto && cli.sanic_cm_cl_distrito === EXTRA.distrito && !!dirTrab && !!telCasa && fia.sanic_cm_fi_direccion === EXTRA.dirFiador,
+      `Dataverse: departamento y distrito del cliente ${cli.sanic_cm_cl_departamento === EXTRA.depto && cli.sanic_cm_cl_distrito === EXTRA.distrito}, `
+      + `dirección del trabajo ${!!dirTrab} (tipo ${dirTrab?.sanic_cm_dr_tipo}), teléfono de la casa ${!!telCasa} (tipo ${telCasa?.sanic_cm_tl_tipo}), dirección del fiador ${fia.sanic_cm_fi_direccion === EXTRA.dirFiador}`);
     const esp = await especialesDe(cta.sanic_cm_tbl_cuentaid);
     chk('ALTUI-11', esp.length === 1 && esp[0].sanic_cm_as_estado === true && esp[0].sanic_cm_as_estadoaprobacion === 2 && esp[0]._sanic_cm_as_agenteid_value === agente.sanic_cm_tbl_agenteid,
       `Dataverse: Especial activa, Pendiente (2), con el localizador elegido (${esp.length} fila)`);
