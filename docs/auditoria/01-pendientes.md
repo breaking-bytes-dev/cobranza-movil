@@ -59,7 +59,7 @@ Conviene juntarlos en un **runbook de pasaje a PROD** (`docs/guias/`), en orden 
 | S-14 | Cascadas en NoCascade **antes** de la primera carga real (`paso1_cascadas_auditoria.py`) | CM |
 | Fase 2 | Pasos 2 y 8: el PAN fuera de las columnas auditadas; la clave K en Key Vault con identidad administrada; borrado automático del CSV de carga | CM + Tenant |
 | PCI | La rama `feat/hmac-transform` de Smelter tiene que llegar a `main`; validación de Luhn; revisión de un QSA; la factura de papel con el PAN completo, a cumplimiento del banco | Smelter / Dueño |
-| Despliegue | En orden: `paso1_cascadas_auditoria` (antes de la primera carga real); `paso5_cartera_sin_cobrador --entorno PRD`; registrar los plugins 1.0.8.2 y apagar el flow de owner; `paso12_custom_api` (AltaCuenta y SolicitarEspecial); `paso6`, `paso7` y `paso8`; `paso9` (no hace falta si el entorno nace limpio); `paso10` (borrado programado); `paso7_desplegar`; `paso3_reconciliar`; sincronizar `solutions/unpacked` (rol nuevo, privilegios, regla de negocio borrada, cascadas). `paso11` no hace falta en PROD | CM |
+| Despliegue | En orden: `paso1_cascadas_auditoria` (antes de la primera carga real); `paso5_cartera_sin_cobrador --entorno PRD`; registrar los plugins 1.0.8.3 y apagar el flow de owner; `paso12_custom_api` (AltaCuenta y SolicitarEspecial); `paso6`, `paso7` y `paso8`; `paso9` (no hace falta si el entorno nace limpio); `paso10` (borrado programado); `paso7_desplegar`; `paso3_reconciliar`; sincronizar `solutions/unpacked` (rol nuevo, privilegios, regla de negocio borrada, cascadas). `paso11` no hace falta en PROD | CM |
 | Offline | Documentar el perfil offline y cómo forzar una sincronización completa | CM |
 
 ---
@@ -79,6 +79,12 @@ Cerrados en DEV antes del 2026-10-14 (detalle en [00-lista-consolidada.md](00-li
 - S-1, S-2 (Localizador), S-5, S-6, S-7, S-8, S-9 y S-14.
 - DAT-07, DAT-08 y DAT-12.
 - Los APP corregidos y verificados están en las secciones de cierre de [localizador-bugs-codigo.md](localizador-bugs-codigo.md) (2026-10-05 a 2026-10-07).
+
+Cerrados el 2026-10-19:
+
+| ID | Qué se hizo | Verificación |
+|---|---|---|
+| S-7 (solicitante anterior) | Opción (b1) del dueño: al reactivar una Especial pedida por otra persona, `SolicitarEspecial` le quita el compartido de la asignación con el servicio del sistema (solo la asignación: cuenta, cliente y fiador son del reparto y de `paso3`). Si la revocación falla, la reactivación sigue y se traza el código (`f67b608`, plugins 1.0.8.3) | CI 391/391; 24/24 pasos; en vivo `apis/s7-anterior.js` 6/6 (el Admin pierde el compartido al reactivar User2 y el reparto no se lo devuelve); regresión `s7-reactivada` 8/8 y `solicitar-especial` 8/8 |
 
 Cerrados el 2026-10-15:
 
