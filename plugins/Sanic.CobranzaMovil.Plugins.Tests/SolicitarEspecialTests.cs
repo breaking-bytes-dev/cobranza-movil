@@ -231,6 +231,83 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             Assert.Equal(Pendiente, e.H.Outputs["EstadoAprobacion"]);
         }
 
+        private static bool EsRevocacion(OrganizationRequest r, Guid asignacionId, Guid revocado)
+        {
+            var rv = r as Microsoft.Crm.Sdk.Messages.RevokeAccessRequest;
+            return rv != null && rv.Target != null && rv.Target.LogicalName == Asignacion && rv.Target.Id == asignacionId
+                && rv.Revokee != null && rv.Revokee.LogicalName == "systemuser" && rv.Revokee.Id == revocado;
+        }
+
+        [Fact]
+        public void Al_reactivar_la_de_otra_persona_le_quita_el_compartido_con_el_servicio_del_sistema()
+        {
+            // S-7 (b1): el reparto le compartio la Especial a quien la pidio antes; al pasar a otro solicitante, la pierde.
+            var cerrada = EspecialExistente(false, Aprobado, "Ana Solicitante");
+            var anterior = cerrada.GetAttributeValue<EntityReference>(SolicitadoPor).Id;
+            var e = new Escenario(new[] { Solicitante }, cerrada);
+            e.Ejecutar();
+
+            Assert.Equal("reactivada", e.H.Outputs["Resultado"]);
+            e.Sistema.Verify(s => s.Execute(It.Is<OrganizationRequest>(r => EsRevocacion(r, cerrada.Id, anterior))), Times.Once());
+            e.H.Service.Verify(s => s.Execute(It.IsAny<OrganizationRequest>()), Times.Never());
+            // Solo la asignacion: los compartidos de cuenta, cliente y fiador los maneja el reparto (y paso3).
+            e.Sistema.Verify(s => s.Execute(It.Is<OrganizationRequest>(r => r is Microsoft.Crm.Sdk.Messages.RevokeAccessRequest
+                && ((Microsoft.Crm.Sdk.Messages.RevokeAccessRequest)r).Target.LogicalName != Asignacion)), Times.Never());
+        }
+
+        [Fact]
+        public void Si_la_habia_pedido_el_mismo_llamador_no_revoca_nada()
+        {
+            var cerrada = EspecialExistente(false, Aprobado, "Yo");
+            cerrada[SolicitadoPor] = new EntityReference("systemuser", Harness.UsuarioLlamador);
+            var e = new Escenario(new[] { Solicitante }, cerrada);
+            e.Ejecutar();
+            Assert.Equal("reactivada", e.H.Outputs["Resultado"]);
+            e.Sistema.Verify(s => s.Execute(It.IsAny<OrganizationRequest>()), Times.Never());
+        }
+
+        [Fact]
+        public void Sin_solicitante_anterior_no_revoca_nada()
+        {
+            var cerrada = EspecialExistente(false, Aprobado, "X");
+            cerrada.Attributes.Remove(SolicitadoPor);
+            var e = new Escenario(new[] { Solicitante }, cerrada);
+            e.Ejecutar();
+            Assert.Equal("reactivada", e.H.Outputs["Resultado"]);
+            e.Sistema.Verify(s => s.Execute(It.IsAny<OrganizationRequest>()), Times.Never());
+        }
+
+        [Fact]
+        public void Crear_o_avisar_que_ya_existe_no_revoca_nada()
+        {
+            var crea = new Escenario(new[] { Solicitante });
+            crea.Ejecutar();
+            crea.Sistema.Verify(s => s.Execute(It.IsAny<OrganizationRequest>()), Times.Never());
+
+            var existe = new Escenario(new[] { Solicitante }, EspecialExistente(true, Pendiente, "Ana"));
+            existe.Ejecutar();
+            existe.Sistema.Verify(s => s.Execute(It.IsAny<OrganizationRequest>()), Times.Never());
+        }
+
+        [Fact]
+        public void Si_la_revocacion_falla_la_reactivacion_sigue_y_traza_solo_el_codigo()
+        {
+            var cerrada = EspecialExistente(false, Aprobado, "Ana Solicitante");
+            var anterior = cerrada.GetAttributeValue<EntityReference>(SolicitadoPor).Id;
+            var e = new Escenario(new[] { Solicitante }, cerrada);
+            e.Sistema.Setup(s => s.Execute(It.IsAny<OrganizationRequest>()))
+                .Throws(new FaultException<OrganizationServiceFault>(new OrganizationServiceFault { ErrorCode = -2147220891 }, "fallo " + anterior));
+            e.Ejecutar();
+
+            Assert.Equal("reactivada", e.H.Outputs["Resultado"]);
+            Assert.NotNull(e.Actualizada);
+            var texto = e.H.TodoElTexto();
+            Assert.Contains("-2147220891", texto);
+            Assert.DoesNotContain(anterior.ToString(), texto);
+            Assert.DoesNotContain(cerrada.Id.ToString(), texto);
+            Assert.DoesNotContain("Ana", texto);
+        }
+
         [Fact]
         public void Admin_y_sin_roles_de_CM_tambien_pueden()
         {

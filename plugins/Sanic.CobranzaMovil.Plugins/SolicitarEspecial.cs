@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.ServiceModel;
+using Microsoft.Crm.Sdk.Messages;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Query;
 
@@ -16,6 +17,10 @@ namespace Sanic.CobranzaMovil.Plugins
     ///  b) Especial CERRADA: la reactiva con las mismas columnas que la rama b) de la app (Pendiente, retiros, notas,
     ///     solicitado por = el llamador, fecha de asignacion = ahora, sin agente, resolutor, motivos ni fecha de cierre)
     ///     y la pasa al llamador como dueno. La escribe el servicio del sistema: la cerrada puede ser de otra persona.
+    ///     S-7 (b1, dueno 2026-10-19): si la habia pedido otra persona, le quita el compartido de la asignacion que le dio
+    ///     el reparto (si no, seguia leyendo una Especial que ya no es suya). Solo la asignacion: la cuenta, el cliente y el
+    ///     fiador los reparte RepartoAsignacion y los revisa paso3_reconciliar. Si la revocacion falla, la reactivacion
+    ///     sigue (traza el codigo): un usuario deshabilitado no puede trabar que otro pida la cuenta.
     ///  c) Ninguna: la crea CON LOS PERMISOS DEL LLAMADOR (como hoy la app), asi el dueno y "creado por" son el
     ///     Solicitante: la ve en "Mis solicitudes" y, al aprobarse, RepartoAsignacion se la comparte (S-7).
     /// Valida al LLAMADOR: rol Solicitante, Admin o Servicio (o sin roles de CM), y que pueda leer la cuenta con sus
@@ -95,6 +100,7 @@ namespace Sanic.CobranzaMovil.Plugins
                 r[Esquema.AsignacionFechaCierre] = null;
                 r[Esquema.Propietario] = llamador;
                 local.ServicioSistema.Update(r);
+                QuitarAlSolicitanteAnterior(local, cerrada);
                 Responder(local, cerrada.Id, Esquema.ResultadoReactivada, null, new OptionSetValue(Esquema.AprobacionPendiente));
                 return;
             }
@@ -122,6 +128,25 @@ namespace Sanic.CobranzaMovil.Plugins
                     + "la respuesta va a decir quien.");
             }
             Responder(local, id, Esquema.ResultadoCreada, null, new OptionSetValue(Esquema.AprobacionPendiente));
+        }
+
+        private static void QuitarAlSolicitanteAnterior(LocalContext local, Entity cerrada)
+        {
+            var anterior = cerrada.GetAttributeValue<EntityReference>(Esquema.AsignacionSolicitadoPor);
+            if (anterior == null || anterior.Id == Guid.Empty || anterior.Id == local.Context.UserId) return;
+            try
+            {
+                local.ServicioSistema.Execute(new RevokeAccessRequest
+                {
+                    Target = new EntityReference(Esquema.Asignacion, cerrada.Id),
+                    Revokee = new EntityReference(Esquema.Usuario, anterior.Id),
+                });
+                local.Trace("compartido del solicitante anterior quitado.");
+            }
+            catch (FaultException<OrganizationServiceFault> ex)
+            {
+                local.Trace("no se pudo quitar el compartido del solicitante anterior (codigo {0}).", ex.Detail == null ? 0 : ex.Detail.ErrorCode);
+            }
         }
 
         private static T Entrada<T>(IPluginExecutionContext ctx, string nombre)
