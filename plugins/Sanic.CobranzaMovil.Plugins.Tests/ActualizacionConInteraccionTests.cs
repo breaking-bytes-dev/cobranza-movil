@@ -230,6 +230,18 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         }
 
         [Fact]
+        public void F7_traza_los_nombres_de_las_columnas_recibidas_sin_valores()
+        {
+            var h = ConInteraccionesQueCoinciden(SinInteraccion(Guid.NewGuid()), Guid.NewGuid());
+            h.Ejecutar(new ActualizacionConInteraccion());
+            var texto = h.TodoElTexto();
+            Assert.Contains("columnas recibidas", texto);
+            Assert.Contains(AdCuenta, texto);
+            Assert.Contains(AdTelefono, texto);
+            Assert.DoesNotContain("8888", texto);
+        }
+
+        [Fact]
         public void Registrado_en_otra_tabla_falla()
         {
             var h = new Harness("Create", "sanic_cm_tbl_pago").ConTarget(new Entity("sanic_cm_tbl_pago", Guid.NewGuid()));

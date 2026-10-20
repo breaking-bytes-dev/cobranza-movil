@@ -32,6 +32,8 @@ namespace Sanic.CobranzaMovil.Plugins
 
             var target = local.ObtenerTarget();
             var esCreate = local.EsMensaje(Esquema.MensajeCreate);
+            // F7: que columnas manda el telefono (solo NOMBRES, nunca valores). Offline el runtime descarta columnas en silencio.
+            local.Trace("columnas recibidas: {0}", string.Join(",", new System.Collections.Generic.List<string>(target.Attributes.Keys).ToArray()));
             if (!esCreate && !target.Contains(Esquema.ActualizacionInteraccion))
             {
                 local.Trace("el cambio no toca la interaccion; sin control.");

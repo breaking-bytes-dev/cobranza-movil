@@ -65,6 +65,8 @@ Versión 1.0.8.3: `SolicitarEspecial` le quita el compartido de la asignación a
 
 Versión 1.0.8.4: huecos H1, H2 y H3 de la matriz de roles (`docs/auditoria/matriz-roles.md`). Sin pasos nuevos.
 
+Versión 1.0.8.7: `ActualizacionConInteraccion` traza los NOMBRES (nunca los valores) de las columnas que recibe, para diagnosticar qué descarta el runtime offline del teléfono (F7).
+
 Versión 1.0.8.6: `ActualizacionConInteraccion` vincula en el servidor la actualización de datos que el teléfono sube sin interacción (F7, opción B del dueño). Metadatos nuevos: `sanic_cm_ad_cuentaid` y `sanic_cm_ad_fechacaptura` (`scripts/pan/paso14_actualizacion_offline.py`). Sin pasos nuevos.
 
 Versión 1.0.8.5: `InteraccionDelCobrador` acepta la visita offline de una cuenta que le reasignaron al cobrador mientras no tenía señal (tolerancia por fecha de captura, opción 2 del dueño). Sin pasos nuevos ni metadatos: usa la auditoría de `ownerid` y de `sanic_cm_as_estado`, que ya están activas.
