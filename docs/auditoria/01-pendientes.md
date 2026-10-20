@@ -30,7 +30,7 @@
 
 | ID | Problema | Propuesta | Quién | Esfuerzo | Estado |
 |---|---|---|---|---|---|
-| Fiadores (origen) | La carga crea un fiador vacío por cada fila del CSV con `NombreFianza` en blanco (la clave alternativa por nombre no rige con NULL) | Corrección de origen en la plantilla de Smelter: no crear el fiador si viene vacío. Mientras tanto, el trabajo diario "CM - Fiadores sin nombre" los borra | Smelter (config) | Chico | Mitigado |
+| Fiadores (origen) | La carga creaba un fiador vacío por cada fila del CSV con `NombreFianza` en blanco (la clave alternativa por nombre no rige con NULL) | **Opción 2a-2 aplicada en DEV (2026-10-19), solo configuración de la plantilla de Smelter:** `DefaultValue = "(sin fiador)"` en el Column Mapping `NombreFianza → sanic_cm_fi_nombre` del Table Mapping Fiador (`paso13_fiador_sin_nombre.py`; respaldo `local/_backups/smelter-plantilla-cobranza_20261019.json`). Smelter aplica el default antes del chequeo de vacío, así las filas sin fiador comparten UN fiador "(sin fiador)" (placeholder permanente). El lookup de la cuenta (`ct_fiador`, otro Column Mapping) no se tocó: con vacío la cuenta queda sin fiador. **El borrado diario ("CM - Fiadores sin nombre", `paso10`) queda como red de seguridad un par de semanas y luego se retira** | Smelter (config) | Chico | Resuelto en DEV (retirar el borrado diario en ~2 semanas; falta PROD) |
 | Revocación offline | El teléfono pierde una cuenta revocada recién en la próxima sincronización | Inherente a offline. Se mitiga en PROD con Intune (borrado tras N días sin conexión, S-3) | Tenant | — | Propuesta: aceptar |
 
 ## 3. Apps
@@ -58,7 +58,7 @@ Conviene juntarlos en un **runbook de pasaje a PROD** (`docs/guias/`), en orden 
 | S-14 | Cascadas en NoCascade **antes** de la primera carga real (`paso1_cascadas_auditoria.py`) | CM |
 | Fase 2 | Pasos 2 y 8: el PAN fuera de las columnas auditadas; la clave K se queda en la tabla protegida de Smelter (opción A, riesgo aceptado: sin Key Vault); borrado automático del CSV de carga | CM + Tenant |
 | PCI | La rama `feat/hmac-transform` de Smelter tiene que llegar a `main`; validación de Luhn; revisión de un QSA; la factura de papel con el PAN completo, a cumplimiento del banco | Smelter / Dueño |
-| Despliegue | En orden: `paso1_cascadas_auditoria` (antes de la primera carga real); `paso1c_auditar_historia_especial` (auditoría de Solicitado por y Resolutor; `paso7_desplegar` no aplica metadatos); `paso5_cartera_sin_cobrador --entorno PRD`; registrar los plugins 1.0.8.5 y apagar el flow de owner; `paso12_custom_api` (AltaCuenta y SolicitarEspecial); `paso6`, `paso7` y `paso8`; `paso9` (no hace falta si el entorno nace limpio); `paso10` (borrado programado); `paso7_desplegar`; `paso3_reconciliar`; sincronizar `solutions/unpacked` (rol nuevo, privilegios, regla de negocio borrada, cascadas). `paso11` no hace falta en PROD | CM |
+| Despliegue | En orden: `paso1_cascadas_auditoria` (antes de la primera carga real); `paso1c_auditar_historia_especial` (auditoría de Solicitado por y Resolutor; `paso7_desplegar` no aplica metadatos); `paso5_cartera_sin_cobrador --entorno PRD`; registrar los plugins 1.0.8.5 y apagar el flow de owner; `paso12_custom_api` (AltaCuenta y SolicitarEspecial); `paso6`, `paso13_fiador_sin_nombre` (default "(sin fiador)" en la plantilla de Smelter, después de `paso6`), `paso7` y `paso8`; `paso9` (no hace falta si el entorno nace limpio); `paso10` (borrado programado); `paso7_desplegar`; `paso3_reconciliar`; sincronizar `solutions/unpacked` (rol nuevo, privilegios, regla de negocio borrada, cascadas). `paso11` no hace falta en PROD | CM |
 | Offline | Documentar el perfil offline y cómo forzar una sincronización completa | CM |
 
 ---
@@ -130,7 +130,7 @@ Cerrados el 2026-10-14 (plugins 1.0.6.1, 24 pasos activos; prueba en vivo 17/17 
 | DAT-29 | Pantalla "Reasignar" del backoffice: Supervisor (Especiales aprobadas) y Admin (también Incobrables) | Prueba de UI de la pantalla |
 | DAT-17, DAT-23, DAT-24 | Una sola fuente del correo del agente (el backoffice solo escribe el usuario); "↻" recarga los maestros; el perfil offline filtra las activas | Revisión de código y perfil |
 | DEC-019 | Borrado diario de la carga diaria con más de 60 días (`paso10`) | Trabajo programado |
-| Fiadores | Causa: fiadores vacíos por `NombreFianza` en blanco. Borrado diario de los fiadores sin nombre (`paso10`) | 2777 huérfanos, 8 reales |
+| Fiadores | Causa: fiadores vacíos por `NombreFianza` en blanco. Corregido de origen (2026-10-19) con el default "(sin fiador)" en la plantilla (`paso13`); el borrado diario queda como red de seguridad un par de semanas | 2777 huérfanos, 8 reales |
 | Reparto | 825 asignaciones con dueño SYSTEM repartidas (`paso11`) | 0 restantes, 0 trabajos fallidos |
 | Reconciliación | `paso3_reconciliar.py` lista y, con `--revocar`, quita compartidos sobrantes | 0 sobrantes en DEV |
 | Backoffice: UPN | El backoffice identifica al usuario por su id de Entra | Suite (todos los roles entran) |

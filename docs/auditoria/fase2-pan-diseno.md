@@ -63,6 +63,7 @@
 | 10 | ✅ (DEV) | `paso10_purgar_archivos.py`: se borraron los 3 CSV de la plantilla "Cobranza movil" (los jobs se conservan). **Pendiente para PROD:** que se borre automáticamente al terminar cada carga |
 | 11 | ✅ | Auditoría de columna encendida de nuevo en `ct_numerodecuenta` y `cd_numerocuenta` (`paso2_auditoria.py --revertir`) |
 | 12 | ✅ User5 / ⚠ teléfonos reales | El SQLite de User5 tiene números solo en la bóveda (2) y 0 fuera; las columnas viejas desaparecieron del esquema local y los nombres de cuenta están enmascarados. **Los teléfonos que bajaron el padrón antes de la Fase 1 (User1 y User6 del dueño) conservan cuentas ajenas con el número viejo, porque ya no les llegan actualizaciones de registros sin acceso: hay que borrar los datos de la app o reinstalarla** |
+| 13 | ✅ (DEV) | `paso13_fiador_sin_nombre.py` (2026-10-19): `DefaultValue = "(sin fiador)"` en el Column Mapping `NombreFianza → sanic_cm_fi_nombre` de la plantilla. Las filas sin fiador comparten un solo fiador placeholder. El enlace cuenta→fiador es un Column Mapping de la Cuenta (lookup por nombre), no un Relationship Mapping, y no se toca: sin nombre, la cuenta queda sin fiador. Prueba `tests/integral/apis/fiador-sin-nombre.js` 20/20. **Para PROD:** correrlo después de `paso6_plantilla.py` |
 
 **Lección del despliegue de Smelter:** sin subir la versión de `Smelter.Plugins`, algunos workers del sandbox siguieron con la versión anterior y la carga fallaba de forma intermitente con `Unknown function: HMAC`. Cada cambio de código de un plugin tiene que subir la versión.
 

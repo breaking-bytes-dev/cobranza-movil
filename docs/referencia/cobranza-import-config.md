@@ -122,7 +122,7 @@
 
 **Agente:** Agente→`sanic_cm_ag_nombre`.
 
-**Fiador:** NombreFianza→`sanic_cm_fi_nombre`, DireccionFianza→`sanic_cm_fi_direccion`.
+**Fiador:** NombreFianza→`sanic_cm_fi_nombre` con **DefaultValue `"(sin fiador)"`** (2026-10-19, `scripts/pan/paso13_fiador_sin_nombre.py`), DireccionFianza→`sanic_cm_fi_direccion`. Smelter aplica el default antes de revisar si el valor está vacío: las filas sin fiador comparten UN solo fiador "(sin fiador)" (placeholder permanente; no se borra) en vez de crear un fiador vacío por fila. Eso es solo del mapeo de la tabla Fiador: el enlace de la cuenta no lleva default y con el nombre vacío la cuenta queda sin fiador.
 
 **Direccion (Casa):** DireccionCasa→`sanic_cm_dr_direccion`, CIF→`sanic_cm_dr_cif`, `sanic_cm_dr_tipo` = **Default "Casa"** (Source Column vacío).
 **Direccion (EC):** DireccionEC→`sanic_cm_dr_direccion`, CIF→`sanic_cm_dr_cif`, `sanic_cm_dr_tipo` = Default "EC".
@@ -131,7 +131,7 @@
 **Telefono (Celular):** NumeroCelular→`sanic_cm_tl_numero`, CIF→`sanic_cm_tl_cif`, `sanic_cm_tl_tipo` = Default "Celular".
 **Telefono (Casa):** NumeroCasa→`sanic_cm_tl_numero`, CIF→`sanic_cm_tl_cif`, `sanic_cm_tl_tipo` = Default "Casa".
 
-**CuentaMora:** NumeroCuenta→`sanic_cm_ct_numerodecuenta`; los 8 montos→sus decimales (Data Type **Decimal**); DiasMora/NivelMora→**Whole Number**; FechaUltimoPago/FechaPago→**DateTime**; Ciclo/TipoAsignacion/TipoEspecial/Nota→Text. (Los valores de CIF, CodigoProducto, Agente, NombreFianza los lee el Relationship Mapping, no hace falta column mapping propio salvo que quieras guardarlos.)
+**CuentaMora:** NumeroCuenta→`sanic_cm_ct_numerodecuenta`; los 8 montos→sus decimales (Data Type **Decimal**); DiasMora/NivelMora→**Whole Number**; FechaUltimoPago/FechaPago→**DateTime**; Ciclo/TipoAsignacion/TipoEspecial/Nota→Text. (CIF, CodigoProducto y Agente los lee el Relationship Mapping; no hace falta column mapping propio salvo que quieras guardarlos. **El fiador es distinto:** el enlace `sanic_cm_ct_fiador` es un **Column Mapping de la Cuenta** de tipo Lookup — `lookuptable = sanic_cm_tbl_fiador`, `lookupmatchcolumn = sanic_cm_fi_nombre`, `sourcecolumn = NombreFianza` — y no un Relationship Mapping; la plantilla real no tiene Relationship Mappings. Ese Column Mapping NO lleva default: con `NombreFianza` vacío no encuentra fiador y deja el lookup en blanco.)
 
 ### Relationship Mappings (resuelven los lookups por valor de negocio)
 
@@ -142,7 +142,7 @@
 | Cliente | CuentaMora | `sanic_cm_ct_clienteid` | CIF |
 | Producto | CuentaMora | `sanic_cm_ct_productoid` | CodigoProducto |
 | Agente | CuentaMora | `sanic_cm_ct_agenteid` | Agente |
-| Fiador | CuentaMora | `sanic_cm_ct_fiador` | NombreFianza |
+| ~~Fiador~~ | ~~CuentaMora~~ | ~~`sanic_cm_ct_fiador`~~ | ~~NombreFianza~~ — **no es un Relationship Mapping**: es un Column Mapping Lookup de la Cuenta (ver arriba) |
 
 ---
 
