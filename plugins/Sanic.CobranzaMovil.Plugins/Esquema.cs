@@ -41,6 +41,12 @@ namespace Sanic.CobranzaMovil.Plugins
         public const string InteraccionNumero = "sanic_cm_in_numerointeraccion";
         public const string PagoNumeroInteraccion = "sanic_cm_pg_numerointeraccion";
         public const string ActualizacionInteraccion = "sanic_cm_ad_interaccionid";
+        // F7: offline la actualizacion llega sin interaccion; trae su cuenta y la misma fecha de captura que la interaccion
+        public const string ActualizacionCuentaId = "sanic_cm_ad_cuentaid";
+        public const string ActualizacionFechaCaptura = "sanic_cm_ad_fechacaptura";
+        public const string InteraccionActualizaInfo = "sanic_cm_in_actualizainfo";
+        public const string CreadoPor = "createdby";
+        public const int ToleranciaCapturaSegundos = 2;
 
         // Aprobacion de la asignacion Especial (S-6)
         public const string AsignacionTipo = "sanic_cm_as_tipo";
