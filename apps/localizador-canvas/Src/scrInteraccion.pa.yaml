@@ -24,7 +24,7 @@ Screens:
         Reset(inDirTrab);
         Reset(inCorreo);
       OnVisible: |-
-        =UpdateContext({locPan: Blank(), locGuardando: false, locIntCreada: Blank(), locADGuardada: false, locConfirmaExceso: false, locConfirmaSinGps: false});
+        =UpdateContext({locPan: Blank(), locGuardando: false, locIntCreada: Blank(), locFechaCaptura: Blank(), locADGuardada: false, locConfirmaExceso: false, locConfirmaSinGps: false});
         Clear(colPagosGuardados);
         Clear(colIntGuardadas);
         // APP-02: los productos salen del origen y no de colAsig (que solo existe si antes se pasó por la Cartera).
@@ -1165,7 +1165,7 @@ Screens:
                         sinLineas:     tpPago.Value && CountRows(colLineasPago) = 0,
                         lineaIncompl:  tpPago.Value && CountRows(Filter(colLineasPago, monto <= 0 || IsBlank(Trim(recibo)))) > 0,
                         reciboLargo:   tpPago.Value && CountRows(Filter(colLineasPago, Len(Trim(recibo)) > 30)) > 0,
-                        reciboRepet:   tpPago.Value && CountRows(colLineasPago) <> CountRows(Distinct(colLineasPago, Upper(Trim(recibo)) & "|" & moneda)),
+                        reciboRepet:   tpPago.Value && CountRows(colLineasPago) <> CountRows(Distinct(colLineasPago, Upper(Trim(recibo)))),
                         faltaDato:     tgDatos.Value && And(IsBlank(inTelCasa.Text), IsBlank(inTelCel.Text), IsBlank(inTelTrab.Text),
                                                             IsBlank(inDirCasa.Text), IsBlank(inDirEC.Text), IsBlank(inDirTrab.Text), IsBlank(inCorreo.Text)),
                         datoInval:     tgDatos.Value && Or(
@@ -1190,10 +1190,11 @@ Screens:
                     With({
                         excesoNio:   tpPago.Value && Sum(Filter(colLineasPago, moneda = "NIO"), monto) > Coalesce(varCuenta.'[CT] Saldo Vencido NIO', 0),
                         excesoUsd:   tpPago.Value && Sum(Filter(colLineasPago, moneda = "USD"), monto) > Coalesce(varCuenta.'[CT] Saldo Vencido USD', 0),
+                        /* F6: el recibo es único GLOBAL (talonario físico), sin importar cuenta ni moneda. Offline el teléfono solo ve
+                           sus pagos (perfil: 90 días); el servidor completa el control contra todos */
                         reciboUsado: tpPago.Value && CountRows(Filter(colLineasPago As Lx, !(Lx.id in colPagosGuardados.id) &&
-                                        With({ rec: Trim(Lx.recibo), mon: If(Lx.moneda = "USD", 'Choice | CM | Monedas en Pago'.USD, 'Choice | CM | Monedas en Pago'.NIO) },
-                                            !IsBlank(LookUp('CM | TBL | Pagos', '[PG] Numero recibo' = rec
-                                                && Cuenta.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta' && '[PG] Moneda' = mon))))) > 0
+                                        With({ rec: Trim(Lx.recibo) },
+                                            !IsBlank(LookUp('CM | TBL | Pagos', '[PG] Numero recibo' = rec))))) > 0
                       },
                       If(
                         /* APP-11: sin coordenadas del GPS → se avisa y hay que confirmarlo con un segundo toque */
@@ -1204,15 +1205,18 @@ Screens:
                         (excesoNio || excesoUsd) && !locConfirmaExceso,
                             UpdateContext({locGuardando: false, locConfirmaExceso: true});
                             Notify("El pago es mayor que el saldo vencido de la cuenta. Revisá el monto; si está bien, tocá «Confirmar pago».", NotificationType.Warning),
-                        /* APP-10: el mismo recibo (y moneda) ya está registrado en esta cuenta */
+                        /* APP-10 + F6: el mismo recibo ya está registrado (en cualquier cuenta) */
                         reciboUsado,
                             UpdateContext({locGuardando: false});
-                            Notify("Ese número de recibo ya está registrado en esta cuenta. Revisalo antes de guardar.", NotificationType.Error),
+                            Notify("Ese número de recibo ya está registrado. Revisalo antes de guardar.", NotificationType.Error),
                         /* UNA cuenta (pago o datos) */
                         tpPago.Value || tgDatos.Value,
                             ClearCollect(colPagosPend, Filter(colLineasPago, !(id in colPagosGuardados.id)));
                             IfError(
                                 If(IsBlank(locIntCreada),
+                                    /* F7: la misma fecha de captura viaja en la actualización de datos; offline el lookup a esta
+                                       interacción llega vacío y el servidor la vincula por cuenta + captura (plugin 1.0.8.6) */
+                                    UpdateContext({locFechaCaptura: Now()});
                                     With({ r: Patch('CM | TBL | Interaccions', Defaults('CM | TBL | Interaccions'), {
                                         '[IN] Cuenta': varCuenta,
                                         '[IN] Agente': gblAgente,
@@ -1221,7 +1225,7 @@ Screens:
                                         '[IN] Actualiza info': tgDatos.Value,
                                         '[IN] Latitud': Location.Latitude,
                                         '[IN] Longitud': Location.Longitude,
-                                        'Fecha de captura': Now(),
+                                        'Fecha de captura': locFechaCaptura,
                                         '[IN] NombreAgente': Coalesce(gblAgente.'[AG] Nombre', "Sin nombre")
                                         }) },
                                         IfError(r, Error(FirstError), UpdateContext({locIntCreada: r})))),
@@ -1247,6 +1251,8 @@ Screens:
                                     IfError(
                                         Patch('CM | TBL | Actualizacion de datos', Defaults('CM | TBL | Actualizacion de datos'), {
                                             '[AD] Interaccion': locIntCreada,
+                                            '[AD] Cuenta': varCuenta,
+                                            '[AD] Fecha de captura': locFechaCaptura,
                                             '[AD] Telefono Casa': inTelCasa.Text,
                                             '[AD] Telefono Celular': inTelCel.Text,
                                             '[AD] Telefono trabajo': inTelTrab.Text,
@@ -1311,7 +1317,7 @@ Screens:
                         sinLineas:     tpPago.Value && CountRows(colLineasPago) = 0,
                         lineaIncompl:  tpPago.Value && CountRows(Filter(colLineasPago, monto <= 0 || IsBlank(Trim(recibo)))) > 0,
                         reciboLargo:   tpPago.Value && CountRows(Filter(colLineasPago, Len(Trim(recibo)) > 30)) > 0,
-                        reciboRepet:   tpPago.Value && CountRows(colLineasPago) <> CountRows(Distinct(colLineasPago, Upper(Trim(recibo)) & "|" & moneda)),
+                        reciboRepet:   tpPago.Value && CountRows(colLineasPago) <> CountRows(Distinct(colLineasPago, Upper(Trim(recibo)))),
                         faltaDato:     tgDatos.Value && And(IsBlank(inTelCasa.Text), IsBlank(inTelCel.Text), IsBlank(inTelTrab.Text),
                                                             IsBlank(inDirCasa.Text), IsBlank(inDirEC.Text), IsBlank(inDirTrab.Text), IsBlank(inCorreo.Text)),
                         datoInval:     tgDatos.Value && Or(
