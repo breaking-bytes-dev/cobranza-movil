@@ -93,6 +93,18 @@ const iso = (ms) => new Date(ms).toISOString().replace(/\.\d{3}Z$/, 'Z');
     const i6 = await interaccion('web', t6, true);
     const a6 = await actualizacion({ 'sanic_cm_ad_interaccionid@odata.bind': `/sanic_cm_tbl_interaccions(${i6.json && i6.json.sanic_cm_tbl_interaccionid})` });
     chk('ADO-09', a6.ok && a6.json._sanic_cm_ad_cuentaid_value === ctaId, `con interacción y sin cuenta → entra y completa la cuenta: ${a6.ok ? (a6.json._sanic_cm_ad_cuentaid_value === ctaId ? 'sí' : 'sin cuenta') : a6.msg}`);
+
+    // 7) 1.0.8.8: el telefono descarta tambien la fecha; solo llega la cuenta → la interaccion pendiente mas vieja
+    const i7 = await interaccion('sin fecha', iso(base + 240000), true);
+    const a7 = await actualizacion(conCuenta(null));
+    const pendientes = [i1, i5a, i5b, i6, i7].filter((x) => x.ok).map((x) => x.json.sanic_cm_tbl_interaccionid);
+    const v7 = a7.ok && pendientes.includes(a7.json._sanic_cm_ad_interaccionid_value) && a7.json._sanic_cm_ad_interaccionid_value !== i1.json.sanic_cm_tbl_interaccionid && a7.json._sanic_cm_ad_interaccionid_value !== i6.json.sanic_cm_tbl_interaccionid;
+    chk('ADO-10', v7, `solo con cuenta → vinculada a una interacción con actualiza info y SIN actualización: ${a7.ok ? (v7 ? 'sí' : 'a una que ya tenía') : a7.msg}`);
+    const a8 = await actualizacion(conCuenta(null)), a9 = await actualizacion(conCuenta(null));
+    const ids = [a7, a8, a9].filter((x) => x.ok).map((x) => x.json._sanic_cm_ad_interaccionid_value);
+    chk('ADO-11', new Set(ids).size === ids.length, `cada una toma una interacción distinta (${ids.length} vinculadas, ${new Set(ids).size} distintas)`);
+    const a10 = await actualizacion(conCuenta(null));
+    chk('ADO-12', !a10.ok && /todavia/.test(a10.msg || ''), `sin pendientes → rechazada para reintentar: ${a10.ok ? 'ENTRÓ' : 'sí'}`);
   } finally {
     const l = await datos.limpiar();
     console.log('  limpieza restantes', JSON.stringify(l.restantes || {}).slice(0, 220));
