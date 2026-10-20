@@ -47,6 +47,10 @@ namespace Sanic.CobranzaMovil.Plugins
         public const string InteraccionActualizaInfo = "sanic_cm_in_actualizainfo";
         public const string CreadoPor = "createdby";
         public const int ToleranciaCapturaSegundos = 2;
+        // F7 1.0.8.8: offline tambien se descarta la fecha; se toma la interaccion pendiente mas vieja de esta ventana
+        public const int VentanaSinFechaHoras = 24;
+        public const string InteraccionId = "sanic_cm_tbl_interaccionid";
+        public const string ActualizacionId = "sanic_cm_tbl_actualizaciondatosid";
 
         // Aprobacion de la asignacion Especial (S-6)
         public const string AsignacionTipo = "sanic_cm_as_tipo";

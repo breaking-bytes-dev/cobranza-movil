@@ -181,14 +181,74 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             Assert.Null(h.Target.GetAttributeValue<EntityReference>(AdInteraccion));
         }
 
+        // 1.0.8.8: en el telefono el runtime tambien descarta la fecha de captura (traza del 20/10, 21:02); llega la cuenta
+        private static Entity SinInteraccionNiFecha(Guid cuenta)
+        {
+            var t = SinInteraccion(cuenta);
+            t.Attributes.Remove(AdFechaCaptura);
+            return t;
+        }
+
         [Fact]
-        public void F7_sin_interaccion_con_cuenta_pero_sin_fecha_se_rechaza_sin_consultar()
+        public void F7_sin_fecha_se_cuelga_de_la_interaccion_pendiente_mas_vieja_de_la_cuenta()
+        {
+            var cuenta = Guid.NewGuid();
+            var interaccion = Guid.NewGuid();
+            var h = ConInteraccionesQueCoinciden(SinInteraccionNiFecha(cuenta), interaccion);
+
+            h.Ejecutar(new ActualizacionConInteraccion());
+
+            Assert.Equal(interaccion, h.Target.GetAttributeValue<EntityReference>(AdInteraccion).Id);
+            var q = ConsultaDeInteraccion(h);
+            var c = q.Criteria.Conditions;
+            Assert.Contains(c, x => x.AttributeName == InCuenta && (Guid)x.Values[0] == cuenta);
+            Assert.Contains(c, x => x.AttributeName == "createdby" && (Guid)x.Values[0] == Harness.UsuarioLlamador);
+            Assert.Contains(c, x => x.AttributeName == InActualizaInfo && (bool)x.Values[0]);
+            Assert.DoesNotContain(c, x => x.AttributeName == InFechaCaptura);
+            var desde = c.Single(x => x.AttributeName == "createdon");
+            Assert.Equal(ConditionOperator.GreaterEqual, desde.Operator);
+            var horas = (DateTime.UtcNow - (DateTime)desde.Values[0]).TotalHours;
+            Assert.InRange(horas, 23.9, 24.1);
+            // sin actualizacion colgada: outer join a la actualizacion y su id nulo
+            var link = Assert.Single(q.LinkEntities);
+            Assert.Equal(Actualizacion, link.LinkToEntityName);
+            Assert.Equal(AdInteraccion, link.LinkToAttributeName);
+            Assert.Equal(JoinOperator.LeftOuter, link.JoinOperator);
+            Assert.Contains(c, x => x.EntityName == link.EntityAlias && x.AttributeName == "sanic_cm_tbl_actualizaciondatosid" && x.Operator == ConditionOperator.Null);
+            // la mas vieja primero, una sola
+            var orden = Assert.Single(q.Orders);
+            Assert.Equal("createdon", orden.AttributeName);
+            Assert.Equal(OrderType.Ascending, orden.OrderType);
+            Assert.Equal(1, q.TopCount);
+        }
+
+        [Fact]
+        public void F7_sin_fecha_y_sin_pendientes_se_rechaza_para_reintentar()
+        {
+            var h = ConInteraccionesQueCoinciden(SinInteraccionNiFecha(Guid.NewGuid()));
+            var ex = Assert.Throws<InvalidPluginExecutionException>(() => h.Ejecutar(new ActualizacionConInteraccion()));
+            Assert.Contains("todavia", ex.Message);
+            Assert.DoesNotContain("8888", ex.Message);
+        }
+
+        [Fact]
+        public void F7_sin_interaccion_ni_cuenta_se_rechaza_sin_consultar()
         {
             var t = SinInteraccion(Guid.NewGuid());
-            t.Attributes.Remove(AdFechaCaptura);
+            t.Attributes.Remove(AdCuenta);
             var h = ConInteraccionesQueCoinciden(t, Guid.NewGuid());
             Assert.Throws<InvalidPluginExecutionException>(() => h.Ejecutar(new ActualizacionConInteraccion()));
             Assert.Null(ConsultaDeInteraccion(h));
+        }
+
+        [Fact]
+        public void F7_con_fecha_no_usa_la_busqueda_por_pendiente()
+        {
+            var h = ConInteraccionesQueCoinciden(SinInteraccion(Guid.NewGuid()), Guid.NewGuid());
+            h.Ejecutar(new ActualizacionConInteraccion());
+            var q = ConsultaDeInteraccion(h);
+            Assert.Empty(q.LinkEntities);
+            Assert.DoesNotContain(q.Criteria.Conditions, x => x.AttributeName == "createdon");
         }
 
         [Fact]

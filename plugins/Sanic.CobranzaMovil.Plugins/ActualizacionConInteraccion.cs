@@ -80,26 +80,41 @@ namespace Sanic.CobranzaMovil.Plugins
         }
 
         /// <summary>
-        /// F7: la interaccion del mismo cobrador, cuenta y fecha de captura (tolerancia de unos segundos), marcada con
-        /// actualiza info. Exactamente una; si no hay, todavia no llego (se reintenta); si hay mas, no se adivina.
+        /// F7: la interaccion del mismo cobrador y cuenta, marcada con actualiza info. Con fecha de captura: la de esa
+        /// captura (tolerancia de unos segundos), exactamente una. Sin fecha (el runtime offline la descarta, 1.0.8.8):
+        /// la mas vieja de las ultimas horas que todavia no tiene actualizacion de datos (la sincronizacion sube en orden).
+        /// Si no hay, todavia no llego (se reintenta).
         /// </summary>
         private static EntityReference BuscarInteraccion(LocalContext local, Entity target)
         {
             var cuenta = target.GetAttributeValue<EntityReference>(Esquema.ActualizacionCuentaId);
-            var captura = target.GetAttributeValue<DateTime?>(Esquema.ActualizacionFechaCaptura);
-            if (cuenta == null || !captura.HasValue)
+            if (cuenta == null)
             {
-                local.Trace("sin interaccion y sin {0}/{1}; no se puede buscar.", Esquema.ActualizacionCuentaId, Esquema.ActualizacionFechaCaptura);
+                local.Trace("sin interaccion y sin {0}; no se puede buscar.", Esquema.ActualizacionCuentaId);
                 return null;
             }
 
-            var utc = captura.Value.Kind == DateTimeKind.Local ? captura.Value.ToUniversalTime() : DateTime.SpecifyKind(captura.Value, DateTimeKind.Utc);
-            var q = new QueryExpression(Esquema.Interaccion) { ColumnSet = new ColumnSet(false), TopCount = 2, NoLock = true };
+            var captura = target.GetAttributeValue<DateTime?>(Esquema.ActualizacionFechaCaptura);
+            var q = new QueryExpression(Esquema.Interaccion) { ColumnSet = new ColumnSet(false), NoLock = true };
             q.Criteria.AddCondition(Esquema.InteraccionCuentaId, ConditionOperator.Equal, cuenta.Id);
             q.Criteria.AddCondition(Esquema.CreadoPor, ConditionOperator.Equal, local.Context.UserId);
             q.Criteria.AddCondition(Esquema.InteraccionActualizaInfo, ConditionOperator.Equal, true);
-            q.Criteria.AddCondition(Esquema.InteraccionFechaCaptura, ConditionOperator.Between,
-                utc.AddSeconds(-Esquema.ToleranciaCapturaSegundos), utc.AddSeconds(Esquema.ToleranciaCapturaSegundos));
+            if (captura.HasValue)
+            {
+                var utc = captura.Value.Kind == DateTimeKind.Local ? captura.Value.ToUniversalTime() : DateTime.SpecifyKind(captura.Value, DateTimeKind.Utc);
+                q.TopCount = 2;
+                q.Criteria.AddCondition(Esquema.InteraccionFechaCaptura, ConditionOperator.Between,
+                    utc.AddSeconds(-Esquema.ToleranciaCapturaSegundos), utc.AddSeconds(Esquema.ToleranciaCapturaSegundos));
+            }
+            else
+            {
+                q.TopCount = 1;
+                q.Criteria.AddCondition(Esquema.CreadoEl, ConditionOperator.GreaterEqual, DateTime.UtcNow.AddHours(-Esquema.VentanaSinFechaHoras));
+                var ad = q.AddLink(Esquema.ActualizacionDatos, Esquema.InteraccionId, Esquema.ActualizacionInteraccion, JoinOperator.LeftOuter);
+                ad.EntityAlias = AliasActualizacion;
+                q.Criteria.AddCondition(AliasActualizacion, Esquema.ActualizacionId, ConditionOperator.Null);
+                q.AddOrder(Esquema.CreadoEl, OrderType.Ascending);
+            }
 
             var filas = local.Service.RetrieveMultiple(q).Entities;
             if (filas.Count == 0)
@@ -110,8 +125,10 @@ namespace Sanic.CobranzaMovil.Plugins
             {
                 throw local.Error("hay mas de una interaccion de la misma cuenta y captura; no se puede saber de cual es la actualizacion de datos.");
             }
-            local.Trace("interaccion encontrada por cuenta y captura (offline).");
+            local.Trace(captura.HasValue ? "interaccion encontrada por cuenta y captura (offline)." : "interaccion encontrada por cuenta: la pendiente mas vieja (offline, sin fecha).");
             return new EntityReference(Esquema.Interaccion, filas[0].Id);
         }
+
+        private const string AliasActualizacion = "ad";
     }
 }
