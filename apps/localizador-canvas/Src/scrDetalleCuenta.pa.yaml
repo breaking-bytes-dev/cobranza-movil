@@ -132,7 +132,7 @@ Screens:
                         RadiusTopRight: =9
                         Size: =gblT.fxs
                         Text: =If(IsBlank(locPan), "Ver número", "Ocultar")
-                        Width: =If(gblScale = 1, 84,gblScale = 1.2,100,gblScale = 1.45,124,144)
+                        Width: =If(gblScale = 1, 100,gblScale = 1.2,116,gblScale = 1.45,140,160)
                         X: =Parent.Width - Self.Width - 14
                         Y: =Max(Parent.Height - Self.Height - 6, Text1_1.Y + Text1_1.Height + 4)
                   - tmrVerPan_DC:
@@ -539,9 +539,9 @@ Screens:
                               LayoutMinWidth: =16
                               Size: =gblT.fbase
                               Text: |-
-                                =// Verde si es la carga de hoy.
+                                =// Verde si es la carga de hoy; rojo con ⚠ si no.
                                 With({ d: FechaUtc(varAsig.'Última carga') },
-                                    Text(d, "dd/mm/yyyy") & If(d = Today(), " · hoy", " · no es la de hoy"))
+                                    Text(d, "dd/mm/yyyy") & If(d = Today(), "  ✓ hoy", "  ⚠"))
             - Container16_2:
                 Control: GroupContainer@1.5.0
                 Variant: AutoLayout

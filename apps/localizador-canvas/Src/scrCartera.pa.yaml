@@ -104,7 +104,7 @@ Screens:
                 Properties:
                   Fill: =gblC.teal
                   FillPortions: =0
-                  Height: =Container12.Height + conTotal.Height + 24
+                  Height: =Container12.Height + conTotal.Height + 36
                   LayoutAlignItems: =LayoutAlignItems.Center
                   LayoutDirection: =LayoutDirection.Vertical
                   LayoutGap: =12
@@ -226,7 +226,7 @@ Screens:
                         DropShadow: =DropShadow.None
                         Fill: =gblC.surface
                         FillPortions: =0
-                        Height: =lblTotalL.Height + conBoxes.Height + lblTotalMeta.Height + lblCargaDia.Height + 45
+                        Height: =lblTotalL.Height + conBoxes.Height + lblTotalMeta.Height + lblCargaDia.Height + 56
                         LayoutAlignItems: =LayoutAlignItems.Stretch
                         LayoutDirection: =LayoutDirection.Vertical
                         LayoutGap: =9
