@@ -59,6 +59,10 @@ Screens:
         If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info',
             Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                 '[AD] Interaccion'.'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'));
+            // F10: sin la vinculada, la que entró SIN VINCULAR (F8) de la misma cuenta; si tampoco, no llegó nada
+            Set(varADSinVincTrx, IsBlank(varADTrx));
+            If(varADSinVincTrx, Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
+                '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = varActualTrx.'[IN] Cuenta'.'CM | TBL | Cuenta')));
             ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
             ClearCollect(colDirAntesTrx, Filter('CM | TBL | Direccions', '[DR] CIF' = varActualTrx.cifTrx));
             ClearCollect(colCambiosTrx, Filter(Table(
@@ -137,6 +141,10 @@ Screens:
               If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info',
                   Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                       '[AD] Interaccion'.'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'));
+                  // F10: sin la vinculada, la que entró SIN VINCULAR (F8) de la misma cuenta; si tampoco, no llegó nada
+                  Set(varADSinVincTrx, IsBlank(varADTrx));
+                  If(varADSinVincTrx, Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
+                      '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = varActualTrx.'[IN] Cuenta'.'CM | TBL | Cuenta')));
                   ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
                   ClearCollect(colDirAntesTrx, Filter('CM | TBL | Direccions', '[DR] CIF' = varActualTrx.cifTrx));
                   ClearCollect(colCambiosTrx, Filter(Table(
@@ -202,6 +210,10 @@ Screens:
                     If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info',
                         Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                             '[AD] Interaccion'.'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'));
+                        // F10: sin la vinculada, la que entró SIN VINCULAR (F8) de la misma cuenta; si tampoco, no llegó nada
+                        Set(varADSinVincTrx, IsBlank(varADTrx));
+                        If(varADSinVincTrx, Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
+                            '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = varActualTrx.'[IN] Cuenta'.'CM | TBL | Cuenta')));
                         ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
                         ClearCollect(colDirAntesTrx, Filter('CM | TBL | Direccions', '[DR] CIF' = varActualTrx.cifTrx));
                         ClearCollect(colCambiosTrx, Filter(Table(
@@ -310,6 +322,10 @@ Screens:
                     If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info',
                         Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                             '[AD] Interaccion'.'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'));
+                        // F10: sin la vinculada, la que entró SIN VINCULAR (F8) de la misma cuenta; si tampoco, no llegó nada
+                        Set(varADSinVincTrx, IsBlank(varADTrx));
+                        If(varADSinVincTrx, Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
+                            '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = varActualTrx.'[IN] Cuenta'.'CM | TBL | Cuenta')));
                         ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
                         ClearCollect(colDirAntesTrx, Filter('CM | TBL | Direccions', '[DR] CIF' = varActualTrx.cifTrx));
                         ClearCollect(colCambiosTrx, Filter(Table(
@@ -433,6 +449,10 @@ Screens:
                     If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info',
                         Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                             '[AD] Interaccion'.'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'));
+                        // F10: sin la vinculada, la que entró SIN VINCULAR (F8) de la misma cuenta; si tampoco, no llegó nada
+                        Set(varADSinVincTrx, IsBlank(varADTrx));
+                        If(varADSinVincTrx, Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
+                            '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = varActualTrx.'[IN] Cuenta'.'CM | TBL | Cuenta')));
                         ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
                         ClearCollect(colDirAntesTrx, Filter('CM | TBL | Direccions', '[DR] CIF' = varActualTrx.cifTrx));
                         ClearCollect(colCambiosTrx, Filter(Table(
@@ -805,14 +825,15 @@ Screens:
                             Control: Label@2.5.1
                             Properties:
                               Align: =Align.Right
-                              Color: =gblC.muted
+                              Color: =If(ThisItem.'[PG] Recibo repetido', gblC.redInk, gblC.muted)
                               FocusedBorderColor: =gblC.teal
                               FocusedBorderThickness: =2
                               Font: =Font.'Segoe UI'
                               Height: =22
                               PaddingRight: =0
                               Size: =10
-                              Text: ="Recibo " & ThisItem.'[PG] Numero recibo'
+                              # F6: el servidor marca el recibo que ya existía (no lo rechaza): BackOffice lo revisa
+                              Text: ="Recibo " & ThisItem.'[PG] Numero recibo' & If(ThisItem.'[PG] Recibo repetido', " ⚠ REPETIDO", "")
                               Width: =Parent.TemplateWidth * 0.45
                               Wrap: =false
                               X: =Parent.TemplateWidth * 0.55
@@ -830,7 +851,7 @@ Screens:
                   - lblSecDatosTrx:
                       Control: Label@2.5.1
                       Properties:
-                        Color: =gblC.espInk
+                        Color: =If(IsBlank(varADTrx) || varADSinVincTrx, gblC.redInk, gblC.espInk)
                         FocusedBorderColor: =gblC.teal
                         FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
@@ -838,7 +859,11 @@ Screens:
                         Height: =18
                         PaddingLeft: =0
                         Size: =8
-                        Text: ="✏️ ACTUALIZACIÓN DE DATOS — GRABALA TAMBIÉN EN EL CORE"
+                        # F10: tres estados. La marca "Actualiza info" sola no alcanza: la actualización pudo no llegar (F8)
+                        Text: |-
+                          =If(IsBlank(varADTrx), "⚠ MARCADA CON DATOS NUEVOS, PERO LOS DATOS NO LLEGARON — CONSULTÁ AL COBRADOR",
+                              varADSinVincTrx, "⚠ DATOS SIN VINCULAR (LLEGARON SEPARADOS DE LA VISITA) — REVISALOS Y GRABALOS EN EL CORE",
+                              "✏️ ACTUALIZACIÓN DE DATOS — GRABALA TAMBIÉN EN EL CORE")
                         Visible: =!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info'
                         Width: =Parent.Width - 2*gblE.Pad
                         X: =gblE.Pad
@@ -1115,6 +1140,10 @@ Screens:
                                     If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info',
                                         Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                                             '[AD] Interaccion'.'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'));
+                                        // F10: sin la vinculada, la que entró SIN VINCULAR (F8) de la misma cuenta; si tampoco, no llegó nada
+                                        Set(varADSinVincTrx, IsBlank(varADTrx));
+                                        If(varADSinVincTrx, Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
+                                            '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = varActualTrx.'[IN] Cuenta'.'CM | TBL | Cuenta')));
                                         ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
                                         ClearCollect(colDirAntesTrx, Filter('CM | TBL | Direccions', '[DR] CIF' = varActualTrx.cifTrx));
                                         ClearCollect(colCambiosTrx, Filter(Table(
@@ -1166,6 +1195,10 @@ Screens:
                                     If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info',
                                         Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                                             '[AD] Interaccion'.'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'));
+                                        // F10: sin la vinculada, la que entró SIN VINCULAR (F8) de la misma cuenta; si tampoco, no llegó nada
+                                        Set(varADSinVincTrx, IsBlank(varADTrx));
+                                        If(varADSinVincTrx, Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
+                                            '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = varActualTrx.'[IN] Cuenta'.'CM | TBL | Cuenta')));
                                         ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
                                         ClearCollect(colDirAntesTrx, Filter('CM | TBL | Direccions', '[DR] CIF' = varActualTrx.cifTrx));
                                         ClearCollect(colCambiosTrx, Filter(Table(

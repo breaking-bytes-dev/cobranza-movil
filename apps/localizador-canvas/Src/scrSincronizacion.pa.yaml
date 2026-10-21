@@ -445,13 +445,15 @@ Screens:
                                     Align: =Align.Center
                                     AlignInContainer: =AlignInContainer.Stretch
                                     AutoHeight: =true
-                                    Color: =If(IsBlank(ThisItem.'[IN] Numero de Interaccion'), gblC.incobInk, gblC.accentInk)
-                                    Fill: =If(IsBlank(ThisItem.'[IN] Numero de Interaccion'), gblC.incobBg, gblC.accentBg)
+                                    Color: =If(IsBlank(ThisItem.'[IN] Numero de Interaccion'), gblC.incobInk, ((ThisItem.'[IN] Aplica pago' && IsBlank(LookUp('CM | TBL | Pagos', '[PG] Interaccion'.'CM | TBL | Interaccion' = ThisItem.'CM | TBL | Interaccion'))) || (ThisItem.'[IN] Actualiza info' && IsBlank(LookUp('CM | TBL | Actualizacion de datos', '[AD] Interaccion'.'CM | TBL | Interaccion' = ThisItem.'CM | TBL | Interaccion')))), gblC.redInk, gblC.accentInk)
+                                    Fill: =If(IsBlank(ThisItem.'[IN] Numero de Interaccion'), gblC.incobBg, ((ThisItem.'[IN] Aplica pago' && IsBlank(LookUp('CM | TBL | Pagos', '[PG] Interaccion'.'CM | TBL | Interaccion' = ThisItem.'CM | TBL | Interaccion'))) || (ThisItem.'[IN] Actualiza info' && IsBlank(LookUp('CM | TBL | Actualizacion de datos', '[AD] Interaccion'.'CM | TBL | Interaccion' = ThisItem.'CM | TBL | Interaccion')))), gblC.redBg, gblC.accentBg)
                                     FontWeight: =FontWeight.Bold
                                     LayoutMinHeight: =16
                                     LayoutMinWidth: =16
                                     Size: =gblT.fxs
-                                    Text: =If(IsBlank(ThisItem.'[IN] Numero de Interaccion'),"pendiente de subir","subida")
+                                    # F8: «subida» exige que también hayan llegado el pago y la actualización de datos; el teléfono
+                                    # descarta en silencio lo que el servidor rechaza, así que la interacción sola no alcanza
+                                    Text: =If(IsBlank(ThisItem.'[IN] Numero de Interaccion'), "pendiente de subir", ((ThisItem.'[IN] Aplica pago' && IsBlank(LookUp('CM | TBL | Pagos', '[PG] Interaccion'.'CM | TBL | Interaccion' = ThisItem.'CM | TBL | Interaccion'))) || (ThisItem.'[IN] Actualiza info' && IsBlank(LookUp('CM | TBL | Actualizacion de datos', '[AD] Interaccion'.'CM | TBL | Interaccion' = ThisItem.'CM | TBL | Interaccion')))), "⚠ incompleta", "subida")
             - cardNota:
                 Control: GroupContainer@1.5.0
                 Variant: AutoLayout
@@ -483,7 +485,7 @@ Screens:
                         LayoutMinHeight: =16
                         LayoutMinWidth: =16
                         Size: =gblT.fxs
-                        Text: ="El número de interacción (INT-) y de pago (PAG-) lo asigna el servidor cuando la captura se sube. Hasta entonces se ve «pendiente de subir»."
+                        Text: ="El número de interacción (INT-) y de pago (PAG-) lo asigna el servidor cuando la captura se sube. Hasta entonces se ve «pendiente de subir». «⚠ incompleta»: la visita subió, pero falta su pago o su actualización de datos; tocá «Buscar actualizaciones» y, si sigue así, avisá a BackOffice."
       - cmpSheet_7:
           Control: CanvasComponent
           ComponentName: cmpSheet

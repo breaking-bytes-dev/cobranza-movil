@@ -169,7 +169,7 @@ Screens:
                   BorderThickness: =1
                   Fill: =gblC.accentBg
                   FillPortions: =0
-                  Height: =lblTL_2.Height + lblTB_2.Height + 30 + lblPagoMinimo_1.Height + lblTotalDolarizaod_1.Height + lblContagiado_1.Height
+                  Height: =lblTL_2.Height + lblTB_2.Height + 30 + lblPagoMinimo_1.Height + lblTotalDolarizaod_1.Height + lblContagiado_1.Height + If(lblEspecial_1.Visible, lblEspecial_1.Height, 0)
                   LayoutAlignItems: =LayoutAlignItems.Center
                   LayoutDirection: =LayoutDirection.Vertical
                   LayoutMinHeight: =16
@@ -237,6 +237,23 @@ Screens:
                         Size: =gblT.fxs
                         Text: |-
                           ="En riesgo (contagiado): " & If(IsBlank(varCuenta.'[CT] Contagiado USD'), "—", "US$ " & Text(varCuenta.'[CT] Contagiado USD', "#,##0.00", "en-US"))
+                  - lblEspecial_1:
+                      Control: Label@2.5.1
+                      Properties:
+                        AutoHeight: =true
+                        Color: =gblC.espInk
+                        Fill: =gblC.espBg
+                        FontWeight: =FontWeight.Bold
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingLeft: =8
+                        PaddingRight: =8
+                        Size: =gblT.fxs
+                        # F5: lo pedido en la Especial va aparte y marcado; no reemplaza al saldo vencido
+                        Text: |-
+                          =With({e: LookUp('CM | TBL | Asignacions', '[AS] Cuenta'.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta' && '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial && '[AS] Estado' = true && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado)},
+                              "⭐ Especial · retiro pedido: " & Moneda(e.'Retiro NIO', e.'Retiro USD'))
+                        Visible: =!IsBlank(LookUp('CM | TBL | Asignacions', '[AS] Cuenta'.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta' && '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial && '[AS] Estado' = true && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado))
             - lblComL:
                 Control: Label@2.5.1
                 Properties:

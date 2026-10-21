@@ -36,7 +36,12 @@ Screens:
                 cifTsc, Coalesce(ThisRecord.'[IN] Cuenta'.'CIF Cliente', "—"),
                 prodTsc, Coalesce(ThisRecord.'[IN] Cuenta'.'Tipo Producto', "—"),
                 ult4Tsc, Coalesce(ThisRecord.'[IN] Cuenta'.'Últimos 4', ""),
-                cuentaIdTsc, ThisRecord.'[IN] Cuenta'.'CM | TBL | Cuenta'
+                cuentaIdTsc, ThisRecord.'[IN] Cuenta'.'CM | TBL | Cuenta',
+                // F10: "ok" la actualización vinculada existe; "sinv" entró sin vincular (F8); "falta" no llegó
+                datosTsc, If(!ThisRecord.'[IN] Actualiza info', "",
+                    !IsBlank(LookUp('CM | TBL | Actualizacion de datos', '[AD] Interaccion'.'CM | TBL | Interaccion' = ThisRecord.'CM | TBL | Interaccion')), "ok",
+                    !IsBlank(LookUp('CM | TBL | Actualizacion de datos', '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = ThisRecord.'[IN] Cuenta'.'CM | TBL | Cuenta')), "sinv",
+                    "falta")
             )
         );
         // 4) Pagos del arqueo = pagos de HOY (ya en memoria) ∩ mis transcritas.
@@ -102,7 +107,12 @@ Screens:
                       cifTsc, Coalesce(ThisRecord.'[IN] Cuenta'.'CIF Cliente', "—"),
                       prodTsc, Coalesce(ThisRecord.'[IN] Cuenta'.'Tipo Producto', "—"),
                       ult4Tsc, Coalesce(ThisRecord.'[IN] Cuenta'.'Últimos 4', ""),
-                      cuentaIdTsc, ThisRecord.'[IN] Cuenta'.'CM | TBL | Cuenta'
+                      cuentaIdTsc, ThisRecord.'[IN] Cuenta'.'CM | TBL | Cuenta',
+                      // F10: "ok" la actualización vinculada existe; "sinv" entró sin vincular (F8); "falta" no llegó
+                      datosTsc, If(!ThisRecord.'[IN] Actualiza info', "",
+                          !IsBlank(LookUp('CM | TBL | Actualizacion de datos', '[AD] Interaccion'.'CM | TBL | Interaccion' = ThisRecord.'CM | TBL | Interaccion')), "ok",
+                          !IsBlank(LookUp('CM | TBL | Actualizacion de datos', '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = ThisRecord.'[IN] Cuenta'.'CM | TBL | Cuenta')), "sinv",
+                          "falta")
                   )
               );
               ClearCollect(colPagosTsc,
@@ -263,8 +273,8 @@ Screens:
                       Control: Classic/Button@2.2.0
                       Properties:
                         BorderThickness: =0
-                        Color: =gblC.espInk
-                        Fill: =gblC.espBg
+                        Color: =If(ThisItem.datosTsc = "ok", gblC.espInk, gblC.redInk)
+                        Fill: =If(ThisItem.datosTsc = "ok", gblC.espBg, gblC.redBg)
                         FocusedBorderColor: =gblC.teal
                         FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
@@ -275,7 +285,7 @@ Screens:
                         RadiusTopLeft: =8
                         RadiusTopRight: =8
                         Size: =8
-                        Text: ="✏️ Datos nuevos"
+                        Text: =Switch(ThisItem.datosTsc, "ok", "✏️ Datos nuevos", "sinv", "⚠ Datos sin vincular", "⚠ Datos no llegaron")
                         Visible: =ThisItem.'[IN] Actualiza info'
                         Width: =14 + 7*Len(Self.Text)
                         X: =chpGrabTsc.X - If(chpPagoTsc.Visible, chpPagoTsc.Width + 6, 0) - Self.Width - 6
@@ -655,9 +665,9 @@ Screens:
                 Control: Classic/Button@2.2.0
                 Properties:
                   BorderThickness: =0
-                  Color: =gblC.espInk
+                  Color: =If(varSelTsc.datosTsc = "ok", gblC.espInk, gblC.redInk)
                   DisplayMode: =DisplayMode.View
-                  Fill: =gblC.espBg
+                  Fill: =If(varSelTsc.datosTsc = "ok", gblC.espBg, gblC.redBg)
                   FocusedBorderColor: =gblC.teal
                   FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
@@ -668,7 +678,11 @@ Screens:
                   RadiusTopLeft: =8
                   RadiusTopRight: =8
                   Size: =8
-                  Text: ="✏️ Trae datos nuevos del cliente — revisalos en el core"
+                  Text: |-
+                    =Switch(varSelTsc.datosTsc,
+                        "ok", "✏️ Trae datos nuevos del cliente — revisalos en el core",
+                        "sinv", "⚠ Los datos llegaron sin vincular a la visita — revisalos en el core",
+                        "⚠ Marcada con datos nuevos, pero no llegaron — consultá al cobrador")
                   Visible: =varSelTsc.'[IN] Actualiza info'
                   Width: =14 + 7*Len(Self.Text)
                   X: =gblE.Pad

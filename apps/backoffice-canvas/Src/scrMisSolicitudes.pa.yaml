@@ -658,21 +658,23 @@ Screens:
                 Variant: ManualLayout
                 Properties:
                   DropShadow: =DropShadow.None
-                  Fill: =gblC.redBg
+                  Fill: =If(galSolSol.Selected.'[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Rechazada, gblC.redBg, gblC.hairline)
                   Height: =72
                   RadiusBottomLeft: =gblE.RadioSm
                   RadiusBottomRight: =gblE.RadioSm
                   RadiusTopLeft: =gblE.RadioSm
                   RadiusTopRight: =gblE.RadioSm
-                  Visible: =galSolSol.Selected.'[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Rechazada
+                  # F12: también la cerrada dice cuándo y por qué (el motivo de Cierres ya trae el detalle: "Motivo — detalle")
+                  Visible: =galSolSol.Selected.'[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Rechazada || galSolSol.Selected.'[AS] Estado' = false
                   Width: =Parent.Width - 2*gblE.Pad
                   X: =gblE.Pad
-                  Y: =374
+                  # debajo del localizador si la Especial llegó a aprobarse
+                  Y: =If(galSolSol.Selected.'[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado, 410, 374)
                 Children:
                   - lblRechSol:
                       Control: Label@2.5.1
                       Properties:
-                        Color: =gblC.redInk
+                        Color: =If(galSolSol.Selected.'[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Rechazada, gblC.redInk, gblC.ink2)
                         FocusedBorderColor: =gblC.teal
                         FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
@@ -680,7 +682,11 @@ Screens:
                         PaddingLeft: =0
                         Size: =9
                         Text: |-
-                          ="Motivo de rechazo: " & Coalesce(galSolSol.Selected.'Motivo de rechazo', "—")
+                          =If(galSolSol.Selected.'[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Rechazada,
+                              "Motivo de rechazo: " & Coalesce(galSolSol.Selected.'Motivo de rechazo', "—"),
+                              "Cerrada" & If(IsBlank(galSolSol.Selected.'Fecha de cierre'), "",
+                                  " el " & Text(galSolSol.Selected.'Fecha de cierre', "dd/mm hh:mm")) &
+                              " — " & Coalesce(galSolSol.Selected.'[AS] Motivo', "sin motivo"))
                         VerticalAlign: =VerticalAlign.Top
                         Width: =Parent.Width - 2*gblE.PadSm
                         X: =gblE.PadSm

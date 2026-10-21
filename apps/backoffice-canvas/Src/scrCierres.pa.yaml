@@ -12,6 +12,7 @@ Screens:
       Fill: =gblC.pantalla
       OnVisible: |-
         =// Asignaciones activas Incobrable/Especial + joins horneados una vez (receta 7.7).
+        // F11 (b): solo las Especiales APROBADAS; una pendiente se resuelve en Aprobaciones (aprobar o rechazar).
         // Datos de la cuenta navegando el lookup '[AS] Cuenta' (lo resuelve el servidor, sin
         // catálogo de cuentas truncable al Data row limit).
         // Filtro DELEGABLE: OR de igualdades de choice por valor + booleano (00 §4.2)
@@ -19,7 +20,8 @@ Screens:
             AddColumns(
                 Filter('CM | TBL | Asignacions',
                     ('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable
-                      || '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial)
+                      || ('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                          && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado))
                     && '[AS] Estado' = true),
                 clienteCie, Upper(Coalesce(
                     ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
@@ -150,7 +152,8 @@ Screens:
                         AddColumns(
                             Filter('CM | TBL | Asignacions',
                                 ('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable
-                                  || '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial)
+                                  || ('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                                      && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado))
                                 && '[AS] Estado' = true),
                             clienteCie, Upper(Coalesce(
                                 ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
