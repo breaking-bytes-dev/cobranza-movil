@@ -865,10 +865,11 @@ Un **pago** cobrado al cliente, **hijo de una interacción**. La relación **1:N
 | Propietario | `ownerid` | Owner | Sí | = el **localizador** (nivel usuario). |
 
 ### Llaves
-- **Alt key compuesta `sanic_cm_ak_pg_recibo_cuenta_moneda`** (`pg_moneda` + `pg_cuentaid` + `pg_numerorecibo`). **Active.** Impide registrar el mismo
-  recibo dos veces en la misma cuenta y moneda (DAT-22; el catálogo anterior decía "sin clave").
-- `pg_cuentaid` forma parte de la clave y lo completa el plugin `CuentaDesdeInteraccion` (PreOperation) cuando la app no lo manda (offline). No se probó el
-  caso de un pago sin cuenta resoluble.
+- **Sin clave alternativa.** La `sanic_cm_ak_pg_recibo_cuenta_moneda` (recibo + cuenta + moneda, DAT-22/APP-10) se **quitó el 2026-10-20**
+  (`scripts/pan/paso15_marcas_offline.py`): la plataforma la aplicaba antes de los plugins y, offline, el teléfono descarta lo rechazado sin
+  reintentar, así que el pago repetido se perdía en silencio. Ahora el plugin `ReciboRepetido` lo acepta con `sanic_cm_pg_reciborepetido = Sí`
+  (recibo repetido en toda la cartera) y BackOffice lo ve en rojo al transcribir. La app sigue bloqueando el repetido cuando lo puede ver.
+- `pg_cuentaid` lo completa el plugin `CuentaDesdeInteraccion` (PreOperation) cuando la app no lo manda (offline).
 
 ### Relaciones
 - Entrantes: `interaccion → pago` (Delete = Restrict desde el 2026-10-14; el resto, Cascade) y `cuenta → pago` (**RemoveLink**).
@@ -1138,8 +1139,8 @@ Cuando metadata y documentos discrepan, manda la metadata. Lo que se corrigió e
 |---|----------------------------------|------------------------------|
 | 1 | `cuenta → interaccion` = **Restrict** ("confirmado", el candado de DEC-023) | **RemoveLink**; también `cuenta → pago` y `cuenta → cargadiaria`. El candado no existe |
 | 2 | `cuenta → cargadiaria` = Cascade | RemoveLink (el borrado de carga diaria llega por `cliente → cargadiaria`) |
-| 3 | Alt keys `pk_ct_numerodecuenta`, `altkey_NumeroCuentaxTipo`, `pk_cd_numerocuenta_fechacarga` | Eliminadas; hoy `ak_ct_clavepan`, `ak_as_clavepan_tipo`, `ak_cd_clavepan_fecha`, más `ak_cp_*` y `ak_pg_recibo_cuenta_moneda` |
-| 4 | `pago` sin alt key | Alt key `sanic_cm_ak_pg_recibo_cuenta_moneda` activa |
+| 3 | Alt keys `pk_ct_numerodecuenta`, `altkey_NumeroCuentaxTipo`, `pk_cd_numerocuenta_fechacarga` | Eliminadas; hoy `ak_ct_clavepan`, `ak_as_clavepan_tipo`, `ak_cd_clavepan_fecha`, más `ak_cp_*` (`ak_pg_recibo_cuenta_moneda` se quitó el 2026-10-20) |
+| 4 | `pago` sin alt key | Sigue sin alt key: la de recibo se creó y se quitó (2026-10-20); el repetido entra marcado (`ReciboRepetido`) |
 | 5 | Autonumeración `INT-/PAG-/ASG-/ACT-{SEQNUM:6}` | `IN-/PG-/AS-/AD-{SEQNUM:4}` |
 | 6 | `as_estado` es Choice (Activa/Cerrada) | Yes/No (Sí = Activa) |
 | 7 | `in_estadograbacion`: `Pendiente` / `Grabada en core` | `1 Pendiente` / `2 Grabado` |

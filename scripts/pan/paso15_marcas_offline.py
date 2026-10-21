@@ -6,6 +6,9 @@ Crea:
                             (plugin ActualizacionConInteraccion 1.0.9.0); VincularActualizacionPendiente la cuelga después.
   sanic_cm_pg_reciborepetido "[PG] Recibo repetido" (Sí/No, por defecto No): el número de recibo ya existía (plugin
                             ReciboRepetido); BackOffice lo revisa al transcribir.
+Quita la clave alternativa sanic_cm_ak_pg_recibo_cuenta_moneda (APP-10, scripts/localizador/clave_recibo_pago.py): la
+plataforma la aplica ANTES de los plugins, y offline un pago con el mismo recibo, cuenta y moneda se rechazaba y se
+perdía en silencio. El repetido ahora entra marcado (ReciboRepetido).
 Va ANTES de paso5 (paso5 exige que las columnas de cada paso existan).
 Uso: python3 scripts/pan/paso15_marcas_offline.py [--aplicar]"""
 import os, sys
@@ -38,6 +41,13 @@ booleana(P + 'actualizaciondatos', 'sanic_cm_ad_sinvincular', '[AD] Sin vincular
          'La actualización llegó del teléfono sin su interacción. La pone el servidor (F8); se vincula sola al llegar la interacción.')
 booleana(P + 'pago', 'sanic_cm_pg_reciborepetido', '[PG] Recibo repetido',
          'El número de recibo ya existía en otro pago. La pone el servidor (F6); BackOffice lo revisa.')
+CLAVE = 'sanic_cm_ak_pg_recibo_cuenta_moneda'
+st, b = rq('GET', f"EntityDefinitions(LogicalName='{P}pago')/Keys?$select=LogicalName,SchemaName")
+if st >= 300: raise SystemExit(f'✗ {st}: {b}')
+if any(k['LogicalName'] == CLAVE for k in b['value']):
+    hacer(f'quitar clave {P}pago.{CLAVE}', 'DELETE', f"EntityDefinitions(LogicalName='{P}pago')/Keys(LogicalName='{CLAVE}')", None)
+else:
+    print('YA NO EXISTE clave', CLAVE)
 if APLICAR:
     st, b = rq('POST', 'PublishXml', {'ParameterXml': f'<importexportxml><entities><entity>{P}actualizaciondatos</entity><entity>{P}pago</entity></entities></importexportxml>'})
     print('PublishXml →', st, '' if st < 300 else b)

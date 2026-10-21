@@ -74,12 +74,12 @@ const iso = (ms) => new Date(ms).toISOString().replace(/\.\d{3}Z$/, 'Z');
 
     // 0b) F6: recibo repetido → el pago entra marcado, no se rechaza
     const recibo = `QA${runid}`;
-    // la segunda en dólares: la clave alternativa (recibo, cuenta, moneda) de APP-10 rechaza la misma moneda antes del plugin
-    const pago = (n) => como('POST', 'sanic_cm_tbl_pagos', { sanic_cm_pg_monto: 10 + n, sanic_cm_pg_numerorecibo: recibo, sanic_cm_pg_moneda: n,
+    // misma cuenta y moneda: el caso que la clave alternativa de APP-10 rechazaba (y offline se perdía); paso15 la quitó
+    const pago = (n) => como('POST', 'sanic_cm_tbl_pagos', { sanic_cm_pg_monto: 10 + n, sanic_cm_pg_numerorecibo: recibo, sanic_cm_pg_moneda: 1,
       'sanic_cm_pg_interaccion@odata.bind': `/sanic_cm_tbl_interaccions(${i11.json.sanic_cm_tbl_interaccionid})` }, U.cob);
     const p1 = await pago(1), p2 = await pago(2);
     chk('ADO-14', p1.ok && p1.json.sanic_cm_pg_reciborepetido === false, `primer pago con el recibo → sin marca: ${p1.ok ? p1.json.sanic_cm_pg_reciborepetido : p1.msg}`);
-    chk('ADO-15', p2.ok && p2.json.sanic_cm_pg_reciborepetido === true, `segundo pago con el mismo recibo (otra moneda) → entra marcado: ${p2.ok ? p2.json.sanic_cm_pg_reciborepetido : p2.msg}`);
+    chk('ADO-15', p2.ok && p2.json.sanic_cm_pg_reciborepetido === true, `segundo pago con el mismo recibo (misma cuenta y moneda) → entra marcado: ${p2.ok ? p2.json.sanic_cm_pg_reciborepetido : p2.msg}`);
 
     // 1) El caso del telefono: sin interaccion, con cuenta y la misma captura
     const t1 = iso(base);

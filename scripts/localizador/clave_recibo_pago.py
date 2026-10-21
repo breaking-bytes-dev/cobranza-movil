@@ -1,4 +1,7 @@
-"""APP-09/APP-10 (respaldo del lado del servidor): clave alternativa en Pagos sobre (N° de recibo, cuenta, moneda).
+"""RETIRADO (2026-10-20): NO CORRER. scripts/pan/paso15_marcas_offline.py quita esta clave: offline el pago rechazado se
+perdía en silencio (el teléfono no reintenta). El repetido entra marcado por el plugin ReciboRepetido. Se conserva como historia.
+
+APP-09/APP-10 (respaldo del lado del servidor): clave alternativa en Pagos sobre (N° de recibo, cuenta, moneda).
 La app ya bloquea el doble toque y los recibos repetidos, pero esta clave es la última barrera para un duplicado que
 llegue por otro camino (otro dispositivo, un reintento de sincronización): la sincronización de ese pago falla y el
 cobrador lo ve en los errores de sincronización. La moneda es parte de la clave para permitir que un mismo recibo
@@ -10,6 +13,7 @@ from collections import Counter
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'seguridad'))
 from dvlib import rq, get
 
+raise SystemExit('✗ retirado: ver scripts/pan/paso15_marcas_offline.py')
 APLICAR = '--aplicar' in sys.argv
 E, K = 'sanic_cm_tbl_pago', 'sanic_cm_ak_pg_recibo_cuenta_moneda'
 COLS = ['sanic_cm_pg_numerorecibo', 'sanic_cm_pg_cuentaid', 'sanic_cm_pg_moneda']
