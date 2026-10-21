@@ -203,6 +203,10 @@ namespace Sanic.CobranzaMovil.Plugins
         public const string InteraccionCif = "sanic_cm_in_cifcliente";
         public const string InteraccionClavePan = "sanic_cm_in_clavepan";
 
+        // Escala de la cartera: la app trae las asignaciones por tramos, cada uno bajo el limite de 2000 filas (TramoCartera)
+        public const string AsignacionTramo = "sanic_cm_as_tramo";
+        public const int TramosCartera = 20;
+
         // Imagen previa que registra el paso Update de ClaveDesdeCuenta
         public const string NombreImagenPrevia = "PreImage";
     }

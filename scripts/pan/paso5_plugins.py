@@ -11,8 +11,8 @@ REGLA DE PanGuard (paso 8 del plan):
     --desactivar-panguard   los desactiva (rollback)
   Los pasos de ClaveDesdeCuenta, CuentaDesdeInteraccion, AprobacionEspecial, ActualizacionConInteraccion, EmailDesdeUsuario,
   RepartoAsignacion, RepartoPorAgente, ColumnasAsignacion, CargaSobreAsignacion, Reclasificacion, InteraccionDelCobrador,
-  GrabacionInteraccion, VincularActualizacionPendiente, ReciboRepetido, EspecialDesdeCuenta e IdentidadEnInteraccion quedan
-  activos.
+  GrabacionInteraccion, VincularActualizacionPendiente, ReciboRepetido, EspecialDesdeCuenta, IdentidadEnInteraccion y
+  TramoCartera quedan activos.
 
 RepartoAsignacion y RepartoPorAgente son ASINCRONOS (PostOperation, borran el trabajo del sistema si termina bien).
 RepartoAsignacion reemplaza al flow "Cambio de Owner en Asignaciones"; nunca sincrono: correria dentro del trozo de 100 filas
@@ -178,6 +178,11 @@ def definir_pasos():
         columnas=['sanic_cm_in_cuentaid', 'sanic_cm_in_ultimos4', 'sanic_cm_in_cifcliente', 'sanic_cm_in_clavepan'],
         legacy=False, imagen=None,
         descripcion='Borrado por salida: la interaccion guarda ultimos 4, CIF y clave de su cuenta (no rechaza)'))
+    # TramoCartera (escala de la cartera): tramo 0..19 de la asignacion, sale de su cuenta. La app la trae por tramos.
+    pasos.append(dict(
+        tipo=NS + 'TramoCartera', mensaje='Create', entidad=P + 'asignacion', panguard=False, filtro=[],
+        columnas=['sanic_cm_as_cuentaid', 'sanic_cm_as_tramo'], legacy=False, imagen=None,
+        descripcion='Escala: tramo 0..19 de la asignacion para que la app la traiga en partes bajo el limite de 2000'))
     for p in pasos:
         p.setdefault('etapa', ETAPA_PREOPERATION)
         p.setdefault('modo', MODO_SINCRONO)
