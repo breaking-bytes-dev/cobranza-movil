@@ -1,0 +1,66 @@
+using Microsoft.Xrm.Sdk;
+using Microsoft.Xrm.Sdk.Query;
+
+namespace Sanic.CobranzaMovil.Plugins
+{
+    /// <summary>
+    /// Borrado por salida de cartera: la cuenta y el cliente se borran 14 dias despues de dejar de venir en la carga, pero
+    /// lo que crea la app (interacciones, pagos, actualizaciones) vive 2 anos. Al borrar la cuenta, la interaccion pierde el
+    /// vinculo; por eso guarda al crearse con que identificar la cuenta en el core: los ultimos 4, el ID del cliente (CIF)
+    /// y la clave HMAC del numero. Nunca el numero completo.
+    ///
+    /// Solo completa lo vacio. Nunca rechaza (F8: el telefono descarta lo rechazado): sin cuenta, o si no la encuentra,
+    /// deja pasar la interaccion y lo traza. Lee la cuenta con el servicio del SISTEMA. Nunca traza valores.
+    /// Registro: PreOperation sincrono, solo Create de sanic_cm_tbl_interaccion.
+    /// </summary>
+    public sealed class IdentidadEnInteraccion : PluginBase
+    {
+        protected override string Nombre
+        {
+            get { return "IdentidadEnInteraccion"; }
+        }
+
+        protected override void Ejecutar(LocalContext local)
+        {
+            local.ExigirRegistro(Esquema.Interaccion, Esquema.EtapaPreOperation, Esquema.MensajeCreate);
+
+            var target = local.ObtenerTarget();
+            var cuenta = target.GetAttributeValue<EntityReference>(Esquema.InteraccionCuentaId);
+            if (cuenta == null)
+            {
+                local.Trace("la interaccion no trae cuenta; sin identidad que copiar.");
+                return;
+            }
+
+            // RetrieveMultiple y no Retrieve: si la cuenta no existe devuelve vacio en lugar de una excepcion que rechazaria.
+            var q = new QueryExpression(Esquema.Cuenta)
+            {
+                ColumnSet = new ColumnSet(Esquema.CuentaUltimos4, Esquema.CuentaCif, Esquema.CuentaClavePan),
+                TopCount = 1,
+                NoLock = true
+            };
+            q.Criteria.AddCondition(Esquema.CuentaId, ConditionOperator.Equal, cuenta.Id);
+            var filas = local.ServicioSistema.RetrieveMultiple(q).Entities;
+            if (filas.Count == 0)
+            {
+                local.Trace("no se encontro la cuenta; la interaccion entra sin identidad.");
+                return;
+            }
+
+            var copiadas = 0;
+            copiadas += Copiar(target, filas[0], Esquema.CuentaUltimos4, Esquema.InteraccionUltimos4);
+            copiadas += Copiar(target, filas[0], Esquema.CuentaCif, Esquema.InteraccionCif);
+            copiadas += Copiar(target, filas[0], Esquema.CuentaClavePan, Esquema.InteraccionClavePan);
+            local.Trace("{0} dato(s) de identidad copiados de la cuenta.", copiadas);
+        }
+
+        private static int Copiar(Entity target, Entity cuenta, string deCuenta, string aInteraccion)
+        {
+            if (!string.IsNullOrWhiteSpace(target.GetAttributeValue<string>(aInteraccion))) return 0;
+            var valor = cuenta.GetAttributeValue<string>(deCuenta);
+            if (string.IsNullOrWhiteSpace(valor)) return 0;
+            target[aInteraccion] = valor;
+            return 1;
+        }
+    }
+}

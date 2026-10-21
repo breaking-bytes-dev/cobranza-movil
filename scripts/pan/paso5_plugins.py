@@ -11,7 +11,8 @@ REGLA DE PanGuard (paso 8 del plan):
     --desactivar-panguard   los desactiva (rollback)
   Los pasos de ClaveDesdeCuenta, CuentaDesdeInteraccion, AprobacionEspecial, ActualizacionConInteraccion, EmailDesdeUsuario,
   RepartoAsignacion, RepartoPorAgente, ColumnasAsignacion, CargaSobreAsignacion, Reclasificacion, InteraccionDelCobrador,
-  GrabacionInteraccion, VincularActualizacionPendiente, ReciboRepetido y EspecialDesdeCuenta quedan activos.
+  GrabacionInteraccion, VincularActualizacionPendiente, ReciboRepetido, EspecialDesdeCuenta e IdentidadEnInteraccion quedan
+  activos.
 
 RepartoAsignacion y RepartoPorAgente son ASINCRONOS (PostOperation, borran el trabajo del sistema si termina bien).
 RepartoAsignacion reemplaza al flow "Cambio de Owner en Asignaciones"; nunca sincrono: correria dentro del trozo de 100 filas
@@ -170,6 +171,13 @@ def definir_pasos():
             columnas=cols + ['sanic_cm_as_ultimacarga'], legacy=False,
             imagen=dict(nombre=IMAGEN_PREVIA, atributos=cols) if mensaje == 'Update' else None,
             descripcion='F3: la Especial de la carga toma tipo, nota y retiro de la cuenta (solo lo vacio)'))
+    # IdentidadEnInteraccion (borrado por salida de cartera): la interaccion guarda ultimos 4, CIF y clave HMAC de su cuenta,
+    # porque la cuenta se borra 14 dias despues de salir y la interaccion vive 2 anos. Nunca rechaza.
+    pasos.append(dict(
+        tipo=NS + 'IdentidadEnInteraccion', mensaje='Create', entidad=P + 'interaccion', panguard=False, filtro=[],
+        columnas=['sanic_cm_in_cuentaid', 'sanic_cm_in_ultimos4', 'sanic_cm_in_cifcliente', 'sanic_cm_in_clavepan'],
+        legacy=False, imagen=None,
+        descripcion='Borrado por salida: la interaccion guarda ultimos 4, CIF y clave de su cuenta (no rechaza)'))
     for p in pasos:
         p.setdefault('etapa', ETAPA_PREOPERATION)
         p.setdefault('modo', MODO_SINCRONO)

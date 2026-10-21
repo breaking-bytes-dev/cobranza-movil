@@ -197,6 +197,12 @@ namespace Sanic.CobranzaMovil.Plugins
         public const string SeparadorNotasEspecial = " — ";   // "Tipo — nota": lo parten EspTipo/EspNota de la app
         public const int LargoMaximoNotasAsignacion = 2000;
 
+        // Borrado por salida de cartera: la interaccion guarda con que identificar la cuenta en el core (IdentidadEnInteraccion)
+        public const string CuentaCif = "sanic_cm_ct_cifcliente";
+        public const string InteraccionUltimos4 = "sanic_cm_in_ultimos4";
+        public const string InteraccionCif = "sanic_cm_in_cifcliente";
+        public const string InteraccionClavePan = "sanic_cm_in_clavepan";
+
         // Imagen previa que registra el paso Update de ClaveDesdeCuenta
         public const string NombreImagenPrevia = "PreImage";
     }
