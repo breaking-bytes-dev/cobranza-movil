@@ -15,7 +15,8 @@ def token(scope=None):
 
 T = token()
 
-def rq(m, path, body=None, headers=None, raw=False):
+def rq(m, path, body=None, headers=None, raw=False, _reintento=True):
+    global T
     url = path if path.startswith('http') else A + urllib.parse.quote(path, safe="/?&=$(),@'.:-_")
     h = {'Authorization': 'Bearer ' + T, 'Accept': 'application/json', 'Content-Type': 'application/json',
          'OData-MaxVersion': '4.0', 'OData-Version': '4.0', **(headers or {})}
@@ -24,6 +25,10 @@ def rq(m, path, body=None, headers=None, raw=False):
         with urllib.request.urlopen(r) as x:
             s = x.read(); return x.status, (json.loads(s) if s and not raw else s)
     except urllib.error.HTTPError as e:
+        # El token dura ~1 hora: una corrida larga (p. ej. paso3 con miles de asignaciones) lo renueva y reintenta una vez.
+        if e.code == 401 and _reintento:
+            T = token()
+            return rq(m, path, body, headers, raw, _reintento=False)
         return e.code, e.read().decode()[:600]
 
 def get(path):
