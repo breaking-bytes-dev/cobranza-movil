@@ -131,6 +131,7 @@ Screens:
                           ="🟣 Especiales (" &
                               CountIf('CM | TBL | Asignacions',
                                   '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                                  && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado  // F11: mismo filtro que la lista
                                   && '[AS] Estado' = true) & ")"
                         Width: =170
                         X: =178

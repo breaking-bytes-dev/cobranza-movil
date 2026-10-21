@@ -31,16 +31,17 @@ Screens:
                 Filter('CM | TBL | Interaccions',
                     '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Grabado
                     && '[IN] Fecha grabacion' >= Today()
-                    && '[IN] Grabado por'.User = gblUsuarioDV.User),
-                clienteTsc, Upper(Coalesce(ThisRecord.'[IN] Cuenta'.'Nombre Cliente', "—")),   // LED-01
-                cifTsc, Coalesce(ThisRecord.'[IN] Cuenta'.'CIF Cliente', "—"),
-                prodTsc, Coalesce(ThisRecord.'[IN] Cuenta'.'Tipo Producto', "—"),
-                ult4Tsc, Coalesce(ThisRecord.'[IN] Cuenta'.'Últimos 4', ""),
-                cuentaIdTsc, ThisRecord.'[IN] Cuenta'.'CM | TBL | Cuenta',
-                // F10: "ok" la actualización vinculada existe; "sinv" entró sin vincular (F8); "falta" no llegó
-                datosTsc, If(!ThisRecord.'[IN] Actualiza info', "",
-                    !IsBlank(LookUp('CM | TBL | Actualizacion de datos', '[AD] Interaccion'.'CM | TBL | Interaccion' = ThisRecord.'CM | TBL | Interaccion')), "ok",
-                    !IsBlank(LookUp('CM | TBL | Actualizacion de datos', '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = ThisRecord.'[IN] Cuenta'.'CM | TBL | Cuenta')), "sinv",
+                    && '[IN] Grabado por'.User = gblUsuarioDV.User) As IntTsc,
+                clienteTsc, Upper(Coalesce(IntTsc.'[IN] Cuenta'.'Nombre Cliente', "—")),   // LED-01
+                cifTsc, Coalesce(IntTsc.'[IN] Cuenta'.'CIF Cliente', "—"),
+                prodTsc, Coalesce(IntTsc.'[IN] Cuenta'.'Tipo Producto', "—"),
+                ult4Tsc, Coalesce(IntTsc.'[IN] Cuenta'.'Últimos 4', ""),
+                cuentaIdTsc, IntTsc.'[IN] Cuenta'.'CM | TBL | Cuenta',
+                // F10: "ok" la actualización vinculada existe; "sinv" entró sin vincular (F8); "falta" no llegó.
+                // IntTsc y no ThisRecord: adentro del LookUp, ThisRecord es la ACTUALIZACIÓN (la fórmula no compilaba).
+                datosTsc, If(!IntTsc.'[IN] Actualiza info', "",
+                    !IsBlank(LookUp('CM | TBL | Actualizacion de datos', '[AD] Interaccion'.'CM | TBL | Interaccion' = IntTsc.'CM | TBL | Interaccion')), "ok",
+                    !IsBlank(LookUp('CM | TBL | Actualizacion de datos', '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = IntTsc.'[IN] Cuenta'.'CM | TBL | Cuenta')), "sinv",
                     "falta")
             )
         );
@@ -102,16 +103,16 @@ Screens:
                       Filter('CM | TBL | Interaccions',
                           '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Grabado
                           && '[IN] Fecha grabacion' >= Today()
-                          && '[IN] Grabado por'.User = gblUsuarioDV.User),
-                      clienteTsc, Upper(Coalesce(ThisRecord.'[IN] Cuenta'.'Nombre Cliente', "—")),
-                      cifTsc, Coalesce(ThisRecord.'[IN] Cuenta'.'CIF Cliente', "—"),
-                      prodTsc, Coalesce(ThisRecord.'[IN] Cuenta'.'Tipo Producto', "—"),
-                      ult4Tsc, Coalesce(ThisRecord.'[IN] Cuenta'.'Últimos 4', ""),
-                      cuentaIdTsc, ThisRecord.'[IN] Cuenta'.'CM | TBL | Cuenta',
+                          && '[IN] Grabado por'.User = gblUsuarioDV.User) As IntTsc,
+                      clienteTsc, Upper(Coalesce(IntTsc.'[IN] Cuenta'.'Nombre Cliente', "—")),
+                      cifTsc, Coalesce(IntTsc.'[IN] Cuenta'.'CIF Cliente', "—"),
+                      prodTsc, Coalesce(IntTsc.'[IN] Cuenta'.'Tipo Producto', "—"),
+                      ult4Tsc, Coalesce(IntTsc.'[IN] Cuenta'.'Últimos 4', ""),
+                      cuentaIdTsc, IntTsc.'[IN] Cuenta'.'CM | TBL | Cuenta',
                       // F10: "ok" la actualización vinculada existe; "sinv" entró sin vincular (F8); "falta" no llegó
-                      datosTsc, If(!ThisRecord.'[IN] Actualiza info', "",
-                          !IsBlank(LookUp('CM | TBL | Actualizacion de datos', '[AD] Interaccion'.'CM | TBL | Interaccion' = ThisRecord.'CM | TBL | Interaccion')), "ok",
-                          !IsBlank(LookUp('CM | TBL | Actualizacion de datos', '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = ThisRecord.'[IN] Cuenta'.'CM | TBL | Cuenta')), "sinv",
+                      datosTsc, If(!IntTsc.'[IN] Actualiza info', "",
+                          !IsBlank(LookUp('CM | TBL | Actualizacion de datos', '[AD] Interaccion'.'CM | TBL | Interaccion' = IntTsc.'CM | TBL | Interaccion')), "ok",
+                          !IsBlank(LookUp('CM | TBL | Actualizacion de datos', '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = IntTsc.'[IN] Cuenta'.'CM | TBL | Cuenta')), "sinv",
                           "falta")
                   )
               );
