@@ -51,6 +51,12 @@ namespace Sanic.CobranzaMovil.Plugins
         public const int VentanaSinFechaHoras = 24;
         public const string InteraccionId = "sanic_cm_tbl_interaccionid";
         public const string ActualizacionId = "sanic_cm_tbl_actualizaciondatosid";
+        // F8: lo que viene del telefono nunca se rechaza (el runtime offline lo descarta en silencio): se acepta marcado
+        public const string ActualizacionSinVincular = "sanic_cm_ad_sinvincular";
+
+        // F6: recibo repetido; no se rechaza, se marca para que BackOffice lo revise
+        public const string PagoNumeroRecibo = "sanic_cm_pg_numerorecibo";
+        public const string PagoReciboRepetido = "sanic_cm_pg_reciborepetido";
 
         // Aprobacion de la asignacion Especial (S-6)
         public const string AsignacionTipo = "sanic_cm_as_tipo";

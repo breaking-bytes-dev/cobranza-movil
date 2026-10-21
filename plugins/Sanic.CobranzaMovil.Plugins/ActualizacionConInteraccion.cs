@@ -48,8 +48,14 @@ namespace Sanic.CobranzaMovil.Plugins
                 {
                     // La busqueda ya filtro por la cuenta del target: no hace falta volver a leer la interaccion.
                     target[Esquema.ActualizacionInteraccion] = encontrada;
+                    target[Esquema.ActualizacionSinVincular] = false;
                     return;
                 }
+                // F8: un rechazo aca es un dato perdido (el telefono descarta lo rechazado y no reintenta). Se acepta
+                // marcada: VincularActualizacionPendiente la cuelga cuando llegue la interaccion; si no, la ve BackOffice.
+                target[Esquema.ActualizacionSinVincular] = true;
+                local.Trace("sin interaccion: se acepta marcada como sin vincular.");
+                return;
             }
             if (interaccion == null)
             {
@@ -76,6 +82,7 @@ namespace Sanic.CobranzaMovil.Plugins
             {
                 throw local.Error("la interaccion de la actualizacion de datos es de otra cuenta.");
             }
+            target[Esquema.ActualizacionSinVincular] = false;
             local.Trace("interaccion con cuenta; ok.");
         }
 
@@ -83,7 +90,7 @@ namespace Sanic.CobranzaMovil.Plugins
         /// F7: la interaccion del mismo cobrador y cuenta, marcada con actualiza info. Con fecha de captura: la de esa
         /// captura (tolerancia de unos segundos), exactamente una. Sin fecha (el runtime offline la descarta, 1.0.8.8):
         /// la mas vieja de las ultimas horas que todavia no tiene actualizacion de datos (la sincronizacion sube en orden).
-        /// Si no hay, todavia no llego (se reintenta).
+        /// Si no hay, o es ambigua, devuelve null (la actualizacion entra marcada como sin vincular, F8).
         /// </summary>
         private static EntityReference BuscarInteraccion(LocalContext local, Entity target)
         {
@@ -119,11 +126,13 @@ namespace Sanic.CobranzaMovil.Plugins
             var filas = local.Service.RetrieveMultiple(q).Entities;
             if (filas.Count == 0)
             {
-                throw local.Error("la interaccion de esta actualizacion de datos todavia no llego al servidor; se reintenta en la proxima sincronizacion.");
+                local.Trace("la interaccion todavia no llego al servidor.");
+                return null;
             }
             if (filas.Count > 1)
             {
-                throw local.Error("hay mas de una interaccion de la misma cuenta y captura; no se puede saber de cual es la actualizacion de datos.");
+                local.Trace("hay mas de una interaccion de la misma cuenta y captura; no se adivina.");
+                return null;
             }
             local.Trace(captura.HasValue ? "interaccion encontrada por cuenta y captura (offline)." : "interaccion encontrada por cuenta: la pendiente mas vieja (offline, sin fecha).");
             return new EntityReference(Esquema.Interaccion, filas[0].Id);

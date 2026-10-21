@@ -34,15 +34,22 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             return i;
         }
 
+        private const string AdSinVincular = "sanic_cm_ad_sinvincular";
+
+        // F8: lo que crea el telefono nunca se rechaza por falta de interaccion (el runtime lo descartaria en silencio)
         [Fact]
-        public void Crear_sin_interaccion_se_rechaza()
+        public void F8_crear_sin_interaccion_ni_cuenta_entra_marcada_sin_vincular_y_sin_consultar()
         {
             var t = new Entity(Actualizacion, Guid.NewGuid());
             t[AdTelefono] = "8888-1234";
             var h = new Harness("Create", Actualizacion).ConTarget(t);
-            var ex = Assert.Throws<InvalidPluginExecutionException>(() => h.Ejecutar(new ActualizacionConInteraccion()));
-            Assert.Contains("interaccion", ex.Message);
-            Assert.DoesNotContain("8888", ex.Message);
+
+            h.Ejecutar(new ActualizacionConInteraccion());
+
+            Assert.True(t.GetAttributeValue<bool>(AdSinVincular));
+            Assert.Null(t.GetAttributeValue<EntityReference>(AdInteraccion));
+            Assert.Equal(0, h.RetrievesAlServicio());
+            Assert.DoesNotContain("8888", h.TodoElTexto());
         }
 
         [Fact]
@@ -57,6 +64,8 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             h.Ejecutar(new ActualizacionConInteraccion());
 
             Assert.Equal(1, h.RetrievesAlServicio());
+            Assert.False(t.GetAttributeValue<bool>(AdSinVincular));
+            Assert.True(t.Contains(AdSinVincular));
         }
 
         [Fact]
@@ -164,21 +173,31 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         }
 
         [Fact]
-        public void F7_sin_interaccion_y_sin_coincidencias_se_rechaza_para_reintentar()
+        public void F8_sin_interaccion_y_sin_coincidencias_entra_marcada_sin_vincular()
         {
             var h = ConInteraccionesQueCoinciden(SinInteraccion(Guid.NewGuid()));
-            var ex = Assert.Throws<InvalidPluginExecutionException>(() => h.Ejecutar(new ActualizacionConInteraccion()));
-            Assert.Contains("todavia", ex.Message);
-            Assert.DoesNotContain("8888", ex.Message);
+            h.Ejecutar(new ActualizacionConInteraccion());
+            Assert.True(h.Target.GetAttributeValue<bool>(AdSinVincular));
+            Assert.Null(h.Target.GetAttributeValue<EntityReference>(AdInteraccion));
+            Assert.DoesNotContain("8888", h.TodoElTexto());
         }
 
         [Fact]
-        public void F7_sin_interaccion_y_dos_coincidencias_se_rechaza_por_ambigua()
+        public void F8_sin_interaccion_y_dos_coincidencias_no_adivina_y_entra_marcada()
         {
             var h = ConInteraccionesQueCoinciden(SinInteraccion(Guid.NewGuid()), Guid.NewGuid(), Guid.NewGuid());
-            var ex = Assert.Throws<InvalidPluginExecutionException>(() => h.Ejecutar(new ActualizacionConInteraccion()));
-            Assert.Contains("mas de una", ex.Message);
+            h.Ejecutar(new ActualizacionConInteraccion());
+            Assert.True(h.Target.GetAttributeValue<bool>(AdSinVincular));
             Assert.Null(h.Target.GetAttributeValue<EntityReference>(AdInteraccion));
+        }
+
+        [Fact]
+        public void F8_vinculada_por_la_busqueda_queda_sin_marca()
+        {
+            var h = ConInteraccionesQueCoinciden(SinInteraccion(Guid.NewGuid()), Guid.NewGuid());
+            h.Ejecutar(new ActualizacionConInteraccion());
+            Assert.True(h.Target.Contains(AdSinVincular));
+            Assert.False(h.Target.GetAttributeValue<bool>(AdSinVincular));
         }
 
         // 1.0.8.8: en el telefono el runtime tambien descarta la fecha de captura (traza del 20/10, 21:02); llega la cuenta
@@ -223,21 +242,21 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         }
 
         [Fact]
-        public void F7_sin_fecha_y_sin_pendientes_se_rechaza_para_reintentar()
+        public void F8_sin_fecha_y_sin_pendientes_entra_marcada_sin_vincular()
         {
             var h = ConInteraccionesQueCoinciden(SinInteraccionNiFecha(Guid.NewGuid()));
-            var ex = Assert.Throws<InvalidPluginExecutionException>(() => h.Ejecutar(new ActualizacionConInteraccion()));
-            Assert.Contains("todavia", ex.Message);
-            Assert.DoesNotContain("8888", ex.Message);
+            h.Ejecutar(new ActualizacionConInteraccion());
+            Assert.True(h.Target.GetAttributeValue<bool>(AdSinVincular));
         }
 
         [Fact]
-        public void F7_sin_interaccion_ni_cuenta_se_rechaza_sin_consultar()
+        public void F8_sin_interaccion_ni_cuenta_entra_marcada_sin_consultar()
         {
             var t = SinInteraccion(Guid.NewGuid());
             t.Attributes.Remove(AdCuenta);
             var h = ConInteraccionesQueCoinciden(t, Guid.NewGuid());
-            Assert.Throws<InvalidPluginExecutionException>(() => h.Ejecutar(new ActualizacionConInteraccion()));
+            h.Ejecutar(new ActualizacionConInteraccion());
+            Assert.True(t.GetAttributeValue<bool>(AdSinVincular));
             Assert.Null(ConsultaDeInteraccion(h));
         }
 

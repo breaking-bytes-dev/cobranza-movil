@@ -10,8 +10,8 @@ REGLA DE PanGuard (paso 8 del plan):
     --activar-panguard      activa los pasos PanGuard (paso 8)
     --desactivar-panguard   los desactiva (rollback)
   Los pasos de ClaveDesdeCuenta, CuentaDesdeInteraccion, AprobacionEspecial, ActualizacionConInteraccion, EmailDesdeUsuario,
-  RepartoAsignacion, RepartoPorAgente, ColumnasAsignacion, CargaSobreAsignacion, Reclasificacion, InteraccionDelCobrador y
-  GrabacionInteraccion quedan activos.
+  RepartoAsignacion, RepartoPorAgente, ColumnasAsignacion, CargaSobreAsignacion, Reclasificacion, InteraccionDelCobrador,
+  GrabacionInteraccion, VincularActualizacionPendiente y ReciboRepetido quedan activos.
 
 RepartoAsignacion y RepartoPorAgente son ASINCRONOS (PostOperation, borran el trabajo del sistema si termina bien).
 RepartoAsignacion reemplaza al flow "Cambio de Owner en Asignaciones"; nunca sincrono: correria dentro del trozo de 100 filas
@@ -148,6 +148,18 @@ def definir_pasos():
         columnas=cols + ['sanic_cm_in_fechagrabacion', 'sanic_cm_in_grabadopor'], legacy=False,
         imagen=dict(nombre=IMAGEN_PREVIA, atributos=cols),
         descripcion='DAT-11: no se vuelve a grabar una interaccion grabada; fecha y usuario de grabacion del servidor'))
+    # VincularActualizacionPendiente (F8): al llegar la interaccion, cuelga la actualizacion que entro sin vincular. ASINCRONO:
+    # si fallara sincrono, se perderia la interaccion del telefono.
+    pasos.append(dict(
+        tipo=NS + 'VincularActualizacionPendiente', mensaje='Create', entidad=P + 'interaccion', panguard=False, filtro=[],
+        columnas=['sanic_cm_in_actualizainfo', 'sanic_cm_in_cuentaid'], legacy=False,
+        imagen=None, etapa=ETAPA_POSTOPERATION, modo=MODO_ASINCRONO,
+        descripcion='F8: cuelga de la interaccion que llega la actualizacion de datos que entro sin vincular (asincrono)'))
+    # ReciboRepetido (F6): el recibo repetido no se rechaza, se marca para BackOffice
+    pasos.append(dict(
+        tipo=NS + 'ReciboRepetido', mensaje='Create', entidad=P + 'pago', panguard=False, filtro=[],
+        columnas=['sanic_cm_pg_numerorecibo', 'sanic_cm_pg_reciborepetido'], legacy=False, imagen=None,
+        descripcion='F6: marca el pago cuyo numero de recibo ya existe (no lo rechaza)'))
     for p in pasos:
         p.setdefault('etapa', ETAPA_PREOPERATION)
         p.setdefault('modo', MODO_SINCRONO)
