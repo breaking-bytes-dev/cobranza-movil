@@ -183,6 +183,11 @@ def definir_pasos():
         tipo=NS + 'TramoCartera', mensaje='Create', entidad=P + 'asignacion', panguard=False, filtro=[],
         columnas=['sanic_cm_as_cuentaid', 'sanic_cm_as_tramo'], legacy=False, imagen=None,
         descripcion='Escala: tramo 0..19 de la asignacion para que la app la traiga en partes bajo el limite de 2000'))
+    # La cuenta nueva recibe el mismo tramo (sale de su id, que recien existe despues de crearla). ASINCRONO: no frena la carga.
+    pasos.append(dict(
+        tipo=NS + 'TramoCartera', mensaje='Create', entidad=P + 'cuenta', panguard=False, filtro=[],
+        columnas=['sanic_cm_ct_tramo'], legacy=False, imagen=None, etapa=ETAPA_POSTOPERATION, modo=MODO_ASINCRONO,
+        descripcion='Escala: la cuenta nueva recibe el mismo tramo que sus asignaciones (asincrono)'))
     for p in pasos:
         p.setdefault('etapa', ETAPA_PREOPERATION)
         p.setdefault('modo', MODO_SINCRONO)

@@ -101,6 +101,28 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         }
 
         [Fact]
+        public void La_cuenta_nueva_recibe_el_mismo_tramo_que_sus_asignaciones()
+        {
+            var id = Guid.NewGuid();
+            var h = new Harness("Create", "sanic_cm_tbl_cuenta", 40).ConTarget(new Entity("sanic_cm_tbl_cuenta", id));
+            h.Context.Setup(c => c.PrimaryEntityId).Returns(id);
+            Entity escrita = null;
+            h.Service.Setup(s => s.Update(Moq.It.IsAny<Entity>())).Callback<Entity>(e => escrita = e);
+            h.Ejecutar(new TramoCartera());
+            Assert.NotNull(escrita);
+            Assert.Equal(id, escrita.Id);
+            Assert.Equal(Crear(id).Target.GetAttributeValue<int>(Tramo), escrita.GetAttributeValue<int>("sanic_cm_ct_tramo"));
+            Assert.Single(escrita.Attributes);
+        }
+
+        [Fact]
+        public void La_cuenta_solo_en_el_Create_PostOperation()
+        {
+            var h = new Harness("Create", "sanic_cm_tbl_cuenta", 20).ConTarget(new Entity("sanic_cm_tbl_cuenta", Guid.NewGuid()));
+            Assert.Throws<InvalidPluginExecutionException>(() => h.Ejecutar(new TramoCartera()));
+        }
+
+        [Fact]
         public void Solo_corre_en_el_Create_PreOperation_de_la_asignacion()
         {
             var t = new Entity(Asignacion, Guid.NewGuid());
