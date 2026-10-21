@@ -234,7 +234,7 @@ Screens:
                         Height: =18
                         PaddingLeft: =0
                         Size: =9
-                        Text: =CuentaMasc(ThisItem.ult4Tsc) & " · " & ThisItem.prodTsc
+                        Text: =CuentaMasc(ThisItem.ult4Tsc) & If(ThisItem.prodTsc = "—", "", " · " & ThisItem.prodTsc)
                         Width: =lblClienteTsc.Width
                         Wrap: =false
                         X: =gblE.PadSm
@@ -250,7 +250,7 @@ Screens:
                         PaddingLeft: =0
                         Size: =8
                         Text: |-
-                          ="🏍️ " & ThisItem.'[IN] NombreAgente' & " · " & Text(ThisItem.'Fecha de captura', "HH:mm")
+                          =ThisItem.'[IN] Numero de Interaccion' & " · 🏍️ " & ThisItem.'[IN] NombreAgente' & " · " & Text(ThisItem.'Fecha de captura', "HH:mm")
                         Width: =lblClienteTsc.Width
                         Wrap: =false
                         X: =gblE.PadSm
@@ -563,7 +563,7 @@ Screens:
                                     Cuenta.'CM | TBL | Cuenta' = varSelTsc.cuentaIdTsc).PAN,
                                 Blank()),
                             CuentaMasc(varSelTsc.ult4Tsc)),
-                        CuentaMasc(varSelTsc.ult4Tsc)) & " · " & varSelTsc.prodTsc
+                        CuentaMasc(varSelTsc.ult4Tsc)) & If(varSelTsc.prodTsc = "—", "", " · " & varSelTsc.prodTsc)
                   Width: =Parent.Width - gblE.Pad - Self.X
                   Wrap: =false
                   X: =gblE.Pad + 110

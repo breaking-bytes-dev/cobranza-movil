@@ -168,7 +168,7 @@ Screens:
                               LayoutMinHeight: =16
                               LayoutMinWidth: =16
                               Size: =gblT.fxs
-                              Text: =ThisItem.prod & " · " & PanMasc(ThisItem.u4)
+                              Text: =If(IsBlank(ThisItem.prod), "", ThisItem.prod & " · ") & PanMasc(ThisItem.u4)
                         - galLineas:
                             Control: Gallery@2.15.0
                             Variant: VariableHeight

@@ -75,7 +75,7 @@ Screens:
                       ComponentName: cmpHeaderBack
                       Properties:
                         Height: =Parent.Height
-                        Subtitulo: =varCuenta.'Tipo Producto' & " · " & If(IsBlank(locPan), PanMasc(varCuenta.'Últimos 4'), locPan)
+                        Subtitulo: =If(IsBlank(varCuenta.'Tipo Producto'), "", varCuenta.'Tipo Producto' & " · ") & If(IsBlank(locPan), PanMasc(varCuenta.'Últimos 4'), locPan)
                         Titulo: =varCuenta.'Nombre Cliente'
                         Width: =Parent.Width
                   - Button1_5:
@@ -214,7 +214,7 @@ Screens:
                         LayoutMinWidth: =16
                         Size: =gblT.fxs
                         Text: |-
-                          ="Pago Minimo: "&Moneda(varCuenta.'[CT] Pago Minimo NIO', varCuenta.'[CT] Pago Minimo USD')
+                          ="Pago mínimo: "&Moneda(varCuenta.'[CT] Pago Minimo NIO', varCuenta.'[CT] Pago Minimo USD')
                   - lblTotalDolarizaod_1:
                       Control: Label@2.5.1
                       Properties:

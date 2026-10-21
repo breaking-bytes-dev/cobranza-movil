@@ -410,7 +410,7 @@ Screens:
                                     LayoutMinWidth: =16
                                     Size: =gblT.fbase
                                     Text: |-
-                                      =With({ c: LookUp(colCuentas, 'CM | TBL | Cuenta' = ThisItem.'[IN] Cuenta'.'CM | TBL | Cuenta') }, c.'Nombre Cliente' & " · " & c.'Tipo Producto')
+                                      =With({ c: LookUp(colCuentas, 'CM | TBL | Cuenta' = ThisItem.'[IN] Cuenta'.'CM | TBL | Cuenta') }, c.'Nombre Cliente' & If(IsBlank(c.'Tipo Producto'), "", " · " & c.'Tipo Producto'))
                                     Width: =Parent.Width
                               - lblCapH:
                                   Control: Label@2.5.1

@@ -506,6 +506,7 @@ Screens:
                         Size: =8
                         Text: |-
                           =CuentaMasc(ThisItem.ult4Trx)
+                              & " · " & ThisItem.'[IN] Numero de Interaccion'
                               & " · " & Text(ThisItem.'Fecha de captura', "HH:mm")
                               & If(ThisItem.'[IN] Aplica pago', " · 💵", "")
                               & If(ThisItem.'[IN] Actualiza info', " · ✏️", "")

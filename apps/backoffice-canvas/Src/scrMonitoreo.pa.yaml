@@ -82,7 +82,7 @@ Screens:
                         Height: =26
                         PaddingLeft: =0
                         Size: =11
-                        Text: ="✓ Carga de hoy completada · " & Text(nfUltimaCarga, "HH:mm")
+                        Text: ="✓ Carga de hoy completada · " & Text(DateAdd(nfUltimaCarga, TimeZoneOffset(nfUltimaCarga), TimeUnit.Minutes), "dd/mm/yyyy")
                         Width: =Parent.Width - 2*gblE.Pad
                         Wrap: =false
                         X: =gblE.Pad
@@ -157,7 +157,7 @@ Screens:
                         Text: |-
                           =If(IsBlank(nfUltimaCarga),
                               "Sin cargas registradas en el sistema",
-                              "Última carga: " & Text(nfUltimaCarga, "dd/mm HH:mm"))
+                              "Última carga: " & Text(DateAdd(nfUltimaCarga, TimeZoneOffset(nfUltimaCarga), TimeUnit.Minutes), "dd/mm/yyyy"))
                         Width: =Parent.Width - 2*gblE.Pad
                         Wrap: =false
                         X: =gblE.Pad

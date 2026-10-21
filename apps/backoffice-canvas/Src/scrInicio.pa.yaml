@@ -103,7 +103,7 @@ Screens:
               =If("BackOffice" in gblRol || "Admin" in gblRol || "Supervisor" in gblRol,
                   "Cobrado hoy por los localizadores: " & Moneda(varCobNioIni, varCobUsdIni),
                   "Tus solicitudes Especiales")
-            Titulo: ="Hola, " & First(Split(User().FullName, " ")).Value
+            Titulo: ="Hola, " & User().FullName
             Visible: =!IsBlank(gblRol)
             Width: =Parent.Width - Self.X
             X: =If(nfMovil, 0, gblE.AnchoNav)
@@ -251,7 +251,7 @@ Screens:
                         EsHero: =true
                         Etiqueta: ="CARGA DE HOY"
                         Height: =96
-                        Valor: =If(IsBlank(varUltCargaIni) || varUltCargaIni < Today(), "sin carga", Text(varUltCargaIni, "dd/mm HH:mm"))
+                        Valor: =If(IsBlank(varUltCargaIni) || varUltCargaIni < Today(), "sin carga", Text(DateAdd(varUltCargaIni, TimeZoneOffset(varUltCargaIni), TimeUnit.Minutes), "dd/mm/yyyy"))
                         Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 2*gblE.PadSm) / 3)
                   - cmpKpiDesapIni:
                       Control: CanvasComponent

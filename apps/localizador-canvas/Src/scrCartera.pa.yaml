@@ -44,7 +44,8 @@ Screens:
                 saldoUsd, cta.'[CT] Saldo Vencido USD',
                 diasMora, cta.'[CT] Dias Mora',
                 ctaId,    cta.'CM | TBL | Cuenta',
-                ord,      '[AS] Orden'));
+                ord,      '[AS] Orden',
+                ultCarga, 'Última carga'));
 
           // DAT-15: el saldo se suma por CUENTA distinta (una cuenta con Diaria y Especial aprobada tiene 2 asignaciones con el
           // mismo saldo). F4: nCuentas también cuenta CUENTAS distintas, igual que la pestaña Cuentas del Cliente.
@@ -169,7 +170,7 @@ Screens:
                               Color: =gblC.white
                               FontWeight: =FontWeight.Normal
                               Height: =If(gblScale = 1, 30,gblScale = 1.2,34,gblScale = 1.45,40,46)
-                              OnSelect: "=UpdateContext({varshowLoader: true});\r\n\r\nUpdateContext({okOrden: IfError(ForAll(Filter(colClientes, dirty) As C,\r\n     ForAll(Filter(colAsig, cid = C.cid) As A,\r\n        UpdateIf('CM | TBL | Asignacions',\r\n           'CM | TBL | Asignacion' = A.'CM | TBL | Asignacion',\r\n           { '[AS] Orden': C.orden }))); true, false)});\r\n\r\n// APP-13: si no se pudo guardar el orden, no se recarga (se perderia) y se avisa.\r\nIf(okOrden,\r\nClearCollect(colCuentas, 'CM | TBL | Cuentas');\r\nClearCollect(colDirecciones, Filter('CM | TBL | Direccions', '[DR] Tipo' = \"Casa\" || '[DR] Tipo' = \"Trabajo\"));\r\nClearCollect(colTelefonos, 'CM | TBL | Telefonos');\r\nClearCollect(colAsigRaw, Filter('CM | TBL | Asignacions', '[AS] Estado' = true && ('[AS] Tipo' <> 'Choice | CM | Tipo asignacion'.Especial || '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado)));\r\nClearCollect(colAsig,\r\n     AddColumns(\r\n        AddColumns(colAsigRaw,\r\n           cta, LookUp(colCuentas, 'CM | TBL | Cuenta' = '[AS] Cuenta'.'CM | TBL | Cuenta')),\r\n        cid,      cta.'CIF Cliente',\r\n        cliNom,   cta.'Nombre Cliente',\r\n        ult4,     cta.'Últimos 4',\r\n        saldoNio, cta.'[CT] Saldo Vencido NIO',\r\n        saldoUsd, cta.'[CT] Saldo Vencido USD',\r\n        diasMora, cta.'[CT] Dias Mora',\r\n        ctaId,    cta.'CM | TBL | Cuenta',\r\n        ord,      '[AS] Orden'));\r\n\r\n  ClearCollect(colClientes,\r\n     AddColumns(\r\n        GroupBy(Filter(colAsig, !IsBlank(cid)), cid, cliNom, Asigs),\r\n        orden,    Min(Asigs, ord),\r\n        totNio,   Sum(ForAll(Distinct(Asigs, ctaId) As C, LookUp(Asigs, ctaId = C.Value).saldoNio), Value),\r\n        totUsd,   Sum(ForAll(Distinct(Asigs, ctaId) As C, LookUp(Asigs, ctaId = C.Value).saldoUsd), Value),\r\n        maxDias,  Max(Asigs, diasMora),\r\n        nCuentas, CountRows(Distinct(Asigs, ctaId)),\r\n        dirCasa,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'=\"Casa\").'[DR] Direccion',\r\n        dirTrab,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'=\"Trabajo\").'[DR] Direccion',\r\n        dirty,   false));\r\n          // Orden 1..n sin empates ni vacíos (APP-23). Los que no tienen orden (asignaciones nuevas; Min() de vacíos da 0)\r\n          // van al final, alfabéticos. Solo los que cambian quedan dirty y se guardan en Dataverse al salir (OnHidden).\r\n          With({ lista: SortByColumns(AddColumns(colClientes, sinOrden, Coalesce(orden, 0) <= 0),\r\n                                      \"sinOrden\", SortOrder.Ascending, \"orden\", SortOrder.Ascending, \"cliNom\", SortOrder.Ascending) },\r\n             ForAll(Sequence(CountRows(lista)) As N,\r\n                With({ r: Index(lista, N.Value) },\r\n                   If(Coalesce(r.orden, 0) <> N.Value,\r\n                      Patch(colClientes, LookUp(colClientes, cid = r.cid), { orden: N.Value, dirty: true })))));\r\n    Set(varCarteraLista, true);\r\n     Set(varRecargarCartera, false);\r\n     Set(varFechaUltimaActualizacion, Now()),\r\n   Notify(\"No se pudo guardar el orden de la cartera; no se recargó para no perderlo. Reintentá con señal.\", NotificationType.Warning));\r\n     UpdateContext({varshowLoader: false});\r\n        "
+                              OnSelect: "=UpdateContext({varshowLoader: true});\r\n\r\nUpdateContext({okOrden: IfError(ForAll(Filter(colClientes, dirty) As C,\r\n     ForAll(Filter(colAsig, cid = C.cid) As A,\r\n        UpdateIf('CM | TBL | Asignacions',\r\n           'CM | TBL | Asignacion' = A.'CM | TBL | Asignacion',\r\n           { '[AS] Orden': C.orden }))); true, false)});\r\n\r\n// APP-13: si no se pudo guardar el orden, no se recarga (se perderia) y se avisa.\r\nIf(okOrden,\r\nClearCollect(colCuentas, 'CM | TBL | Cuentas');\r\nClearCollect(colDirecciones, Filter('CM | TBL | Direccions', '[DR] Tipo' = \"Casa\" || '[DR] Tipo' = \"Trabajo\"));\r\nClearCollect(colTelefonos, 'CM | TBL | Telefonos');\r\nClearCollect(colAsigRaw, Filter('CM | TBL | Asignacions', '[AS] Estado' = true && ('[AS] Tipo' <> 'Choice | CM | Tipo asignacion'.Especial || '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado)));\r\nClearCollect(colAsig,\r\n     AddColumns(\r\n        AddColumns(colAsigRaw,\r\n           cta, LookUp(colCuentas, 'CM | TBL | Cuenta' = '[AS] Cuenta'.'CM | TBL | Cuenta')),\r\n        cid,      cta.'CIF Cliente',\r\n        cliNom,   cta.'Nombre Cliente',\r\n        ult4,     cta.'Últimos 4',\r\n        saldoNio, cta.'[CT] Saldo Vencido NIO',\r\n        saldoUsd, cta.'[CT] Saldo Vencido USD',\r\n        diasMora, cta.'[CT] Dias Mora',\r\n        ctaId,    cta.'CM | TBL | Cuenta',\r\n        ord,      '[AS] Orden',\r\n        ultCarga, 'Última carga'));\r\n\r\n  ClearCollect(colClientes,\r\n     AddColumns(\r\n        GroupBy(Filter(colAsig, !IsBlank(cid)), cid, cliNom, Asigs),\r\n        orden,    Min(Asigs, ord),\r\n        totNio,   Sum(ForAll(Distinct(Asigs, ctaId) As C, LookUp(Asigs, ctaId = C.Value).saldoNio), Value),\r\n        totUsd,   Sum(ForAll(Distinct(Asigs, ctaId) As C, LookUp(Asigs, ctaId = C.Value).saldoUsd), Value),\r\n        maxDias,  Max(Asigs, diasMora),\r\n        nCuentas, CountRows(Distinct(Asigs, ctaId)),\r\n        dirCasa,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'=\"Casa\").'[DR] Direccion',\r\n        dirTrab,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'=\"Trabajo\").'[DR] Direccion',\r\n        dirty,   false));\r\n          // Orden 1..n sin empates ni vacíos (APP-23). Los que no tienen orden (asignaciones nuevas; Min() de vacíos da 0)\r\n          // van al final, alfabéticos. Solo los que cambian quedan dirty y se guardan en Dataverse al salir (OnHidden).\r\n          With({ lista: SortByColumns(AddColumns(colClientes, sinOrden, Coalesce(orden, 0) <= 0),\r\n                                      \"sinOrden\", SortOrder.Ascending, \"orden\", SortOrder.Ascending, \"cliNom\", SortOrder.Ascending) },\r\n             ForAll(Sequence(CountRows(lista)) As N,\r\n                With({ r: Index(lista, N.Value) },\r\n                   If(Coalesce(r.orden, 0) <> N.Value,\r\n                      Patch(colClientes, LookUp(colClientes, cid = r.cid), { orden: N.Value, dirty: true })))));\r\n    Set(varCarteraLista, true);\r\n     Set(varRecargarCartera, false);\r\n     Set(varFechaUltimaActualizacion, Now()),\r\n   Notify(\"No se pudo guardar el orden de la cartera; no se recargó para no perderlo. Reintentá con señal.\", NotificationType.Warning));\r\n     UpdateContext({varshowLoader: false});\r\n        "
                               PaddingBottom: =0
                               PaddingLeft: =0
                               PaddingRight: =0
@@ -225,7 +226,7 @@ Screens:
                         DropShadow: =DropShadow.None
                         Fill: =gblC.surface
                         FillPortions: =0
-                        Height: =lblTotalL.Height + conBoxes.Height + lblTotalMeta.Height + 36
+                        Height: =lblTotalL.Height + conBoxes.Height + lblTotalMeta.Height + lblCargaDia.Height + 45
                         LayoutAlignItems: =LayoutAlignItems.Stretch
                         LayoutDirection: =LayoutDirection.Vertical
                         LayoutGap: =9
@@ -355,6 +356,21 @@ Screens:
                               LayoutMinWidth: =16
                               Size: =gblT.fxs
                               Text: =CountRows(Distinct(colAsig, ctaId)) & " cuentas · " & CountRows(Distinct(colAsig, cid)) & " clientes"
+                        - lblCargaDia:
+                            Control: Label@2.5.1
+                            Properties:
+                              AutoHeight: =true
+                              Color: =If(FechaUtc(Max(Filter(colAsig, '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria), ultCarga)) = Today(), gblC.accentInk, gblC.redInk)
+                              FontWeight: =FontWeight.Bold
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              Size: =gblT.fxs
+                              Text: |-
+                                =// El cobrador confirma que tiene la carga de hoy: la fecha más reciente de sus Diarias.
+                                With({ d: FechaUtc(Max(Filter(colAsig, '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria), ultCarga)) },
+                                    If(IsBlank(d), "⚠ No hay carga diaria en el teléfono. Sincronizá.",
+                                        d = Today(), "✓ Carga diaria de hoy · " & Text(d, "dd/mm/yyyy"),
+                                        "⚠ Carga diaria del " & Text(d, "dd/mm/yyyy") & ": todavía no es la de hoy. Sincronizá."))
             - conFiltros:
                 Control: GroupContainer@1.5.0
                 Variant: AutoLayout
@@ -551,17 +567,17 @@ Screens:
                 Properties:
                   DropShadow: =DropShadow.None
                   FillPortions: =0
-                  Height: =60
+                  Height: =lblResL_1.Height + 4
                   LayoutAlignItems: =LayoutAlignItems.Center
                   LayoutDirection: =LayoutDirection.Horizontal
                   LayoutJustifyContent: =LayoutJustifyContent.SpaceBetween
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
-                  LayoutWrap: =true
-                  PaddingBottom: =8
+                  LayoutWrap: =false
+                  PaddingBottom: =0
                   PaddingLeft: =8
                   PaddingRight: =8
-                  PaddingTop: =8
+                  PaddingTop: =4
                   X: =40
                   Y: =40
                 Children:

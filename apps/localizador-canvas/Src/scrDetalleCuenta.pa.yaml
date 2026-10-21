@@ -59,7 +59,7 @@ Screens:
                       ComponentName: cmpHeaderBack
                       Properties:
                         Height: =Parent.Height
-                        Subtitulo: =varCuenta.'Tipo Producto' & " · " & If(IsBlank(locPan), PanMasc(varCuenta.'Últimos 4'), locPan)
+                        Subtitulo: =If(IsBlank(varCuenta.'Tipo Producto'), "", varCuenta.'Tipo Producto' & " · ") & If(IsBlank(locPan), PanMasc(varCuenta.'Últimos 4'), locPan)
                         Titulo: =varCuenta.'Nombre Cliente'
                         Width: =Parent.Width
                   - Button1_4:
@@ -101,7 +101,7 @@ Screens:
                         RadiusTopRight: =10
                         Size: =gblT.fxs
                         Text: =Coalesce(Text(varAsig.'[AS] Tipo'), "…")
-                        Width: =If(gblScale = 1, 80,gblScale = 1.2,96,gblScale = 1.45,118,136)
+                        Width: =If(gblScale = 1, 96,gblScale = 1.2,118,gblScale = 1.45,146,172)
                         X: =Parent.Width - 18  - Self.Width
                         Y: =Button1_4.Y + Button1_4.Height + 20
                   - btnVerPan_DC:
@@ -255,7 +255,7 @@ Screens:
                         LayoutMinWidth: =16
                         Size: =gblT.fxs
                         Text: |-
-                          ="Pago Minimo: "&Moneda(varCuenta.'[CT] Pago Minimo NIO', varCuenta.'[CT] Pago Minimo USD')
+                          ="Pago mínimo: "&Moneda(varCuenta.'[CT] Pago Minimo NIO', varCuenta.'[CT] Pago Minimo USD')
                   - lblTotalDolarizaod:
                       Control: Label@2.5.1
                       Properties:
@@ -284,7 +284,8 @@ Screens:
                 Properties:
                   Fill: =gblC.surface
                   FillPortions: =0
-                  Height: =lblSecTel_1.Height + conFila_DiasMora.Height + conFila_FechaPago.Height + conFila_UltimoPago.Height + conFila_Ciclo.Height +  16
+                  Height: =lblSecTel_1.Height + conFila_DiasMora.Height + conFila_FechaPago.Height + conFila_UltimoPago.Height + conFila_Ciclo.Height
+                    + If(conFila_Asignada.Visible, conFila_Asignada.Height, 0) + If(conFila_UltCarga.Visible, conFila_UltCarga.Height, 0) +  16
                   LayoutAlignItems: =LayoutAlignItems.Center
                   LayoutDirection: =LayoutDirection.Vertical
                   LayoutMinHeight: =16
@@ -462,13 +463,92 @@ Screens:
                               LayoutMinWidth: =16
                               Size: =gblT.fbase
                               Text: =varCuenta.'[CT] Ciclo'
+                  - conFila_Asignada:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        FillPortions: =0
+                        Height: =If(gblScale = 1, 35,gblScale = 1.2,40,gblScale = 1.45,45,50)
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Horizontal
+                        LayoutJustifyContent: =LayoutJustifyContent.SpaceBetween
+                        PaddingBottom: =8
+                        PaddingTop: =8
+                        Visible: =!IsBlank(varAsig.'[AS] Fecha de Asignacion')
+                        Width: =Parent.Width
+                      Children:
+                        - lblAsignadaTipo:
+                            Control: Label@2.5.1
+                            Properties:
+                              AutoHeight: =true
+                              Color: =gblC.muted2
+                              FillPortions: =1
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              Size: =gblT.f2xs
+                              Text: ="Asignada el"
+                        - lblAsignadaVal:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =Align.Right
+                              AutoHeight: =true
+                              Color: =gblC.ink
+                              FillPortions: =1
+                              FontWeight: =FontWeight.Semibold
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              Size: =gblT.fbase
+                              Text: |-
+                                =// La carga la graba como medianoche UTC (se vuelve a UTC); una Especial pedida en la app tiene la hora real.
+                                If(IsBlank(varAsig.'Última carga'), Text(varAsig.'[AS] Fecha de Asignacion', "dd/mm/yyyy"), Text(FechaUtc(varAsig.'[AS] Fecha de Asignacion'), "dd/mm/yyyy"))
+                  - conFila_UltCarga:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        FillPortions: =0
+                        Height: =If(gblScale = 1, 35,gblScale = 1.2,40,gblScale = 1.45,45,50)
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Horizontal
+                        LayoutJustifyContent: =LayoutJustifyContent.SpaceBetween
+                        PaddingBottom: =8
+                        PaddingTop: =8
+                        Visible: =!IsBlank(varAsig.'Última carga')
+                        Width: =Parent.Width
+                      Children:
+                        - lblUltCargaTipo:
+                            Control: Label@2.5.1
+                            Properties:
+                              AutoHeight: =true
+                              Color: =gblC.muted2
+                              FillPortions: =1
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              Size: =gblT.f2xs
+                              Text: ="Última carga"
+                        - lblUltCargaVal:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =Align.Right
+                              AutoHeight: =true
+                              Color: =If(FechaUtc(varAsig.'Última carga') = Today(), gblC.accentInk, gblC.redInk)
+                              FillPortions: =1
+                              FontWeight: =FontWeight.Semibold
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              Size: =gblT.fbase
+                              Text: |-
+                                =// Verde si es la carga de hoy.
+                                With({ d: FechaUtc(varAsig.'Última carga') },
+                                    Text(d, "dd/mm/yyyy") & If(d = Today(), " · hoy", " · no es la de hoy"))
             - Container16_2:
                 Control: GroupContainer@1.5.0
                 Variant: AutoLayout
                 Properties:
                   Fill: =gblC.surface
                   FillPortions: =0
-                  Height: =lblSecTel_2.Height + conFila_DiasMora_1.Height + conFila_FechaPago_1.Height +  16
+                  Height: =lblSecTel_2.Height + conFila_DiasMora_1.Height + If(conFila_FechaPago_1.Visible, conFila_FechaPago_1.Height, 0) +  16
                   LayoutAlignItems: =LayoutAlignItems.Center
                   LayoutDirection: =LayoutDirection.Vertical
                   LayoutMinHeight: =16
@@ -529,11 +609,14 @@ Screens:
                               LayoutMinHeight: =16
                               LayoutMinWidth: =16
                               Size: =gblT.fbase
-                              Text: =varCuenta.'Nombre Fiador'
+                              Text: |-
+                                =// Sin fiador la carga deja "(sin fiador)" o vacío: se muestra una sola línea.
+                                If(IsBlank(Trim(varCuenta.'Nombre Fiador')) || Trim(varCuenta.'Nombre Fiador') = "(sin fiador)", "Sin fiador", varCuenta.'Nombre Fiador')
                   - conFila_FechaPago_1:
                       Control: GroupContainer@1.5.0
                       Variant: AutoLayout
                       Properties:
+                        Visible: =!IsBlank(Trim(varCuenta.'Direccion Fiador'))
                         DropShadow: =DropShadow.None
                         FillPortions: =0
                         Height: =Max(lblTelVal_7.Height, lblTelTipo_7.Height)
@@ -552,7 +635,7 @@ Screens:
                               LayoutMinHeight: =16
                               LayoutMinWidth: =16
                               Size: =gblT.f2xs
-                              Text: ="Direccion"
+                              Text: ="Dirección"
                               Width: =110
                         - lblTelVal_7:
                             Control: Label@2.5.1
@@ -781,7 +864,7 @@ Screens:
                                     PaddingBottom: =0
                                     PaddingTop: =0
                                     Size: =gblT.fxs
-                                    Text: =varCuenta.'Tipo Producto' & " · " & PanMasc(varCuenta.'Últimos 4')
+                                    Text: =If(IsBlank(varCuenta.'Tipo Producto'), "", varCuenta.'Tipo Producto' & " · ") & PanMasc(varCuenta.'Últimos 4')
                                     Width: =Parent.Width - 16
                               - lblICom_2:
                                   Control: Label@2.5.1
