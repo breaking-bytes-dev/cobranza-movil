@@ -408,7 +408,7 @@ Screens:
                               LayoutMinWidth: =16
                               PaddingBottom: =0
                               Size: =gblT.flg
-                              Text: =CountRows(Distinct(AddColumns(colIntHoy, cliJoin, LookUp(colCuentas, 'CM | TBL | Cuenta' = '[IN] Cuenta'.'CM | TBL | Cuenta').'CIF Cliente'), cliJoin))
+                              Text: =CountRows(Distinct(AddColumns(colIntHoy, cliJoin, LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = '[IN] Cuenta'.'CM | TBL | Cuenta').'CIF Cliente'), cliJoin))
                         - lblSl_2:
                             Control: Label@2.5.1
                             Properties:
@@ -514,9 +514,9 @@ Screens:
                             AddColumns(
                                 colIntHoy,
                                 cliNom,
-                                LookUp(colCuentas, 'CM | TBL | Cuenta' = '[IN] Cuenta'.'CM | TBL | Cuenta').'Nombre Cliente',
+                                LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = '[IN] Cuenta'.'CM | TBL | Cuenta').'Nombre Cliente',
                                 cid,
-                                LookUp(colCuentas, 'CM | TBL | Cuenta' = '[IN] Cuenta'.'CM | TBL | Cuenta').'CIF Cliente'
+                                LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = '[IN] Cuenta'.'CM | TBL | Cuenta').'CIF Cliente'
                             ),
                             cliNom,
                             cid,
@@ -663,11 +663,11 @@ Screens:
                             AddColumns(
                                 colIntHoy,
                                 prod,
-                                LookUp(colCuentas, 'CM | TBL | Cuenta' = '[IN] Cuenta'.'CM | TBL | Cuenta').'Tipo Producto',
+                                LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = '[IN] Cuenta'.'CM | TBL | Cuenta').'Tipo Producto',
                                 cta,
                                 '[IN] Cuenta'.'CM | TBL | Cuenta',
                                 cliNom,
-                                LookUp(colCuentas, 'CM | TBL | Cuenta' = '[IN] Cuenta'.'CM | TBL | Cuenta').'Nombre Cliente'
+                                LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = '[IN] Cuenta'.'CM | TBL | Cuenta').'Nombre Cliente'
                             ),
                             prod,
                             cta,
@@ -675,7 +675,7 @@ Screens:
                             Items
                         ),
                             ctaRec,
-                            LookUp(colCuentas, 'CM | TBL | Cuenta' = cta)
+                            LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = cta)
                         ),Blank())
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16

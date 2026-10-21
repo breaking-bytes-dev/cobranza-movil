@@ -20,62 +20,8 @@ Screens:
               UpdateIf(colClientes, dirty, { dirty: false }),
             Notify("No se pudo guardar el orden de la cartera. Se reintenta al salir de nuevo.", NotificationType.Warning))
       OnVisible: |-
-        =  If(!varCarteraLista || varRecargarCartera,
-          UpdateContext({varshowLoader: true});
-         // APP-12: al recargar (p. ej. al volver de Sincronización) también las maestras que se cargaron en el inicio.
-         If(varRecargarCartera,
-            ClearCollect(colCuentas, 'CM | TBL | Cuentas');
-            ClearCollect(colDirecciones, Filter('CM | TBL | Direccions', '[DR] Tipo' = "Casa" || '[DR] Tipo' = "Trabajo"));
-            ClearCollect(colTelefonos, 'CM | TBL | Telefonos');
-            // APP-01: si alguna colección llega al límite de filas de la app, faltan datos: se avisa.
-            If(Max(CountRows(colCuentas), CountRows(colDirecciones), CountRows(colTelefonos)) >= 2000,
-                Notify("Tu cartera supera el límite de 2000 filas y puede faltar información. Avisá a soporte.", NotificationType.Error)));
-         // APP-08: las Especiales solo se gestionan aprobadas (el servidor tampoco deja asignar agente antes).
-         ClearCollect(colAsigRaw, Filter('CM | TBL | Asignacions', '[AS] Estado' = true && ('[AS] Tipo' <> 'Choice | CM | Tipo asignacion'.Especial || '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado)));
-         ClearCollect(colAsig,
-             AddColumns(
-                AddColumns(colAsigRaw,
-                   cta, LookUp(colCuentas, 'CM | TBL | Cuenta' = '[AS] Cuenta'.'CM | TBL | Cuenta')),
-                cid,      cta.'CIF Cliente',
-                cliNom,   cta.'Nombre Cliente',
-                // Studio tipa el registro anidado cta solo con las columnas referenciadas acá: ult4 se calcula aquí.
-                ult4,     cta.'Últimos 4',
-                saldoNio, cta.'[CT] Saldo Vencido NIO',
-                saldoUsd, cta.'[CT] Saldo Vencido USD',
-                diasMora, cta.'[CT] Dias Mora',
-                ctaId,    cta.'CM | TBL | Cuenta',
-                ord,      '[AS] Orden',
-                ultCarga, 'Última carga'));
-
-          // DAT-15: el saldo se suma por CUENTA distinta (una cuenta con Diaria y Especial aprobada tiene 2 asignaciones con el
-          // mismo saldo). F4: nCuentas también cuenta CUENTAS distintas, igual que la pestaña Cuentas del Cliente.
-          ClearCollect(colClientes,
-             AddColumns(
-                GroupBy(Filter(colAsig, !IsBlank(cid)), cid, cliNom, Asigs),
-                orden,    Min(Asigs, ord),
-                totNio,   Sum(ForAll(Distinct(Asigs, ctaId) As C, LookUp(Asigs, ctaId = C.Value).saldoNio), Value),
-                totUsd,   Sum(ForAll(Distinct(Asigs, ctaId) As C, LookUp(Asigs, ctaId = C.Value).saldoUsd), Value),
-                maxDias,  Max(Asigs, diasMora),
-                nCuentas, CountRows(Distinct(Asigs, ctaId)),
-                dirCasa,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'="Casa").'[DR] Direccion',
-                dirTrab,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'="Trabajo").'[DR] Direccion',
-                dirty,   false));
-          // APP-15: una asignación cuya cuenta no llegó al teléfono no se agrupa con otras; se avisa.
-          If(CountRows(Filter(colAsig, IsBlank(cid))) > 0,
-             Notify(CountRows(Filter(colAsig, IsBlank(cid))) & " asignación(es) sin datos de la cuenta. Sincronizá para completarlas.", NotificationType.Warning));
-          // Orden 1..n sin empates ni vacíos (APP-23). Los que no tienen orden (asignaciones nuevas; Min() de vacíos da 0)
-          // van al final, alfabéticos. Solo los que cambian quedan dirty y se guardan en Dataverse al salir (OnHidden).
-          With({ lista: SortByColumns(AddColumns(colClientes, sinOrden, Coalesce(orden, 0) <= 0),
-                                      "sinOrden", SortOrder.Ascending, "orden", SortOrder.Ascending, "cliNom", SortOrder.Ascending) },
-             ForAll(Sequence(CountRows(lista)) As N,
-                With({ r: Index(lista, N.Value) },
-                   If(Coalesce(r.orden, 0) <> N.Value,
-                      Patch(colClientes, LookUp(colClientes, cid = r.cid), { orden: N.Value, dirty: true })))));
-            Set(varCarteraLista, true);
-             Set(varRecargarCartera, false);
-             Set(varFechaUltimaActualizacion, Now());
-             UpdateContext({varshowLoader: false});
-          )
+        =// La cartera se arma en btnCargarCartera (también la usan ↻ y Sincronización): al entrar la primera vez o si se pidió recargar.
+        If(!varCarteraLista || varRecargarCartera, Select(btnCargarCartera))
     Children:
       - cmpNav_2:
           Control: CanvasComponent
@@ -135,7 +81,7 @@ Screens:
                               Color: =gblC.tealSub
                               Height: =10
                               Size: =gblT.f2xs
-                              Text: =Text(varFechaUltimaActualizacion, "dd/mm/yyyy hh:mm")
+                              Text: ="Cartera cargada " & Text(varFechaUltimaActualizacion, "dd/mm hh:mm") & " · " & CountRows(colAsig) & " asignaciones"
                               Y: =lblTitulo_3.Y + lblTitulo_3.Height
                         - lblSub_6:
                             Control: Label@2.5.1
@@ -170,7 +116,16 @@ Screens:
                               Color: =gblC.white
                               FontWeight: =FontWeight.Normal
                               Height: =If(gblScale = 1, 30,gblScale = 1.2,34,gblScale = 1.45,40,46)
-                              OnSelect: "=UpdateContext({varshowLoader: true});\r\n\r\nUpdateContext({okOrden: IfError(ForAll(Filter(colClientes, dirty) As C,\r\n     ForAll(Filter(colAsig, cid = C.cid) As A,\r\n        UpdateIf('CM | TBL | Asignacions',\r\n           'CM | TBL | Asignacion' = A.'CM | TBL | Asignacion',\r\n           { '[AS] Orden': C.orden }))); true, false)});\r\n\r\n// APP-13: si no se pudo guardar el orden, no se recarga (se perderia) y se avisa.\r\nIf(okOrden,\r\nClearCollect(colCuentas, 'CM | TBL | Cuentas');\r\nClearCollect(colDirecciones, Filter('CM | TBL | Direccions', '[DR] Tipo' = \"Casa\" || '[DR] Tipo' = \"Trabajo\"));\r\nClearCollect(colTelefonos, 'CM | TBL | Telefonos');\r\nClearCollect(colAsigRaw, Filter('CM | TBL | Asignacions', '[AS] Estado' = true && ('[AS] Tipo' <> 'Choice | CM | Tipo asignacion'.Especial || '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado)));\r\nClearCollect(colAsig,\r\n     AddColumns(\r\n        AddColumns(colAsigRaw,\r\n           cta, LookUp(colCuentas, 'CM | TBL | Cuenta' = '[AS] Cuenta'.'CM | TBL | Cuenta')),\r\n        cid,      cta.'CIF Cliente',\r\n        cliNom,   cta.'Nombre Cliente',\r\n        ult4,     cta.'Últimos 4',\r\n        saldoNio, cta.'[CT] Saldo Vencido NIO',\r\n        saldoUsd, cta.'[CT] Saldo Vencido USD',\r\n        diasMora, cta.'[CT] Dias Mora',\r\n        ctaId,    cta.'CM | TBL | Cuenta',\r\n        ord,      '[AS] Orden',\r\n        ultCarga, 'Última carga'));\r\n\r\n  ClearCollect(colClientes,\r\n     AddColumns(\r\n        GroupBy(Filter(colAsig, !IsBlank(cid)), cid, cliNom, Asigs),\r\n        orden,    Min(Asigs, ord),\r\n        totNio,   Sum(ForAll(Distinct(Asigs, ctaId) As C, LookUp(Asigs, ctaId = C.Value).saldoNio), Value),\r\n        totUsd,   Sum(ForAll(Distinct(Asigs, ctaId) As C, LookUp(Asigs, ctaId = C.Value).saldoUsd), Value),\r\n        maxDias,  Max(Asigs, diasMora),\r\n        nCuentas, CountRows(Distinct(Asigs, ctaId)),\r\n        dirCasa,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'=\"Casa\").'[DR] Direccion',\r\n        dirTrab,  LookUp(colDirecciones, '[DR] CIF' = cid && '[DR] Tipo'=\"Trabajo\").'[DR] Direccion',\r\n        dirty,   false));\r\n          // Orden 1..n sin empates ni vacíos (APP-23). Los que no tienen orden (asignaciones nuevas; Min() de vacíos da 0)\r\n          // van al final, alfabéticos. Solo los que cambian quedan dirty y se guardan en Dataverse al salir (OnHidden).\r\n          With({ lista: SortByColumns(AddColumns(colClientes, sinOrden, Coalesce(orden, 0) <= 0),\r\n                                      \"sinOrden\", SortOrder.Ascending, \"orden\", SortOrder.Ascending, \"cliNom\", SortOrder.Ascending) },\r\n             ForAll(Sequence(CountRows(lista)) As N,\r\n                With({ r: Index(lista, N.Value) },\r\n                   If(Coalesce(r.orden, 0) <> N.Value,\r\n                      Patch(colClientes, LookUp(colClientes, cid = r.cid), { orden: N.Value, dirty: true })))));\r\n    Set(varCarteraLista, true);\r\n     Set(varRecargarCartera, false);\r\n     Set(varFechaUltimaActualizacion, Now()),\r\n   Notify(\"No se pudo guardar el orden de la cartera; no se recargó para no perderlo. Reintentá con señal.\", NotificationType.Warning));\r\n     UpdateContext({varshowLoader: false});\r\n        "
+                              OnSelect: |-
+                                =// APP-13: primero el orden; si no se pudo guardar, no se recarga (se perdería) y se avisa.
+                                UpdateContext({okOrden: IfError(ForAll(Filter(colClientes, dirty) As C,
+                                     ForAll(Filter(colAsig, cid = C.cid) As A,
+                                        UpdateIf('CM | TBL | Asignacions',
+                                           'CM | TBL | Asignacion' = A.'CM | TBL | Asignacion',
+                                           { '[AS] Orden': C.orden }))); true, false)});
+                                If(okOrden,
+                                    Select(btnCargarCartera),
+                                    Notify("No se pudo guardar el orden de la cartera; no se recargó para no perderlo. Reintentá con señal.", NotificationType.Warning))
                               PaddingBottom: =0
                               PaddingLeft: =0
                               PaddingRight: =0
@@ -833,7 +788,7 @@ Screens:
                                   Properties:
                                     AlignInContainer: =AlignInContainer.Stretch
                                     AutoHeight: =true
-                                    Color: =If(IsBlank(ThisItem.dirCasa), gblC.muted2, gblC.ink)
+                                    Color: =If(IsBlank(LookUp('CM | TBL | Direccions', '[DR] CIF' = ThisItem.cid && '[DR] Tipo' = "Casa").'[DR] Direccion'), gblC.muted2, gblC.ink)
                                     FontWeight: =FontWeight.Semibold
                                     LayoutMinHeight: =16
                                     LayoutMinWidth: =16
@@ -842,7 +797,7 @@ Screens:
                                     PaddingTop: =8
                                     Size: =gblT.fbase
                                     Text: |-
-                                      =If(IsBlank(ThisItem.dirCasa), "🏠  Sin dirección registrada", "🏠  " & ThisItem.dirCasa)
+                                      =With({ d: LookUp('CM | TBL | Direccions', '[DR] CIF' = ThisItem.cid && '[DR] Tipo' = "Casa").'[DR] Direccion' }, If(IsBlank(d), "🏠  Sin dirección registrada", "🏠  " & d))
                               - lblCartTrabajo:
                                   Control: Label@2.5.1
                                   Properties:
@@ -856,8 +811,8 @@ Screens:
                                     PaddingTop: =3
                                     Size: =gblT.fbase
                                     Text: |-
-                                      ="💼  " & ThisItem.dirTrab
-                                    Visible: =!IsBlank(ThisItem.dirTrab)
+                                      ="💼  " & LookUp('CM | TBL | Direccions', '[DR] CIF' = ThisItem.cid && '[DR] Tipo' = "Trabajo").'[DR] Direccion'
+                                    Visible: =!IsBlank(LookUp('CM | TBL | Direccions', '[DR] CIF' = ThisItem.cid && '[DR] Tipo' = "Trabajo").'[DR] Direccion')
                         - conFooter:
                             Control: GroupContainer@1.5.0
                             Variant: AutoLayout
@@ -1024,6 +979,74 @@ Screens:
                         PaddingRight: =8
                         PaddingTop: =8
                         Width: =Parent.TemplateWidth
+      - btnCargarCartera:
+          Control: Classic/Button@2.2.0
+          Properties:
+            OnSelect: |-
+              =// ESCALA: la cartera se trae por TRAMOS (el servidor reparte asignaciones y cuentas en 20, TramoCartera). Una sola
+              // consulta se cortaba en el límite de filas de la app (2000): con 2.340 asignaciones faltaban clientes y cada carga
+              // mostraba un trozo distinto. Cada tramo queda muy por debajo del límite (hasta 40.000 por cobrador). Las
+              // direcciones y los teléfonos ya no se copian: se leen de la base del teléfono al mostrarlos.
+              UpdateContext({varshowLoader: true});
+              Clear(colAsigRaw);
+              Clear(colCuentas);
+              ForAll(Sequence(20, 0) As T,
+                  Collect(colAsigRaw, Filter('CM | TBL | Asignacions', '[AS] Tramo' = T.Value && '[AS] Estado' = true && ('[AS] Tipo' <> 'Choice | CM | Tipo asignacion'.Especial || '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado)));
+                  Collect(colCuentas, Filter('CM | TBL | Cuentas', '[CT] Tramo' = T.Value)));
+              // Lo que todavía no tiene tramo (anterior al plugin, o la cuenta recién creada: su tramo se pone en segundo plano).
+              Collect(colAsigRaw, Filter('CM | TBL | Asignacions', '[AS] Tramo' = Blank() && '[AS] Estado' = true && ('[AS] Tipo' <> 'Choice | CM | Tipo asignacion'.Especial || '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado)));
+              Collect(colCuentas, Filter('CM | TBL | Cuentas', '[CT] Tramo' = Blank()));
+              // APP-01: si una consulta llegó al límite, falta cartera: se avisa la verdad (sincronizar no lo arregla).
+              Set(varCarteraIncompleta,
+                  Max(ForAll(Sequence(21, 0) As T,
+                      CountRows(Filter(colAsigRaw, If(T.Value = 20, IsBlank('[AS] Tramo'), '[AS] Tramo' = T.Value)))), Value) >= 2000
+                  || Max(ForAll(Sequence(21, 0) As T,
+                      CountRows(Filter(colCuentas, If(T.Value = 20, IsBlank('[CT] Tramo'), '[CT] Tramo' = T.Value)))), Value) >= 2000);
+              If(varCarteraIncompleta,
+                  Notify("Tu cartera es más grande de lo que la app puede mostrar y faltan clientes. Avisá a soporte.", NotificationType.Error));
+              // APP-08: las Especiales solo se gestionan aprobadas (el servidor tampoco deja asignar agente antes).
+              ClearCollect(colAsig,
+                  AddColumns(
+                     AddColumns(colAsigRaw,
+                        cta, LookUp(colCuentas, 'CM | TBL | Cuenta' = '[AS] Cuenta'.'CM | TBL | Cuenta')),
+                     cid,      cta.'CIF Cliente',
+                     cliNom,   cta.'Nombre Cliente',
+                     // Studio tipa el registro anidado cta solo con las columnas referenciadas acá: ult4 se calcula aquí.
+                     ult4,     cta.'Últimos 4',
+                     saldoNio, cta.'[CT] Saldo Vencido NIO',
+                     saldoUsd, cta.'[CT] Saldo Vencido USD',
+                     diasMora, cta.'[CT] Dias Mora',
+                     ctaId,    cta.'CM | TBL | Cuenta',
+                     ord,      '[AS] Orden',
+                     ultCarga, 'Última carga'));
+              // DAT-15: el saldo se suma por CUENTA distinta (una cuenta con Diaria y Especial aprobada tiene 2 asignaciones con el
+              // mismo saldo). F4: nCuentas también cuenta CUENTAS distintas, igual que la pestaña Cuentas del Cliente.
+              ClearCollect(colClientes,
+                  AddColumns(
+                     GroupBy(Filter(colAsig, !IsBlank(cid)), cid, cliNom, Asigs),
+                     orden,    Min(Asigs, ord),
+                     totNio,   Sum(ForAll(Distinct(Asigs, ctaId) As C, LookUp(Asigs, ctaId = C.Value).saldoNio), Value),
+                     totUsd,   Sum(ForAll(Distinct(Asigs, ctaId) As C, LookUp(Asigs, ctaId = C.Value).saldoUsd), Value),
+                     maxDias,  Max(Asigs, diasMora),
+                     nCuentas, CountRows(Distinct(Asigs, ctaId)),
+                     dirty,   false));
+              // APP-15: una asignación cuya cuenta no llegó al teléfono no se agrupa con otras; se avisa.
+              If(CountRows(Filter(colAsig, IsBlank(cid))) > 0,
+                 Notify(CountRows(Filter(colAsig, IsBlank(cid))) & " asignación(es) sin datos de la cuenta. Sincronizá para completarlas.", NotificationType.Warning));
+              // Orden 1..n sin empates ni vacíos (APP-23). Los que no tienen orden (asignaciones nuevas; Min() de vacíos da 0)
+              // van al final, alfabéticos. Solo los que cambian quedan dirty y se guardan en Dataverse al salir (OnHidden).
+              // Con la cartera completa, la numeración ya no se calcula sobre una lista cortada.
+              With({ lista: SortByColumns(AddColumns(colClientes, sinOrden, Coalesce(orden, 0) <= 0),
+                                          "sinOrden", SortOrder.Ascending, "orden", SortOrder.Ascending, "cliNom", SortOrder.Ascending) },
+                 ForAll(Sequence(CountRows(lista)) As N,
+                    With({ r: Index(lista, N.Value) },
+                       If(Coalesce(r.orden, 0) <> N.Value,
+                          Patch(colClientes, LookUp(colClientes, cid = r.cid), { orden: N.Value, dirty: true })))));
+              Set(varCarteraLista, true);
+              Set(varRecargarCartera, false);
+              Set(varFechaUltimaActualizacion, Now());
+              UpdateContext({varshowLoader: false})
+            Visible: =false
       - cmpSheet_2:
           Control: CanvasComponent
           ComponentName: cmpSheet

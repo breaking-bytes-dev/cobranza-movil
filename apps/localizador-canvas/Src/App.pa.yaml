@@ -112,14 +112,9 @@ App:
       });
 
       // ===================== COLECCIONES BASE =====================
-      // APP-01: el recorte lo hace la seguridad por fila (el cobrador lee solo lo compartido con él: hoy, 67 cuentas como
-      // máximo) y el perfil offline. Un ClearCollect trae como mucho el "límite de filas" de la app (2000): si alguna
-      // colección llega al tope, faltan datos y se avisa en lugar de mostrar una cartera incompleta sin decir nada.
-      ClearCollect(colCuentas, 'CM | TBL | Cuentas');
-      ClearCollect(colDirecciones, Filter('CM | TBL | Direccions', '[DR] Tipo' = "Casa" || '[DR] Tipo' = "Trabajo"));
-      ClearCollect(colTelefonos, 'CM | TBL | Telefonos');
-      If(Max(CountRows(colCuentas), CountRows(colDirecciones), CountRows(colTelefonos)) >= 2000,
-          Notify("Tu cartera supera el límite de 2000 filas y puede faltar información. Avisá a soporte.", NotificationType.Error));
+      // ESCALA: el arranque ya no copia tablas enteras (cada copia se cortaba en el límite de 2000 filas). La Cartera se arma
+      // por tramos (scrCartera, btnCargarCartera) y las demás pantallas leen cada cuenta, dirección o teléfono de la base
+      // del teléfono cuando lo muestran.
 
       // ===================== ESTADO DE NAVEGACIÓN =====================
       Set(varModo, "cliente");      // Cartera: "cliente" o "cuenta"

@@ -122,7 +122,7 @@ Screens:
                   Items: |-
                     =GroupBy(AddColumns(AddColumns(AddColumns(colPagHoy,
                                ctaId,  Cuenta.'CM | TBL | Cuenta'),
-                               ctaRec, LookUp(colCuentas, 'CM | TBL | Cuenta' = ctaId)),
+                               ctaRec, LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = ctaId)),
                                cliNom, ctaRec.'Nombre Cliente',
                                prod,   ctaRec.'Tipo Producto',
                                u4,     ctaRec.'Últimos 4'),

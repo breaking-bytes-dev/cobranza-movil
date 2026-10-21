@@ -22,7 +22,7 @@ Screens:
                     If(!IsEmpty(asigs),
                         Collect(colCliCuentas,
                             AddColumns(FirstN(SortByColumns(asigs, "esEsp", SortOrder.Ascending), 1),
-                                cta, LookUp(colCuentas, 'CM | TBL | Cuenta' = C.'CM | TBL | Cuenta'),
+                                cta, LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = C.'CM | TBL | Cuenta'),
                                 conEsp, CountRows(asigs) > 1 && CountRows(Filter(asigs, esEsp)) > 0)))));
             Set(varCliCargado, varCliente));
         // APP-16: interacciones de TODAS las cuentas del cliente, delegable; se recalcula en cada visita (puede haber nuevas).
@@ -230,7 +230,7 @@ Screens:
                       Properties:
                         FillPortions: =0
                         Height: =CountRows(Self.AllItems)*Self.TemplateHeight
-                        Items: =Filter(colTelefonos, '[TL] CIF' = varCliente)
+                        Items: =Filter('CM | TBL | Telefonos', '[TL] CIF' = varCliente)
                         LayoutMinHeight: =16
                         LayoutMinWidth: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
                         TemplatePadding: =
@@ -316,7 +316,7 @@ Screens:
                       Properties:
                         FillPortions: =0
                         Height: =CountRows(Self.AllItems)*Self.TemplateHeight
-                        Items: =Filter(colDirecciones, '[DR] CIF' = varCliente)
+                        Items: =Filter('CM | TBL | Direccions', '[DR] CIF' = varCliente && ('[DR] Tipo' = "Casa" || '[DR] Tipo' = "Trabajo"))
                         LayoutMinHeight: =16
                         LayoutMinWidth: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
                         TemplatePadding: =
@@ -479,7 +479,7 @@ Screens:
                                     PaddingTop: =0
                                     Size: =gblT.fxs
                                     Text: |-
-                                      =With({ c: LookUp(colCuentas, 'CM | TBL | Cuenta' = ThisItem.'[IN] Cuenta'.'CM | TBL | Cuenta') }, If(IsBlank(c.'Tipo Producto'), "", c.'Tipo Producto' & " · ") & PanMasc(c.'Últimos 4'))
+                                      =With({ c: LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = ThisItem.'[IN] Cuenta'.'CM | TBL | Cuenta') }, If(IsBlank(c.'Tipo Producto'), "", c.'Tipo Producto' & " · ") & PanMasc(c.'Últimos 4'))
                                     Width: =Parent.Width - 16
                               - lblICom_1:
                                   Control: Label@2.5.1
