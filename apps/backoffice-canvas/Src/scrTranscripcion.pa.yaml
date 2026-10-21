@@ -745,6 +745,7 @@ Screens:
                               PaddingLeft: =0
                               Size: =10
                               Text: =varActualTrx.productoTrx
+                              Visible: =varActualTrx.productoTrx <> "—"
                               Width: =Parent.Width - 2*gblE.Pad
                               Wrap: =false
                               X: =gblE.Pad
