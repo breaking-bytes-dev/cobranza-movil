@@ -12,12 +12,18 @@ Screens:
       OnVisible: |-
         =// APP-28: las cuentas del cliente se buscan UNA vez por cliente y con consultas delegables (igualdad sobre el lookup).
         // Clear + ForAll/Collect y no Ungroup(ForAll(…)): con Ungroup, Studio pierde el tipo de las columnas.
+        // F4: UNA fila por cuenta. Una cuenta con Diaria y Especial aprobada tiene dos asignaciones: antes salía dos veces
+        // ("Cuentas (2)" y el total doble). Queda la Diaria/Incobrable (la Especial si es la única) y conEsp marca la Especial.
         If(varCliCargado <> varCliente,
             Clear(colCliCuentas);
             ForAll(Filter('CM | TBL | Cuentas', 'CIF Cliente' = varCliente) As C,
-                Collect(colCliCuentas,
-                    AddColumns(Filter('CM | TBL | Asignacions', '[AS] Estado' = true && ('[AS] Tipo' <> 'Choice | CM | Tipo asignacion'.Especial || '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado) && '[AS] Cuenta'.'CM | TBL | Cuenta' = C.'CM | TBL | Cuenta'),
-                        cta, LookUp(colCuentas, 'CM | TBL | Cuenta' = C.'CM | TBL | Cuenta'))));
+                With({ asigs: AddColumns(Filter('CM | TBL | Asignacions', '[AS] Estado' = true && ('[AS] Tipo' <> 'Choice | CM | Tipo asignacion'.Especial || '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado) && '[AS] Cuenta'.'CM | TBL | Cuenta' = C.'CM | TBL | Cuenta'),
+                            esEsp, '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial) },
+                    If(!IsEmpty(asigs),
+                        Collect(colCliCuentas,
+                            AddColumns(FirstN(SortByColumns(asigs, "esEsp", SortOrder.Ascending), 1),
+                                cta, LookUp(colCuentas, 'CM | TBL | Cuenta' = C.'CM | TBL | Cuenta'),
+                                conEsp, CountRows(asigs) > 1 && CountRows(Filter(asigs, esEsp)) > 0)))));
             Set(varCliCargado, varCliente));
         // APP-16: interacciones de TODAS las cuentas del cliente, delegable; se recalcula en cada visita (puede haber nuevas).
         Clear(colCliInt);
@@ -623,7 +629,7 @@ Screens:
                                           LayoutMinWidth: =16
                                           PaddingTop: =0
                                           Size: =gblT.fxs
-                                          Text: =PanMasc(ThisItem.cta.'Últimos 4')
+                                          Text: =PanMasc(ThisItem.cta.'Últimos 4') & If(ThisItem.conEsp, "  ·  ⭐ Especial", "")  // F4
                               - Text1:
                                   Control: ModernText@1.0.0
                                   Properties:

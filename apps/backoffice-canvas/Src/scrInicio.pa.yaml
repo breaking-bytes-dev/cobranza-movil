@@ -77,6 +77,7 @@ Screens:
         If("Admin" in gblRol,
             // nfUltimaCarga lee Carga diarias (solo Admin): se materializa acá para que el KPI "CARGA DE HOY"
             // no la evalúe para otros roles aunque su contenedor esté oculto (403, B-05).
+            Refresh('CM | TBL | Carga diarias');  // F1: sin esto, la carga de hoy no se veía hasta recargar la app
             Set(varUltCargaIni, nfUltimaCarga);
             // Corte = 00:00 UTC del día de la última carga. 'Última carga' es UserLocal y el import la graba
             // a medianoche UTC; [CD] FechaCarga es DateOnly. Sin este ajuste, en UTC-6 todo parece "desaparecido".

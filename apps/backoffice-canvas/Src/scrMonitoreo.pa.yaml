@@ -11,7 +11,10 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =// Conteos EXACTOS directo al datasource: CountIf delega en Dataverse (exacto hasta 50.000).
+        =// F1: nfUltimaCarga lee la tabla guardada en memoria; sin Refresh, si la app se abrió antes de la carga,
+        // seguía diciendo "Sin cargas registradas".
+        Refresh('CM | TBL | Carga diarias');
+        // Conteos EXACTOS directo al datasource: CountIf delega en Dataverse (exacto hasta 50.000).
         // NO colección + CountRows: la colección se trunca al Data row limit.
         // CountIf(tabla, true) en lugar de CountRows(tabla): CountRows sin filtro usa un valor cacheado.
         // [CD] FechaCarga es DateOnly: comparar contra Today() viajaba como ge <hoy>T06:00Z y daba 0 el día
@@ -259,12 +262,13 @@ Screens:
                   Height: =gblE.AltoBoton
                   HoverFill: =ColorFade(gblC.tealSuave, 10%)
                   OnSelect: |-
-                    =Concurrent(
+                    =Refresh('CM | TBL | Carga diarias');
+                    Concurrent(
                         Set(varNCargaHoyMon, CountIf('CM | TBL | Carga diarias', '[CD] FechaCarga' >= DateAdd(Today(), -TimeZoneOffset(Today()), TimeUnit.Minutes))),
                         Set(varNCtasMon, CountIf('CM | TBL | Cuentas', true)),
                         Set(varNCliMon, CountIf('CM | TBL | Clientes', true))
                     );
-                    // nfUltimaCarga es fórmula con nombre (01 §3) y se reevalúa sola;
+                    // nfUltimaCarga es fórmula con nombre (01 §3): se reevalúa tras el Refresh de arriba (F1);
                     // varHayCargaMon es variable normal, por eso el Set sigue siendo necesario.
                     Set(varHayCargaMon, nfUltimaCarga >= Today());
                     Notify("✓ Datos actualizados", NotificationType.Success, 2500)

@@ -15,6 +15,8 @@ Screens:
         // segundos antes del máximo NO es "desaparecida". Lado derecho constante → la comparación delega.
         // Corte = 00:00 UTC del día de la última carga. 'Última carga' es UserLocal y el import la graba
         // a medianoche UTC; [CD] FechaCarga es DateOnly. Sin este ajuste, en UTC-6 todo parece "desaparecido".
+        // F1: Refresh antes de leer nfUltimaCarga; habilita el cierre masivo y no puede ser la de antes de la carga.
+        Refresh('CM | TBL | Carga diarias');
         Set(varCorteRec, With({d0: DateTime(Year(nfUltimaCarga), Month(nfUltimaCarga), Day(nfUltimaCarga), 0, 0, 0)},
             DateAdd(d0, -TimeZoneOffset(d0), TimeUnit.Minutes)));
         // Lista de desaparecidas + conteos EXACTOS, en paralelo. Filtros delegables (choice por
