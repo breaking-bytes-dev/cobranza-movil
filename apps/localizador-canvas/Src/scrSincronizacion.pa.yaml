@@ -485,7 +485,8 @@ Screens:
                         LayoutMinHeight: =16
                         LayoutMinWidth: =16
                         Size: =gblT.fxs
-                        Text: ="El número de interacción (INT-) y de pago (PAG-) lo asigna el servidor cuando la captura se sube. Hasta entonces se ve «pendiente de subir». «⚠ incompleta»: la visita subió, pero falta su pago o su actualización de datos; tocá «Buscar actualizaciones» y, si sigue así, avisá a BackOffice."
+                        Text: |-
+                          ="El número de interacción (INT-) y de pago (PAG-) lo asigna el servidor cuando la captura se sube. Hasta entonces se ve «pendiente de subir». «⚠ incompleta»: la visita subió, pero falta su pago o su actualización de datos; tocá «Buscar actualizaciones» y, si sigue así, avisá a BackOffice."
       - cmpSheet_7:
           Control: CanvasComponent
           ComponentName: cmpSheet
