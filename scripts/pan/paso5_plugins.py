@@ -11,7 +11,7 @@ REGLA DE PanGuard (paso 8 del plan):
     --desactivar-panguard   los desactiva (rollback)
   Los pasos de ClaveDesdeCuenta, CuentaDesdeInteraccion, AprobacionEspecial, ActualizacionConInteraccion, EmailDesdeUsuario,
   RepartoAsignacion, RepartoPorAgente, ColumnasAsignacion, CargaSobreAsignacion, Reclasificacion, InteraccionDelCobrador,
-  GrabacionInteraccion, VincularActualizacionPendiente y ReciboRepetido quedan activos.
+  GrabacionInteraccion, VincularActualizacionPendiente, ReciboRepetido y EspecialDesdeCuenta quedan activos.
 
 RepartoAsignacion y RepartoPorAgente son ASINCRONOS (PostOperation, borran el trabajo del sistema si termina bien).
 RepartoAsignacion reemplaza al flow "Cambio de Owner en Asignaciones"; nunca sincrono: correria dentro del trozo de 100 filas
@@ -160,6 +160,16 @@ def definir_pasos():
         tipo=NS + 'ReciboRepetido', mensaje='Create', entidad=P + 'pago', panguard=False, filtro=[],
         columnas=['sanic_cm_pg_numerorecibo', 'sanic_cm_pg_reciborepetido'], legacy=False, imagen=None,
         descripcion='F6: marca el pago cuyo numero de recibo ya existe (no lo rechaza)'))
+    # EspecialDesdeCuenta (F3): la Especial de la carga toma tipo, nota y retiro de la cuenta (solo lo vacio, sin solicitante)
+    cols = ['sanic_cm_as_tipo', 'sanic_cm_as_cuentaid', 'sanic_cm_as_solicitadopor', 'sanic_cm_as_notas',
+            'sanic_cm_as_retironio', 'sanic_cm_as_retirousd']
+    for mensaje in ('Create', 'Update'):
+        pasos.append(dict(
+            tipo=NS + 'EspecialDesdeCuenta', mensaje=mensaje, entidad=P + 'asignacion', panguard=False,
+            filtro=['sanic_cm_as_ultimacarga'] if mensaje == 'Update' else [],
+            columnas=cols + ['sanic_cm_as_ultimacarga'], legacy=False,
+            imagen=dict(nombre=IMAGEN_PREVIA, atributos=cols) if mensaje == 'Update' else None,
+            descripcion='F3: la Especial de la carga toma tipo, nota y retiro de la cuenta (solo lo vacio)'))
     for p in pasos:
         p.setdefault('etapa', ETAPA_PREOPERATION)
         p.setdefault('modo', MODO_SINCRONO)

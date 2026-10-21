@@ -189,6 +189,14 @@ namespace Sanic.CobranzaMovil.Plugins
         public const int EtapaPostOperation = 40;
         public const int ModoAsincrono = 1;
 
+        // F3: la Especial de la carga toma tipo, nota y retiro de la cuenta (EspecialDesdeCuenta)
+        public const string CuentaTipoEspecial = "sanic_cm_ct_tipoespecial";
+        public const string CuentaNota = "sanic_cm_ct_nota";
+        public const string CuentaRetiroNio = "sanic_cm_ct_retironio";
+        public const string CuentaRetiroUsd = "sanic_cm_ct_retirousd";
+        public const string SeparadorNotasEspecial = " — ";   // "Tipo — nota": lo parten EspTipo/EspNota de la app
+        public const int LargoMaximoNotasAsignacion = 2000;
+
         // Imagen previa que registra el paso Update de ClaveDesdeCuenta
         public const string NombreImagenPrevia = "PreImage";
     }
