@@ -57,6 +57,29 @@ const iso = (ms) => new Date(ms).toISOString().replace(/\.\d{3}Z$/, 'Z');
     const actualizacion = (extra) => como('POST', 'sanic_cm_tbl_actualizaciondatoses', { sanic_cm_ad_telefonocelular: '88880000', ...extra }, U.cob);
     const conCuenta = (captura) => ({ 'sanic_cm_ad_cuentaid@odata.bind': `/sanic_cm_tbl_cuentas(${ctaId})`, ...(captura ? { sanic_cm_ad_fechacaptura: captura } : {}) });
     const base = Date.now() - 10 * 60000;
+    const marcada = (a) => a.ok && a.json.sanic_cm_ad_sinvincular === true && !a.json._sanic_cm_ad_interaccionid_value;
+
+    // 0) F8: la actualización llega ANTES que su interacción → entra marcada y VincularActualizacionPendiente (asíncrono) la cuelga
+    // Va primero, con la cuenta sin interacciones: el plugin asíncrono de las interacciones de los demás casos se llevaría
+    // las actualizaciones marcadas de esta misma cuenta.
+    const a11 = await actualizacion(conCuenta(null));
+    const i11 = await interaccion('llega después', iso(Date.now()), true);
+    let v11;
+    for (let i = 0; i < 24 && !(v11 && v11._sanic_cm_ad_interaccionid_value); i++) {
+      await dormir(5000);
+      v11 = await dv.get(`sanic_cm_tbl_actualizaciondatoses(${a11.json && a11.json.sanic_cm_tbl_actualizaciondatosid})?$select=_sanic_cm_ad_interaccionid_value,sanic_cm_ad_sinvincular`);
+    }
+    chk('ADO-13', marcada(a11) && i11.ok && v11 && v11._sanic_cm_ad_interaccionid_value === i11.json.sanic_cm_tbl_interaccionid && v11.sanic_cm_ad_sinvincular === false,
+      `llega antes que la interacción → marcada, y al llegar la interacción queda vinculada y sin marca: ${v11 && v11._sanic_cm_ad_interaccionid_value ? 'sí' : 'no se vinculó'}`);
+
+    // 0b) F6: recibo repetido → el pago entra marcado, no se rechaza
+    const recibo = `QA${runid}`;
+    // la segunda en dólares: la clave alternativa (recibo, cuenta, moneda) de APP-10 rechaza la misma moneda antes del plugin
+    const pago = (n) => como('POST', 'sanic_cm_tbl_pagos', { sanic_cm_pg_monto: 10 + n, sanic_cm_pg_numerorecibo: recibo, sanic_cm_pg_moneda: n,
+      'sanic_cm_pg_interaccion@odata.bind': `/sanic_cm_tbl_interaccions(${i11.json.sanic_cm_tbl_interaccionid})` }, U.cob);
+    const p1 = await pago(1), p2 = await pago(2);
+    chk('ADO-14', p1.ok && p1.json.sanic_cm_pg_reciborepetido === false, `primer pago con el recibo → sin marca: ${p1.ok ? p1.json.sanic_cm_pg_reciborepetido : p1.msg}`);
+    chk('ADO-15', p2.ok && p2.json.sanic_cm_pg_reciborepetido === true, `segundo pago con el mismo recibo (otra moneda) → entra marcado: ${p2.ok ? p2.json.sanic_cm_pg_reciborepetido : p2.msg}`);
 
     // 1) El caso del telefono: sin interaccion, con cuenta y la misma captura
     const t1 = iso(base);
@@ -69,24 +92,25 @@ const iso = (ms) => new Date(ms).toISOString().replace(/\.\d{3}Z$/, 'Z');
 
     // 2) Todavia no llego la interaccion
     const a2 = await actualizacion(conCuenta(iso(base - 60 * 60000)));
-    chk('ADO-04', !a2.ok && /todavia/.test(a2.msg || ''), `captura sin interacción → rechazada para reintentar: ${a2.ok ? 'ENTRÓ' : 'sí'}`);
-    chk('ADO-05', !/88880000/.test(a2.msg || ''), 'el rechazo no cita el teléfono');
+    // F8 (1.0.9.0): ya no se rechaza (el teléfono lo descartaría en silencio): entra marcada sin vincular
+    chk('ADO-04', marcada(a2), `captura sin interacción → entra marcada sin vincular: ${a2.ok ? (marcada(a2) ? 'sí' : 'sin marca') : a2.msg}`);
+    chk('ADO-05', a1.ok && a1.json.sanic_cm_ad_sinvincular === false, 'la vinculada queda sin marca');
 
     // 3) Sin interaccion ni datos para buscarla
     const a3 = await actualizacion({});
-    chk('ADO-06', !a3.ok && /vinculada a una interaccion/.test(a3.msg || ''), `sin interacción ni cuenta → rechazada: ${a3.ok ? 'ENTRÓ' : 'sí'}`);
+    chk('ADO-06', marcada(a3), `sin interacción ni cuenta → entra marcada: ${a3.ok ? (marcada(a3) ? 'sí' : 'sin marca') : a3.msg}`);
 
     // 4) La captura es de una interaccion sin actualiza info
     const t4 = iso(base + 60000);
     const i4 = await interaccion('sin datos', t4, false);
     const a4 = await actualizacion(conCuenta(t4));
-    chk('ADO-07', i4.ok && !a4.ok, `la interacción de esa captura no actualiza datos → rechazada: ${a4.ok ? 'ENTRÓ' : 'sí'}`);
+    chk('ADO-07', i4.ok && marcada(a4), `la interacción de esa captura no actualiza datos → no se vincula, entra marcada: ${marcada(a4) ? 'sí' : (a4.msg || 'vinculada')}`);
 
     // 5) Ambigua: dos interacciones de la misma cuenta y captura
     const t5 = iso(base + 120000);
     const i5a = await interaccion('doble A', t5, true), i5b = await interaccion('doble B', t5, true);
     const a5 = await actualizacion(conCuenta(t5));
-    chk('ADO-08', i5a.ok && i5b.ok && !a5.ok && /mas de una/.test(a5.msg || ''), `dos interacciones con la misma captura → rechazada por ambigua: ${a5.ok ? 'ENTRÓ' : 'sí'}`);
+    chk('ADO-08', i5a.ok && i5b.ok && marcada(a5), `dos interacciones con la misma captura → no adivina, entra marcada: ${marcada(a5) ? 'sí' : (a5.msg || 'vinculada')}`);
 
     // 6) Camino web: con la interaccion y sin cuenta → completa la cuenta
     const t6 = iso(base + 180000);
@@ -104,7 +128,8 @@ const iso = (ms) => new Date(ms).toISOString().replace(/\.\d{3}Z$/, 'Z');
     const ids = [a7, a8, a9].filter((x) => x.ok).map((x) => x.json._sanic_cm_ad_interaccionid_value);
     chk('ADO-11', new Set(ids).size === ids.length, `cada una toma una interacción distinta (${ids.length} vinculadas, ${new Set(ids).size} distintas)`);
     const a10 = await actualizacion(conCuenta(null));
-    chk('ADO-12', !a10.ok && /todavia/.test(a10.msg || ''), `sin pendientes → rechazada para reintentar: ${a10.ok ? 'ENTRÓ' : 'sí'}`);
+    chk('ADO-12', marcada(a10), `sin pendientes → entra marcada: ${marcada(a10) ? 'sí' : (a10.msg || 'vinculada')}`);
+
   } finally {
     const l = await datos.limpiar();
     console.log('  limpieza restantes', JSON.stringify(l.restantes || {}).slice(0, 220));
