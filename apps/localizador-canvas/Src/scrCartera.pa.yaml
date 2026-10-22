@@ -11,13 +11,18 @@ Screens:
     Properties:
       Fill: =gblC.screen
       OnHidden: |-
-        =IfError(
-            ForAll(Filter(colClientes, dirty) As C,
-                 ForAll(Filter(colAsig, cid = C.cid) As A,
-                    UpdateIf('CM | TBL | Asignacions',
-                       'CM | TBL | Asignacion' = A.'CM | TBL | Asignacion',
-                       { '[AS] Orden': C.orden })));
-              UpdateIf(colClientes, dirty, { dirty: false }),
+        =// ESCALA: el orden 1..n vive en memoria; solo se guarda cuando el cobrador movió un cliente (dirty), y solo el tramo de
+        // arriba hasta la posición más baja que movió (p). Lo de abajo ya tiene un orden guardado mayor o va al final alfabético,
+        // así que la lista se ve igual en la próxima carga. Antes se reescribía toda la cartera (2.336 escrituras, más de 10 min).
+        IfError(
+            With({ p: Max(Filter(colClientes, dirty), orden) },
+                 If(!IsBlank(p),
+                    ForAll(Filter(colClientes, orden <= p && Coalesce(ordGuardado, 0) <> orden) As C,
+                       ForAll(Filter(colAsig, cid = C.cid) As A,
+                          UpdateIf('CM | TBL | Asignacions',
+                             'CM | TBL | Asignacion' = A.'CM | TBL | Asignacion',
+                             { '[AS] Orden': C.orden })));
+                    UpdateIf(colClientes, orden <= p, { ordGuardado: orden, dirty: false }))),
             Notify("No se pudo guardar el orden de la cartera. Se reintenta al salir de nuevo.", NotificationType.Warning))
       OnVisible: |-
         =// La cartera se arma en btnCargarCartera (también la usan ↻ y Sincronización): al entrar la primera vez o si se pidió recargar.
@@ -118,11 +123,14 @@ Screens:
                               Height: =If(gblScale = 1, 30,gblScale = 1.2,34,gblScale = 1.45,40,46)
                               OnSelect: |-
                                 =// APP-13: primero el orden; si no se pudo guardar, no se recarga (se perdería) y se avisa.
-                                UpdateContext({okOrden: IfError(ForAll(Filter(colClientes, dirty) As C,
-                                     ForAll(Filter(colAsig, cid = C.cid) As A,
-                                        UpdateIf('CM | TBL | Asignacions',
-                                           'CM | TBL | Asignacion' = A.'CM | TBL | Asignacion',
-                                           { '[AS] Orden': C.orden }))); true, false)});
+                                UpdateContext({okOrden: IfError(With({ p: Max(Filter(colClientes, dirty), orden) },
+                                          If(!IsBlank(p),
+                                             ForAll(Filter(colClientes, orden <= p && Coalesce(ordGuardado, 0) <> orden) As C,
+                                                ForAll(Filter(colAsig, cid = C.cid) As A,
+                                                   UpdateIf('CM | TBL | Asignacions',
+                                                      'CM | TBL | Asignacion' = A.'CM | TBL | Asignacion',
+                                                      { '[AS] Orden': C.orden })));
+                                             UpdateIf(colClientes, orden <= p, { ordGuardado: orden, dirty: false }))); true, false)});
                                 If(okOrden,
                                     Select(btnCargarCartera),
                                     Notify("No se pudo guardar el orden de la cartera; no se recargó para no perderlo. Reintentá con señal.", NotificationType.Warning))
@@ -1029,19 +1037,19 @@ Screens:
                      totUsd,   Sum(ForAll(Distinct(Asigs, ctaId) As C, LookUp(Asigs, ctaId = C.Value).saldoUsd), Value),
                      maxDias,  Max(Asigs, diasMora),
                      nCuentas, CountRows(Distinct(Asigs, ctaId)),
+                     ordGuardado, Min(Asigs, ord),
                      dirty,   false));
               // APP-15: una asignación cuya cuenta no llegó al teléfono no se agrupa con otras; se avisa.
               If(CountRows(Filter(colAsig, IsBlank(cid))) > 0,
                  Notify(CountRows(Filter(colAsig, IsBlank(cid))) & " asignación(es) sin datos de la cuenta. Sincronizá para completarlas.", NotificationType.Warning));
               // Orden 1..n sin empates ni vacíos (APP-23). Los que no tienen orden (asignaciones nuevas; Min() de vacíos da 0)
-              // van al final, alfabéticos. Solo los que cambian quedan dirty y se guardan en Dataverse al salir (OnHidden).
-              // Con la cartera completa, la numeración ya no se calcula sobre una lista cortada.
+              // van al final, alfabéticos. La numeración NO marca dirty: solo ▲▼ marcan, y al guardar se escribe el tramo de arriba.
               With({ lista: SortByColumns(AddColumns(colClientes, sinOrden, Coalesce(orden, 0) <= 0),
                                           "sinOrden", SortOrder.Ascending, "orden", SortOrder.Ascending, "cliNom", SortOrder.Ascending) },
                  ForAll(Sequence(CountRows(lista)) As N,
                     With({ r: Index(lista, N.Value) },
                        If(Coalesce(r.orden, 0) <> N.Value,
-                          Patch(colClientes, LookUp(colClientes, cid = r.cid), { orden: N.Value, dirty: true })))));
+                          Patch(colClientes, LookUp(colClientes, cid = r.cid), { orden: N.Value })))));
               Set(varCarteraLista, true);
               Set(varRecargarCartera, false);
               Set(varFechaUltimaActualizacion, Now());
