@@ -14,6 +14,10 @@ REGLA DE PanGuard (paso 8 del plan):
   GrabacionInteraccion, VincularActualizacionPendiente, ReciboRepetido, EspecialDesdeCuenta, IdentidadEnInteraccion y
   TramoCartera quedan activos.
 
+Las Custom APIs (SolicitarEspecial, AltaCuenta y, desde 1.0.9.7, PartirCarga de la carga paralela) no tienen pasos: sus tipos
+vienen en la misma dll y las define scripts/pan/paso12_custom_api.py DESPUES de este paso. PartirCarga necesita ademas las
+plantillas de Smelter "Cobranza movil · padres" y "· partes" (scripts/pan/paso20_plantillas_paralelas.py --aplicar).
+
 RepartoAsignacion y RepartoPorAgente son ASINCRONOS (PostOperation, borran el trabajo del sistema si termina bien).
 RepartoAsignacion reemplaza al flow "Cambio de Owner en Asignaciones"; nunca sincrono: correria dentro del trozo de 100 filas
 de Smelter (2 minutos por mensaje). RepartoPorAgente (DAT-08) re-reparte las asignaciones de un agente al cambiar su usuario.

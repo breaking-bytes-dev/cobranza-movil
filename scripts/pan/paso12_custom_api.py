@@ -1,6 +1,8 @@
 """Registrar (o verificar) las Custom APIs globales de Cobranza Movil en DEV:
 - DAT-14 (a): sanic_cm_SolicitarEspecial (plugins/Sanic.CobranzaMovil.Plugins/SolicitarEspecial.cs), desde 1.0.7.0.
 - DAT-20 (camino A): sanic_cm_AltaCuenta (plugins/Sanic.CobranzaMovil.Plugins/AltaCuenta.cs), desde 1.0.8.0.
+- Carga paralela: sanic_cm_PartirCarga (plugins/Sanic.CobranzaMovil.Plugins/PartirCarga.cs), desde 1.0.9.7. Requiere las
+  plantillas de Smelter "Cobranza movil · padres" y "· partes" (scripts/pan/paso20_plantillas_paralelas.py --aplicar).
 Ver docs/auditoria/01-pendientes.md.
 
 Requisito: el ensamblado Sanic.CobranzaMovil.Plugins ya registrado con paso5_plugins.py en la version que trae el tipo de
@@ -13,7 +15,8 @@ Por defecto solo MUESTRA el plan (solo hace GET). Aplica con --aplicar.
 
 Las apps las llaman con Environment.sanic_cm_<API>({...}): hay que agregar la fuente "Environment" en Studio. Sin
 privilegio de ejecucion propio: quien puede llamarlas lo decide cada plugin (SolicitarEspecial: Solicitante, Admin o Servicio
-y que pueda leer la cuenta; AltaCuenta: solo Admin o Servicio).
+y que pueda leer la cuenta; AltaCuenta y PartirCarga: solo Admin, Servicio o sin roles de CM, y ademas el llamador tiene que
+ver el job y las plantillas de Smelter, o sea estar en el equipo de carga "CM · Admin y Carga").
 
 Credenciales: las mismas que paso5_plugins.py (variables de entorno o pp_secrets.env). Nunca se imprimen.
 Uso: python3 scripts/pan/paso12_custom_api.py [--aplicar] [--solucion cm_core_cobranzamovil] [--api sanic_cm_AltaCuenta]
@@ -94,6 +97,23 @@ APIS = [
             ('JobId', GUID, 'Id del Import Job de Smelter (sin estado: la app lo pone En cola despues de la espera)'),
             ('Advertencias', TEXTO, 'Avisos para el Admin, uno por linea'),
         ]),
+    dict(
+        api='sanic_cm_PartirCarga', tipo='PartirCarga', version=(1, 0, 9, 7),
+        definicion=definicion('sanic_cm_PartirCarga', 'CM - Partir carga',
+                              'Carga paralela: convierte el Import Job de la carga real (sin estado, plantilla "Cobranza movil") '
+                              'en el de padres (producto, fiador y agente) y crea N jobs de partes por CIF, sin estado.'),
+        parametros=[
+            ('JobId', GUID, False, 'Id del Import Job (sanic_tbl_smlt_importjob) de la carga real, sin estado y con archivo'),
+            ('Partes', ENTERO, False, 'Cantidad de partes pedidas (1 a 4; con menos de 300 filas se hace una sola)'),
+        ],
+        respuesta=[
+            ('PadresJobId', GUID, 'Id del job de padres (el mismo JobId, ya convertido)'),
+            ('PartesJobIds', TEXTO, 'Ids de los jobs de partes, separados por coma, en orden (parte 1, 2, ...)'),
+            ('Partes', ENTERO, 'Cantidad de partes creadas'),
+            ('FilasArchivo', ENTERO, 'Filas de datos del archivo original'),
+            ('FilasPadres', ENTERO, 'Filas del archivo de padres'),
+            ('FilasPartes', TEXTO, 'Filas de cada parte, separadas por coma'),
+        ]),
 ]
 
 
@@ -140,9 +160,9 @@ def registrar(dv, accion, sol, solucion, mod, x):
         raise SystemExit('No esta registrado el ensamblado %s: correr antes paso5_plugins.py' % ENSAMBLADO)
     ensamblado_id, version = r[0]['pluginassemblyid'], r[0].get('version') or '?'
     print('ensamblado %s %s' % (ENSAMBLADO, version))
-    if tuple(int(n) for n in version.split('.')[:3] if n.isdigit()) < minima:
+    if tuple(int(n) for n in version.split('.')[:4] if n.isdigit()) < minima:
         print('AVISO   el ensamblado registrado es anterior a %s: no trae %s. Registrar la dll nueva antes de aplicar.'
-              % ('.'.join(str(n) for n in minima) + '.0', x['tipo']))
+              % ('.'.join(str(n) for n in (minima + (0, 0, 0, 0))[:4]), x['tipo']))
     t = dv.get("plugintypes?$select=plugintypeid&$filter=_pluginassemblyid_value eq %s and typename eq '%s'"
                % (ensamblado_id, TIPO_PLUGIN))['value']
     tipo_id = t[0]['plugintypeid'] if t else None

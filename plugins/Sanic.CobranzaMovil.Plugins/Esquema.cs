@@ -172,6 +172,48 @@ namespace Sanic.CobranzaMovil.Plugins
         public const string JobSmelterPlantilla = "sanic_smlt_ij_importtemplateid";
         public const string JobSmelterEsPrueba = "sanic_smlt_ij_isdryrun";
         public const string JobSmelterArchivo = "sanic_smlt_ij_sourcefile";
+        public const string JobSmelterEstado = "sanic_smlt_ij_status";
+        public const string PlantillaSmelterDelimitador = "sanic_smlt_it_delimiter";
+        public const string PlantillaSmelterEncabezado = "sanic_smlt_it_hasheaderrow";
+        public const string PlantillaSmelterLote = "sanic_smlt_it_chunksize";
+        public const string PlantillaSmelterEstado = "sanic_smlt_it_status";
+        public const string PlantillaSmelterOrigen = "sanic_smlt_it_sourcetype";
+
+        // Custom API PartirCarga (carga paralela): parte el archivo de un job en "padres" (producto, fiador y agente, con la
+        // ULTIMA fila de cada uno) y N "partes" por CIF. Las plantillas derivadas las genera scripts/pan/paso20.
+        public const string MensajePartirCarga = "sanic_cm_PartirCarga";
+        public const string ParamJobId = "JobId";
+        public const string ParamPartes = "Partes";
+        public const string SalidaPadresJobId = "PadresJobId";
+        public const string SalidaPartesJobIds = "PartesJobIds";
+        public const string SalidaPartes = "Partes";
+        public const string SalidaFilasArchivo = "FilasArchivo";
+        public const string SalidaFilasPadres = "FilasPadres";
+        public const string SalidaFilasPartes = "FilasPartes";
+        public const string NombrePlantillaPadres = "Cobranza movil · padres";
+        public const string NombrePlantillaPartes = "Cobranza movil · partes";
+        public const string MapeoTabla = "sanic_tbl_smlt_tablemapping";
+        public const string MapeoTablaId = "sanic_tbl_smlt_tablemappingid";
+        public const string MapeoTablaPlantilla = "sanic_smlt_tm_importtemplateid";
+        public const string MapeoTablaNombre = "sanic_smlt_tm_name";
+        public const string MapeoTablaDestino = "sanic_smlt_tm_targettable";
+        public const string MapeoTablaDedup = "sanic_smlt_tm_dedupcolumns";
+        public const string MapeoTablaOrden = "sanic_smlt_tm_processingorder";
+        public const string MapeoTablaCrear = "sanic_smlt_tm_createifnotexists";
+        public const string MapeoTablaActualizar = "sanic_smlt_tm_updateifexists";
+        public const string MapeoTablaIntermedia = "sanic_smlt_tm_isjunctiontable";
+        public const string MapeoColumna = "sanic_tbl_smlt_columnmapping";
+        public const string MapeoColumnaTabla = "sanic_smlt_cm_tablemappingid";
+        public const string MapeoColumnaNombre = "sanic_smlt_cm_name";
+        public const string MapeoColumnaDestino = "sanic_smlt_cm_targetcolumn";
+        public const string MapeoColumnaFuente = "sanic_smlt_cm_sourcecolumn";
+        public const string MapeoColumnaTipo = "sanic_smlt_cm_datatype";
+        public const string MapeoColumnaRequerida = "sanic_smlt_cm_isrequired";
+        public const string MapeoColumnaDefault = "sanic_smlt_cm_defaultvalue";
+        public const string MapeoColumnaLookupTabla = "sanic_smlt_cm_lookuptable";
+        public const string MapeoColumnaLookupClave = "sanic_smlt_cm_lookupmatchcolumn";
+        public const string MapeoColumnaOpciones = "sanic_smlt_cm_optionsetmapping";
+        public const string MapeoColumnaTransformacion = "sanic_smlt_cm_transformexpression";
 
         // Agente <-> usuario (app del cobrador: gblAgente busca por Lower(User().Email), que es el UPN)
         public const string AgenteUsuario = "sanic_cm_ag_usuarioid";
