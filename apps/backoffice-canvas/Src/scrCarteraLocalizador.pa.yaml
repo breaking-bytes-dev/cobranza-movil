@@ -297,6 +297,40 @@ Screens:
                               Width: =14 + 7*Len(Self.Text)
                               X: =chpIncCpl.X + chpIncCpl.Width + gblE.PadSm
                               Y: =chpDiaCpl.Y
+                        - lblTotCpl:
+                            Control: Label@2.5.1
+                            Properties:
+                              Height: =0
+                              Text: |-
+                                =// Alerta de carga: total ACTIVO del cobrador (CountIf delegable, exacto). Oculto: lo leen chpCargaCpl.
+                                CountIf('CM | TBL | Asignacions',
+                                    '[AS] Agente'.'CM | TBL | Agente' = ThisItem.'CM | TBL | Agente'
+                                    && '[AS] Estado' = true)
+                              Visible: =false
+                              Width: =0
+                        - chpCargaCpl:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderThickness: =0
+                              Color: =gblC.redInk
+                              DisplayMode: =DisplayMode.View
+                              Fill: =gblC.redBg
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =26
+                              RadiusBottomLeft: =8
+                              RadiusBottomRight: =8
+                              RadiusTopLeft: =8
+                              RadiusTopRight: =8
+                              Size: =8
+                              Text: ="⚠ " & lblTotCpl.Text & " activas"
+                              Tooltip: ="Sobrecargado: más de " & nfUmbralCarga & " asignaciones activas"
+                              Visible: =Value(lblTotCpl.Text) > nfUmbralCarga
+                              Width: =14 + 7*Len(Self.Text)
+                              X: =If(nfMovil, gblE.Pad + lblVerCpl.Width + gblE.PadSm, chpEspCpl.X + chpEspCpl.Width + gblE.PadSm)
+                              Y: =If(nfMovil, lblVerCpl.Y - 2, chpDiaCpl.Y)
                         - lblVerCpl:
                             Control: Label@2.5.1
                             Properties:
