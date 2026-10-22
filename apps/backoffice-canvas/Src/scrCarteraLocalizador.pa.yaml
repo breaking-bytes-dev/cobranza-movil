@@ -135,12 +135,13 @@ Screens:
                           Set(varNAsigCpl, CountIf('CM | TBL | Asignacions',
                               '[AS] Agente'.'CM | TBL | Agente' = varAgeCpl.'CM | TBL | Agente' && '[AS] Estado' = true));
                           Clear(colAsigCpl);
-                          ForAll(Sequence(21, 0) As T, Collect(colAsigCpl,
+                          // El tramo va CONSTANTE en cada consulta (T.Value); un If() en el filtro la vuelve no delegable (1 consulta, cortada).
+                          ForAll(Sequence(20, 0) As T, Collect(colAsigCpl,
                               AddColumns(
                                   Filter('CM | TBL | Asignacions',
                                       '[AS] Agente'.'CM | TBL | Agente' = varAgeCpl.'CM | TBL | Agente'
                                       && '[AS] Estado' = true
-                                      && '[AS] Tramo' = If(T.Value = 20, Blank(), T.Value)),
+                                      && '[AS] Tramo' = T.Value),
                                   clienteCpl, Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
                                   ult4Cpl, Coalesce(ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
                                   moraCpl, Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
@@ -151,7 +152,24 @@ Screens:
                                       'Choice | CM | Tipo asignacion'.Incobrable, 2,
                                       'Choice | CM | Tipo asignacion'.Especial, 3,
                                       4)
-                              ))
+                              )));
+                          Collect(colAsigCpl,
+                              AddColumns(
+                                  Filter('CM | TBL | Asignacions',
+                                      '[AS] Agente'.'CM | TBL | Agente' = varAgeCpl.'CM | TBL | Agente'
+                                      && '[AS] Estado' = true
+                                      && '[AS] Tramo' = Blank()),
+                                  clienteCpl, Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
+                                  ult4Cpl, Coalesce(ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
+                                  moraCpl, Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
+                                  nioCpl, Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO', 0),
+                                  usdCpl, Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD', 0),
+                                  ordCpl, Switch(ThisRecord.'[AS] Tipo',
+                                      'Choice | CM | Tipo asignacion'.Diaria, 1,
+                                      'Choice | CM | Tipo asignacion'.Incobrable, 2,
+                                      'Choice | CM | Tipo asignacion'.Especial, 3,
+                                      4)
+                              )
                           );
                           Set(varPanelCpl, true)
                         ShowScrollbar: =false
