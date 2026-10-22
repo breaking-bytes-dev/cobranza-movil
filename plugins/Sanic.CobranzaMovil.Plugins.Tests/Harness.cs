@@ -103,6 +103,30 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             return this;
         }
 
+        /// <summary>
+        /// Organizacion propia (la cache de UsuarioSistema es por organizacion) cuyo WhoAmI con el servicio del sistema
+        /// devuelve <paramref name="sistema"/>. Con <paramref name="llamadorEsSistema"/> el llamador ES ese usuario (la carga).
+        /// </summary>
+        public Harness ConSistema(Guid sistema, bool llamadorEsSistema)
+        {
+            Context.SetupGet(c => c.OrganizationId).Returns(Guid.NewGuid());
+            if (llamadorEsSistema) Context.SetupGet(c => c.UserId).Returns(sistema);
+            var respuesta = new OrganizationResponse { ResponseName = "WhoAmI", Results = new ParameterCollection { { "UserId", sistema } } };
+            Service.Setup(s => s.Execute(It.Is<OrganizationRequest>(r => r.RequestName == "WhoAmI"))).Returns(respuesta);
+            return this;
+        }
+
+        /// <summary>Cuantas veces se pregunto WhoAmI.</summary>
+        public int WhoAmIAlServicio()
+        {
+            var n = 0;
+            foreach (var inv in Service.Invocations)
+            {
+                if (inv.Method.Name == "Execute" && ((OrganizationRequest)inv.Arguments[0]).RequestName == "WhoAmI") n++;
+            }
+            return n;
+        }
+
         public int ConsultasAlServicio()
         {
             var n = 0;

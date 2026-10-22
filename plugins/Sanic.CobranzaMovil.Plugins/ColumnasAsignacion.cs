@@ -54,7 +54,8 @@ namespace Sanic.CobranzaMovil.Plugins
                 return;
             }
 
-            var roles = RolesCm.DelLlamador(local);
+            // SYSTEM (cada fila de la carga) no tiene roles de CM: no se consultan (1.0.9.6).
+            var roles = RolesCm.DelLlamadorSalvoSistema(local);
             if (roles.SinRestriccion)
             {
                 local.Trace("el llamador no tiene restriccion de columnas.");

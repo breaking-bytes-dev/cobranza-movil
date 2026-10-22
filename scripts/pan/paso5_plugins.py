@@ -114,7 +114,9 @@ def definir_pasos():
         filtro=['sanic_cm_ag_usuarioid'], columnas=['sanic_cm_ag_usuarioid'], legacy=False,
         imagen=None, etapa=ETAPA_POSTOPERATION, modo=MODO_ASINCRONO,
         descripcion='DAT-08: al cambiar el usuario del agente, re-reparte sus asignaciones activas (asincrono)'))
-    # ColumnasAsignacion (S-11): cada rol de CM escribe solo las columnas de la asignacion que usa su pantalla. Sin filtro.
+    # ColumnasAsignacion (S-11): cada rol de CM escribe solo las columnas de la asignacion que usa su pantalla. Sin filtro
+    # A PROPOSITO: controla cualquier columna sanic_cm_as_* (un filtro dejaria pasar las que no lista). Desde 1.0.9.6 no le
+    # consulta roles a SYSTEM (la carga), asi que en cada fila de la carga ya no cuesta consultas.
     pasos.append(dict(
         tipo=NS + 'ColumnasAsignacion', mensaje='Update', entidad=P + 'asignacion', panguard=False, filtro=[],
         columnas=['sanic_cm_as_orden', 'sanic_cm_as_estadoaprobacion'], legacy=False, imagen=None,

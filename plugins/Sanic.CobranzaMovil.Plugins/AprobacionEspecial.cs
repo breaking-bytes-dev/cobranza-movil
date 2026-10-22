@@ -20,7 +20,9 @@ namespace Sanic.CobranzaMovil.Plugins
     ///
     /// S-7: en el alta, una persona de CM solo puede poner "Solicitado por" a si misma (<see cref="SolicitadoPor"/>).
     ///
-    /// Solo consulta roles si el cambio es de los controlados (o es una Diaria o Incobrable, H2). Nunca traza ni cita valores del registro.
+    /// Solo consulta roles si el cambio es de los controlados (o es una Diaria o Incobrable, H2), y nunca a SYSTEM (la carga:
+    /// cada Diaria nueva pedia dos consultas que siempre daban "sin roles de CM"; ver UsuarioSistema, 1.0.9.6).
+    /// Nunca traza ni cita valores del registro.
     /// Registro: PreOperation sincrono. Create y Update de sanic_cm_tbl_asignacion; el Update filtrado por
     /// agente, estado de aprobacion y tipo, con imagen previa "PreImage" de esas tres columnas.
     /// </summary>
@@ -39,7 +41,7 @@ namespace Sanic.CobranzaMovil.Plugins
 
             var target = local.ObtenerTarget();
             RolesCm roles = null;
-            Func<RolesCm> rolesDelLlamador = () => roles ?? (roles = RolesCm.DelLlamador(local));
+            Func<RolesCm> rolesDelLlamador = () => roles ?? (roles = RolesCm.DelLlamadorSalvoSistema(local));
             if (local.EsMensaje(Esquema.MensajeCreate))
             {
                 SinAprobacionSiNoEsEspecial(local, target);

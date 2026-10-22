@@ -45,6 +45,22 @@ namespace Sanic.CobranzaMovil.Plugins
             return new RolesCm(nombres);
         }
 
+        /// <summary>
+        /// Igual que <see cref="DelLlamador"/>, pero si quien escribe es SYSTEM (la carga de Smelter, los plugins con el
+        /// servicio del sistema) devuelve "sin roles de CM" sin consultar: es lo que la consulta devolveria siempre.
+        /// Lo usan los pasos que corren en cada fila de la carga (AprobacionEspecial, ColumnasAsignacion). A una persona
+        /// se le consultan los roles como siempre. Ver <see cref="UsuarioSistema"/>.
+        /// </summary>
+        public static RolesCm DelLlamadorSalvoSistema(LocalContext local)
+        {
+            if (UsuarioSistema.EsElLlamador(local))
+            {
+                local.Trace("el llamador es SYSTEM (la carga): sin roles de CM, sin consultar.");
+                return new RolesCm(new HashSet<string>(StringComparer.Ordinal));
+            }
+            return DelLlamador(local);
+        }
+
         /// <summary>Roles de CM del llamador, sin repetir.</summary>
         public IEnumerable<string> Nombres
         {

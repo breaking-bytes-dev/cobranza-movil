@@ -72,15 +72,26 @@ namespace Sanic.CobranzaMovil.Plugins
         /// </summary>
         // El upsert de Smelter referencia la cuenta por su clave alternativa (ct_clavepan). La doc no garantiza que en
         // PreOperation la referencia ya traiga el Id: si no lo trae, la clave de la cuenta ES el valor de la referencia.
+        // Si la plataforma ya resolvio el Id POR esa clave, la clave de la cuenta sigue siendo el valor de la referencia (la
+        // clave alternativa es unica): se usa sin leer la cuenta, pero solo cuando escribe SYSTEM (la carga arma la
+        // referencia en codigo de confianza). A cualquier otro llamador con Id se le lee la cuenta como siempre: con un Id
+        // explicito la plataforma no tiene por que mirar la clave que acompana a la referencia (1.0.9.6).
         private static string ClaveDeLaCuenta(LocalContext local, EntityReference cuenta)
         {
+            object valor;
+            var claveEnReferencia = cuenta.KeyAttributes != null && cuenta.KeyAttributes.TryGetValue(Esquema.CuentaClavePan, out valor)
+                ? valor as string
+                : null;
             if (cuenta.Id == Guid.Empty)
             {
-                object valor;
-                if (cuenta.KeyAttributes != null && cuenta.KeyAttributes.TryGetValue(Esquema.CuentaClavePan, out valor))
-                    return valor as string;
+                if (claveEnReferencia != null) return claveEnReferencia;
                 local.Trace("cuenta referenciada sin Id ni {0}; sin cambios.", Esquema.CuentaClavePan);
                 return null;
+            }
+            if (!string.IsNullOrEmpty(claveEnReferencia) && UsuarioSistema.EsElLlamador(local))
+            {
+                local.Trace("cuenta de la carga resuelta por {0}; se usa la clave de la referencia sin leerla.", Esquema.CuentaClavePan);
+                return claveEnReferencia;
             }
 
             // Una sola lectura, de una sola columna.
