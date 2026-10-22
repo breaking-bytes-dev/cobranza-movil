@@ -326,7 +326,8 @@ Screens:
                               RadiusTopRight: =8
                               Size: =8
                               Text: ="⚠ " & lblTotCpl.Text & " activas"
-                              Tooltip: ="Sobrecargado: más de " & nfUmbralCarga & " asignaciones activas"
+                              Tooltip: |-
+                                ="Sobrecargado: más de " & nfUmbralCarga & " asignaciones activas"
                               Visible: =Value(lblTotCpl.Text) > nfUmbralCarga
                               Width: =14 + 7*Len(Self.Text)
                               X: =If(nfMovil, gblE.Pad + lblVerCpl.Width + gblE.PadSm, chpEspCpl.X + chpEspCpl.Width + gblE.PadSm)
