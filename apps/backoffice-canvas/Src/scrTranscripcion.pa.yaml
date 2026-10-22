@@ -16,8 +16,10 @@ Screens:
         //    catálogo de cuentas truncable al Data row limit).
         ClearCollect(colPendTrx,
             AddColumns(
-                Filter('CM | TBL | Interaccions',
+                // FIFO EN EL SERVIDOR: si la cola pasa del límite de filas (2000), entran las MÁS ANTIGUAS (las que van primero).
+                Sort(Filter('CM | TBL | Interaccions',
                     '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Pendiente),
+                    'Fecha de captura', SortOrder.Ascending),
                 clienteTrx, Upper(Coalesce(
                     ThisRecord.'[IN] Cuenta'.'Nombre Cliente', "—")),
                 cifTrx, Coalesce(
@@ -30,8 +32,9 @@ Screens:
             )
         );
         // 4) columna de localizadores materializada
-        // "Todos" = conteo EXACTO al datasource (CountIf delega); por localizador desde la cola cargada (cota 2000)
+        // "Todos" = conteo EXACTO al datasource (CountIf delega); por localizador: de la cola cargada, o CountIf al servidor si la cola vino cortada
         ClearCollect(colLocsTrx, Table({locTrx: "Todos", nTrx: CountIf('CM | TBL | Interaccions', '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Pendiente)}));
+        Set(varPendCortadaTrx, CountRows(colPendTrx) < LookUp(colLocsTrx, locTrx = "Todos").nTrx);
         Collect(colLocsTrx,
             RenameColumns(
                 ShowColumns(
@@ -39,7 +42,7 @@ Screens:
                         AddColumns(
                             GroupBy(AddColumns(colPendTrx, agenteTrx, '[IN] NombreAgente'),
                                 agenteTrx, grpTrx),
-                            nTrx, CountRows(grpTrx)
+                            nTrx, If(varPendCortadaTrx, CountIf('CM | TBL | Interaccions', '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Pendiente && '[IN] NombreAgente' = agenteTrx), CountRows(grpTrx))
                         ),
                         nTrx, SortOrder.Descending
                     ),
@@ -101,8 +104,10 @@ Screens:
               =// 2) pendientes del día + join horneado (idéntico al paso 3 del OnVisible)
               ClearCollect(colPendTrx,
                   AddColumns(
-                      Filter('CM | TBL | Interaccions',
+                      // FIFO EN EL SERVIDOR: si la cola pasa del límite de filas (2000), entran las MÁS ANTIGUAS (las que van primero).
+                      Sort(Filter('CM | TBL | Interaccions',
                           '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Pendiente),
+                          'Fecha de captura', SortOrder.Ascending),
                       clienteTrx, Upper(Coalesce(
                           ThisRecord.'[IN] Cuenta'.'Nombre Cliente', "—")),
                       cifTrx, Coalesce(
@@ -115,8 +120,9 @@ Screens:
                   )
               );
               // 3) columna de localizadores
-              // "Todos" = conteo EXACTO al datasource (CountIf delega); por localizador desde la cola cargada (cota 2000)
+              // "Todos" = conteo EXACTO al datasource (CountIf delega); por localizador: de la cola cargada, o CountIf al servidor si la cola vino cortada
               ClearCollect(colLocsTrx, Table({locTrx: "Todos", nTrx: CountIf('CM | TBL | Interaccions', '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Pendiente)}));
+              Set(varPendCortadaTrx, CountRows(colPendTrx) < LookUp(colLocsTrx, locTrx = "Todos").nTrx);
               Collect(colLocsTrx,
                   RenameColumns(
                       ShowColumns(
@@ -124,7 +130,7 @@ Screens:
                               AddColumns(
                                   GroupBy(AddColumns(colPendTrx, agenteTrx, '[IN] NombreAgente'),
                                       agenteTrx, grpTrx),
-                                  nTrx, CountRows(grpTrx)
+                                  nTrx, If(varPendCortadaTrx, CountIf('CM | TBL | Interaccions', '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Pendiente && '[IN] NombreAgente' = agenteTrx), CountRows(grpTrx))
                               ),
                               nTrx, SortOrder.Descending
                           ),
@@ -299,7 +305,7 @@ Screens:
                         OnSelect: =Select(Parent)
                         PressedFill: =RGBA(15, 107, 107, 0.12)
                         TabIndex: =0
-                        Text: =If(ThisItem.locTrx = "Todos", "Todos los localizadores", "Localizador " & ThisItem.locTrx) & " (" & ThisItem.nTrx & " pendientes)"
+                        Text: =If(ThisItem.locTrx = "Todos", "Todos los localizadores", "Localizador " & ThisItem.locTrx) & " (" & ThisItem.nTrx & " pendientes)" & If(ThisItem.locTrx = "Todos" && varPendCortadaTrx, " · ⚠ se muestran las " & CountRows(colPendTrx) & " más antiguas", "")
                         Width: =Parent.TemplateWidth
                         X: =0
                         Y: =0
@@ -409,7 +415,7 @@ Screens:
                         OnSelect: =Select(Parent)
                         PressedFill: =RGBA(15, 107, 107, 0.12)
                         TabIndex: =0
-                        Text: =If(ThisItem.locTrx = "Todos", "Todos los localizadores", "Localizador " & ThisItem.locTrx) & " (" & ThisItem.nTrx & " pendientes)"
+                        Text: =If(ThisItem.locTrx = "Todos", "Todos los localizadores", "Localizador " & ThisItem.locTrx) & " (" & ThisItem.nTrx & " pendientes)" & If(ThisItem.locTrx = "Todos" && varPendCortadaTrx, " · ⚠ se muestran las " & CountRows(colPendTrx) & " más antiguas", "")
                         Width: =Parent.TemplateWidth
                         X: =0
                         Y: =0
@@ -1112,8 +1118,9 @@ Screens:
                                     Remove(colPendTrx, LookUp(colPendTrx,
                                         '[IN] Numero de Interaccion' = varNumTrx));
                                     // 4) refrescar la columna de localizadores
-                                    // "Todos" = conteo EXACTO al datasource (CountIf delega); por localizador desde la cola cargada (cota 2000)
+                                    // "Todos" = conteo EXACTO al datasource (CountIf delega); por localizador: de la cola cargada, o CountIf al servidor si la cola vino cortada
                                     ClearCollect(colLocsTrx, Table({locTrx: "Todos", nTrx: CountIf('CM | TBL | Interaccions', '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Pendiente)}));
+                                    Set(varPendCortadaTrx, CountRows(colPendTrx) < LookUp(colLocsTrx, locTrx = "Todos").nTrx);
                                     Collect(colLocsTrx,
                                         RenameColumns(
                                             ShowColumns(
@@ -1121,7 +1128,7 @@ Screens:
                                                     AddColumns(
                                                         GroupBy(AddColumns(colPendTrx, agenteTrx, '[IN] NombreAgente'),
                                                             agenteTrx, grpTrx),
-                                                        nTrx, CountRows(grpTrx)
+                                                        nTrx, If(varPendCortadaTrx, CountIf('CM | TBL | Interaccions', '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Pendiente && '[IN] NombreAgente' = agenteTrx), CountRows(grpTrx))
                                                     ),
                                                     nTrx, SortOrder.Descending
                                                 ),

@@ -22,6 +22,10 @@ Screens:
                     && '[IN] Fecha grabacion' >= Today()
                     && '[IN] Grabado por'.User = gblUsuarioDV.User))
         );
+        // ESCALA: los pagos de HOY (de todos) son una sola consulta; si llega al límite de filas (2000) el arqueo puede estar
+        // incompleto y se dice. (Partirla por hora NO delega: DateAdd o un campo de colección en el Filter traen la tabla entera.)
+        If(CountRows(colPagosHoyTsc) >= 2000,
+            Notify("Hoy hay más de 2000 pagos: el arqueo de esta pantalla puede estar incompleto. Avisá a soporte.", NotificationType.Warning));
         // 3) Arqueo del día (base en colTscTmpTsc): SOLO lo grabado HOY por MÍ.
         //    choice por valor + comparación de fecha + lookup por registro = delegable (00 §4.2).
         //    Datos de la cuenta navegando el lookup '[IN] Cuenta' (lo resuelve el servidor, sin
@@ -98,6 +102,10 @@ Screens:
                           && '[IN] Fecha grabacion' >= Today()
                           && '[IN] Grabado por'.User = gblUsuarioDV.User))
               );
+              // ESCALA: los pagos de HOY (de todos) son una sola consulta; si llega al límite de filas (2000) el arqueo puede estar
+              // incompleto y se dice. (Partirla por hora NO delega: DateAdd o un campo de colección en el Filter traen la tabla entera.)
+              If(CountRows(colPagosHoyTsc) >= 2000,
+                  Notify("Hoy hay más de 2000 pagos: el arqueo de esta pantalla puede estar incompleto. Avisá a soporte.", NotificationType.Warning));
               ClearCollect(colTscTmpTsc,
                   AddColumns(
                       Filter('CM | TBL | Interaccions',
