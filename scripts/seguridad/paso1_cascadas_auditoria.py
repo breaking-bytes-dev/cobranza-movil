@@ -14,7 +14,11 @@ APLICAR = '--aplicar' in sys.argv
 P = 'sanic_cm_tbl_'
 # (padre, hijo): compartir el padre NO debe compartir el hijo, ni darle acceso heredado al re-escribirlo (Reparent)
 CORTAR = [('cliente', 'cuenta'), ('cliente', 'cargadiaria'), ('cuenta', 'asignacion')]
-AUDITAR = ['asignacion', 'interaccion', 'pago', 'agente', 'actualizaciondatos', 'cargadiaria']
+AUDITAR = ['asignacion', 'interaccion', 'pago', 'agente', 'actualizaciondatos']
+# 2026-10-22 (velocidad de la carga, propuesta C aprobada por el dueño): la carga diaria NO se audita. Es la foto histórica
+# que escribe Smelter (~6.000 altas por carga); la auditoría duplicaba cada alta. Contra aceptado: un borrado de historia
+# (solo lo puede hacer Admin) deja de quedar registrado en la auditoría.
+SIN_AUDITAR = ['cargadiaria']
 # (padre, hijo, {acción: valor}) — DAT-18
 OTRAS = [('interaccion', 'pago', {'Delete': 'Restrict'}),
          ('interaccion', 'actualizaciondatos', {'Delete': 'Restrict'}),
@@ -52,18 +56,18 @@ for padre, hijo, objetivo in OTRAS:
         st, b = rq('PUT', f"RelationshipDefinitions({mid})", full, {'MSCRM.MergeLabels': 'true'})
         print('   PUT →', st, '' if st < 300 else b)
 
-for t in AUDITAR:
+for t, destino in [(t, True) for t in AUDITAR] + [(t, False) for t in SIN_AUDITAR]:
     e = get(f"EntityDefinitions(LogicalName='{P}{t}')")
-    print(f"auditoría {t}: {e['IsAuditEnabled']['Value']} → True")
-    if APLICAR and not e['IsAuditEnabled']['Value']:
-        e['IsAuditEnabled']['Value'] = True
+    print(f"auditoría {t}: {e['IsAuditEnabled']['Value']} → {destino}")
+    if APLICAR and e['IsAuditEnabled']['Value'] != destino:
+        e['IsAuditEnabled']['Value'] = destino
         for k in [k for k in e if k.startswith('@odata')]: e.pop(k)
         e['@odata.type'] = 'Microsoft.Dynamics.CRM.EntityMetadata'
         st, b = rq('PUT', f"EntityDefinitions({e['MetadataId']})", e, {'MSCRM.MergeLabels': 'true'})
         print('   PUT →', st, '' if st < 300 else b)
 
 if APLICAR:
-    ents = sorted({P + x for par in CORTAR for x in par} | {P + x for o in OTRAS for x in o[:2]} | {P + t for t in AUDITAR})
+    ents = sorted({P + x for par in CORTAR for x in par} | {P + x for o in OTRAS for x in o[:2]} | {P + t for t in AUDITAR + SIN_AUDITAR})
     xml = '<importexportxml><entities>' + ''.join(f'<entity>{x}</entity>' for x in ents) + '</entities></importexportxml>'
     st, b = rq('POST', 'PublishXml', {'ParameterXml': xml})
     print('PublishXml (solo estas tablas) →', st, '' if st < 300 else b)
