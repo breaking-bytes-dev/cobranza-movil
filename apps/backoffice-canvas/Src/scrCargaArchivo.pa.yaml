@@ -25,6 +25,7 @@ Screens:
         Set(varOcupadoCar, false);
         Set(varPollCar, false);
         Set(varVueltasCar, 0);
+        Set(varSigueCar, false);
         Set(varConfirmaCar, false);
         Set(varValidadoCar, "");
         Set(varArchivoCar, "");
@@ -290,6 +291,7 @@ Screens:
                         Set(varJobCar, varNuevoCar);
                         Set(varArmarCar, DateAdd(Now(), 20, TimeUnit.Seconds));
                         Set(varVueltasCar, 0);
+                        Set(varSigueCar, false);
                         Set(varPollCar, true),
                         Notify("No se pudo iniciar la carga: " & FirstError.Message, NotificationType.Error);
                         Set(varOcupadoCar, false)
@@ -505,19 +507,22 @@ Screens:
                   - lblAvanceCar:
                       Control: Label@2.5.1
                       Properties:
-                        Color: =gblC.diariaInk
+                        Color: =If(varVueltasCar > 400, gblC.pendInk, gblC.diariaInk)
                         FocusedBorderColor: =gblC.teal
                         FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
-                        Height: =24
+                        Height: =If(varVueltasCar > 400, If(nfMovil, 88, 44), 24)
                         PaddingLeft: =0
                         Size: =9
                         Text: |-
                           =If(varEstCar = -1, "⏳ Preparando la carga: el archivo ya subió, en unos segundos se pone en cola.",
+                              varSigueCar, "⚠ La pantalla dejó de consultar después de 3 horas, pero la carga puede seguir en Smelter. Mirá su estado en «Mis últimas cargas» (se actualiza al volver a entrar) o avisá a soporte con el nombre de la carga.",
+                              varVueltasCar > 400, "⏳ Lleva más de 20 minutos y sigue en Smelter (una carga grande tarda). La pantalla consulta cada 30 segundos; si salís, el resultado queda en «Mis últimas cargas».",
                               "⏳ Smelter está trabajando; la pantalla consulta el avance cada 3 segundos.")
+                        VerticalAlign: =VerticalAlign.Top
                         Visible: =varEstCar < 2
                         Width: =Parent.Width - 2*gblE.Pad
-                        Wrap: =false
+                        Wrap: =true
                         X: =gblE.Pad
                         Y: |-
                           =If(nfMovil, cmpKpiOmitCar.Y + cmpKpiOmitCar.Height, cmpKpiTotCar.Y + cmpKpiTotCar.Height) + gblE.PadSm
@@ -704,7 +709,9 @@ Screens:
           Control: Timer@2.1.0
           Properties:
             AutoPause: =false
-            Duration: =3000
+            Duration: |-
+              =// Los primeros 20 minutos cada 3 s; después cada 30 s (una carga grande sigue en Smelter: no se abandona).
+              If(varVueltasCar > 400, 30000, 3000)
             OnTimerEnd: |-
               =// Fase 1 · armado: pasados los 20 s desde que subió el archivo (ver btnEnviarCar), estado = En cola (0).
               // Fase 2 · sondeo cada ~3 s del job propio hasta que Smelter lo termine (2 Completed, 3 CompletedWithErrors, 4 Failed).
@@ -735,7 +742,10 @@ Screens:
                       '[IJ] Status (TBL | SMLT | Import Jobs)'.Processing, 1, '[IJ] Status (TBL | SMLT | Import Jobs)'.Completed, 2,
                       '[IJ] Status (TBL | SMLT | Import Jobs)'.CompletedWithErrors, 3, '[IJ] Status (TBL | SMLT | Import Jobs)'.Failed, 4, 0));
               Set(varVueltasCar, varVueltasCar + 1);
-              If(varEstCar >= 2 || varVueltasCar > 400,
+              // Tope: 400 vueltas de 3 s (20 min) + 360 de 30 s (3 h) ≈ 3 h 20 min. Antes se cortaba a los 20 min y la
+              // pantalla quedaba en "Procesando" sin avisar aunque Smelter seguía cargando.
+              If(varEstCar < 2 && varVueltasCar > 760, Set(varSigueCar, true));
+              If(varEstCar >= 2 || varVueltasCar > 760,
                   Set(varPollCar, false);
                   Set(varOcupadoCar, false);
                   // «Cargar» se habilita SOLO tras una prueba en seco Terminada y con 0 fallos, de ESTE archivo.
