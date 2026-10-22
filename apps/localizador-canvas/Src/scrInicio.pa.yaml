@@ -408,7 +408,7 @@ Screens:
                               LayoutMinWidth: =16
                               PaddingBottom: =0
                               Size: =gblT.flg
-                              Text: =CountRows(Distinct(AddColumns(colIntHoy, cliJoin, LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = '[IN] Cuenta'.'CM | TBL | Cuenta').'CIF Cliente'), cliJoin))
+                              Text: =CountRows(Distinct(AddColumns(AddColumns(AddColumns(colIntHoy, cta, '[IN] Cuenta'.'CM | TBL | Cuenta'), ctaRec, LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = cta)), cliJoin, ctaRec.'CIF Cliente'), cliJoin))
                         - lblSl_2:
                             Control: Label@2.5.1
                             Properties:
@@ -510,13 +510,14 @@ Screens:
                 Properties:
                   AlignInContainer: =AlignInContainer.Start
                   Items: |-
-                    =IfError(GroupBy(
+                    =// Offline, LookUp(Cuentas, … = '[IN] Cuenta'.…).campo volvía vacío: primero se resuelve la cuenta (cta), se la trae UNA vez (ctaRec) y se lee de ahí.
+                    IfError(GroupBy(
                             AddColumns(
-                                colIntHoy,
+                                AddColumns(AddColumns(colIntHoy, cta, '[IN] Cuenta'.'CM | TBL | Cuenta'), ctaRec, LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = cta)),
                                 cliNom,
-                                LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = '[IN] Cuenta'.'CM | TBL | Cuenta').'Nombre Cliente',
+                                ctaRec.'Nombre Cliente',
                                 cid,
-                                LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = '[IN] Cuenta'.'CM | TBL | Cuenta').'CIF Cliente'
+                                ctaRec.'CIF Cliente'
                             ),
                             cliNom,
                             cid,
@@ -659,23 +660,17 @@ Screens:
                 Properties:
                   AlignInContainer: =AlignInContainer.Start
                   Items: |-
-                    =IfError(AddColumns(GroupBy(
-                            AddColumns(
-                                colIntHoy,
-                                prod,
-                                LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = '[IN] Cuenta'.'CM | TBL | Cuenta').'Tipo Producto',
-                                cta,
-                                '[IN] Cuenta'.'CM | TBL | Cuenta',
-                                cliNom,
-                                LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = '[IN] Cuenta'.'CM | TBL | Cuenta').'Nombre Cliente'
-                            ),
-                            prod,
+                    =// Una sola lectura de la cuenta por fila (ctaRec); nombre y producto salen de ese registro (ver galDesglose).
+                    IfError(AddColumns(AddColumns(GroupBy(
+                            AddColumns(colIntHoy, cta, '[IN] Cuenta'.'CM | TBL | Cuenta'),
                             cta,
-                            cliNom,
                             Items
                         ),
                             ctaRec,
                             LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = cta)
+                        ),
+                            cliNom, ctaRec.'Nombre Cliente',
+                            prod,   ctaRec.'Tipo Producto'
                         ),Blank())
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
@@ -729,7 +724,7 @@ Screens:
                                     PaddingBottom: =0
                                     PaddingTop: =0
                                     Size: =gblT.fbase
-                                    Text: =ThisItem.prod
+                                    Text: =ThisItem.cliNom
                               - lblBS_1:
                                   Control: Label@2.5.1
                                   Properties:
@@ -739,7 +734,7 @@ Screens:
                                     LayoutMinHeight: =16
                                     LayoutMinWidth: =16
                                     Size: =gblT.fxs
-                                    Text: =ThisItem.cliNom & " · " & PanMasc(ThisItem.ctaRec.'Últimos 4')
+                                    Text: =If(IsBlank(ThisItem.prod), "", ThisItem.prod & " · ") & PanMasc(ThisItem.ctaRec.'Últimos 4')
                         - conBrowDer_1:
                             Control: GroupContainer@1.5.0
                             Variant: AutoLayout
