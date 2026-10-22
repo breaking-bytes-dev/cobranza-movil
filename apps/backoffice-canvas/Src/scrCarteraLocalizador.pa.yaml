@@ -127,16 +127,20 @@ Screens:
                                   && StartsWith('[AG] Nombre', Trim(txtBuscarCpl.Text))),
                               '[AG] Nombre')
                         OnSelect: |-
-                          =// Cartera ACTIVA del agente elegido. Filter delegable: lookup comparado por PK +
-                          // booleano. Los datos de la cuenta se hornean navegando '[AS] Cuenta' (lo resuelve
-                          // el servidor). AddColumns y el orden (tipo, después cliente) corren EN MEMORIA
-                          // sobre el resultado (cota 2000 por agente).
+                          =// Cartera ACTIVA del agente elegido, por TRAMOS (TramoCartera, 0..19; el 20 = sin tramo todavía):
+                          // una sola consulta se cortaba en el límite de filas (2000) y el panel mostraba "2000" con 3.499.
+                          // Cada consulta es delegable (lookup por PK + booleano + tramo constante). Los datos de la cuenta
+                          // se hornean navegando '[AS] Cuenta' (lo resuelve el servidor); el orden (tipo, cliente) es en memoria.
                           Set(varAgeCpl, ThisItem);
-                          ClearCollect(colAsigCpl,
+                          Set(varNAsigCpl, CountIf('CM | TBL | Asignacions',
+                              '[AS] Agente'.'CM | TBL | Agente' = varAgeCpl.'CM | TBL | Agente' && '[AS] Estado' = true));
+                          Clear(colAsigCpl);
+                          ForAll(Sequence(21, 0) As T, Collect(colAsigCpl,
                               AddColumns(
                                   Filter('CM | TBL | Asignacions',
                                       '[AS] Agente'.'CM | TBL | Agente' = varAgeCpl.'CM | TBL | Agente'
-                                      && '[AS] Estado' = true),
+                                      && '[AS] Estado' = true
+                                      && '[AS] Tramo' = If(T.Value = 20, Blank(), T.Value)),
                                   clienteCpl, Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
                                   ult4Cpl, Coalesce(ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
                                   moraCpl, Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
@@ -147,7 +151,7 @@ Screens:
                                       'Choice | CM | Tipo asignacion'.Incobrable, 2,
                                       'Choice | CM | Tipo asignacion'.Especial, 3,
                                       4)
-                              )
+                              ))
                           );
                           Set(varPanelCpl, true)
                         ShowScrollbar: =false
@@ -405,7 +409,9 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: |-
-                    =CountRows(colAsigCpl) & " asignaciones activas · " &
+                    =// Conteo EXACTO (CountIf delegado al seleccionar); si la lista no trajo todo, se dice.
+                    varNAsigCpl & " asignaciones activas" &
+                        If(CountRows(colAsigCpl) < varNAsigCpl, " (⚠ se muestran " & CountRows(colAsigCpl) & ")", "") & " · " &
                         If(IsBlank(varAgeCpl.'Email Usuario'), "sin usuario vinculado", varAgeCpl.'Email Usuario')
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
