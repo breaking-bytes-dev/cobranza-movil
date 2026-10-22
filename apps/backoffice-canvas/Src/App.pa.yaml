@@ -41,6 +41,17 @@ App:
       // Es un criterio de operación (no un límite técnico: el teléfono trae la cartera por tramos). Cambiarlo acá.
       nfUmbralCarga = 500;
 
+      // Carga paralela (Cargar archivo, carga real): la Custom API sanic_cm_PartirCarga deja un job de padres (producto,
+      // fiador y agente; corre primero y solo) y estas partes por CIF, que corren en paralelo. 3 y no más: Dataverse
+      // limita la ejecución a 1.200 s cada 5 min por usuario (service protection) y cada parte consume ~100 s por lote:
+      // con 4 se queda al borde. La API acepta de 1 a 4 y con menos de 300 filas hace una sola.
+      nfPartesCarga = 3;
+
+      // Interruptor de la carga paralela. false = la carga real va en UN job, en serie, como antes. Pasar a true SOLO
+      // después de refrescar la fuente "Environment" en Studio (la foto de las Custom APIs del .msapr no conoce
+      // sanic_cm_PartirCarga hasta entonces, y la fórmula de btnPartirCar queda inerte).
+      nfCargaParalela = false;
+
       // Breakpoint responsive único del proyecto (00 §7).
       // Si Studio rechaza App.ActiveScreen acá, mover nfMovil a cada pantalla como Parent.Width < 920.
       nfMovil = App.ActiveScreen.Width < 920;

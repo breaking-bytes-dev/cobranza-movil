@@ -17,6 +17,42 @@ Screens:
         // a medianoche UTC; [CD] FechaCarga es DateOnly. Sin este ajuste, en UTC-6 todo parece "desaparecido".
         // F1: Refresh antes de leer nfUltimaCarga; habilita el cierre masivo y no puede ser la de antes de la carga.
         Refresh('CM | TBL | Carga diarias');
+        // Carga en curso (carga paralela, 2026-10-22): con nfUltimaCarga >= Today() alcanza UNA fila de carga diaria de hoy
+        // para habilitar el cierre, aunque la carga siga a medias (ya pasaba en serie; en paralelo, mientras corren las partes,
+        // las Diarias de las partes que faltan se verían «fuera de cartera»). Se exige además que NO haya un Import Job real
+        // (no prueba en seco) de las plantillas de Cobranza (principal, padres, partes) En cola o Procesando, ni SIN estado
+        // creado en las últimas 12 h (los que espera la pantalla Cargar archivo antes de ponerlos en cola).
+        // Falla CERRADO: Reconciliación es del Admin, que lee los jobs por el equipo «CM · Admin y Carga» (Smelter Operador:
+        // Read Basic; los jobs quedan del equipo dueño de la plantilla). Si no ve la plantilla principal o la consulta falla,
+        // el resultado sería «0 en curso» sin serlo: el cierre se deshabilita con un mensaje.
+        // Delegación: '[IJ] Status' = opción delega; IsBlank sobre una opción NO (doc de Dataverse), así que los «sin estado»
+        // se buscan entre los jobs creados desde varDesdeRec (consulta delegable por fecha, pocos registros) y se cuentan acá.
+        Set(varDesdeRec, DateAdd(Now(), -12, TimeUnit.Hours));
+        Set(varTplPrinRec, LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil"));
+        Set(varTplPadRec, With({t: LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil · padres")}, If(IsBlank(t), varTplPrinRec, t)));
+        Set(varTplParRec, With({t: LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil · partes")}, If(IsBlank(t), varTplPrinRec, t)));
+        IfError(
+            Set(varEnColaRec,
+                !IsBlank(LookUp('TBL | SMLT | Import Jobs',
+                    '[IJ] Is Dry Run' = false
+                    && ('[IJ] Import Template' = varTplPrinRec || '[IJ] Import Template' = varTplPadRec || '[IJ] Import Template' = varTplParRec)
+                    && ('[IJ] Status' = '[IJ] Status (TBL | SMLT | Import Jobs)'.Queued
+                        || '[IJ] Status' = '[IJ] Status (TBL | SMLT | Import Jobs)'.Processing)
+                ))
+            );
+            ClearCollect(colJobsRec,
+                Filter('TBL | SMLT | Import Jobs',
+                    '[IJ] Is Dry Run' = false
+                    && ('[IJ] Import Template' = varTplPrinRec || '[IJ] Import Template' = varTplPadRec || '[IJ] Import Template' = varTplParRec)
+                    && 'Created On' >= varDesdeRec
+                )
+            );
+            Set(varEnCursoRec, varEnColaRec || CountIf(colJobsRec, IsBlank('[IJ] Status')) > 0);
+            Set(varVerifCargaRec, !IsBlank(varTplPrinRec)),
+            Set(varEnCursoRec, false);
+            Set(varVerifCargaRec, false)
+        );
+        Set(varCargaBloqRec, !varVerifCargaRec || varEnCursoRec);
         Set(varCorteRec, With({d0: DateTime(Year(nfUltimaCarga), Month(nfUltimaCarga), Day(nfUltimaCarga), 0, 0, 0)},
             DateAdd(d0, -TimeZoneOffset(d0), TimeUnit.Minutes)));
         // Lista de desaparecidas + conteos EXACTOS, en paralelo. Filtros delegables (choice por
@@ -111,6 +147,41 @@ Screens:
                         Text: ="⛔ Todavía no llegó la carga de HOY — la reconciliación se corre DESPUÉS del import."
                         Width: =Parent.Width - 2*gblE.Pad
                         X: =gblE.Pad
+            - conCargaRec:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderColor: =gblC.redInk
+                  BorderThickness: =1
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.redBg
+                  Height: =If(nfMovil, 88, 64)
+                  RadiusBottomLeft: =gblE.Radio
+                  RadiusBottomRight: =gblE.Radio
+                  RadiusTopLeft: =gblE.Radio
+                  RadiusTopRight: =gblE.Radio
+                  Visible: =varCargaBloqRec
+                  Width: =Min(gblE.AnchoMax, Parent.Width - 2*gblE.Pad)
+                  X: =gblE.Pad
+                  Y: =conBloqueoRec.Y + If(conBloqueoRec.Visible, conBloqueoRec.Height + gblE.PadSm, 0)
+                Children:
+                  - lblCargaRec:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.redInk
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =Parent.Height
+                        PaddingLeft: =0
+                        Size: =10
+                        Text: |-
+                          =If(!varVerifCargaRec,
+                              "⛔ No se puede verificar si hay una carga del banco en curso (tu usuario no ve las cargas de Smelter o la consulta falló): el cierre en lote queda deshabilitado. Avisá a soporte.",
+                              "⛔ Hay una carga del banco en curso (en cola, procesando o preparándose): esperá a que termine para cerrar en lote. Mientras tanto, las Diarias que todavía no se cargaron se ven «fuera de cartera».")
+                        Width: =Parent.Width - 2*gblE.Pad
+                        X: =gblE.Pad
             - conResumenRec:
                 Control: GroupContainer@1.5.0
                 Variant: ManualLayout
@@ -126,7 +197,7 @@ Screens:
                   RadiusTopRight: =gblE.Radio
                   Width: =Min(gblE.AnchoMax, Parent.Width - 2*gblE.Pad)
                   X: =gblE.Pad
-                  Y: =conBloqueoRec.Y + If(conBloqueoRec.Visible, conBloqueoRec.Height + gblE.PadSm, 0)
+                  Y: =conCargaRec.Y + If(conCargaRec.Visible, conCargaRec.Height + gblE.PadSm, 0)
                 Children:
                   - lblResumenRec:
                       Control: Label@2.5.1
@@ -349,11 +420,40 @@ Screens:
                       Control: Classic/CheckBox@2.1.0
                       Properties:
                         Color: =gblC.ink
-                        DisplayMode: =If(varRojoRec || nfUltimaCarga < Today(), DisplayMode.Disabled, DisplayMode.Edit)
+                        DisplayMode: =If(varRojoRec || nfUltimaCarga < Today() || varCargaBloqRec, DisplayMode.Disabled, DisplayMode.Edit)
                         FocusedBorderColor: =gblC.teal
                         FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         Height: =48
+                        OnCheck: |-
+                          =// Habilitación fresca: al confirmar se vuelve a mirar si hay una carga en curso (la pantalla pudo
+                          // quedar abierta mientras empezaba una). Mismo bloque que el OnVisible.
+                          Set(varDesdeRec, DateAdd(Now(), -12, TimeUnit.Hours));
+                          Set(varTplPrinRec, LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil"));
+                          Set(varTplPadRec, With({t: LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil · padres")}, If(IsBlank(t), varTplPrinRec, t)));
+                          Set(varTplParRec, With({t: LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil · partes")}, If(IsBlank(t), varTplPrinRec, t)));
+                          IfError(
+                              Set(varEnColaRec,
+                                  !IsBlank(LookUp('TBL | SMLT | Import Jobs',
+                                      '[IJ] Is Dry Run' = false
+                                      && ('[IJ] Import Template' = varTplPrinRec || '[IJ] Import Template' = varTplPadRec || '[IJ] Import Template' = varTplParRec)
+                                      && ('[IJ] Status' = '[IJ] Status (TBL | SMLT | Import Jobs)'.Queued
+                                          || '[IJ] Status' = '[IJ] Status (TBL | SMLT | Import Jobs)'.Processing)
+                                  ))
+                              );
+                              ClearCollect(colJobsRec,
+                                  Filter('TBL | SMLT | Import Jobs',
+                                      '[IJ] Is Dry Run' = false
+                                      && ('[IJ] Import Template' = varTplPrinRec || '[IJ] Import Template' = varTplPadRec || '[IJ] Import Template' = varTplParRec)
+                                      && 'Created On' >= varDesdeRec
+                                  )
+                              );
+                              Set(varEnCursoRec, varEnColaRec || CountIf(colJobsRec, IsBlank('[IJ] Status')) > 0);
+                              Set(varVerifCargaRec, !IsBlank(varTplPrinRec)),
+                              Set(varEnCursoRec, false);
+                              Set(varVerifCargaRec, false)
+                          );
+                          Set(varCargaBloqRec, !varVerifCargaRec || varEnCursoRec)
                         Size: =9
                         Text: |-
                           ="Confirmo: revisé la lista y la carga de hoy es correcta (cierre con motivo ""fuera de cartera"")"
@@ -367,7 +467,9 @@ Screens:
                         Color: =gblC.redInk
                         DisabledColor: =Color.White
                         DisabledFill: =ColorFade(gblC.redBg, 60%)
-                        DisplayMode: =If(chkConfirmarRec.Value && !varRojoRec && nfUltimaCarga >= Today(), DisplayMode.Edit, DisplayMode.Disabled)
+                        DisplayMode: |-
+                          =If(chkConfirmarRec.Value && !varRojoRec && nfUltimaCarga >= Today() && !varCargaBloqRec,
+                              DisplayMode.Edit, DisplayMode.Disabled)
                         Fill: =gblC.redBg
                         FocusedBorderColor: =gblC.teal
                         FocusedBorderThickness: =2

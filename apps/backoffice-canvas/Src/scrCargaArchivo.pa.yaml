@@ -31,17 +31,29 @@ Screens:
         Set(varArchivoCar, "");
         Set(varNombreCar, "");
         Set(varNuevoCar, Blank());
+        // Carga paralela (nfCargaParalela): fase del envío ("" | "partir" | "padres" | "partes" | "unico" | "fin"), jobs de
+        // las partes y conteos que devuelve sanic_cm_PartirCarga. Los esquemas se definen acá, en fórmulas válidas: la de
+        // btnPartirCar queda inerte mientras la foto de "Environment" no conozca la API, y no puede ser la única que los define.
+        Set(varFaseCar, "");
+        Set(varMsgCar, "");
+        Set(varFilasArchCar, 0);
+        Set(varFilasPadCar, 0);
+        Set(varPartidoCar, Now());
+        ClearCollect(colIdsParCar, {Id: GUID()});
+        Clear(colIdsParCar);
+        Clear(colPartesCar);
         // Plantilla "Cobranza movil" (igualdad sobre texto: delegable). Si no se ve, el usuario no está en el team.
         Set(varPlantillaCar, LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil"));
-        // Historial propio: últimas 10 cargas que creó el usuario (Filter + Sort + FirstN: delegable). Va por 'Created By'
+        // Historial propio: últimas 20 cargas que creó el usuario (Filter + Sort + FirstN: delegable). Va por 'Created By'
         // y no por dueño: el rol de Smelter llega por el team, así que el job queda a nombre del team «CM · Admin y Carga».
+        // Una carga paralela son 1 + N jobs (padres y partes, con su nombre): por eso 20 y no 10.
         ClearCollect(colHistCar,
             FirstN(
                 Sort(
                     Filter('TBL | SMLT | Import Jobs', 'Created By'.User = gblUsuarioDV.User),
                     'Created On', SortOrder.Descending
                 ),
-                10
+                20
             )
         );
         Reset(attArchivoCar)
@@ -289,14 +301,88 @@ Screens:
                             )
                         );
                         Set(varJobCar, varNuevoCar);
-                        Set(varArmarCar, DateAdd(Now(), 20, TimeUnit.Seconds));
                         Set(varVueltasCar, 0);
                         Set(varSigueCar, false);
-                        Set(varPollCar, true),
+                        Set(varMsgCar, "");
+                        Clear(colIdsParCar);
+                        Clear(colPartesCar);
+                        // Carga paralela: la carga REAL se parte en el servidor (btnPartirCar) antes de poner nada en cola.
+                        // La prueba en seco (y la carga real con nfCargaParalela = false) sigue igual: un job, archivo entero.
+                        If(!varEsPruebaCar && nfCargaParalela,
+                            Set(varFaseCar, "partir");
+                            Select(btnPartirCar),
+                            Set(varFaseCar, "unico");
+                            Set(varArmarCar, DateAdd(Now(), 20, TimeUnit.Seconds));
+                            Set(varPollCar, true)
+                        ),
                         Notify("No se pudo iniciar la carga: " & FirstError.Message, NotificationType.Error);
                         Set(varOcupadoCar, false)
                     )
                   Text: ="Enviar"
+                  Visible: =false
+                  Width: =10
+            - btnPartirCar:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderThickness: =0
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =10
+                  OnSelect: |-
+                    =// Carga paralela, paso 1 (solo carga real con nfCargaParalela): el job ya existe SIN estado y con el
+                    // archivo entero (btnEnviarCar). La Custom API sanic_cm_PartirCarga, en el servidor y con los permisos del
+                    // usuario: convierte ESE job en el de PADRES (producto, fiador y agente: la última fila de cada uno; plantilla
+                    // «Cobranza movil · padres», nombre «… · padres») y crea N jobs de PARTES por CIF, sin estado (plantilla
+                    // «Cobranza movil · partes»). Nada queda en cola acá: el timer pone en cola los padres 20 s después
+                    // (sus Create/Update ya se evaluaron con estado vacío; ver btnEnviarCar) y las partes SOLO si los padres
+                    // terminan Completed. Es la ÚNICA fórmula que llama la API: si la foto de "Environment" no la conoce,
+                    // queda inerte sola (las variables y colecciones se definen en OnVisible).
+                    IfError(
+                        Set(varRespParCar,
+                            Environment.sanic_cm_PartirCarga({
+                                JobId: Text(varJobCar.'TBL | SMLT | Import Job'),
+                                Partes: nfPartesCarga
+                            })
+                        );
+                        Set(varPartidoCar, Now());
+                        Set(varFilasArchCar, varRespParCar.FilasArchivo);
+                        Set(varFilasPadCar, varRespParCar.FilasPadres);
+                        ClearCollect(colIdsParCar,
+                            ForAll(Split(varRespParCar.PartesJobIds, ",") As P, {Id: GUID(P.Value)})
+                        );
+                        ClearCollect(colPartesCar,
+                            ForAll(colIdsParCar As P,
+                                LookUp('TBL | SMLT | Import Jobs', 'TBL | SMLT | Import Job' = P.Id)
+                            )
+                        );
+                        Set(varJobCar, LookUp('TBL | SMLT | Import Jobs', 'TBL | SMLT | Import Job' = varJobCar.'TBL | SMLT | Import Job'));
+                        Set(varFaseCar, "padres");
+                        Set(varArmarCar, DateAdd(Now(), 20, TimeUnit.Seconds));
+                        Set(varPollCar, true),
+                        // Falló: la API deshace todo (el job queda como lo dejó btnEnviarCar: plantilla principal, archivo
+                        // entero, sin estado). Se marca Falló para que no cuente como «carga en curso» en Reconciliación
+                        // (el orquestador de Smelter solo arranca con estado = En cola, así que Falló no dispara nada).
+                        Set(varErrCar,
+                            If(IsMatch(FirstError.Message, "\d{13}", MatchOptions.Contains),
+                                "el detalle traía un número largo y no se muestra.",
+                                FirstError.Message));
+                        Notify("No se pudo partir la carga: " & varErrCar, NotificationType.Error);
+                        IfError(
+                            With({j: LookUp('TBL | SMLT | Import Jobs', 'TBL | SMLT | Import Job' = varJobCar.'TBL | SMLT | Import Job')},
+                                If(IsBlank(j.'[IJ] Status') && j.'[IJ] Import Template'.'TBL | SMLT | Import Template' = varPlantillaCar.'TBL | SMLT | Import Template',
+                                    Set(varJobCar, Patch('TBL | SMLT | Import Jobs', j,
+                                        {'[IJ] Status': '[IJ] Status (TBL | SMLT | Import Jobs)'.Failed}))
+                                )
+                            ),
+                            Notify("Tampoco se pudo marcar la carga como fallida: " & FirstError.Message, NotificationType.Warning)
+                        );
+                        Set(varMsgCar, "No se pudo partir la carga y NO se cargó nada: " & varErrCar & " Probá de nuevo o avisá a soporte con el nombre de la carga.");
+                        Set(varFaseCar, "fin");
+                        Set(varEstCar, 4);
+                        Set(varOcupadoCar, false)
+                    )
+                  Text: ="Partir"
                   Visible: =false
                   Width: =10
             - conConfirmCar:
@@ -412,7 +498,7 @@ Screens:
                         Height: =26
                         PaddingLeft: =0
                         Size: =10
-                        Text: =varJobCar.'[IJ] Name'
+                        Text: =Coalesce(varNombreCar, varJobCar.'[IJ] Name')
                         Width: =Parent.Width - 3*gblE.Pad - chpEstadoCar.Width
                         Wrap: =false
                         X: =gblE.Pad
@@ -448,11 +534,16 @@ Screens:
                       Control: CanvasComponent
                       ComponentName: cmpKpi
                       Properties:
-                        Detalle: =If(varJobCar.'[IJ] Is Dry Run', "prueba en seco", "carga real")
+                        Detalle: |-
+                          =If(CountRows(colPartesCar) > 0,
+                              "archivo " & Text(varFilasArchCar, "#,##0") & " · padres " & Text(varFilasPadCar, "#,##0"),
+                              If(varJobCar.'[IJ] Is Dry Run', "prueba en seco", "carga real"))
                         EsHero: =false
-                        Etiqueta: ="FILAS DEL ARCHIVO"
+                        Etiqueta: =If(CountRows(colPartesCar) > 0, "FILAS (PADRES + PARTES)", "FILAS DEL ARCHIVO")
                         Height: =96
-                        Valor: =Text(Coalesce(varJobCar.'[IJ] Total Rows', 0), "#,##0")
+                        Valor: |-
+                          =// Carga paralela: suma del job de padres y de las partes (sin partes, el job único de siempre).
+                          Text(Coalesce(varJobCar.'[IJ] Total Rows', 0) + Sum(colPartesCar, Coalesce('[IJ] Total Rows', 0)), "#,##0")
                         Width: =If(nfMovil, (Parent.Width - 2*gblE.Pad - gblE.PadSm) / 2, (Parent.Width - 2*gblE.Pad - 4*gblE.PadSm) / 5)
                         X: =gblE.Pad
                         Y: =lblNombreJobCar.Y + lblNombreJobCar.Height + gblE.PadSm
@@ -464,7 +555,7 @@ Screens:
                         EsHero: =false
                         Etiqueta: ="PROCESADAS"
                         Height: =96
-                        Valor: =Text(Coalesce(varJobCar.'[IJ] Processed Rows', 0), "#,##0")
+                        Valor: =Text(Coalesce(varJobCar.'[IJ] Processed Rows', 0) + Sum(colPartesCar, Coalesce('[IJ] Processed Rows', 0)), "#,##0")
                         Width: =cmpKpiTotCar.Width
                         X: =cmpKpiTotCar.X + cmpKpiTotCar.Width + gblE.PadSm
                         Y: =cmpKpiTotCar.Y
@@ -476,7 +567,7 @@ Screens:
                         EsHero: =false
                         Etiqueta: ="ÉXITOS"
                         Height: =96
-                        Valor: =Text(Coalesce(varJobCar.'[IJ] Success Count', 0), "#,##0")
+                        Valor: =Text(Coalesce(varJobCar.'[IJ] Success Count', 0) + Sum(colPartesCar, Coalesce('[IJ] Success Count', 0)), "#,##0")
                         Width: =cmpKpiTotCar.Width
                         X: =If(nfMovil, cmpKpiTotCar.X, cmpKpiProcCar.X + cmpKpiProcCar.Width + gblE.PadSm)
                         Y: =If(nfMovil, cmpKpiTotCar.Y + cmpKpiTotCar.Height + gblE.PadSm, cmpKpiTotCar.Y)
@@ -488,7 +579,7 @@ Screens:
                         EsHero: =false
                         Etiqueta: ="FALLOS"
                         Height: =96
-                        Valor: =Text(Coalesce(varJobCar.'[IJ] Fail Count', 0), "#,##0")
+                        Valor: =Text(Coalesce(varJobCar.'[IJ] Fail Count', 0) + Sum(colPartesCar, Coalesce('[IJ] Fail Count', 0)), "#,##0")
                         Width: =cmpKpiTotCar.Width
                         X: =If(nfMovil, cmpKpiProcCar.X, cmpKpiOkCar.X + cmpKpiOkCar.Width + gblE.PadSm)
                         Y: =cmpKpiOkCar.Y
@@ -500,7 +591,7 @@ Screens:
                         EsHero: =false
                         Etiqueta: ="OMITIDAS"
                         Height: =96
-                        Valor: =Text(Coalesce(varJobCar.'[IJ] Skipped Count', 0), "#,##0")
+                        Valor: =Text(Coalesce(varJobCar.'[IJ] Skipped Count', 0) + Sum(colPartesCar, Coalesce('[IJ] Skipped Count', 0)), "#,##0")
                         Width: =cmpKpiTotCar.Width
                         X: =If(nfMovil, cmpKpiTotCar.X, cmpKpiErrCar.X + cmpKpiErrCar.Width + gblE.PadSm)
                         Y: =If(nfMovil, cmpKpiOkCar.Y + cmpKpiOkCar.Height + gblE.PadSm, cmpKpiOkCar.Y)
@@ -511,13 +602,16 @@ Screens:
                         FocusedBorderColor: =gblC.teal
                         FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
-                        Height: =If(varVueltasCar > 400, If(nfMovil, 88, 44), 24)
+                        Height: =If(varVueltasCar > 400 || varFaseCar = "padres" || varFaseCar = "partes", If(nfMovil, 88, 44), 24)
                         PaddingLeft: =0
                         Size: =9
                         Text: |-
-                          =If(varEstCar = -1, "⏳ Preparando la carga: el archivo ya subió, en unos segundos se pone en cola.",
+                          =If(varEstCar = -1 && varFaseCar = "partir", "⏳ Partiendo el archivo en el servidor: primero productos, fiadores y agentes; después las partes por cliente.",
+                              varEstCar = -1, "⏳ Preparando la carga: el archivo ya subió, en unos segundos se pone en cola.",
                               varSigueCar, "⚠ La pantalla dejó de consultar después de 3 horas, pero la carga puede seguir en Smelter. Mirá su estado en «Mis últimas cargas» (se actualiza al volver a entrar) o avisá a soporte con el nombre de la carga.",
                               varVueltasCar > 400, "⏳ Lleva más de 20 minutos y sigue en Smelter (una carga grande tarda). La pantalla consulta cada 30 segundos; si salís, el resultado queda en «Mis últimas cargas».",
+                              varFaseCar = "padres", "⏳ Paso 1 de 2: productos, fiadores y agentes (" & Text(varFilasPadCar, "#,##0") & " filas), solo. Si termina bien, se lanzan las " & CountRows(colPartesCar) & " partes en paralelo.",
+                              varFaseCar = "partes", "⏳ Paso 2 de 2: " & CountRows(colPartesCar) & " partes en paralelo (" & Text(varFilasArchCar, "#,##0") & " filas). La pantalla consulta el avance cada 3 segundos.",
                               "⏳ Smelter está trabajando; la pantalla consulta el avance cada 3 segundos.")
                         VerticalAlign: =VerticalAlign.Top
                         Visible: =varEstCar < 2
@@ -534,15 +628,19 @@ Screens:
                         FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         FontWeight: =FontWeight.Semibold
-                        Height: =40
+                        Height: =If(nfMovil, 80, 40)
                         PaddingLeft: =0
                         Size: =9
                         Text: |-
-                          =If(Coalesce(varJobCar.'[IJ] Fail Count', 0) > 0,
-                              "Hay " & Text(varJobCar.'[IJ] Fail Count', "#,##0") & " filas con error. Avisá a soporte con el nombre de la carga: " & varJobCar.'[IJ] Name',
-                              "La carga falló antes de terminar. Avisá a soporte con el nombre de la carga: " & varJobCar.'[IJ] Name')
+                          =With({fallos: Coalesce(varJobCar.'[IJ] Fail Count', 0) + Sum(colPartesCar, Coalesce('[IJ] Fail Count', 0))},
+                              If(!IsBlank(varMsgCar), varMsgCar,
+                                  fallos > 0,
+                                  "Hay " & Text(fallos, "#,##0") & " filas con error. Avisá a soporte con el nombre de la carga: " & Coalesce(varNombreCar, varJobCar.'[IJ] Name'),
+                                  "La carga falló antes de terminar. Avisá a soporte con el nombre de la carga: " & Coalesce(varNombreCar, varJobCar.'[IJ] Name')))
                         VerticalAlign: =VerticalAlign.Top
-                        Visible: =varEstCar >= 3 || (varEstCar = 2 && Coalesce(varJobCar.'[IJ] Fail Count', 0) > 0)
+                        Visible: |-
+                          =varEstCar >= 3 || !IsBlank(varMsgCar)
+                              || (varEstCar = 2 && Coalesce(varJobCar.'[IJ] Fail Count', 0) + Sum(colPartesCar, Coalesce('[IJ] Fail Count', 0)) > 0)
                         Width: =Parent.Width - 2*gblE.Pad
                         X: =gblE.Pad
                         Y: |-
@@ -713,9 +811,14 @@ Screens:
               =// Los primeros 20 minutos cada 3 s; después cada 30 s (una carga grande sigue en Smelter: no se abandona).
               If(varVueltasCar > 400, 30000, 3000)
             OnTimerEnd: |-
-              =// Fase 1 · armado: pasados los 20 s desde que subió el archivo (ver btnEnviarCar), estado = En cola (0).
-              // Fase 2 · sondeo cada ~3 s del job propio hasta que Smelter lo termine (2 Completed, 3 CompletedWithErrors, 4 Failed).
-              // Se lee solo lo que el Operador puede leer: el job (contadores). Los logs de Smelter son del SYSTEM.
+              =// Fase 1 · armado: pasados los 20 s desde que subió el archivo (ver btnEnviarCar), estado = En cola (0) del job
+              // único (prueba en seco, o carga real en serie) o del de PADRES (carga paralela: btnPartirCar).
+              // Fase 2 · sondeo cada ~3 s hasta que Smelter termine (2 Completed, 3 CompletedWithErrors, 4 Failed).
+              // Carga paralela: las PARTES se ponen en cola SOLO si los padres terminan Completed (2): producto y fiador
+              // tienen que existir y estar al día antes de que las partes los busquen. Si los padres terminan con errores o
+              // fallan, las partes NO se lanzan (quedan marcadas Falló, sin correr) y se avisa. Estado agregado de las partes:
+              // Falló si alguna falló; Terminada con errores si alguna tuvo errores; Terminada si todas terminaron bien.
+              // Se lee solo lo que el Operador puede leer: los jobs (contadores). Los logs de Smelter son del SYSTEM.
               If(!IsBlank(varArmarCar),
                   If(Now() >= varArmarCar,
                       IfError(
@@ -734,18 +837,72 @@ Screens:
                   ),
               Refresh('TBL | SMLT | Import Jobs');
               IfError(
-                  Set(varJobCar, LookUp('TBL | SMLT | Import Jobs', 'TBL | SMLT | Import Job' = varJobCar.'TBL | SMLT | Import Job')),
+                  Set(varJobCar, LookUp('TBL | SMLT | Import Jobs', 'TBL | SMLT | Import Job' = varJobCar.'TBL | SMLT | Import Job'));
+                  If(varFaseCar = "partes",
+                      ClearCollect(colPartesCar,
+                          ForAll(colIdsParCar As P,
+                              LookUp('TBL | SMLT | Import Jobs', 'TBL | SMLT | Import Job' = P.Id)
+                          )
+                      )
+                  ),
                   Notify("No se pudo consultar el avance: " & FirstError.Message, NotificationType.Warning)
               );
+              // Estado del job único o del de padres.
               Set(varEstCar,
                   Switch(varJobCar.'[IJ] Status',
                       '[IJ] Status (TBL | SMLT | Import Jobs)'.Processing, 1, '[IJ] Status (TBL | SMLT | Import Jobs)'.Completed, 2,
                       '[IJ] Status (TBL | SMLT | Import Jobs)'.CompletedWithErrors, 3, '[IJ] Status (TBL | SMLT | Import Jobs)'.Failed, 4, 0));
+              If(varFaseCar = "padres",
+                  If(varEstCar = 2,
+                      // Padres Completed: en cola las N partes, cada una al menos 20 s después de que se le subió el archivo
+                      // (las subió PartirCarga, en varPartidoCar), por el mismo motivo que la espera de btnEnviarCar.
+                      If(Now() >= DateAdd(varPartidoCar, 20, TimeUnit.Seconds),
+                          IfError(
+                              ForAll(colPartesCar As P,
+                                  Patch('TBL | SMLT | Import Jobs', P,
+                                      {'[IJ] Status': '[IJ] Status (TBL | SMLT | Import Jobs)'.Queued})
+                              );
+                              Set(varFaseCar, "partes");
+                              Set(varEstCar, 0),
+                              Set(varMsgCar, "Los productos, fiadores y agentes se cargaron, pero no se pudieron poner en cola las partes: " & FirstError.Message & " Avisá a soporte con el nombre de la carga.");
+                              Set(varFaseCar, "fin");
+                              Set(varEstCar, 4)
+                          ),
+                          Set(varEstCar, 1)
+                      ),
+                      If(varEstCar >= 3,
+                          // Padres con errores o fallido: las partes NO se lanzan. Se marcan Falló (sin correr: el orquestador
+                          // solo arranca con En cola) para que no queden «en curso» y bloqueen Reconciliación.
+                          Set(varMsgCar,
+                              "La primera etapa (productos, fiadores y agentes) " & If(varEstCar = 3, "terminó con errores", "falló")
+                              & ": NO se lanzaron las " & CountRows(colPartesCar) & " partes y no se cargó ninguna cuenta. Avisá a soporte con el nombre de la carga.");
+                          IfError(
+                              ForAll(colPartesCar As P,
+                                  Patch('TBL | SMLT | Import Jobs', P,
+                                      {'[IJ] Status': '[IJ] Status (TBL | SMLT | Import Jobs)'.Failed})
+                              ),
+                              Notify("No se pudieron marcar las partes sin lanzar: " & FirstError.Message, NotificationType.Warning)
+                          );
+                          Set(varFaseCar, "fin");
+                          Set(varEstCar, 4)
+                      )
+                  )
+              );
+              If(varFaseCar = "partes",
+                  Set(varEstCar,
+                      If(CountIf(colPartesCar,
+                              '[IJ] Status' = '[IJ] Status (TBL | SMLT | Import Jobs)'.Completed
+                              || '[IJ] Status' = '[IJ] Status (TBL | SMLT | Import Jobs)'.CompletedWithErrors
+                              || '[IJ] Status' = '[IJ] Status (TBL | SMLT | Import Jobs)'.Failed) < CountRows(colPartesCar),
+                          If(CountIf(colPartesCar, '[IJ] Status' = '[IJ] Status (TBL | SMLT | Import Jobs)'.Processing) > 0, 1, 0),
+                          If(CountIf(colPartesCar, '[IJ] Status' = '[IJ] Status (TBL | SMLT | Import Jobs)'.Failed) > 0, 4,
+                              If(CountIf(colPartesCar, '[IJ] Status' = '[IJ] Status (TBL | SMLT | Import Jobs)'.CompletedWithErrors) > 0, 3, 2))))
+              );
               Set(varVueltasCar, varVueltasCar + 1);
-              // Tope: 400 vueltas de 3 s (20 min) + 360 de 30 s (3 h) ≈ 3 h 20 min. Antes se cortaba a los 20 min y la
-              // pantalla quedaba en "Procesando" sin avisar aunque Smelter seguía cargando.
+              // Tope: 400 vueltas de 3 s (20 min) + 360 de 30 s (3 h) ≈ 3 h 20 min para TODA la carga (padres y partes).
+              // Antes se cortaba a los 20 min y la pantalla quedaba en "Procesando" sin avisar aunque Smelter seguía cargando.
               If(varEstCar < 2 && varVueltasCar > 760, Set(varSigueCar, true));
-              If(varEstCar >= 2 || varVueltasCar > 760,
+              If(varFaseCar = "fin" || (varFaseCar <> "padres" && varEstCar >= 2) || varVueltasCar > 760,
                   Set(varPollCar, false);
                   Set(varOcupadoCar, false);
                   // «Cargar» se habilita SOLO tras una prueba en seco Terminada y con 0 fallos, de ESTE archivo.
@@ -761,7 +918,7 @@ Screens:
                               Filter('TBL | SMLT | Import Jobs', 'Created By'.User = gblUsuarioDV.User),
                               'Created On', SortOrder.Descending
                           ),
-                          10
+                          20
                       )
                   )
               )

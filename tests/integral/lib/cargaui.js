@@ -48,6 +48,11 @@ async function esperarResultado(app, maxMs) {
 }
 
 const num = (s) => Number(String(s || '').replace(/[^\d]/g, ''));
+// Carga paralela (nfCargaParalela): el KPI de filas suma padres + partes y cambia de etiqueta; la prueba en seco no cambia.
+const filasKpi = (k) => num(k['FILAS DEL ARCHIVO'] ?? k['FILAS (PADRES + PARTES)']);
+const esPadres = (j) => / · padres$/.test(j.sanic_smlt_ij_name || '');
+const esParte = (j) => / · parte \d+\/\d+$/.test(j.sanic_smlt_ij_name || '');
+const sumar = (js, c) => js.reduce((a, j) => a + (j[c] || 0), 0);
 
 // Sube `rutaCsv` por la pantalla: prueba en seco (sin tocar Cobranza Móvil) y después la carga real.
 // Devuelve algo con la forma de smelter.importar(): { jobId, job, logs, chunks } (+ jobPrueba, ui).
@@ -73,7 +78,7 @@ async function importarPorPantalla(ctx, rutaCsv, { chequeoSinFilas } = {}) {
     const r1 = await esperarResultado(app, 300000);
     out.ui.prueba = r1;
     await ctx.capturador?.('prueba-en-seco');
-    ctx.chk('F1u-05', r1.chip === 'Terminada' && num(r1.kpis['FALLOS']) === 0 && num(r1.kpis['FILAS DEL ARCHIVO']) === 3,
+    ctx.chk('F1u-05', r1.chip === 'Terminada' && num(r1.kpis['FALLOS']) === 0 && filasKpi(r1.kpis) === 3,
       `prueba en seco: "${r1.chip}" en ~${r1.seg} s · filas ${r1.kpis['FILAS DEL ARCHIVO']} · procesadas ${r1.kpis['PROCESADAS']} · éxitos ${r1.kpis['ÉXITOS']} · fallos ${r1.kpis['FALLOS']} · omitidas ${r1.kpis['OMITIDAS']}`);
     const cargaHoyDespuesDry = await v.cargaHoy();
     const cli = (await dv.get(`sanic_cm_tbl_clientes?$select=sanic_cm_tbl_clienteid&$filter=sanic_cm_cl_cif eq '${ctx.cif}'`)).value.length;
@@ -90,8 +95,10 @@ async function importarPorPantalla(ctx, rutaCsv, { chequeoSinFilas } = {}) {
     const r2 = await esperarResultado(app, 420000);
     out.ui.real = r2;
     await ctx.capturador?.('carga-real');
-    ctx.chk('F1u-09', r2.chip === 'Terminada' && num(r2.kpis['FALLOS']) === 0 && num(r2.kpis['FILAS DEL ARCHIVO']) === 3,
-      `carga real: "${r2.chip}" en ~${r2.seg} s · filas ${r2.kpis['FILAS DEL ARCHIVO']} · procesadas ${r2.kpis['PROCESADAS']} · éxitos ${r2.kpis['ÉXITOS']} · fallos ${r2.kpis['FALLOS']} · omitidas ${r2.kpis['OMITIDAS']}`);
+    // En serie: 3 filas. En paralelo: padres (1 a 3 filas) + partes (3 filas en total).
+    const filasReal = filasKpi(r2.kpis), paralela = r2.kpis['FILAS (PADRES + PARTES)'] !== undefined;
+    ctx.chk('F1u-09', r2.chip === 'Terminada' && num(r2.kpis['FALLOS']) === 0 && (paralela ? filasReal >= 4 && filasReal <= 6 : filasReal === 3),
+      `carga real${paralela ? ' (paralela)' : ''}: "${r2.chip}" en ~${r2.seg} s · filas ${filasReal} · procesadas ${r2.kpis['PROCESADAS']} · éxitos ${r2.kpis['ÉXITOS']} · fallos ${r2.kpis['FALLOS']} · omitidas ${r2.kpis['OMITIDAS']}`);
     ctx.chk('F1u-10', await pl.existeVisible(app, 'btnIrMonitoreoCar'), 'tras la carga real aparece «Ir a Monitoreo de carga»');
     // Historial: lista las dos cargas propias.
     const filas = await ui.textosFilas(app, 'galHistCar');
@@ -101,18 +108,39 @@ async function importarPorPantalla(ctx, rutaCsv, { chequeoSinFilas } = {}) {
 
   // ── Verdad en Dataverse ──
   const jobs = await jobsDelArchivo(nombre);
-  const dry = jobs.find((j) => j.sanic_smlt_ij_isdryrun === true), real = jobs.find((j) => j.sanic_smlt_ij_isdryrun === false);
-  ctx.chk('F1u-12', jobs.length === 2 && !!dry && !!real && dry.sanic_smlt_ij_status === 2 && real.sanic_smlt_ij_status === 2 && !dry.sanic_smlt_ij_failedcount && !real.sanic_smlt_ij_failedcount,
-    `Dataverse: 2 jobs del archivo (prueba ${dry?.sanic_tbl_smlt_importjobid} y real ${real?.sanic_tbl_smlt_importjobid}), ambos Completed (2) con 0 fallos · prueba: ${smelter.resumenJob(dry || {})} · real: ${smelter.resumenJob(real || {})}`);
+  const dry = jobs.find((j) => j.sanic_smlt_ij_isdryrun === true);
+  const reales = jobs.filter((j) => j.sanic_smlt_ij_isdryrun === false);
+  // En serie: UN job real. En paralelo: el de padres (« · padres») y N partes (« · parte i/N»); con 3 filas, N = 1.
+  const padres = reales.find(esPadres), partes = reales.filter(esParte);
+  const enParalelo = !!padres;
+  let real = enParalelo ? null : reales[0];
+  if (enParalelo) {
+    // Un "job" agregado con la forma que esperan F1-01/F1-02: filas de las partes (= el archivo), fallos de todos.
+    real = { ...padres, sanic_tbl_smlt_importjobid: padres.sanic_tbl_smlt_importjobid,
+      sanic_smlt_ij_status: [padres, ...partes].every((j) => j.sanic_smlt_ij_status === 2) ? 2 : Math.max(...[padres, ...partes].map((j) => j.sanic_smlt_ij_status || 0)),
+      sanic_smlt_ij_totalrows: sumar(partes, 'sanic_smlt_ij_totalrows'), sanic_smlt_ij_processedrows: sumar(partes, 'sanic_smlt_ij_processedrows'),
+      sanic_smlt_ij_successcount: sumar([padres, ...partes], 'sanic_smlt_ij_successcount'), sanic_smlt_ij_failedcount: sumar([padres, ...partes], 'sanic_smlt_ij_failedcount'),
+      sanic_smlt_ij_skippedcount: sumar([padres, ...partes], 'sanic_smlt_ij_skippedcount') };
+  }
+  const realesOk = enParalelo
+    ? reales.length === 1 + partes.length && partes.length >= 1 && reales.every((j) => j.sanic_smlt_ij_status === 2 && !j.sanic_smlt_ij_failedcount) && real.sanic_smlt_ij_totalrows === 3
+    : reales.length === 1 && real.sanic_smlt_ij_status === 2 && !real.sanic_smlt_ij_failedcount;
+  ctx.chk('F1u-12', !!dry && !!real && dry.sanic_smlt_ij_status === 2 && !dry.sanic_smlt_ij_failedcount && realesOk,
+    `Dataverse: prueba ${dry?.sanic_tbl_smlt_importjobid} y ${enParalelo ? `padres + ${partes.length} parte(s)` : `real ${real?.sanic_tbl_smlt_importjobid}`}, todos Completed (2) con 0 fallos · prueba: ${smelter.resumenJob(dry || {})} · real: ${reales.map((j) => smelter.resumenJob(j)).join(' | ')}`);
   // El rol Smelter Operador llega por el team «CM · Admin y Carga», así que Dataverse deja el job a nombre del team:
   // lo que identifica a quien cargó es 'Created By' (y por eso el historial de la pantalla filtra por ahí).
   const teamCarga = cfg.teams.AdminCarga;
-  ctx.chk('F1u-13', jobs.every((j) => j._createdby_value === U.adm && [U.adm, teamCarga].includes(j._ownerid_value) && j.sanic_smlt_ij_sourcefile_name === nombre),
+  // En paralelo, PartirCarga sube archivos nuevos: «<archivo>-padres.csv» y «<archivo>-parte-i-de-N.csv».
+  const raiz = nombre.replace(/\.csv$/i, '');
+  const archivoOk = (j) => j.sanic_smlt_ij_sourcefile_name === nombre || (enParalelo && (j.sanic_smlt_ij_sourcefile_name || '').startsWith(raiz + '-'));
+  ctx.chk('F1u-13', jobs.every((j) => j._createdby_value === U.adm && [U.adm, teamCarga].includes(j._ownerid_value) && archivoOk(j)),
     `los jobs los creó User4 (creador ${jobs.map((j) => j._createdby_value).join(', ')} · dueño ${jobs.map((j) => (j._ownerid_value === teamCarga ? 'team Admin y Carga' : j._ownerid_value)).join(', ')}) y llevan el archivo ${nombre}`);
   ctx.chk('F1u-14', jobs.every((j) => !/\d{13,19}/.test(j.sanic_smlt_ij_name)), `ningún nombre de job contiene secuencias de 13 a 19 dígitos (${jobs.map((j) => sinPAN(j.sanic_smlt_ij_name)).join(' | ')})`);
   ctx.registrar && jobs.forEach((j) => ctx.registrar('job', j.sanic_tbl_smlt_importjobid, 'cargado por la pantalla'));
   if (!real) throw new Error('la pantalla no dejó un job real');
-  return { jobId: real.sanic_tbl_smlt_importjobid, job: real, logs: await smelter.logsDe(real.sanic_tbl_smlt_importjobid), chunks: 0, jobPrueba: dry, ...out };
+  const logs = [];
+  for (const j of reales) logs.push(...await smelter.logsDe(j.sanic_tbl_smlt_importjobid));
+  return { jobId: real.sanic_tbl_smlt_importjobid, job: real, logs, chunks: 0, jobPrueba: dry, enParalelo, ...out };
 }
 
 module.exports = { importarPorPantalla, jobsDelArchivo };
