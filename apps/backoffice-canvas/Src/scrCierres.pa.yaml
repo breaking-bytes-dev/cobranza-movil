@@ -16,13 +16,42 @@ Screens:
         // Datos de la cuenta navegando el lookup '[AS] Cuenta' (lo resuelve el servidor, sin
         // catálogo de cuentas truncable al Data row limit).
         // Filtro DELEGABLE: OR de igualdades de choice por valor + booleano (00 §4.2)
-        ClearCollect(colCierresCie,
+        Clear(colCierresCie);
+        // ESCALA: por tramos (TramoCartera); el tramo va CONSTANTE en cada consulta para que delegue (límite de 2000 filas).
+        ForAll(Sequence(20, 0) As T, Collect(colCierresCie,
             AddColumns(
                 Filter('CM | TBL | Asignacions',
-                    ('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable
+                    (('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable
                       || ('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
                           && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado))
-                    && '[AS] Estado' = true),
+                    && '[AS] Estado' = true)
+                    && '[AS] Tramo' = T.Value),
+                clienteCie, Upper(Coalesce(
+                    ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
+                ult4Cie, Coalesce(
+                    ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
+                diasCie, Coalesce(
+                    ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
+                nioCie, Coalesce(
+                    ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO', 0),
+                usdCie, Coalesce(
+                    ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD', 0),
+                montoCie, If('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                        && (Coalesce('Retiro NIO', 0) > 0 || Coalesce('Retiro USD', 0) > 0),
+                    Moneda('Retiro NIO', 'Retiro USD'),
+                    Moneda(
+                        Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO', 0),
+                        Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD', 0)))
+            )
+        ));
+        Collect(colCierresCie,
+            AddColumns(
+                Filter('CM | TBL | Asignacions',
+                    (('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable
+                      || ('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                          && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado))
+                    && '[AS] Estado' = true)
+                    && '[AS] Tramo' = Blank()),
                 clienteCie, Upper(Coalesce(
                     ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
                 ult4Cie, Coalesce(
@@ -149,13 +178,42 @@ Screens:
                   Height: =44
                   OnSelect: |-
                     =// Re-colecta y cierra el panel (mismo bloque del OnVisible)
-                    ClearCollect(colCierresCie,
+                    Clear(colCierresCie);
+                    // ESCALA: por tramos (TramoCartera); el tramo va CONSTANTE en cada consulta para que delegue (límite de 2000 filas).
+                    ForAll(Sequence(20, 0) As T, Collect(colCierresCie,
                         AddColumns(
                             Filter('CM | TBL | Asignacions',
-                                ('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable
+                                (('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable
                                   || ('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
                                       && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado))
-                                && '[AS] Estado' = true),
+                                && '[AS] Estado' = true)
+                                && '[AS] Tramo' = T.Value),
+                            clienteCie, Upper(Coalesce(
+                                ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
+                            ult4Cie, Coalesce(
+                                ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
+                            diasCie, Coalesce(
+                                ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
+                            nioCie, Coalesce(
+                                ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO', 0),
+                            usdCie, Coalesce(
+                                ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD', 0),
+                            montoCie, If('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                                    && (Coalesce('Retiro NIO', 0) > 0 || Coalesce('Retiro USD', 0) > 0),
+                                Moneda('Retiro NIO', 'Retiro USD'),
+                                Moneda(
+                                    Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO', 0),
+                                    Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD', 0)))
+                        )
+                    ));
+                    Collect(colCierresCie,
+                        AddColumns(
+                            Filter('CM | TBL | Asignacions',
+                                (('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable
+                                  || ('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                                      && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado))
+                                && '[AS] Estado' = true)
+                                && '[AS] Tramo' = Blank()),
                             clienteCie, Upper(Coalesce(
                                 ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
                             ult4Cie, Coalesce(

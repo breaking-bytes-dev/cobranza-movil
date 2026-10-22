@@ -19,14 +19,37 @@ Screens:
         // Datos de la cuenta navegando el lookup '[AS] Cuenta' (lo resuelve el servidor, igual que Cierres).
         // ageRea/ageIdRea: localizador actual horneado (texto + id) para mostrarlo, excluirlo del
         // buscador y actualizarlo en memoria tras reasignar sin recargar.
-        ClearCollect(colReasigRea,
+        Clear(colReasigRea);
+        // ESCALA: por tramos (TramoCartera); el tramo va CONSTANTE en cada consulta para que delegue (límite de 2000 filas).
+        ForAll(Sequence(20, 0) As T, Collect(colReasigRea,
             AddColumns(
                 Filter('CM | TBL | Asignacions',
-                    '[AS] Estado' = true
+                    ('[AS] Estado' = true
                     && (('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
                           && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado
                           && (varSupRea || varAdminRea))
-                        || ('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable && varAdminRea))),
+                        || ('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable && varAdminRea)))
+                    && '[AS] Tramo' = T.Value),
+                clienteRea, Upper(Coalesce(
+                    ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
+                ult4Rea, Coalesce(
+                    ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
+                diasRea, Coalesce(
+                    ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
+                ageRea, Coalesce(
+                    ThisRecord.'[AS] Agente'.'[AG] Nombre', "Sin localizador"),
+                ageIdRea, ThisRecord.'[AS] Agente'.'CM | TBL | Agente'
+            )
+        ));
+        Collect(colReasigRea,
+            AddColumns(
+                Filter('CM | TBL | Asignacions',
+                    ('[AS] Estado' = true
+                    && (('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                          && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado
+                          && (varSupRea || varAdminRea))
+                        || ('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable && varAdminRea)))
+                    && '[AS] Tramo' = Blank()),
                 clienteRea, Upper(Coalesce(
                     ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
                 ult4Rea, Coalesce(
@@ -119,14 +142,37 @@ Screens:
                   Height: =44
                   OnSelect: |-
                     =// Re-colecta y cierra el panel (mismo bloque del OnVisible)
-                    ClearCollect(colReasigRea,
+                    Clear(colReasigRea);
+                    // ESCALA: por tramos (TramoCartera); el tramo va CONSTANTE en cada consulta para que delegue (límite de 2000 filas).
+                    ForAll(Sequence(20, 0) As T, Collect(colReasigRea,
                         AddColumns(
                             Filter('CM | TBL | Asignacions',
-                                '[AS] Estado' = true
+                                ('[AS] Estado' = true
                                 && (('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
                                       && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado
                                       && (varSupRea || varAdminRea))
-                                    || ('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable && varAdminRea))),
+                                    || ('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable && varAdminRea)))
+                                && '[AS] Tramo' = T.Value),
+                            clienteRea, Upper(Coalesce(
+                                ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
+                            ult4Rea, Coalesce(
+                                ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
+                            diasRea, Coalesce(
+                                ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
+                            ageRea, Coalesce(
+                                ThisRecord.'[AS] Agente'.'[AG] Nombre', "Sin localizador"),
+                            ageIdRea, ThisRecord.'[AS] Agente'.'CM | TBL | Agente'
+                        )
+                    ));
+                    Collect(colReasigRea,
+                        AddColumns(
+                            Filter('CM | TBL | Asignacions',
+                                ('[AS] Estado' = true
+                                && (('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                                      && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado
+                                      && (varSupRea || varAdminRea))
+                                    || ('[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable && varAdminRea)))
+                                && '[AS] Tramo' = Blank()),
                             clienteRea, Upper(Coalesce(
                                 ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
                             ult4Rea, Coalesce(
