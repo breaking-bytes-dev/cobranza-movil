@@ -11,21 +11,22 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =// 2) Fuentes independientes en paralelo (delegables). El KPI TRANSCRITAS es conteo EXACTO
+        =// 2) Fuentes (delegables). El KPI TRANSCRITAS es conteo EXACTO
         //    directo al datasource (CountIf delega) con la MISMA condición del Filter del paso 3.
-        Concurrent(
-            ClearCollect(colPagosHoyTsc,
-                Filter('CM | TBL | Pagos', 'Fecha del pago' >= Today())),
-            Set(varNTscTsc,
-                CountIf('CM | TBL | Interaccions',
-                    '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Grabado
-                    && '[IN] Fecha grabacion' >= Today()
-                    && '[IN] Grabado por'.User = gblUsuarioDV.User))
-        );
-        // ESCALA: los pagos de HOY (de todos) son una sola consulta; si llega al límite de filas (2000) el arqueo puede estar
-        // incompleto y se dice. (Partirla por hora NO delega: DateAdd o un campo de colección en el Filter traen la tabla entera.)
-        If(CountRows(colPagosHoyTsc) >= 2000,
-            Notify("Hoy hay más de 2000 pagos: el arqueo de esta pantalla puede estar incompleto. Avisá a soporte.", NotificationType.Warning));
+        Set(varNTscTsc,
+            CountIf('CM | TBL | Interaccions',
+                '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Grabado
+                && '[IN] Fecha grabacion' >= Today()
+                && '[IN] Grabado por'.User = gblUsuarioDV.User));
+        // ESCALA: los pagos de HOY (de todos los cobradores) se traen por tramos (TramoCartera, de su interacción), cada
+        // consulta bajo el límite de 2000 filas: hasta unos 30.000 pagos por día. El tramo va CONSTANTE (T.Value): un If,
+        // DateAdd o un campo de colección en el Filter no delega y trae la tabla entera. El último Collect: pagos sin tramo.
+        Clear(colPagosHoyTsc);
+        ForAll(Sequence(20, 0) As T,
+            Collect(colPagosHoyTsc, Filter('CM | TBL | Pagos', 'Fecha del pago' >= Today() && '[PG] Tramo' = T.Value)));
+        Collect(colPagosHoyTsc, Filter('CM | TBL | Pagos', 'Fecha del pago' >= Today() && '[PG] Tramo' = Blank()));
+        If(CountRows(colPagosHoyTsc) >= 30000,
+            Notify("Hoy hay más de 30.000 pagos: el arqueo de esta pantalla puede estar incompleto. Avisá a soporte.", NotificationType.Warning));
         // 3) Arqueo del día (base en colTscTmpTsc): SOLO lo grabado HOY por MÍ.
         //    choice por valor + comparación de fecha + lookup por registro = delegable (00 §4.2).
         //    Datos de la cuenta navegando el lookup '[IN] Cuenta' (lo resuelve el servidor, sin
@@ -93,19 +94,20 @@ Screens:
             Font: =Font.'Segoe UI'
             Height: =gblE.AltoInput
             OnSelect: |-
-              =Concurrent(
-                  ClearCollect(colPagosHoyTsc,
-                      Filter('CM | TBL | Pagos', 'Fecha del pago' >= Today())),
-                  Set(varNTscTsc,
-                      CountIf('CM | TBL | Interaccions',
-                          '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Grabado
-                          && '[IN] Fecha grabacion' >= Today()
-                          && '[IN] Grabado por'.User = gblUsuarioDV.User))
-              );
-              // ESCALA: los pagos de HOY (de todos) son una sola consulta; si llega al límite de filas (2000) el arqueo puede estar
-              // incompleto y se dice. (Partirla por hora NO delega: DateAdd o un campo de colección en el Filter traen la tabla entera.)
-              If(CountRows(colPagosHoyTsc) >= 2000,
-                  Notify("Hoy hay más de 2000 pagos: el arqueo de esta pantalla puede estar incompleto. Avisá a soporte.", NotificationType.Warning));
+              =Set(varNTscTsc,
+                  CountIf('CM | TBL | Interaccions',
+                      '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Grabado
+                      && '[IN] Fecha grabacion' >= Today()
+                      && '[IN] Grabado por'.User = gblUsuarioDV.User));
+              // ESCALA: los pagos de HOY (de todos los cobradores) se traen por tramos (TramoCartera, de su interacción), cada
+              // consulta bajo el límite de 2000 filas: hasta unos 30.000 pagos por día. El tramo va CONSTANTE (T.Value): un If,
+              // DateAdd o un campo de colección en el Filter no delega y trae la tabla entera. El último Collect: pagos sin tramo.
+              Clear(colPagosHoyTsc);
+              ForAll(Sequence(20, 0) As T,
+                  Collect(colPagosHoyTsc, Filter('CM | TBL | Pagos', 'Fecha del pago' >= Today() && '[PG] Tramo' = T.Value)));
+              Collect(colPagosHoyTsc, Filter('CM | TBL | Pagos', 'Fecha del pago' >= Today() && '[PG] Tramo' = Blank()));
+              If(CountRows(colPagosHoyTsc) >= 30000,
+                  Notify("Hoy hay más de 30.000 pagos: el arqueo de esta pantalla puede estar incompleto. Avisá a soporte.", NotificationType.Warning));
               ClearCollect(colTscTmpTsc,
                   AddColumns(
                       Filter('CM | TBL | Interaccions',
