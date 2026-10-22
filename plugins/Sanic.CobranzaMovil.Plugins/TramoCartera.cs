@@ -13,8 +13,10 @@ namespace Sanic.CobranzaMovil.Plugins
     /// bytes repartia mal (228 a 410 por tramo con 6.005 asignaciones). Solo completa lo vacio; nunca rechaza.
     /// La CUENTA lleva el mismo tramo (sale de su propio id), asi la app trae tambien las cuentas por tramos y las cruza con
     /// las asignaciones sin consultar una por una.
-    /// Registro: PreOperation sincrono, Create de sanic_cm_tbl_asignacion; y PostOperation ASINCRONO, Create de
-    /// sanic_cm_tbl_cuenta (el id de la cuenta recien existe despues de crearla; asincrono para no frenar la carga).
+    /// El PAGO lleva el tramo de su interaccion (todo pago cuelga de una, DAT-13): el backoffice trae los pagos del dia de
+    /// todos los cobradores por tramos. Los pagos de una misma visita caen juntos.
+    /// Registro: PreOperation sincrono, Create de sanic_cm_tbl_asignacion y de sanic_cm_tbl_pago; y PostOperation ASINCRONO,
+    /// Create de sanic_cm_tbl_cuenta (el id de la cuenta recien existe despues de crearla; asincrono para no frenar la carga).
     /// </summary>
     public sealed class TramoCartera : PluginBase
     {
@@ -30,21 +32,32 @@ namespace Sanic.CobranzaMovil.Plugins
                 TramoDeLaCuenta(local);
                 return;
             }
+            if (local.Context.PrimaryEntityName == Esquema.Pago)
+            {
+                local.ExigirRegistro(Esquema.Pago, Esquema.EtapaPreOperation, Esquema.MensajeCreate);
+                TramoDesde(local, Esquema.PagoTramo, Esquema.PagoInteraccion, "el pago");
+                return;
+            }
             local.ExigirRegistro(Esquema.Asignacion, Esquema.EtapaPreOperation, Esquema.MensajeCreate);
+            TramoDesde(local, Esquema.AsignacionTramo, Esquema.AsignacionCuentaId, "la asignacion");
+        }
 
+        /// <summary>PreOperation: el tramo sale del id del lookup indicado. Solo completa lo vacio.</summary>
+        private static void TramoDesde(LocalContext local, string columnaTramo, string lookup, string que)
+        {
             var target = local.ObtenerTarget();
-            if (target.GetAttributeValue<int?>(Esquema.AsignacionTramo) != null)
+            if (target.GetAttributeValue<int?>(columnaTramo) != null)
             {
-                local.Trace("la asignacion ya trae tramo; sin cambios.");
+                local.Trace("{0} ya trae tramo; sin cambios.", que);
                 return;
             }
-            var cuenta = target.GetAttributeValue<EntityReference>(Esquema.AsignacionCuentaId);
-            if (cuenta == null)
+            var origen = target.GetAttributeValue<EntityReference>(lookup);
+            if (origen == null)
             {
-                local.Trace("la asignacion no trae cuenta; queda sin tramo.");
+                local.Trace("{0} no trae {1}; queda sin tramo.", que, lookup);
                 return;
             }
-            target[Esquema.AsignacionTramo] = Tramo(cuenta.Id);
+            target[columnaTramo] = Tramo(origen.Id);
             local.Trace("tramo asignado.");
         }
 
@@ -63,7 +76,7 @@ namespace Sanic.CobranzaMovil.Plugins
             local.Trace("tramo de la cuenta asignado.");
         }
 
-        /// <summary>Tramo 0..TramosCartera-1 de una cuenta. Lo usa tambien el relleno (paso18) con la misma cuenta.</summary>
+        /// <summary>Tramo 0..TramosCartera-1 de un id (cuenta, o interaccion para el pago). Lo usa tambien el relleno (paso18).</summary>
         public static int Tramo(Guid cuenta)
         {
             // FNV-1a de 32 bits sobre los 16 bytes del id (orden de ToByteArray; en Python, uuid.UUID(id).bytes_le)

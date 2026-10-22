@@ -188,6 +188,11 @@ def definir_pasos():
         tipo=NS + 'TramoCartera', mensaje='Create', entidad=P + 'cuenta', panguard=False, filtro=[],
         columnas=['sanic_cm_ct_tramo'], legacy=False, imagen=None, etapa=ETAPA_POSTOPERATION, modo=MODO_ASINCRONO,
         descripcion='Escala: la cuenta nueva recibe el mismo tramo que sus asignaciones (asincrono)'))
+    # El pago lleva el tramo de su interaccion: Transcritas trae los pagos del dia por tramos.
+    pasos.append(dict(
+        tipo=NS + 'TramoCartera', mensaje='Create', entidad=P + 'pago', panguard=False, filtro=[],
+        columnas=['sanic_cm_pg_interaccion', 'sanic_cm_pg_tramo'], legacy=False, imagen=None,
+        descripcion='Escala: tramo 0..19 del pago (de su interaccion) para que el backoffice traiga los pagos del dia en partes'))
     for p in pasos:
         p.setdefault('etapa', ETAPA_PREOPERATION)
         p.setdefault('modo', MODO_SINCRONO)

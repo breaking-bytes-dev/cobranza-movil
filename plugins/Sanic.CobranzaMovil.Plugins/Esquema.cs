@@ -206,6 +206,8 @@ namespace Sanic.CobranzaMovil.Plugins
         // Escala de la cartera: la app trae las asignaciones por tramos, cada uno bajo el limite de 2000 filas (TramoCartera)
         public const string AsignacionTramo = "sanic_cm_as_tramo";
         public const string CuentaTramo = "sanic_cm_ct_tramo";
+        // El pago tambien: Transcritas trae los pagos del dia (de todos los cobradores) por tramos
+        public const string PagoTramo = "sanic_cm_pg_tramo";
         public const int TramosCartera = 20;
 
         // Imagen previa que registra el paso Update de ClaveDesdeCuenta

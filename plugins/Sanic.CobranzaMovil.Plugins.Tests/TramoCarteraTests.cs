@@ -123,6 +123,38 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         }
 
         [Fact]
+        public void El_pago_recibe_el_tramo_de_su_interaccion()
+        {
+            var interaccion = Guid.NewGuid();
+            var t = new Entity("sanic_cm_tbl_pago", Guid.NewGuid());
+            t["sanic_cm_pg_interaccion"] = new EntityReference("sanic_cm_tbl_interaccion", interaccion);
+            var h = new Harness("Create", "sanic_cm_tbl_pago").ConTarget(t);
+            h.Ejecutar(new TramoCartera());
+            Assert.Equal(TramoCartera.Tramo(interaccion), h.Target.GetAttributeValue<int>("sanic_cm_pg_tramo"));
+            Assert.Equal(0, h.ConsultasAlServicio());
+            Assert.Equal(0, h.RetrievesAlServicio());
+        }
+
+        [Fact]
+        public void El_pago_sin_interaccion_queda_sin_tramo_y_no_rechaza()
+        {
+            var h = new Harness("Create", "sanic_cm_tbl_pago").ConTarget(new Entity("sanic_cm_tbl_pago", Guid.NewGuid()));
+            h.Ejecutar(new TramoCartera());
+            Assert.False(h.Target.Contains("sanic_cm_pg_tramo"));
+        }
+
+        [Fact]
+        public void El_pago_no_pisa_un_tramo_que_ya_viene()
+        {
+            var t = new Entity("sanic_cm_tbl_pago", Guid.NewGuid());
+            t["sanic_cm_pg_interaccion"] = new EntityReference("sanic_cm_tbl_interaccion", Guid.NewGuid());
+            t["sanic_cm_pg_tramo"] = 7;
+            var h = new Harness("Create", "sanic_cm_tbl_pago").ConTarget(t);
+            h.Ejecutar(new TramoCartera());
+            Assert.Equal(7, h.Target.GetAttributeValue<int>("sanic_cm_pg_tramo"));
+        }
+
+        [Fact]
         public void Solo_corre_en_el_Create_PreOperation_de_la_asignacion()
         {
             var t = new Entity(Asignacion, Guid.NewGuid());

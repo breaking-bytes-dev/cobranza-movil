@@ -3,8 +3,9 @@ La app copia la cartera a colecciones y cada copia se corta en el límite de fil
 teléfono armaba la Cartera con trozos distintos cada vez (prueba de estrés del 2026-10-21). Con el tramo, la app la trae
 en partes: Filter(Asignaciones, Tramo = n) y Filter(Cuentas, Tramo = n), n = 0..19, cada una muy por debajo del límite.
 
-Crea "[AS] Tramo" (sanic_cm_as_tramo) y "[CT] Tramo" (sanic_cm_ct_tramo), enteros 0..19. Los pone TramoCartera (plugins
-1.0.9.4) al crear; con --rellenar completa los que ya existen con el MISMO cálculo que el plugin:
+Crea "[AS] Tramo" (sanic_cm_as_tramo), "[CT] Tramo" (sanic_cm_ct_tramo) y "[PG] Tramo" (sanic_cm_pg_tramo), enteros
+0..19. Los pone TramoCartera (plugins 1.0.9.5) al crear; el pago usa el id de su INTERACCIÓN (Transcritas trae los pagos
+del día por tramos); con --rellenar completa los que ya existen con el MISMO cálculo que el plugin:
   tramo = FNV-1a de 32 bits de los 16 bytes del id de la CUENTA (orden .NET: uuid.UUID(id).bytes_le) % 20
 La asignación usa el id de su cuenta, así cuenta y asignaciones caen en el mismo tramo. (Los ids de Dataverse son
 secuenciales: tomar sus primeros bytes repartía de 228 a 410 por tramo.)
@@ -20,7 +21,8 @@ SOL = {'MSCRM.SolutionUniqueName': 'cm_core_cobranzamovil'}
 TRAMOS = 20
 # (tabla, columna, etiqueta, columna del id de la cuenta en la tabla)
 COLUMNAS = [('sanic_cm_tbl_asignacion', 'sanic_cm_as_tramo', '[AS] Tramo', '_sanic_cm_as_cuentaid_value'),
-            ('sanic_cm_tbl_cuenta', 'sanic_cm_ct_tramo', '[CT] Tramo', 'sanic_cm_tbl_cuentaid')]
+            ('sanic_cm_tbl_cuenta', 'sanic_cm_ct_tramo', '[CT] Tramo', 'sanic_cm_tbl_cuentaid'),
+            ('sanic_cm_tbl_pago', 'sanic_cm_pg_tramo', '[PG] Tramo', '_sanic_cm_pg_interaccion_value')]
 def L(t): return {'LocalizedLabels': [{'Label': t, 'LanguageCode': 1033}]}
 def tramo(cuenta_id):
     h = 2166136261
@@ -39,7 +41,7 @@ for tabla, col, etiqueta, _ in COLUMNAS:
             '@odata.type': 'Microsoft.Dynamics.CRM.IntegerAttributeMetadata', 'SchemaName': col,
             'MinValue': 0, 'MaxValue': TRAMOS - 1, 'Format': 'None', 'DisplayName': L(etiqueta),
             'RequiredLevel': {'Value': 'None'},
-            'Description': L('Tramo 0..19 de la cartera, calculado del id de la cuenta (TramoCartera). La app trae la cartera por tramos, cada uno bajo el límite de 2000 filas.')}, SOL)
+            'Description': L('Tramo 0..19 calculado del id de la cuenta (o de la interacción, en el pago) por TramoCartera. La app trae los datos por tramos, cada uno bajo el límite de 2000 filas.')}, SOL)
         if st >= 300: raise SystemExit(f'   ✗ {st}: {b}')
         print('   ✓', st)
         st, b = rq('POST', 'PublishXml', {'ParameterXml': f'<importexportxml><entities><entity>{tabla}</entity></entities></importexportxml>'})
