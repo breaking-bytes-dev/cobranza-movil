@@ -25,17 +25,19 @@ Screens:
         // Falla CERRADO: Reconciliación es del Admin, que lee los jobs por el equipo «CM · Admin y Carga» (Smelter Operador:
         // Read Basic; los jobs quedan del equipo dueño de la plantilla). Si no ve la plantilla principal o la consulta falla,
         // el resultado sería «0 en curso» sin serlo: el cierre se deshabilita con un mensaje.
+        // Plantillas por ID (GUID): comparar el lookup con un REGISTRO (varTpl = LookUp(...)) da ErrIncompatibleTypesForEquality
+        // en Studio y, empaquetado con pac, deja TODO el OnVisible inerte sin aviso (2026-10-22: la pantalla no contaba nada).
         // Delegación: '[IJ] Status' = opción delega; IsBlank sobre una opción NO (doc de Dataverse), así que los «sin estado»
         // se buscan entre los jobs creados desde varDesdeRec (consulta delegable por fecha, pocos registros) y se cuentan acá.
         Set(varDesdeRec, DateAdd(Now(), -12, TimeUnit.Hours));
-        Set(varTplPrinRec, LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil"));
-        Set(varTplPadRec, With({t: LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil · padres")}, If(IsBlank(t), varTplPrinRec, t)));
-        Set(varTplParRec, With({t: LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil · partes")}, If(IsBlank(t), varTplPrinRec, t)));
+        Set(varTplPrinRec, LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil").'TBL | SMLT | Import Template');
+        Set(varTplPadRec, Coalesce(LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil · padres").'TBL | SMLT | Import Template', varTplPrinRec));
+        Set(varTplParRec, Coalesce(LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil · partes").'TBL | SMLT | Import Template', varTplPrinRec));
         IfError(
             Set(varEnColaRec,
                 !IsBlank(LookUp('TBL | SMLT | Import Jobs',
                     '[IJ] Is Dry Run' = false
-                    && ('[IJ] Import Template' = varTplPrinRec || '[IJ] Import Template' = varTplPadRec || '[IJ] Import Template' = varTplParRec)
+                    && ('[IJ] Import Template'.'TBL | SMLT | Import Template' = varTplPrinRec || '[IJ] Import Template'.'TBL | SMLT | Import Template' = varTplPadRec || '[IJ] Import Template'.'TBL | SMLT | Import Template' = varTplParRec)
                     && ('[IJ] Status' = '[IJ] Status (TBL | SMLT | Import Jobs)'.Queued
                         || '[IJ] Status' = '[IJ] Status (TBL | SMLT | Import Jobs)'.Processing)
                 ))
@@ -43,7 +45,7 @@ Screens:
             ClearCollect(colJobsRec,
                 Filter('TBL | SMLT | Import Jobs',
                     '[IJ] Is Dry Run' = false
-                    && ('[IJ] Import Template' = varTplPrinRec || '[IJ] Import Template' = varTplPadRec || '[IJ] Import Template' = varTplParRec)
+                    && ('[IJ] Import Template'.'TBL | SMLT | Import Template' = varTplPrinRec || '[IJ] Import Template'.'TBL | SMLT | Import Template' = varTplPadRec || '[IJ] Import Template'.'TBL | SMLT | Import Template' = varTplParRec)
                     && 'Created On' >= varDesdeRec
                 )
             );
@@ -429,14 +431,14 @@ Screens:
                           =// Habilitación fresca: al confirmar se vuelve a mirar si hay una carga en curso (la pantalla pudo
                           // quedar abierta mientras empezaba una). Mismo bloque que el OnVisible.
                           Set(varDesdeRec, DateAdd(Now(), -12, TimeUnit.Hours));
-                          Set(varTplPrinRec, LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil"));
-                          Set(varTplPadRec, With({t: LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil · padres")}, If(IsBlank(t), varTplPrinRec, t)));
-                          Set(varTplParRec, With({t: LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil · partes")}, If(IsBlank(t), varTplPrinRec, t)));
+                          Set(varTplPrinRec, LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil").'TBL | SMLT | Import Template');
+                          Set(varTplPadRec, Coalesce(LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil · padres").'TBL | SMLT | Import Template', varTplPrinRec));
+                          Set(varTplParRec, Coalesce(LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil · partes").'TBL | SMLT | Import Template', varTplPrinRec));
                           IfError(
                               Set(varEnColaRec,
                                   !IsBlank(LookUp('TBL | SMLT | Import Jobs',
                                       '[IJ] Is Dry Run' = false
-                                      && ('[IJ] Import Template' = varTplPrinRec || '[IJ] Import Template' = varTplPadRec || '[IJ] Import Template' = varTplParRec)
+                                      && ('[IJ] Import Template'.'TBL | SMLT | Import Template' = varTplPrinRec || '[IJ] Import Template'.'TBL | SMLT | Import Template' = varTplPadRec || '[IJ] Import Template'.'TBL | SMLT | Import Template' = varTplParRec)
                                       && ('[IJ] Status' = '[IJ] Status (TBL | SMLT | Import Jobs)'.Queued
                                           || '[IJ] Status' = '[IJ] Status (TBL | SMLT | Import Jobs)'.Processing)
                                   ))
@@ -444,7 +446,7 @@ Screens:
                               ClearCollect(colJobsRec,
                                   Filter('TBL | SMLT | Import Jobs',
                                       '[IJ] Is Dry Run' = false
-                                      && ('[IJ] Import Template' = varTplPrinRec || '[IJ] Import Template' = varTplPadRec || '[IJ] Import Template' = varTplParRec)
+                                      && ('[IJ] Import Template'.'TBL | SMLT | Import Template' = varTplPrinRec || '[IJ] Import Template'.'TBL | SMLT | Import Template' = varTplPadRec || '[IJ] Import Template'.'TBL | SMLT | Import Template' = varTplParRec)
                                       && 'Created On' >= varDesdeRec
                                   )
                               );
