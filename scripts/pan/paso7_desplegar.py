@@ -4,6 +4,7 @@ Las tablas que la app puede usar también están en customizations.xml (<Databas
 <CanvasApp>), que volvían viejas: la app publicada nunca consultaba una tabla nueva (la bóveda) aunque el .msapp la tuviera.
 
 Pasos: pac canvas pack de cada app (con chequeo de YAML: con la carpeta mal nombrada pac empaqueta SIN fórmulas y no avisa)
+y chequeo de la foto del esquema (paso7_esquema: una columna que usan las fórmulas y la foto no conoce deja la fórmula inerte)
 → pac solution export → swap de los .msapp → DatabaseReferences/CdsDependencies desde LocalDatabaseReferences de cada app
 → pac solution import --publish-changes → restaura el estado de los pasos de plugin de CM y de los flows de la solución
 (verificado 2026-10-04: una importación con --activate-plugins ENCENDIÓ PanGuard y una sin él APAGÓ ClaveDesdeCuenta).
@@ -16,6 +17,7 @@ import datetime, html, json, os, re, shutil, signal, subprocess, sys, tempfile, 
 import yaml
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'seguridad'))
 from dvlib import rq, get
+import paso7_esquema
 
 RAIZ = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..')
 PAC = os.path.expanduser('~/.dotnet/tools/pac')
@@ -84,6 +86,7 @@ for carpeta, nombre, minimo in APPS:
     print(f"{nombre}: {len(yamls)} .pa.yaml, {len(ldr)} fuentes de Dataverse, usa la bóveda en fórmulas: {b'PAN de cuentas' in texto}, "
           f"perfil offline: {perfil or 'autogenerado'}")
     if len(yamls) < minimo: raise SystemExit(f'{nombre}: el .msapp tiene {len(yamls)} .pa.yaml (mínimo {minimo}). ¿Carpeta Src mal nombrada?')
+    paso7_esquema.revisar(nombre, z.read('References/DataSources.json'), [z.read(n).decode('utf-8') for n in yamls])
     msapps[nombre] = (open(destino, 'rb').read(), ldr, perfil)
 
 fresco = os.path.join(tmp, 'fresh.zip')
