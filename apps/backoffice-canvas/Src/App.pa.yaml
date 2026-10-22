@@ -50,7 +50,7 @@ App:
       // Interruptor de la carga paralela. false = la carga real va en UN job, en serie, como antes. Pasar a true SOLO
       // después de refrescar la fuente "Environment" en Studio (la foto de las Custom APIs del .msapr no conoce
       // sanic_cm_PartirCarga hasta entonces, y la fórmula de btnPartirCar queda inerte).
-      nfCargaParalela = false;
+      nfCargaParalela = true;
 
       // Breakpoint responsive único del proyecto (00 §7).
       // Si Studio rechaza App.ActiveScreen acá, mover nfMovil a cada pantalla como Parent.Width < 920.
