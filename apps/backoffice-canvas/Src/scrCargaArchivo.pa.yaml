@@ -677,7 +677,9 @@ Screens:
                         FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         FontWeight: =FontWeight.Semibold
-                        Height: =If(nfMovil, 80, 40)
+                        Height: |-
+                          =// El rechazo de PartirCarga por valores largos cita hasta 5 casos (fila, columna, largos): ~550 caracteres.
+                          If(Len(varMsgCar) > 180, If(nfMovil, 240, 100), If(nfMovil, 80, 40))
                         PaddingLeft: =0
                         Size: =9
                         Text: |-

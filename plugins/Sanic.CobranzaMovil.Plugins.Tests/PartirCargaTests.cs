@@ -4,6 +4,7 @@ using System.Linq;
 using System.ServiceModel;
 using System.Text;
 using Microsoft.Xrm.Sdk;
+using Microsoft.Xrm.Sdk.Metadata;
 using Microsoft.Xrm.Sdk.Query;
 using Moq;
 using Sanic.CobranzaMovil.Plugins;
@@ -118,6 +119,9 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             public readonly List<Entity> Updates = new List<Entity>();
             public readonly List<Guid> Borrados = new List<Guid>();
             public readonly List<string> Orden = new List<string>();
+            /// <summary>MaxLength de las columnas de texto (metadata de Dataverse), por tabla; lookups y opciones no tienen largo.</summary>
+            public readonly Dictionary<string, Dictionary<string, int>> Largos = LargosPorDefecto();
+            public readonly List<string> TablasConsultadas = new List<string>();
             /// <summary>Ultimo archivo confirmado por job (nombre y bytes).</summary>
             public readonly Dictionary<Guid, KeyValuePair<string, byte[]>> Archivos = new Dictionary<Guid, KeyValuePair<string, byte[]>>();
             private readonly Dictionary<string, Guid> destinoDelToken = new Dictionary<string, Guid>();
@@ -181,6 +185,11 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
                         Buffer.BlockCopy(Original, (int)desde, data, 0, largo);
                         resp.Results["Data"] = data;
                         break;
+                    case "RetrieveEntity":
+                        var tabla = (string)r["LogicalName"];
+                        TablasConsultadas.Add(tabla);
+                        resp.Results["EntityMetadata"] = Metadata(tabla);
+                        break;
                     case "InitializeFileBlocksUpload":
                         var token = "t" + destinoDelToken.Count;
                         destinoDelToken[token] = ((EntityReference)r["Target"]).Id;
@@ -204,6 +213,34 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
                         break;
                 }
                 return resp;
+            }
+
+            private static Dictionary<string, Dictionary<string, int>> LargosPorDefecto()
+            {
+                var res = new Dictionary<string, Dictionary<string, int>>();
+                foreach (var m in MapeosPrincipal())
+                {
+                    res[m.Tabla] = m.Cols.Where(c => (int)c[2] == 0).ToDictionary(c => (string)c[0], c => 100);
+                }
+                return res;
+            }
+
+            private EntityMetadata Metadata(string tabla)
+            {
+                var atributos = new List<AttributeMetadata>();
+                Dictionary<string, int> largos;
+                if (Largos.TryGetValue(tabla, out largos))
+                {
+                    atributos.AddRange(largos.Select(l => new StringAttributeMetadata { LogicalName = l.Key, MaxLength = l.Value }));
+                }
+                foreach (var c in MapeosPrincipal().Where(m => m.Tabla == tabla).SelectMany(m => m.Cols).Where(c => (int)c[2] != 0))
+                {
+                    atributos.Add((int)c[2] == 5 ? (AttributeMetadata)new LookupAttributeMetadata { LogicalName = (string)c[0] }
+                        : new PicklistAttributeMetadata { LogicalName = (string)c[0] });
+                }
+                var em = new EntityMetadata { LogicalName = tabla };
+                typeof(EntityMetadata).GetProperty("Attributes").SetValue(em, atributos.ToArray()); // setter interno del SDK
+                return em;
             }
 
             private EntityCollection Plantillas()
@@ -606,6 +643,74 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             e.Original = new UTF8Encoding(false).GetBytes(Encabezado + "\r\n" + Fila(1) + "\r\n\"Nombre Q abierta,ZQX-1\r\n");
             Assert.Contains("comillas sin cerrar", e.Rechaza().Message);
             e.NoEscribioNada();
+        }
+
+        // ---------------------------------------------------------------------------------------------------------------
+        // Largo de los valores (la prueba en seco de Smelter no lo detecta: 2026-10-22 un codigo de 27 caracteres en una
+        // columna de 20 rompio los padres de la carga real)
+
+        private static byte[] ArchivoDe(params string[] filas)
+        {
+            return new UTF8Encoding(false).GetBytes(Encabezado + "\r\n" + string.Join("\r\n", filas) + "\r\n");
+        }
+
+        [Fact]
+        public void Un_valor_mas_largo_que_su_columna_se_rechaza_sin_crear_nada_ni_citar_el_valor()
+        {
+            var e = new Escenario(Admin);
+            Entradas(e, 3);
+            e.Original = ArchivoDe(Fila(0), Fila(1), Fila(100)); // "Dir, 100": 8 caracteres
+            e.Largos["sanic_cm_tbl_fiador"]["sanic_cm_fi_direccion"] = 7;
+            var m = e.Rechaza().Message;
+            Assert.Contains("hay 1 valor(es) mas largos", m);
+            Assert.Contains("fila 3, columna DireccionFianza (sanic_cm_tbl_fiador.sanic_cm_fi_direccion): 8 caracteres, maximo 7", m);
+            Assert.DoesNotContain("Dir, 100", m);
+            e.NoEscribioNada();
+        }
+
+        [Fact]
+        public void Cita_hasta_cinco_casos_y_cuenta_el_resto()
+        {
+            var e = new Escenario(Admin);
+            Entradas(e, 3);
+            e.Largos["sanic_cm_tbl_producto"]["sanic_cm_pr_codigo"] = 3; // "PRQn": 4 en las 400 filas
+            var m = e.Rechaza().Message;
+            Assert.Contains("hay 400 valor(es)", m);
+            Assert.Equal(5, System.Text.RegularExpressions.Regex.Matches(m, "fila \\d+, columna").Count);
+            Assert.Contains("y 395 mas", m);
+            e.NoEscribioNada();
+        }
+
+        [Fact]
+        public void El_largo_se_mide_en_caracteres_como_lo_lee_Smelter_no_en_bytes()
+        {
+            var e = new Escenario(Admin);
+            Entradas(e, 1);
+            e.Original = ArchivoDe(Fila(0), "\"Nombre Q, 1\",ZQX-1,CTQ-1,PRQ1,FIQ1,Dir ñ,AGQ1,Diaria"); // "Dir ñ": 5 caracteres, 6 bytes
+            e.Largos["sanic_cm_tbl_fiador"]["sanic_cm_fi_direccion"] = 5;
+            e.Ejecutar();
+            Assert.Single(e.Creados);
+        }
+
+        [Fact]
+        public void Una_columna_con_transformacion_no_se_mide()
+        {
+            // La clave HMAC del PAN: lo que se escribe no es el valor del archivo.
+            var e = new Escenario(Admin);
+            Entradas(e, 3);
+            e.Largos["sanic_cm_tbl_cuenta"]["sanic_cm_ct_clavepan"] = 2;
+            e.Ejecutar();
+            Assert.Equal(3, e.Creados.Count);
+        }
+
+        [Fact]
+        public void Lee_la_metadata_una_vez_por_tabla()
+        {
+            var e = new Escenario(Admin);
+            Entradas(e, 3);
+            e.Ejecutar();
+            Assert.Equal(MapeosPrincipal().Select(m => m.Tabla).Distinct().OrderBy(t => t, StringComparer.Ordinal),
+                e.TablasConsultadas.OrderBy(t => t, StringComparer.Ordinal));
         }
 
         // ---------------------------------------------------------------------------------------------------------------

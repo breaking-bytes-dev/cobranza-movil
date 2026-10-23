@@ -6,6 +6,8 @@ using System.ServiceModel;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Xrm.Sdk;
+using Microsoft.Xrm.Sdk.Messages;
+using Microsoft.Xrm.Sdk.Metadata;
 using Microsoft.Xrm.Sdk.Query;
 
 namespace Sanic.CobranzaMovil.Plugins
@@ -29,7 +31,8 @@ namespace Sanic.CobranzaMovil.Plugins
     /// la principal y no las regenero, falla sin tocar nada.
     ///
     /// Validaciones: Admin, Servicio o sin roles de CM (como AltaCuenta); el job existe y el llamador lo ve; es de la
-    /// plantilla principal; no es prueba en seco; NUNCA se proceso (sin estado); tiene archivo; 1 &lt;= Partes &lt;= 4.
+    /// plantilla principal; no es prueba en seco; NUNCA se proceso (sin estado); tiene archivo; 1 &lt;= Partes &lt;= 4; ningun
+    /// valor es mas largo que su columna de texto (1.0.9.8: la prueba en seco de Smelter no lo detecta).
     /// Los jobs se crean y modifican con los permisos del LLAMADOR, como en "Cargar archivo": el rol de Smelter llega por el
     /// equipo, el job queda del equipo (AssignJobOwner de Smelter) y "Creado por" es la persona (el historial filtra por ahi).
     /// Atomicidad: primero se crean las partes, despues se reemplaza el archivo del job original y al final su nombre y
@@ -48,6 +51,8 @@ namespace Sanic.CobranzaMovil.Plugins
         public const long TamanoMaximo = 50L * 1024 * 1024;
         private const int Bloque = 4 * 1024 * 1024;
         private const int EstadoActivo = 1;
+        /// <summary>Cuantos valores largos cita el error (el resto se cuenta).</summary>
+        public const int MaximoCasosLargo = 5;
 
         private static readonly string[] TablasPadres = { Esquema.Producto, Esquema.Fiador, Esquema.Agente };
         private static readonly Regex Literal = new Regex("\"[^\"]*\"", RegexOptions.CultureInvariant);
@@ -163,6 +168,7 @@ namespace Sanic.CobranzaMovil.Plugins
             }
             if (csv.Filas.Count == 0) throw local.Error("el archivo no tiene filas de datos.");
             ExigirCif(local, csv, dePartes);
+            ExigirLargos(local, svc, csv, deLaPrincipal);
             var clavesPadres = dePadres.Select(m => Clave(local, csv, m, true)).ToList();
             var clavesPartes = dePartes.Select(m => Clave(local, csv, m, false)).Where(c => c != null).ToList();
 
@@ -398,6 +404,96 @@ namespace Sanic.CobranzaMovil.Plugins
             {
                 throw local.Error("el encabezado del archivo no tiene la columna " + cif.Fuente.Trim() + " (CIF del cliente).");
             }
+        }
+
+        private sealed class Medida
+        {
+            public int Indice;
+            public string Fuente;
+            public string Tabla;
+            public string Destino;
+            public int Maximo;
+        }
+
+        /// <summary>
+        /// Un valor mas largo que su columna de texto hace fallar la fila en Smelter y su prueba en seco no lo detecta
+        /// (2026-10-22: un codigo de 27 caracteres en una columna de 20 rompio los padres de la carga real). Se mide contra
+        /// el MaxLength de la metadata de Dataverse antes de escribir nada. Solo columnas con fuente en el archivo y sin
+        /// transformacion (lo escrito es el valor tal cual, recortado y en UTF-8 como lo lee Smelter); lookups y opciones no
+        /// tienen largo. Una consulta de metadata por tabla. El error cita fila (1 = la primera despues del encabezado),
+        /// columna, destino y largos: NUNCA el valor.
+        /// </summary>
+        private static void ExigirLargos(LocalContext local, IOrganizationService svc, ArchivoCsv csv, List<Mapeo> mapeos)
+        {
+            var maximos = new Dictionary<string, Dictionary<string, int>>(StringComparer.OrdinalIgnoreCase);
+            var medidas = new List<Medida>();
+            foreach (var m in mapeos)
+            {
+                if (string.IsNullOrWhiteSpace(m.Tabla)) continue;
+                foreach (var c in m.Columnas)
+                {
+                    if (string.IsNullOrWhiteSpace(c.Fuente) || string.IsNullOrWhiteSpace(c.Destino) || !string.IsNullOrWhiteSpace(c.Transformacion)) continue;
+                    var i = csv.Indice(c.Fuente);
+                    if (i < 0) continue;
+                    Dictionary<string, int> deTabla;
+                    if (!maximos.TryGetValue(m.Tabla, out deTabla))
+                    {
+                        deTabla = LargosDeTabla(local, svc, m.Tabla);
+                        maximos[m.Tabla] = deTabla;
+                    }
+                    int maximo;
+                    if (!deTabla.TryGetValue(c.Destino.Trim(), out maximo)) continue;
+                    medidas.Add(new Medida { Indice = i, Fuente = csv.Columnas[i], Tabla = m.Tabla, Destino = c.Destino.Trim(), Maximo = maximo });
+                }
+            }
+
+            var casos = new List<string>();
+            var total = 0;
+            for (var f = 0; f < csv.Filas.Count; f++)
+            {
+                foreach (var x in medidas)
+                {
+                    var largo = ArchivoCsv.Utf8(ArchivoCsv.Valor(csv.Filas[f], x.Indice)).Length;
+                    if (largo <= x.Maximo) continue;
+                    total++;
+                    if (casos.Count < MaximoCasosLargo)
+                    {
+                        casos.Add("fila " + (f + 1) + ", columna " + x.Fuente + " (" + x.Tabla + "." + x.Destino + "): " + largo
+                            + " caracteres, maximo " + x.Maximo);
+                    }
+                }
+            }
+            if (total == 0) return;
+            local.Trace("{0} valor(es) mas largos que su columna ({1}); no se parte.", total,
+                string.Join(", ", medidas.Select(x => x.Tabla + "." + x.Destino).Distinct()));
+            throw local.Error("hay " + total + " valor(es) mas largos de lo que admite su columna; no se creo nada y la importacion sigue igual. Corregi el archivo: "
+                + string.Join("; ", casos) + (total > casos.Count ? "; y " + (total - casos.Count) + " mas" : string.Empty) + ".");
+        }
+
+        /// <summary>MaxLength de las columnas de texto (y texto largo) de la tabla, por nombre logico.</summary>
+        private static Dictionary<string, int> LargosDeTabla(LocalContext local, IOrganizationService svc, string tabla)
+        {
+            EntityMetadata meta;
+            try
+            {
+                meta = svc.Execute(new RetrieveEntityRequest { LogicalName = tabla, EntityFilters = EntityFilters.Attributes })["EntityMetadata"] as EntityMetadata;
+            }
+            catch (FaultException<OrganizationServiceFault>)
+            {
+                throw local.Error("no se pudo leer la metadata de " + tabla + " para medir el largo de los valores.");
+            }
+            var res = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            if (meta == null || meta.Attributes == null) return res;
+            foreach (var a in meta.Attributes)
+            {
+                int? maximo = null;
+                var texto = a as StringAttributeMetadata;
+                if (texto != null) maximo = texto.MaxLength;
+                var memo = a as MemoAttributeMetadata;
+                if (memo != null) maximo = memo.MaxLength;
+                if (maximo.HasValue && maximo.Value > 0 && !string.IsNullOrEmpty(a.LogicalName)) res[a.LogicalName] = maximo.Value;
+            }
+            return res;
         }
 
         /// <summary>
