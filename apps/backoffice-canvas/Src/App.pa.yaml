@@ -52,6 +52,12 @@ App:
       // sanic_cm_PartirCarga hasta entonces, y la fórmula de btnPartirCar queda inerte).
       nfCargaParalela = true;
 
+      // Interruptor de la validación de largo en la prueba en seco y la carga en serie (btnValidarCar llama a
+      // sanic_cm_PartirCarga con SoloValidar = true antes de poner el job en cola). Pasar a true SOLO después de refrescar
+      // "Environment" en Studio: la foto del .msapr no conoce el parámetro SoloValidar (1.0.9.9) y la fórmula de
+      // btnValidarCar queda inerte; con true y la fórmula inerte, la carga quedaría sin lanzar.
+      nfValidarLargo = false;
+
       // Breakpoint responsive único del proyecto (00 §7).
       // Si Studio rechaza App.ActiveScreen acá, mover nfMovil a cada pantalla como Parent.Width < 920.
       nfMovil = App.ActiveScreen.Width < 920;

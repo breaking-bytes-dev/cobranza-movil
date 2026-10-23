@@ -31,7 +31,7 @@ Screens:
         Set(varArchivoCar, "");
         Set(varNombreCar, "");
         Set(varNuevoCar, Blank());
-        // Carga paralela (nfCargaParalela): fase del envío ("" | "partir" | "padres" | "partes" | "unico" | "fin"), jobs de
+        // Carga paralela (nfCargaParalela): fase del envío ("" | "validar" | "partir" | "padres" | "partes" | "unico" | "fin"), jobs de
         // las partes y conteos que devuelve sanic_cm_PartirCarga. Los esquemas se definen acá, en fórmulas válidas: la de
         // btnPartirCar queda inerte mientras la foto de "Environment" no conozca la API, y no puede ser la única que los define.
         Set(varFaseCar, "");
@@ -339,10 +339,14 @@ Screens:
                         Clear(colIdsParCar);
                         Clear(colPartesCar);
                         // Carga paralela: la carga REAL se parte en el servidor (btnPartirCar) antes de poner nada en cola.
-                        // La prueba en seco (y la carga real con nfCargaParalela = false) sigue igual: un job, archivo entero.
+                        // La prueba en seco (y la carga real con nfCargaParalela = false) va en un job, archivo entero; con
+                        // nfValidarLargo, antes el servidor mide el largo de los valores (btnValidarCar), que Smelter no detecta.
                         If(!varEsPruebaCar && nfCargaParalela,
                             Set(varFaseCar, "partir");
                             Select(btnPartirCar),
+                            nfValidarLargo,
+                            Set(varFaseCar, "validar");
+                            Select(btnValidarCar),
                             Set(varFaseCar, "unico");
                             Set(varArmarCar, DateAdd(Now(), 20, TimeUnit.Seconds));
                             Set(varPollCar, true)
@@ -415,6 +419,55 @@ Screens:
                         Set(varOcupadoCar, false)
                     )
                   Text: ="Partir"
+                  Visible: =false
+                  Width: =10
+            - btnValidarCar:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderThickness: =0
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =10
+                  OnSelect: |-
+                    =// Prueba en seco y carga en serie (nfValidarLargo): el job ya existe SIN estado y con el archivo entero
+                    // (btnEnviarCar). sanic_cm_PartirCarga con SoloValidar = true mide en el servidor el largo de cada valor
+                    // contra su columna (la prueba en seco de Smelter no lo detecta) y NO escribe nada. Si pasa, sigue como
+                    // siempre: el timer pone el job en cola 20 s después. Es la ÚNICA fórmula con SoloValidar: si la foto de
+                    // "Environment" no conoce el parámetro, queda inerte sola (por eso el interruptor nfValidarLargo).
+                    IfError(
+                        Set(varRespValCar,
+                            Environment.sanic_cm_PartirCarga({
+                                JobId: Text(varJobCar.'TBL | SMLT | Import Job'),
+                                Partes: 1,
+                                SoloValidar: true
+                            })
+                        );
+                        Set(varFaseCar, "unico");
+                        Set(varArmarCar, DateAdd(Now(), 20, TimeUnit.Seconds));
+                        Set(varPollCar, true),
+                        // No pasó (o no se pudo validar): el job no se pone en cola. Se marca Falló para que no quede «sin
+                        // lanzar» ni cuente como carga en curso en Reconciliación (Falló no dispara nada en Smelter).
+                        Set(varErrCar,
+                            If(IsMatch(FirstError.Message, "\d{13}", MatchOptions.Contains),
+                                "el detalle traía un número largo y no se muestra.",
+                                FirstError.Message));
+                        Notify("El archivo no pasó la revisión: " & varErrCar, NotificationType.Error);
+                        IfError(
+                            With({j: LookUp('TBL | SMLT | Import Jobs', 'TBL | SMLT | Import Job' = varJobCar.'TBL | SMLT | Import Job')},
+                                If(IsBlank(j.'[IJ] Status') && j.'[IJ] Import Template'.'TBL | SMLT | Import Template' = varPlantillaCar.'TBL | SMLT | Import Template',
+                                    Set(varJobCar, Patch('TBL | SMLT | Import Jobs', j,
+                                        {'[IJ] Status': '[IJ] Status (TBL | SMLT | Import Jobs)'.Failed}))
+                                )
+                            ),
+                            Notify("Tampoco se pudo marcar la carga como fallida: " & FirstError.Message, NotificationType.Warning)
+                        );
+                        Set(varMsgCar, "El archivo no pasó la revisión y NO se cargó nada: " & varErrCar);
+                        Set(varFaseCar, "fin");
+                        Set(varEstCar, 4);
+                        Set(varOcupadoCar, false)
+                    )
+                  Text: ="Validar"
                   Visible: =false
                   Width: =10
             - conConfirmCar:
@@ -664,6 +717,7 @@ Screens:
                         Size: =9
                         Text: |-
                           =If(varEstCar = -1 && varFaseCar = "partir", "⏳ Partiendo el archivo en el servidor: primero productos, fiadores y agentes; después las partes por cliente.",
+                              varEstCar = -1 && varFaseCar = "validar", "⏳ Revisando en el servidor que ningún valor sea más largo que su columna.",
                               varEstCar = -1, "⏳ Preparando la carga: el archivo ya subió, en unos segundos se pone en cola.",
                               varSigueCar, "⚠ La pantalla dejó de consultar después de 1 hora y media, pero la carga puede seguir en Smelter. Mirá su estado en «Mis últimas cargas» (se actualiza al volver a entrar) o avisá a soporte con el nombre de la carga.",
                               varVueltasCar > 400 && varFaseCar <> "padres", "⏳ Lleva más de 20 minutos y sigue en Smelter (una carga grande tarda). La pantalla consulta cada 30 segundos; si salís, el resultado queda en «Mis últimas cargas».",
