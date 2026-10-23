@@ -300,8 +300,10 @@ ComponentDefinitions:
                         FocusedBorderColor: =Color.White
                         FocusedBorderThickness: =2
                         Height: =Parent.TemplateHeight
+                        HoverColor: =Color.Transparent
                         HoverFill: =RGBA(255, 255, 255, 0.08)
                         OnSelect: =Select(Parent)
+                        PressedColor: =Color.Transparent
                         PressedFill: =RGBA(255, 255, 255, 0.14)
                         TabIndex: =0
                         Text: =ThisItem.Titulo

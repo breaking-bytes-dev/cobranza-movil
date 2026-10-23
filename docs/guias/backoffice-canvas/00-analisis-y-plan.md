@@ -3,8 +3,9 @@
 > **Fuente de verdad del DISEÑO:** `docs/mockups/backoffice-canvas.html` (aprobado 2026-09-13).
 > **Fuente de verdad del ESQUEMA:** auditoría de metadata en Dev del 2026-09-13 (workflow `diag-metadata`,
 > runs 34807850526 / 34807932049) — todos los display names de este paquete salieron de ahí, no de memoria.
-> **Reemplaza a:** la model-driven "App - CM - Backoffice" (`sanic_AppCMBackoffice`). La MDA queda como
-> respaldo hasta que la canvas pase UAT; no se borra en este proyecto.
+> **Reemplaza a:** la model-driven "App - CM - Backoffice" (`sanic_AppCMBackoffice`). La MDA se borró de DEV
+> el 2026-10-23 a pedido del dueño (con su sitemap, sus 13 app actions y su biblioteca de comandos); su
+> definición queda en el historial de git (`solutions/unpacked`, antes del commit que la quita).
 
 ## 1. Qué se construye
 

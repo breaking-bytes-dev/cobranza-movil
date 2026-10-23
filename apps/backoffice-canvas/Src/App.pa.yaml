@@ -229,5 +229,5 @@ App:
           gblNavMovilAbierta,
           false
       )
-    StartScreen: =scrInicio
+    StartScreen: =scrCarga
     Theme: =PowerAppsTheme

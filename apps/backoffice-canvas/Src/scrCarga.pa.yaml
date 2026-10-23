@@ -1,0 +1,86 @@
+Screens:
+  scrCarga:
+    Properties:
+      Fill: =ColorValue("#F2F4F7")
+      OnVisible: =Set(varVueltasCga, 0)
+    Children:
+      # Pantalla de carga (StartScreen). gblRol es una fórmula con nombre que lee de Dataverse el usuario, sus roles y
+      # sus teams: mientras no resuelve, los Visible de scrInicio no tienen valor y se veían TODOS los recuadros más
+      # «Sin acceso». Acá se espera el rol y recién ahí se entra a Inicio (su OnVisible corre ya con el rol).
+      # Colores literales: gblC se arma en OnStart, que puede no haber terminado todavía.
+      - conCentroCga:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            DropShadow: =DropShadow.None
+            Fill: =Color.Transparent
+            Height: =140
+            Width: =Min(Parent.Width - 32, 320)
+            X: =(Parent.Width - Self.Width) / 2
+            Y: =(Parent.Height - Self.Height) / 2
+          Children:
+            - conLogoCga:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Fill: =ColorValue("#0F6B6B")
+                  Height: =56
+                  RadiusBottomLeft: =12
+                  RadiusBottomRight: =12
+                  RadiusTopLeft: =12
+                  RadiusTopRight: =12
+                  Width: =56
+                  X: =(Parent.Width - Self.Width) / 2
+                  Y: =0
+                Children:
+                  - lblLogoCga:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =Align.Center
+                        Color: =Color.White
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =Parent.Height
+                        PaddingLeft: =0
+                        PaddingRight: =0
+                        Size: =20
+                        Text: ="₡"
+                        Width: =Parent.Width
+            - lblMarcaCga:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Center
+                  Color: =ColorValue("#101828")
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Bold
+                  Height: =28
+                  Size: =14
+                  Text: ="Cobranza Móvil"
+                  Width: =Parent.Width
+                  Y: =68
+            - lblCargandoCga:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Center
+                  Color: =ColorValue("#667085")
+                  Font: =Font.'Segoe UI'
+                  Height: =24
+                  Live: =Live.Polite
+                  Size: =10
+                  Text: ="Cargando" & Left("...", Mod(varVueltasCga, 4))
+                  Width: =Parent.Width
+                  Y: =100
+      - tmrCarga:
+          Control: Timer@2.1.0
+          Properties:
+            AutoStart: =true
+            Duration: =500
+            OnTimerEnd: |-
+              =Set(varVueltasCga, varVueltasCga + 1);
+              // Entra cuando el rol resolvió; si el usuario existe pero no tiene rol, a los 3 s (Inicio muestra «Sin acceso»);
+              // y como tope a los 15 s, para no quedar nunca trabado acá.
+              If(!IsBlank(gblRol) || (!IsBlank(gblUsuarioDV) && varVueltasCga >= 6) || varVueltasCga >= 30,
+                  Navigate(scrInicio, ScreenTransition.None))
+            Repeat: =true
+            Visible: =false

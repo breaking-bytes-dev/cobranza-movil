@@ -8,6 +8,7 @@
 # ************************************************************************************************
 EditorState:
   ScreensOrder:
+    - scrCarga
     - scrInicio
     - scrTranscripcion
     - scrTranscritas
