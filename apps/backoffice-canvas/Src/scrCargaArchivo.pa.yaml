@@ -942,7 +942,7 @@ Screens:
                                 Set(varErrHistCar, IfError(Left(Text(varPadSelCar.'TBL | SMLT | Import Job'), 0), Coalesce(FirstError.Message, "sin detalle")));
                                 If(IsBlank(varErrHistCar),
                                     IfError(
-                                    ClearCollect(colRelCar,
+                                    CountRows(ClearCollect(colRelCar,
                                         If(varAccSelCar.Accion = "cerrar",
                                             // Carga de la plantilla principal sin lanzar: el job mismo, solo si sigue sin estado.
                                             Filter(
@@ -955,7 +955,7 @@ Screens:
                                                 IsBlank('[IJ] Status')
                                             )
                                         )
-                                    ),
+                                    )) >= 0,
                                     Set(varErrHistCar, Coalesce(FirstError.Message, "sin detalle"))
                                     )
                                 );
@@ -1136,11 +1136,11 @@ Screens:
                   Set(varJobCar, varLeidoCar);
                   If(varFaseCar = "partes",
                       IfError(
-                          ClearCollect(colPartesCar,
+                          CountRows(ClearCollect(colPartesCar,
                               ForAll(colIdsParCar As P,
                                   LookUp('TBL | SMLT | Import Jobs', 'TBL | SMLT | Import Job' = P.Id)
                               )
-                          ),
+                          )) >= 0,
                           Notify("No se pudo consultar el avance: " & FirstError.Message, NotificationType.Warning)
                       )
                   ),
