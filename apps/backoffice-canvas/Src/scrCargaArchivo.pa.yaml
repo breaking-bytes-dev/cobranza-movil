@@ -665,7 +665,7 @@ Screens:
                         Text: |-
                           =If(varEstCar = -1 && varFaseCar = "partir", "⏳ Partiendo el archivo en el servidor: primero productos, fiadores y agentes; después las partes por cliente.",
                               varEstCar = -1, "⏳ Preparando la carga: el archivo ya subió, en unos segundos se pone en cola.",
-                              varSigueCar, "⚠ La pantalla dejó de consultar después de 3 horas, pero la carga puede seguir en Smelter. Mirá su estado en «Mis últimas cargas» (se actualiza al volver a entrar) o avisá a soporte con el nombre de la carga.",
+                              varSigueCar, "⚠ La pantalla dejó de consultar después de 1 hora y media, pero la carga puede seguir en Smelter. Mirá su estado en «Mis últimas cargas» (se actualiza al volver a entrar) o avisá a soporte con el nombre de la carga.",
                               varVueltasCar > 400 && varFaseCar <> "padres", "⏳ Lleva más de 20 minutos y sigue en Smelter (una carga grande tarda). La pantalla consulta cada 30 segundos; si salís, el resultado queda en «Mis últimas cargas».",
                               varFaseCar = "padres", "⏳ Paso 1 de 2: productos, fiadores y agentes (" & Text(varFilasPadCar, "#,##0") & " filas), solo. Si termina bien, se lanzan las " & CountRows(colPartesCar) & " partes en paralelo.",
                               varFaseCar = "partes", "⏳ Paso 2 de 2: " & CountRows(colPartesCar) & " partes en paralelo (" & Text(varFilasArchCar, "#,##0") & " filas). La pantalla consulta el avance cada 3 segundos.",
@@ -1093,10 +1093,11 @@ Screens:
                               If(CountIf(colPartesCar, '[IJ] Status' = '[IJ] Status (TBL | SMLT | Import Jobs)'.CompletedWithErrors) > 0, 3, 2))))
               );
               Set(varVueltasCar, varVueltasCar + 1);
-              // Tope: 400 vueltas de 3 s (20 min) + 360 de 30 s (3 h) ≈ 3 h 20 min para TODA la carga (padres y partes).
+              // Tope: 400 vueltas de 3 s (20 min) + 140 de 30 s (70 min) ≈ 1 h 30 min para TODA la carga (padres y partes).
+              // Era 3 h 20 min con la carga en serie (6.000 filas ~100 min); con la paralela 1.000 filas tardaron ~5 min.
               // Antes se cortaba a los 20 min y la pantalla quedaba en "Procesando" sin avisar aunque Smelter seguía cargando.
-              If(varEstCar < 2 && varVueltasCar > 760, Set(varSigueCar, true));
-              If(varFaseCar = "fin" || (varFaseCar <> "padres" && varEstCar >= 2) || varVueltasCar > 760,
+              If(varEstCar < 2 && varVueltasCar > 540, Set(varSigueCar, true));
+              If(varFaseCar = "fin" || (varFaseCar <> "padres" && varEstCar >= 2) || varVueltasCar > 540,
                   Set(varPollCar, false);
                   Set(varOcupadoCar, false);
                   // «Cargar» se habilita SOLO tras una prueba en seco Terminada y con 0 fallos, de ESTE archivo.
