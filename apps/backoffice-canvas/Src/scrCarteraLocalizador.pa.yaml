@@ -89,7 +89,11 @@ Screens:
                     =// Vuelve a pedir agentes y conteos (los CountIf de cada fila se recalculan).
                     Refresh('CM | TBL | Agentes');
                     Refresh('CM | TBL | Asignacions');
-                    Notify("Lista actualizada", NotificationType.Success, 2000)
+                    // Refresh no devuelve el error: se confirma con una lectura mínima de cada tabla (ver scrCargaArchivo).
+                    IfError(
+                        CountRows(FirstN('CM | TBL | Agentes', 1)) + CountRows(FirstN('CM | TBL | Asignacions', 1)) >= 0,
+                        Notify("No se pudo actualizar la lista: " & TextoError(Coalesce(FirstError.Message, "sin detalle")), NotificationType.Error),
+                        Notify("Lista actualizada", NotificationType.Success, 2000))
                   Size: =10
                   Text: ="↻ Actualizar"
                   Width: =150

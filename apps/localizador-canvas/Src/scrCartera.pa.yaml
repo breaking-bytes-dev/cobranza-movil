@@ -14,15 +14,27 @@ Screens:
         =// ESCALA: el orden 1..n vive en memoria; solo se guarda cuando el cobrador movió un cliente (dirty), y solo el tramo de
         // arriba hasta la posición más baja que movió (p). Lo de abajo ya tiene un orden guardado mayor o va al final alfabético,
         // así que la lista se ve igual en la próxima carga. Antes se reescribía toda la cartera (2.336 escrituras, más de 10 min).
-        IfError(
+        // Cada escritura se verifica aparte (ver scrCargaArchivo): ForAll devuelve el error de cada UpdateIf (texto vacío = salió bien)
+        // y el orden NO se marca como guardado si alguna falló (antes se marcaba igual y se perdía sin aviso).
+        If(!IfError(
             With({ p: Max(Filter(colClientes, dirty), orden) },
-                 If(!IsBlank(p),
-                    ForAll(Filter(colClientes, orden <= p && Coalesce(ordGuardado, 0) <> orden) As C,
-                       ForAll(Filter(colAsig, cid = C.cid) As A,
-                          UpdateIf('CM | TBL | Asignacions',
-                             'CM | TBL | Asignacion' = A.'CM | TBL | Asignacion',
-                             { '[AS] Orden': C.orden })));
-                    UpdateIf(colClientes, orden <= p, { ordGuardado: orden, dirty: false }))),
+                If(IsBlank(p), true,
+                    With({ fallas: Concat(
+                            ForAll(Filter(colClientes, orden <= p && Coalesce(ordGuardado, 0) <> orden) As C,
+                                Concat(
+                                    ForAll(Filter(colAsig, cid = C.cid) As A,
+                                        IfError(
+                                            UpdateIf('CM | TBL | Asignacions',
+                                                'CM | TBL | Asignacion' = A.'CM | TBL | Asignacion',
+                                                { '[AS] Orden': C.orden }),
+                                            Coalesce(FirstError.Message, "sin detalle") & " ",
+                                            "")),
+                                    Value)),
+                            Value) },
+                        // Solo si TODAS las escrituras salieron bien se marca el tramo como guardado (dirty = false); si no, se reintenta.
+                        If(IsBlank(fallas), UpdateIf(colClientes, orden <= p, { ordGuardado: orden, dirty: false }));
+                        IsBlank(fallas)))),
+            false),
             Notify("No se pudo guardar el orden de la cartera. Se reintenta al salir de nuevo.", NotificationType.Warning))
       OnVisible: |-
         =// La cartera se arma en btnCargarCartera (también la usan ↻ y Sincronización): al entrar la primera vez o si se pidió recargar.
@@ -123,14 +135,26 @@ Screens:
                               Height: =If(gblScale = 1, 30,gblScale = 1.2,34,gblScale = 1.45,40,46)
                               OnSelect: |-
                                 =// APP-13: primero el orden; si no se pudo guardar, no se recarga (se perdería) y se avisa.
-                                UpdateContext({okOrden: IfError(With({ p: Max(Filter(colClientes, dirty), orden) },
-                                          If(!IsBlank(p),
-                                             ForAll(Filter(colClientes, orden <= p && Coalesce(ordGuardado, 0) <> orden) As C,
-                                                ForAll(Filter(colAsig, cid = C.cid) As A,
-                                                   UpdateIf('CM | TBL | Asignacions',
-                                                      'CM | TBL | Asignacion' = A.'CM | TBL | Asignacion',
-                                                      { '[AS] Orden': C.orden })));
-                                             UpdateIf(colClientes, orden <= p, { ordGuardado: orden, dirty: false }))); true, false)});
+                                // Cada escritura se verifica aparte (ver scrCargaArchivo): okOrden es true solo si NINGÚN UpdateIf falló.
+                                UpdateContext({okOrden: IfError(
+                                    With({ p: Max(Filter(colClientes, dirty), orden) },
+                                        If(IsBlank(p), true,
+                                            With({ fallas: Concat(
+                                                    ForAll(Filter(colClientes, orden <= p && Coalesce(ordGuardado, 0) <> orden) As C,
+                                                        Concat(
+                                                            ForAll(Filter(colAsig, cid = C.cid) As A,
+                                                                IfError(
+                                                                    UpdateIf('CM | TBL | Asignacions',
+                                                                        'CM | TBL | Asignacion' = A.'CM | TBL | Asignacion',
+                                                                        { '[AS] Orden': C.orden }),
+                                                                    Coalesce(FirstError.Message, "sin detalle") & " ",
+                                                                    "")),
+                                                            Value)),
+                                                    Value) },
+                                                // Solo si TODAS las escrituras salieron bien se marca el tramo como guardado (dirty = false); si no, se reintenta.
+                                                If(IsBlank(fallas), UpdateIf(colClientes, orden <= p, { ordGuardado: orden, dirty: false }));
+                                                IsBlank(fallas)))),
+                                    false)});
                                 If(okOrden,
                                     Select(btnCargarCartera),
                                     Notify("No se pudo guardar el orden de la cartera; no se recargó para no perderlo. Reintentá con señal.", NotificationType.Warning))

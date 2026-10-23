@@ -1571,8 +1571,10 @@ Screens:
                     Set(varAvisosAlt, "");
                     Set(varErrorAlt, "");
                     Set(varEstAlt, -1);
-                    IfError(
-                        Set(varRespAlt,
+                    // Cada acción se verifica aparte (ver scrCargaArchivo): en una cadena IfError solo ve el último paso, y un rechazo
+                    // de la API pasaba de largo (la pantalla seguía por el camino de éxito con una respuesta vieja). "" = salió bien.
+                    Set(varRespAlt, Blank());
+                    Set(varRespAlt,
                             Environment.sanic_cm_AltaCuenta({
                                 CIF: Trim(txtCifAlt.Text),
                                 Cliente: Trim(txtCliAlt.Text),
@@ -1599,17 +1601,22 @@ Screens:
                                 RetiroUSD: If(cmbTipoAlt.Selected.Value = "Especial", Value(txtRetUsdAlt.Text), Blank()),
                                 EsPrueba: varEsPruebaAlt
                             })
-                        );
+                    );
+                    Set(varErrorAlt, IfError(If(IsBlank(varRespAlt.JobId), "el servidor no devolvió el job", Left(Text(varRespAlt.JobId), 0)), Coalesce(FirstError.Message, "sin detalle")));
+                    If(IsBlank(varErrorAlt),
                         Set(varAvisosAlt, varRespAlt.Advertencias);
                         Set(varJobAlt, LookUp('TBL | SMLT | Import Jobs', 'TBL | SMLT | Import Job' = GUID(varRespAlt.JobId)));
+                        Set(varErrorAlt, If(IsBlank(varJobAlt), "no se encontró el job recién creado", ""))
+                    );
+                    // El mensaje del servidor nunca trae el número; igual, si apareciera una secuencia de 13 dígitos, no se muestra.
+                    Set(varErrorAlt,
+                        If(IsMatch(varErrorAlt, "\d{13}", MatchOptions.Contains),
+                            "El servidor rechazó el alta. El detalle traía un número largo y no se muestra.",
+                            varErrorAlt));
+                    If(IsBlank(varErrorAlt),
                         Set(varArmarAlt, DateAdd(Now(), 20, TimeUnit.Seconds));
                         Set(varVueltasAlt, 0);
                         Set(varPollAlt, true),
-                        // El mensaje del servidor nunca trae el número; igual, si apareciera una secuencia de 13 dígitos, no se muestra.
-                        Set(varErrorAlt,
-                            If(IsMatch(FirstError.Message, "\d{13}", MatchOptions.Contains),
-                                "El servidor rechazó el alta. El detalle traía un número largo y no se muestra.",
-                                FirstError.Message));
                         Notify("No se pudo registrar el alta: " & varErrorAlt, NotificationType.Error);
                         Set(varEstAlt, 0);
                         Set(varOcupadoAlt, false)
@@ -1829,24 +1836,29 @@ Screens:
               // Fase 2 · sondeo cada ~3 s hasta que Smelter lo termine (2 Completed, 3 CompletedWithErrors, 4 Failed).
               If(!IsBlank(varArmarAlt),
                   If(Now() >= varArmarAlt,
-                      IfError(
-                          Set(varJobAlt,
-                              Patch('TBL | SMLT | Import Jobs', varJobAlt,
-                                  {'[IJ] Status': '[IJ] Status (TBL | SMLT | Import Jobs)'.Queued}
-                              )
-                          );
+                      // Cada acción se verifica aparte (ver scrCargaArchivo): en una cadena IfError solo ve el último paso.
+                      Set(varPatEncAlt,
+                          Patch('TBL | SMLT | Import Jobs', varJobAlt,
+                              {'[IJ] Status': '[IJ] Status (TBL | SMLT | Import Jobs)'.Queued}
+                          )
+                      );
+                      Set(varErrEncAlt, IfError(Left(Text(varPatEncAlt.'TBL | SMLT | Import Job'), 0), Coalesce(FirstError.Message, "sin detalle")));
+                      If(IsBlank(varErrEncAlt),
+                          Set(varJobAlt, varPatEncAlt);
                           Set(varArmarAlt, Blank());
                           Set(varEstAlt, 0),
-                          Notify("No se pudo poner el alta en cola: " & FirstError.Message, NotificationType.Error);
+                          Notify("No se pudo poner el alta en cola: " & varErrEncAlt, NotificationType.Error);
                           Set(varArmarAlt, Blank());
                           Set(varPollAlt, false);
                           Set(varOcupadoAlt, false)
                       )
                   ),
                   Refresh('TBL | SMLT | Import Jobs');
-                  IfError(
-                      Set(varJobAlt, LookUp('TBL | SMLT | Import Jobs', 'TBL | SMLT | Import Job' = varJobAlt.'TBL | SMLT | Import Job')),
-                      Notify("No se pudo consultar el avance: " & FirstError.Message, NotificationType.Warning)
+                  Set(varLeidoAlt, LookUp('TBL | SMLT | Import Jobs', 'TBL | SMLT | Import Job' = varJobAlt.'TBL | SMLT | Import Job'));
+                  Set(varErrLeeAlt, IfError(Left(Text(varLeidoAlt.'TBL | SMLT | Import Job'), 0), Coalesce(FirstError.Message, "sin detalle")));
+                  If(IsBlank(varErrLeeAlt),
+                      Set(varJobAlt, varLeidoAlt),
+                      Notify("No se pudo consultar el avance: " & varErrLeeAlt, NotificationType.Warning)
                   );
                   Set(varEstAlt,
                       Switch(varJobAlt.'[IJ] Status',

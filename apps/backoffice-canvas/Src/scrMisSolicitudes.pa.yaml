@@ -61,7 +61,8 @@ Screens:
             Font: =Font.'Segoe UI'
             Height: =gblE.AltoBoton
             OnSelect: |-
-              =ClearCollect(colSolSol,
+              =// La lectura se verifica (ver scrCargaArchivo): sin esto, el ✓ salía aunque fallara.
+              Set(varErrSol, IfError(Left(Text(CountRows(ClearCollect(colSolSol,
                   Sort(
                       AddColumns(
                           Filter('CM | TBL | Asignacions',
@@ -83,8 +84,10 @@ Screens:
                       ),
                       '[AS] Fecha de Asignacion', SortOrder.Descending
                   )
-              );
-              Notify("✓ Lista actualizada", NotificationType.Success, 2500)
+              ))), 0), Coalesce(FirstError.Message, "sin detalle")));
+              If(IsBlank(varErrSol),
+                  Notify("✓ Lista actualizada", NotificationType.Success, 2500),
+                  Notify("No se pudo actualizar la lista: " & TextoError(varErrSol), NotificationType.Error))
             Size: =9
             Text: ="↻ Actualizar"
             Width: =130

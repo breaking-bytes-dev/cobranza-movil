@@ -59,8 +59,11 @@ Screens:
                   Height: =gblE.AltoBoton
                   HoverFill: =ColorFade(gblC.card, 10%)
                   OnSelect: |-
-                    =ClearCollect(colAgentesAge, Sort('CM | TBL | Agentes', '[AG] Nombre'));
-                    Notify("Lista actualizada", NotificationType.Success, 2000)
+                    =// La lectura se verifica (ver scrCargaArchivo): sin esto, el aviso salía aunque fallara.
+                    IfError(
+                        CountRows(ClearCollect(colAgentesAge, Sort('CM | TBL | Agentes', '[AG] Nombre'))) >= 0,
+                        Notify("No se pudo actualizar la lista: " & TextoError(Coalesce(FirstError.Message, "sin detalle")), NotificationType.Error),
+                        Notify("Lista actualizada", NotificationType.Success, 2000))
                   Size: =10
                   Text: ="↻ Actualizar"
                   Width: =150

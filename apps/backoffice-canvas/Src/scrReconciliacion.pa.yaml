@@ -29,31 +29,38 @@ Screens:
         // en Studio y, empaquetado con pac, deja TODO el OnVisible inerte sin aviso (2026-10-22: la pantalla no contaba nada).
         // Delegación: '[IJ] Status' = opción delega; IsBlank sobre una opción NO (doc de Dataverse), así que los «sin estado»
         // se buscan entre los jobs creados desde varDesdeRec (consulta delegable por fecha, pocos registros) y se cuentan acá.
+        // Cada lectura se verifica aparte (ver scrCargaArchivo): en una cadena IfError solo ve el último paso, y un error
+        // intermedio dejaba el bloqueo en su valor anterior (fallaba ABIERTO). Acá, si algo no se pudo leer, queda en blanco/false
+        // y varVerifCargaRec lo bloquea.
         Set(varDesdeRec, DateAdd(Now(), -12, TimeUnit.Hours));
-        Set(varTplPrinRec, LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil").'TBL | SMLT | Import Template');
-        Set(varTplPadRec, Coalesce(LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil · padres").'TBL | SMLT | Import Template', varTplPrinRec));
-        Set(varTplParRec, Coalesce(LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil · partes").'TBL | SMLT | Import Template', varTplPrinRec));
-        IfError(
-            Set(varEnColaRec,
+        Set(varTplPrinRec, IfError(LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil").'TBL | SMLT | Import Template', Blank()));
+        Set(varTplPadRec, IfError(Coalesce(LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil · padres").'TBL | SMLT | Import Template', varTplPrinRec), Blank()));
+        Set(varTplParRec, IfError(Coalesce(LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil · partes").'TBL | SMLT | Import Template', varTplPrinRec), Blank()));
+        Set(varEnColaRec,
+            IfError(
                 !IsBlank(LookUp('TBL | SMLT | Import Jobs',
                     '[IJ] Is Dry Run' = false
                     && ('[IJ] Import Template'.'TBL | SMLT | Import Template' = varTplPrinRec || '[IJ] Import Template'.'TBL | SMLT | Import Template' = varTplPadRec || '[IJ] Import Template'.'TBL | SMLT | Import Template' = varTplParRec)
                     && ('[IJ] Status' = '[IJ] Status (TBL | SMLT | Import Jobs)'.Queued
                         || '[IJ] Status' = '[IJ] Status (TBL | SMLT | Import Jobs)'.Processing)
-                ))
-            );
-            ClearCollect(colJobsRec,
-                Filter('TBL | SMLT | Import Jobs',
-                    '[IJ] Is Dry Run' = false
-                    && ('[IJ] Import Template'.'TBL | SMLT | Import Template' = varTplPrinRec || '[IJ] Import Template'.'TBL | SMLT | Import Template' = varTplPadRec || '[IJ] Import Template'.'TBL | SMLT | Import Template' = varTplParRec)
-                    && 'Created On' >= varDesdeRec
-                )
-            );
-            Set(varEnCursoRec, varEnColaRec || CountIf(colJobsRec, IsBlank('[IJ] Status')) > 0);
-            Set(varVerifCargaRec, !IsBlank(varTplPrinRec)),
-            Set(varEnCursoRec, false);
-            Set(varVerifCargaRec, false)
+                )),
+                Blank()
+            )
         );
+        Set(varLeyoJobsRec,
+            IfError(
+                CountRows(ClearCollect(colJobsRec,
+                    Filter('TBL | SMLT | Import Jobs',
+                        '[IJ] Is Dry Run' = false
+                        && ('[IJ] Import Template'.'TBL | SMLT | Import Template' = varTplPrinRec || '[IJ] Import Template'.'TBL | SMLT | Import Template' = varTplPadRec || '[IJ] Import Template'.'TBL | SMLT | Import Template' = varTplParRec)
+                        && 'Created On' >= varDesdeRec
+                    )
+                )) >= 0,
+                false
+            )
+        );
+        Set(varEnCursoRec, Coalesce(varEnColaRec, false) || CountIf(colJobsRec, IsBlank('[IJ] Status')) > 0);
+        Set(varVerifCargaRec, !IsBlank(varTplPrinRec) && !IsBlank(varTplPadRec) && !IsBlank(varTplParRec) && !IsBlank(varEnColaRec) && varLeyoJobsRec);
         Set(varCargaBloqRec, !varVerifCargaRec || varEnCursoRec);
         Set(varCorteRec, With({d0: DateTime(Year(nfUltimaCarga), Month(nfUltimaCarga), Day(nfUltimaCarga), 0, 0, 0)},
             DateAdd(d0, -TimeZoneOffset(d0), TimeUnit.Minutes)));
@@ -430,31 +437,38 @@ Screens:
                         OnCheck: |-
                           =// Habilitación fresca: al confirmar se vuelve a mirar si hay una carga en curso (la pantalla pudo
                           // quedar abierta mientras empezaba una). Mismo bloque que el OnVisible.
+                          // Cada lectura se verifica aparte (ver scrCargaArchivo): en una cadena IfError solo ve el último paso, y un error
+                          // intermedio dejaba el bloqueo en su valor anterior (fallaba ABIERTO). Acá, si algo no se pudo leer, queda en blanco/false
+                          // y varVerifCargaRec lo bloquea.
                           Set(varDesdeRec, DateAdd(Now(), -12, TimeUnit.Hours));
-                          Set(varTplPrinRec, LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil").'TBL | SMLT | Import Template');
-                          Set(varTplPadRec, Coalesce(LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil · padres").'TBL | SMLT | Import Template', varTplPrinRec));
-                          Set(varTplParRec, Coalesce(LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil · partes").'TBL | SMLT | Import Template', varTplPrinRec));
-                          IfError(
-                              Set(varEnColaRec,
+                          Set(varTplPrinRec, IfError(LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil").'TBL | SMLT | Import Template', Blank()));
+                          Set(varTplPadRec, IfError(Coalesce(LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil · padres").'TBL | SMLT | Import Template', varTplPrinRec), Blank()));
+                          Set(varTplParRec, IfError(Coalesce(LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil · partes").'TBL | SMLT | Import Template', varTplPrinRec), Blank()));
+                          Set(varEnColaRec,
+                              IfError(
                                   !IsBlank(LookUp('TBL | SMLT | Import Jobs',
                                       '[IJ] Is Dry Run' = false
                                       && ('[IJ] Import Template'.'TBL | SMLT | Import Template' = varTplPrinRec || '[IJ] Import Template'.'TBL | SMLT | Import Template' = varTplPadRec || '[IJ] Import Template'.'TBL | SMLT | Import Template' = varTplParRec)
                                       && ('[IJ] Status' = '[IJ] Status (TBL | SMLT | Import Jobs)'.Queued
                                           || '[IJ] Status' = '[IJ] Status (TBL | SMLT | Import Jobs)'.Processing)
-                                  ))
-                              );
-                              ClearCollect(colJobsRec,
-                                  Filter('TBL | SMLT | Import Jobs',
-                                      '[IJ] Is Dry Run' = false
-                                      && ('[IJ] Import Template'.'TBL | SMLT | Import Template' = varTplPrinRec || '[IJ] Import Template'.'TBL | SMLT | Import Template' = varTplPadRec || '[IJ] Import Template'.'TBL | SMLT | Import Template' = varTplParRec)
-                                      && 'Created On' >= varDesdeRec
-                                  )
-                              );
-                              Set(varEnCursoRec, varEnColaRec || CountIf(colJobsRec, IsBlank('[IJ] Status')) > 0);
-                              Set(varVerifCargaRec, !IsBlank(varTplPrinRec)),
-                              Set(varEnCursoRec, false);
-                              Set(varVerifCargaRec, false)
+                                  )),
+                                  Blank()
+                              )
                           );
+                          Set(varLeyoJobsRec,
+                              IfError(
+                                  CountRows(ClearCollect(colJobsRec,
+                                      Filter('TBL | SMLT | Import Jobs',
+                                          '[IJ] Is Dry Run' = false
+                                          && ('[IJ] Import Template'.'TBL | SMLT | Import Template' = varTplPrinRec || '[IJ] Import Template'.'TBL | SMLT | Import Template' = varTplPadRec || '[IJ] Import Template'.'TBL | SMLT | Import Template' = varTplParRec)
+                                          && 'Created On' >= varDesdeRec
+                                      )
+                                  )) >= 0,
+                                  false
+                              )
+                          );
+                          Set(varEnCursoRec, Coalesce(varEnColaRec, false) || CountIf(colJobsRec, IsBlank('[IJ] Status')) > 0);
+                          Set(varVerifCargaRec, !IsBlank(varTplPrinRec) && !IsBlank(varTplPadRec) && !IsBlank(varTplParRec) && !IsBlank(varEnColaRec) && varLeyoJobsRec);
                           Set(varCargaBloqRec, !varVerifCargaRec || varEnCursoRec)
                         Size: =9
                         Text: |-

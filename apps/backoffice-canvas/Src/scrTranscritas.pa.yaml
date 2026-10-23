@@ -108,7 +108,9 @@ Screens:
               Collect(colPagosHoyTsc, Filter('CM | TBL | Pagos', 'Fecha del pago' >= Today() && '[PG] Tramo' = Blank()));
               If(CountRows(colPagosHoyTsc) >= 30000,
                   Notify("Hoy hay más de 30.000 pagos: el arqueo de esta pantalla puede estar incompleto. Avisá a soporte.", NotificationType.Warning));
-              ClearCollect(colTscTmpTsc,
+              // La lectura principal se verifica aparte (ver scrCargaArchivo): sin esto, el ✓ salía aunque la lectura fallara.
+              Set(varErrTsc, IfError(Left(Text(varNTscTsc), 0), Coalesce(FirstError.Message, "sin detalle")));
+              Set(varErrTsc, varErrTsc & IfError(Left(Text(CountRows(ClearCollect(colTscTmpTsc,
                   AddColumns(
                       Filter('CM | TBL | Interaccions',
                           '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Grabado
@@ -125,7 +127,7 @@ Screens:
                           !IsBlank(LookUp('CM | TBL | Actualizacion de datos', '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = IntTsc.'[IN] Cuenta'.'CM | TBL | Cuenta')), "sinv",
                           "falta")
                   )
-              );
+              ))), 0), " " & Coalesce(FirstError.Message, "sin detalle")));
               ClearCollect(colPagosTsc,
                   Filter(colPagosHoyTsc,
                       !IsBlank(LookUp(colTscTmpTsc, '[IN] Numero de Interaccion' = '[PG] Numero Interaccion'))));
@@ -139,7 +141,9 @@ Screens:
                           && '[PG] Moneda' = 'Choice | CM | Monedas en Pago'.USD), '[PG] Monto')
                   )
               );
-              Notify("✓ Arqueo actualizado", NotificationType.Success, 2500)   // LED-05
+              If(IsBlank(varErrTsc),
+                  Notify("✓ Arqueo actualizado", NotificationType.Success, 2500),   // LED-05
+                  Notify("No se pudo actualizar el arqueo: " & TextoError(varErrTsc), NotificationType.Error))
             Size: =10
             Text: ="↻ Actualizar"
             Width: =140

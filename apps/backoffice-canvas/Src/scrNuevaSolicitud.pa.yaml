@@ -576,17 +576,19 @@ Screens:
                     // IfError (B-03): si la API falla se muestra el detalle y el formulario NO se limpia.
                     With(
                         {_cta: CuentaMasc(varCtaNva.'Últimos 4')},
-                        IfError(
-                            // El resultado se lee DENTRO del primer argumento, encadenado con «;». En el tercero (DefaultResult)
-                            // varRespNva todavía tenía la respuesta de la llamada ANTERIOR (verificado en la UI, 2026-10-15).
-                            Set(varRespNva,
-                                Environment.sanic_cm_SolicitarEspecial({
-                                    CuentaId: Text(varCtaNva.'CM | TBL | Cuenta'),
-                                    Notas: cmbTipoNva.Selected.Value & " — " & Trim(txtMotivoNva.Text),
-                                    RetiroNio: Coalesce(Value(txtRetiroNioNva.Text), 0),
-                                    RetiroUsd: Coalesce(Value(txtRetiroUsdNva.Text), 0)
-                                })
-                            );
+                        // Cada acción se verifica aparte (ver scrCargaArchivo): en una cadena IfError solo ve el último paso, y un rechazo
+                        // de la API pasaba de largo con la respuesta de la llamada ANTERIOR (verificado en la UI, 2026-10-15). "" = salió bien.
+                        Set(varRespNva, Blank());
+                        Set(varRespNva,
+                            Environment.sanic_cm_SolicitarEspecial({
+                                CuentaId: Text(varCtaNva.'CM | TBL | Cuenta'),
+                                Notas: cmbTipoNva.Selected.Value & " — " & Trim(txtMotivoNva.Text),
+                                RetiroNio: Coalesce(Value(txtRetiroNioNva.Text), 0),
+                                RetiroUsd: Coalesce(Value(txtRetiroUsdNva.Text), 0)
+                            })
+                        );
+                        Set(varErrNva, IfError(If(IsBlank(varRespNva.Resultado), "el servidor no devolvió resultado", Left(Text(varRespNva.Resultado), 0)), Coalesce(FirstError.Message, "sin detalle")));
+                        If(IsBlank(varErrNva),
                             If(varRespNva.Resultado = "ya existe",
                                 // Activa (de esta persona o de otra): no se crea otra. Se dice en qué estado está y quién la pidió.
                                 Notify(
@@ -611,7 +613,7 @@ Screens:
                                 Refresh('CM | TBL | Asignacions');
                                 Navigate(scrMisSolicitudes)
                             ),
-                            Notify("No se pudo enviar la solicitud de la cuenta " & _cta & ": " & FirstError.Message, NotificationType.Error)
+                            Notify("No se pudo enviar la solicitud de la cuenta " & _cta & ": " & varErrNva, NotificationType.Error)
                         )
                     )
                   Size: =10

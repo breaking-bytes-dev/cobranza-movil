@@ -256,8 +256,8 @@ Screens:
                       Properties:
                         BorderThickness: =0
                         Color: =gblC.okInk
-                        DisabledColor: =Color.White
-                        DisabledFill: =ColorFade(gblC.okBg, 60%)
+                        DisabledColor: =gblC.muted
+                        DisabledFill: =gblC.hairline
                         DisplayMode: |-
                           =If(!varOcupadoCar && !IsBlank(varPlantillaCar) && !IsBlank(varValidadoCar)
                               && CountRows(attArchivoCar.Attachments) = 1
@@ -395,7 +395,7 @@ Screens:
                             Partes: nfPartesCarga
                         })
                     );
-                    Set(varErrCar, IfError(Left(Text(varRespParCar.FilasArchivo), 0), Coalesce(FirstError.Message, "sin detalle")));
+                    Set(varErrCar, IfError(Left(Text(varRespParCar.FilasArchivo), 0), TextoError(Coalesce(FirstError.Message, "sin detalle"))));
                     Set(varErrCar, If(IsMatch(varErrCar, "\d{13}", MatchOptions.Contains), "el detalle traía un número largo y no se muestra.", varErrCar));
                     If(IsBlank(varErrCar),
                         Set(varPartidoCar, Now());
@@ -458,7 +458,7 @@ Screens:
                             SoloValidar: true
                         })
                     );
-                    Set(varErrCar, IfError(Left(Text(varRespValCar.FilasArchivo), 0), Coalesce(FirstError.Message, "sin detalle")));
+                    Set(varErrCar, IfError(Left(Text(varRespValCar.FilasArchivo), 0), TextoError(Coalesce(FirstError.Message, "sin detalle"))));
                     Set(varErrCar, If(IsMatch(varErrCar, "\d{13}", MatchOptions.Contains), "el detalle traía un número largo y no se muestra.", varErrCar));
                     If(IsBlank(varErrCar),
                         Set(varFaseCar, "unico");
@@ -581,7 +581,8 @@ Screens:
                   PaddingRight: =gblE.Pad
                   Size: =10
                   Text: |-
-                    ="⚠ No salgas de esta pantalla hasta que arranquen las partes. Las pone en cola esta pantalla cuando termina la primera etapa; si salís antes, quedan sin lanzar y hay que relanzarlas desde «Mis últimas cargas»."
+                    =// tmrAvanceCar tiene AutoPause = false: sigue andando en otra pantalla de la app. Lo que corta es cerrar o recargar.
+                    "⚠ No cierres ni recargues la app hasta que arranquen las partes; podés usar otras pantallas. Si la cerrás antes, las partes quedan sin lanzar y hay que relanzarlas desde «Mis últimas cargas»."
                   VerticalAlign: =VerticalAlign.Middle
                   Visible: |-
                     =// Carga paralela: desde que se parte el archivo hasta que las partes quedan en cola (fase «partes» o «fin»).
@@ -916,6 +917,9 @@ Screens:
                               BorderColor: =If(LookUp(colAccionCar, Id = ThisItem.'TBL | SMLT | Import Job').Accion = "relanzar", gblC.teal, gblC.redInk)
                               BorderThickness: =1
                               Color: =If(LookUp(colAccionCar, Id = ThisItem.'TBL | SMLT | Import Job').Accion = "relanzar", gblC.teal, gblC.redInk)
+                              DisabledBorderColor: =gblC.borde
+                              DisabledColor: =gblC.muted
+                              DisabledFill: =gblC.hairline
                               DisplayMode: =If(varOcupadoCar || varPollCar, DisplayMode.Disabled, DisplayMode.Edit)
                               Fill: =If(LookUp(colAccionCar, Id = ThisItem.'TBL | SMLT | Import Job').Accion = "relanzar", gblC.tealSuave, gblC.redBg)
                               FocusedBorderColor: =gblC.ink

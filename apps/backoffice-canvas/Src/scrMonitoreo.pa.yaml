@@ -271,7 +271,11 @@ Screens:
                     // nfUltimaCarga es fórmula con nombre (01 §3): se reevalúa tras el Refresh de arriba (F1);
                     // varHayCargaMon es variable normal, por eso el Set sigue siendo necesario.
                     Set(varHayCargaMon, nfUltimaCarga >= Today());
-                    Notify("✓ Datos actualizados", NotificationType.Success, 2500)
+                    // Cada Set guardó el error de su lectura (si la hubo): se lee aparte (ver scrCargaArchivo).
+                    IfError(
+                        varNCargaHoyMon + varNCtasMon + varNCliMon >= 0 && (varHayCargaMon || true),
+                        Notify("No se pudieron actualizar los datos: " & TextoError(Coalesce(FirstError.Message, "sin detalle")), NotificationType.Error),
+                        Notify("✓ Datos actualizados", NotificationType.Success, 2500))
                   Size: =10
                   Text: ="↻ Actualizar"
                   X: =Parent.Width - Self.Width

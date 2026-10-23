@@ -1442,6 +1442,10 @@ Screens:
                             Set(varNuevoCliMae, LookUp('CM | TBL | Clientes', '[CL] CIF' = Trim(txtCifNvoMae.Text)));
                             // Hijos opcionales: un Patch por cada tel/dir NO vacío, con lookup + CIF denormalizado.
                             // IfError por pares: se corta en el primer hijo que falle y avisa (el cliente YA existe).
+                            // Si el LookUp no lo encontró (lectura fallida o demora), NO se graban hijos con el lookup vacío.
+                            If(IsBlank(varNuevoCliMae),
+                                Notify("Cliente " & Trim(txtCifNvoMae.Text) & " creado, pero no se pudo releer para grabar teléfonos y direcciones: agregalos desde editar.",
+                                    NotificationType.Warning),
                             IfError(
                                 If(!IsBlank(Trim(txtTelCelNvoMae.Text)),
                                     Patch('CM | TBL | Telefonos', Defaults('CM | TBL | Telefonos'),
@@ -1468,7 +1472,7 @@ Screens:
                                 Notify("Cliente creado, pero no se pudo grabar la dirección de trabajo: " & FirstError.Message,
                                     NotificationType.Error),
                                 Notify("✓ Cliente " & varNuevoCliMae.'[CL] Nombre' & " creado", NotificationType.Success, 2500)
-                            );
+                            ));
                             // Cerrar limpio (el cliente existe; si falló un hijo, se agrega desde editar).
                             Reset(txtCifNvoMae); Reset(txtNombreNvoMae); Reset(txtDeptoNvoMae); Reset(txtDistritoNvoMae);
                             Reset(txtTrabajoNvoMae); Reset(txtTelCelNvoMae); Reset(txtTelCasNvoMae);
