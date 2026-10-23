@@ -686,8 +686,8 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         {
             var e = new Escenario(Admin);
             Entradas(e, 1);
-            e.Original = ArchivoDe(Fila(0), "\"Nombre Q, 1\",ZQX-1,CTQ-1,PRQ1,FIQ1,Dir ñ,AGQ1,Diaria"); // "Dir ñ": 5 caracteres, 6 bytes
-            e.Largos["sanic_cm_tbl_fiador"]["sanic_cm_fi_direccion"] = 5;
+            e.Original = ArchivoDe(Fila(0), "\"Nombre Q, 1\",ZQX-1,CTQ-1,PRQ1,FIQ1,Dir ñ1,AGQ1,Diaria"); // "Dir ñ1": 6 caracteres, 7 bytes ("Dir, 0" tambien tiene 6)
+            e.Largos["sanic_cm_tbl_fiador"]["sanic_cm_fi_direccion"] = 6;
             e.Ejecutar();
             Assert.Single(e.Creados);
         }
