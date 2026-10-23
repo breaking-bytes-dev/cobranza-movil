@@ -184,6 +184,8 @@ namespace Sanic.CobranzaMovil.Plugins
         public const string MensajePartirCarga = "sanic_cm_PartirCarga";
         public const string ParamJobId = "JobId";
         public const string ParamPartes = "Partes";
+        /// <summary>1.0.9.9, opcional: true = solo mide el largo de los valores (prueba en seco y carga en serie), sin escribir.</summary>
+        public const string ParamSoloValidar = "SoloValidar";
         public const string SalidaPadresJobId = "PadresJobId";
         public const string SalidaPartesJobIds = "PartesJobIds";
         public const string SalidaPartes = "Partes";

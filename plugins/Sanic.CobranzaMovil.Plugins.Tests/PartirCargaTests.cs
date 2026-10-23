@@ -714,6 +714,107 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         }
 
         // ---------------------------------------------------------------------------------------------------------------
+        // Solo validar (1.0.9.9): la prueba en seco y la carga en serie no pasan por la particion, pero el largo se mide igual
+
+        private static void SoloValidar(Escenario e)
+        {
+            e.H.Inputs["JobId"] = e.JobId;
+            e.H.Inputs["SoloValidar"] = true;
+        }
+
+        [Fact]
+        public void Solo_validar_un_archivo_sano_no_escribe_nada_y_devuelve_las_filas()
+        {
+            var e = new Escenario(Admin);
+            SoloValidar(e);
+            e.Ejecutar();
+            e.NoEscribioNada();
+            Assert.Equal(400, e.H.Outputs["FilasArchivo"]);
+            Assert.Equal(0, e.H.Outputs["Partes"]);
+            Assert.Equal(e.JobId, e.H.Outputs["PadresJobId"]);
+            Assert.Equal(string.Empty, e.H.Outputs["PartesJobIds"]);
+        }
+
+        [Fact]
+        public void Solo_validar_rechaza_un_valor_largo_con_el_mismo_mensaje_sin_escribir_nada()
+        {
+            var e = new Escenario(Admin);
+            SoloValidar(e);
+            e.Original = ArchivoDe(Fila(0), Fila(1), Fila(100));
+            e.Largos["sanic_cm_tbl_fiador"]["sanic_cm_fi_direccion"] = 7;
+            var m = e.Rechaza().Message;
+            Assert.Contains("fila 3, columna DireccionFianza (sanic_cm_tbl_fiador.sanic_cm_fi_direccion): 8 caracteres, maximo 7", m);
+            Assert.DoesNotContain("Dir, 100", m);
+            e.NoEscribioNada();
+        }
+
+        [Fact]
+        public void Solo_validar_acepta_la_prueba_en_seco()
+        {
+            var e = new Escenario(Admin);
+            SoloValidar(e);
+            e.JobFila["sanic_smlt_ij_isdryrun"] = true;
+            e.Ejecutar();
+            e.NoEscribioNada();
+        }
+
+        [Fact]
+        public void Solo_validar_no_pide_Partes_ni_las_plantillas_derivadas()
+        {
+            // La carga en serie no las necesita: sin padres visibles y con la de partes desincronizada igual valida.
+            var e = new Escenario(Admin);
+            SoloValidar(e);
+            e.PadresVisible = false;
+            e.AjustarPartes = l => l.Take(1).ToList();
+            e.Ejecutar();
+            e.NoEscribioNada();
+        }
+
+        [Fact]
+        public void Solo_validar_no_exige_la_columna_del_CIF()
+        {
+            var e = new Escenario(Admin);
+            SoloValidar(e);
+            e.Original = new UTF8Encoding(false).GetBytes(Encabezado.Replace("CIF", "Documento") + "\r\n" + Fila(1) + "\r\n");
+            e.Ejecutar();
+            e.NoEscribioNada();
+        }
+
+        [Fact]
+        public void Solo_validar_sigue_exigiendo_la_plantilla_principal_y_un_job_sin_estado()
+        {
+            var otra = new Escenario(Admin);
+            SoloValidar(otra);
+            otra.JobFila["sanic_smlt_ij_importtemplateid"] = new EntityReference(Plantilla, Padres);
+            Assert.Contains("no es de la plantilla", otra.Rechaza().Message);
+
+            var conEstado = new Escenario(Admin);
+            SoloValidar(conEstado);
+            conEstado.JobFila["sanic_smlt_ij_status"] = new OptionSetValue(0);
+            Assert.Contains("ya tiene estado", conEstado.Rechaza().Message);
+        }
+
+        [Theory]
+        [InlineData(BackOffice)]
+        [InlineData(Supervisor)]
+        public void Solo_validar_tambien_es_solo_del_Admin(string rol)
+        {
+            var e = new Escenario(rol);
+            SoloValidar(e);
+            Assert.Contains("solo un Admin", e.Rechaza().Message);
+        }
+
+        [Fact]
+        public void SoloValidar_en_false_parte_como_siempre()
+        {
+            var e = new Escenario(Admin);
+            Entradas(e, 3);
+            e.H.Inputs["SoloValidar"] = false;
+            e.Ejecutar();
+            Assert.Equal(3, e.Creados.Count);
+        }
+
+        // ---------------------------------------------------------------------------------------------------------------
         // Atomicidad
 
         [Fact]

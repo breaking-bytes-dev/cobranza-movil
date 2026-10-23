@@ -105,6 +105,7 @@ APIS = [
         parametros=[
             ('JobId', GUID, False, 'Id del Import Job (sanic_tbl_smlt_importjob) de la carga real, sin estado y con archivo'),
             ('Partes', ENTERO, False, 'Cantidad de partes pedidas (1 a 4; con menos de 300 filas se hace una sola)'),
+            ('SoloValidar', BOOLEANO, True, 'Opcional (1.0.9.9): true = solo mide el largo de los valores, sin escribir (prueba en seco y carga en serie)'),
         ],
         respuesta=[
             ('PadresJobId', GUID, 'Id del job de padres (el mismo JobId, ya convertido)'),

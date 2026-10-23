@@ -33,6 +33,8 @@ namespace Sanic.CobranzaMovil.Plugins
     /// Validaciones: Admin, Servicio o sin roles de CM (como AltaCuenta); el job existe y el llamador lo ve; es de la
     /// plantilla principal; no es prueba en seco; NUNCA se proceso (sin estado); tiene archivo; 1 &lt;= Partes &lt;= 4; ningun
     /// valor es mas largo que su columna de texto (1.0.9.8: la prueba en seco de Smelter no lo detecta).
+    /// SoloValidar = true (1.0.9.9, opcional): solo esa ultima medicion, sin escribir nada, tambien para la prueba en seco
+    /// y la carga en serie (ver Validar).
     /// Los jobs se crean y modifican con los permisos del LLAMADOR, como en "Cargar archivo": el rol de Smelter llega por el
     /// equipo, el job queda del equipo (AssignJobOwner de Smelter) y "Creado por" es la persona (el historial filtra por ahi).
     /// Atomicidad: primero se crean las partes, despues se reemplaza el archivo del job original y al final su nombre y
@@ -84,14 +86,19 @@ namespace Sanic.CobranzaMovil.Plugins
                 throw local.Error("falta el job de la carga (JobId).");
             }
             var jobId = (Guid)inputs[Esquema.ParamJobId];
-            if (!inputs.Contains(Esquema.ParamPartes) || !(inputs[Esquema.ParamPartes] is int))
+            var soloValidar = inputs.Contains(Esquema.ParamSoloValidar) && inputs[Esquema.ParamSoloValidar] is bool && (bool)inputs[Esquema.ParamSoloValidar];
+            var partes = 0;
+            if (!soloValidar)
             {
-                throw local.Error("falta la cantidad de partes (Partes, entero).");
-            }
-            var partes = (int)inputs[Esquema.ParamPartes];
-            if (partes < 1 || partes > MaximoPartes)
-            {
-                throw local.Error("Partes tiene que estar entre 1 y " + MaximoPartes + ".");
+                if (!inputs.Contains(Esquema.ParamPartes) || !(inputs[Esquema.ParamPartes] is int))
+                {
+                    throw local.Error("falta la cantidad de partes (Partes, entero).");
+                }
+                partes = (int)inputs[Esquema.ParamPartes];
+                if (partes < 1 || partes > MaximoPartes)
+                {
+                    throw local.Error("Partes tiene que estar entre 1 y " + MaximoPartes + ".");
+                }
             }
 
             var svc = local.Service;
@@ -108,7 +115,7 @@ namespace Sanic.CobranzaMovil.Plugins
                 job = null;
             }
             if (job == null) throw local.Error("no existe la importacion o tu usuario no la ve (equipo de carga).");
-            if (job.GetAttributeValue<bool?>(Esquema.JobSmelterEsPrueba) == true)
+            if (!soloValidar && job.GetAttributeValue<bool?>(Esquema.JobSmelterEsPrueba) == true)
             {
                 throw local.Error("la importacion es una prueba en seco: solo se parte la carga real.");
             }
@@ -130,6 +137,11 @@ namespace Sanic.CobranzaMovil.Plugins
             {
                 throw local.Error("la importacion no es de la plantilla \"" + Esquema.NombrePlantillaCobranza + "\".");
             }
+            if (soloValidar)
+            {
+                Validar(local, svc, principal, jobId);
+                return;
+            }
             if (padresTpl == null || partesTpl == null)
             {
                 throw local.Error("faltan las plantillas \"" + Esquema.NombrePlantillaPadres + "\" y \"" + Esquema.NombrePlantillaPartes
@@ -146,27 +158,10 @@ namespace Sanic.CobranzaMovil.Plugins
             if (dePartes.Count == 0) throw local.Error("la plantilla principal no carga ninguna tabla aparte de producto, fiador y agente.");
             ExigirCopia(local, principal, padresTpl, dePadres, mapeos.Where(m => m.Plantilla == padresTpl.Id).ToList());
             ExigirCopia(local, principal, partesTpl, dePartes, mapeos.Where(m => m.Plantilla == partesTpl.Id).ToList());
-            if (principal.GetAttributeValue<bool?>(Esquema.PlantillaSmelterEncabezado) != true)
-            {
-                throw local.Error("la plantilla principal no tiene fila de encabezado: no se puede partir.");
-            }
-            var delim = principal.GetAttributeValue<string>(Esquema.PlantillaSmelterDelimitador);
-            if (string.IsNullOrEmpty(delim)) delim = ",";
-            if (delim.Length != 1) throw local.Error("el delimitador de la plantilla tiene que ser un solo caracter.");
-
             // 3) El archivo ------------------------------------------------------------------------------------------------
             string nombreArchivo;
-            var original = Descargar(local, svc, jobId, out nombreArchivo);
-            ArchivoCsv csv;
-            try
-            {
-                csv = ArchivoCsv.Leer(original, delim[0]);
-            }
-            catch (FormatException ex)
-            {
-                throw local.Error(ex.Message); // los mensajes de ArchivoCsv no citan valores
-            }
-            if (csv.Filas.Count == 0) throw local.Error("el archivo no tiene filas de datos.");
+            byte[] original;
+            var csv = LeerArchivo(local, svc, principal, jobId, out nombreArchivo, out original);
             ExigirCif(local, csv, dePartes);
             ExigirLargos(local, svc, csv, deLaPrincipal);
             var clavesPadres = dePadres.Select(m => Clave(local, csv, m, true)).ToList();
@@ -221,6 +216,56 @@ namespace Sanic.CobranzaMovil.Plugins
             salida[Esquema.SalidaFilasPadres] = filasPadres.Count;
             salida[Esquema.SalidaFilasPartes] = string.Join(",", filasPartes.Select(p => p.Count.ToString(CultureInfo.InvariantCulture)));
             local.Trace("listo: job de padres y {0} parte(s) sin estado.", creados.Count);
+        }
+
+        /// <summary>
+        /// Modo "solo validar" (1.0.9.9): la prueba en seco y la carga en serie no pasan por la particion, asi que Cargar
+        /// archivo llama a la API con SoloValidar = true antes de poner el job en cola. Mide el largo de los valores con la
+        /// misma regla que al partir (ExigirLargos sobre los mapeos de la principal) y NO escribe nada. No pide Partes, ni
+        /// las plantillas derivadas, ni el CIF: nada de eso hace falta para cargar en un solo job. Si lanza, el job queda igual.
+        /// </summary>
+        private static void Validar(LocalContext local, IOrganizationService svc, Entity principal, Guid jobId)
+        {
+            var mapeos = Mapeos(svc, principal.Id).Where(m => m.Plantilla == principal.Id).ToList();
+            string nombreArchivo;
+            byte[] original;
+            var csv = LeerArchivo(local, svc, principal, jobId, out nombreArchivo, out original);
+            ExigirLargos(local, svc, csv, mapeos);
+
+            var salida = local.Context.OutputParameters;
+            salida[Esquema.SalidaPadresJobId] = jobId;
+            salida[Esquema.SalidaPartesJobIds] = string.Empty;
+            salida[Esquema.SalidaPartes] = 0;
+            salida[Esquema.SalidaFilasArchivo] = csv.Filas.Count;
+            salida[Esquema.SalidaFilasPadres] = 0;
+            salida[Esquema.SalidaFilasPartes] = string.Empty;
+            local.Trace("solo validar: {0} filas, largos dentro de su columna; no se escribio nada.", csv.Filas.Count);
+        }
+
+        /// <summary>Baja y lee el archivo del job con el delimitador de la plantilla principal (que tiene que tener encabezado).</summary>
+        private static ArchivoCsv LeerArchivo(LocalContext local, IOrganizationService svc, Entity principal, Guid jobId,
+            out string nombreArchivo, out byte[] original)
+        {
+            if (principal.GetAttributeValue<bool?>(Esquema.PlantillaSmelterEncabezado) != true)
+            {
+                throw local.Error("la plantilla principal no tiene fila de encabezado: no se puede leer el archivo por columnas.");
+            }
+            var delim = principal.GetAttributeValue<string>(Esquema.PlantillaSmelterDelimitador);
+            if (string.IsNullOrEmpty(delim)) delim = ",";
+            if (delim.Length != 1) throw local.Error("el delimitador de la plantilla tiene que ser un solo caracter.");
+
+            original = Descargar(local, svc, jobId, out nombreArchivo);
+            ArchivoCsv csv;
+            try
+            {
+                csv = ArchivoCsv.Leer(original, delim[0]);
+            }
+            catch (FormatException ex)
+            {
+                throw local.Error(ex.Message); // los mensajes de ArchivoCsv no citan valores
+            }
+            if (csv.Filas.Count == 0) throw local.Error("el archivo no tiene filas de datos.");
+            return csv;
         }
 
         private static bool EsPadre(string tabla)
