@@ -56,6 +56,30 @@ Screens:
                 20
             )
         );
+        // Partes sin lanzar (opción b, 2026-10-22): las partes de una carga paralela las pone en cola ESTA pantalla cuando
+        // terminan los padres. Si el usuario salió antes, quedan sin estado y Reconciliación las ve «en curso» (12 h).
+        // Por cada job de padres del historial con partes sin estado: «relanzar» si los padres terminaron bien, «descartar»
+        // si fallaron, terminaron con errores o nunca se pusieron en cola (más de 10 min sin estado). El vínculo es el
+        // nombre que pone PartirCarga: «<nombre> · padres» y «<nombre> · parte i/N» (mismo creador: el historial es propio).
+        ClearCollect(colAccionCar,
+            Filter(
+                ForAll(Filter(colHistCar, EndsWith('[IJ] Name', " · padres")) As J,
+                    With({b: Left(J.'[IJ] Name', Len(J.'[IJ] Name') - Len(" · padres"))},
+                        {
+                            Id: J.'TBL | SMLT | Import Job',
+                            Base: b,
+                            SinLanzar: CountIf(colHistCar, StartsWith('[IJ] Name', b & " · parte ") && IsBlank('[IJ] Status')),
+                            Accion: If(J.'[IJ] Status' = '[IJ] Status (TBL | SMLT | Import Jobs)'.Completed, "relanzar",
+                                J.'[IJ] Status' = '[IJ] Status (TBL | SMLT | Import Jobs)'.Failed
+                                    || J.'[IJ] Status' = '[IJ] Status (TBL | SMLT | Import Jobs)'.CompletedWithErrors
+                                    || (IsBlank(J.'[IJ] Status') && J.'Created On' < DateAdd(Now(), -10, TimeUnit.Minutes)), "descartar",
+                                "")
+                        }
+                    )
+                ),
+                SinLanzar > 0 && Accion <> ""
+            )
+        );
         Reset(attArchivoCar)
     Children:
       - cmpEncCar:
@@ -465,6 +489,31 @@ Screens:
                         Width: =btnConfirmarCar.Width
                         X: =If(nfMovil, gblE.Pad, btnConfirmarCar.X + btnConfirmarCar.Width + gblE.Pad)
                         Y: =If(nfMovil, btnConfirmarCar.Y + btnConfirmarCar.Height + gblE.Pad, btnConfirmarCar.Y)
+            - lblNoSalirCar:
+                Control: Label@2.5.1
+                Properties:
+                  BorderColor: =gblC.pendInk
+                  BorderThickness: =1
+                  Color: =gblC.pendInk
+                  Fill: =gblC.pendBg
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =If(nfMovil, 92, 52)
+                  PaddingLeft: =gblE.Pad
+                  PaddingRight: =gblE.Pad
+                  Size: =10
+                  Text: |-
+                    ="⚠ No salgas de esta pantalla hasta que arranquen las partes. Las pone en cola esta pantalla cuando termina la primera etapa; si salís antes, quedan sin lanzar y hay que relanzarlas desde «Mis últimas cargas»."
+                  VerticalAlign: =VerticalAlign.Middle
+                  Visible: |-
+                    =// Carga paralela: desde que se parte el archivo hasta que las partes quedan en cola (fase «partes» o «fin»).
+                    varFaseCar = "partir" || varFaseCar = "padres"
+                  Width: =Parent.Width
+                  Wrap: =true
+                  Y: |-
+                    =conConfirmCar.Y + If(conConfirmCar.Visible, conConfirmCar.Height + gblE.PadSm, 0)
             - conResultadoCar:
                 Control: GroupContainer@1.5.0
                 Variant: ManualLayout
@@ -485,7 +534,7 @@ Screens:
                   Visible: =!IsBlank(varJobCar)
                   Width: =Parent.Width
                   Y: |-
-                    =conConfirmCar.Y + If(conConfirmCar.Visible, conConfirmCar.Height + gblE.PadSm, 0)
+                    =lblNoSalirCar.Y + If(lblNoSalirCar.Visible, lblNoSalirCar.Height + gblE.PadSm, 0)
                 Children:
                   - lblNombreJobCar:
                       Control: Label@2.5.1
@@ -609,7 +658,7 @@ Screens:
                           =If(varEstCar = -1 && varFaseCar = "partir", "⏳ Partiendo el archivo en el servidor: primero productos, fiadores y agentes; después las partes por cliente.",
                               varEstCar = -1, "⏳ Preparando la carga: el archivo ya subió, en unos segundos se pone en cola.",
                               varSigueCar, "⚠ La pantalla dejó de consultar después de 3 horas, pero la carga puede seguir en Smelter. Mirá su estado en «Mis últimas cargas» (se actualiza al volver a entrar) o avisá a soporte con el nombre de la carga.",
-                              varVueltasCar > 400, "⏳ Lleva más de 20 minutos y sigue en Smelter (una carga grande tarda). La pantalla consulta cada 30 segundos; si salís, el resultado queda en «Mis últimas cargas».",
+                              varVueltasCar > 400 && varFaseCar <> "padres", "⏳ Lleva más de 20 minutos y sigue en Smelter (una carga grande tarda). La pantalla consulta cada 30 segundos; si salís, el resultado queda en «Mis últimas cargas».",
                               varFaseCar = "padres", "⏳ Paso 1 de 2: productos, fiadores y agentes (" & Text(varFilasPadCar, "#,##0") & " filas), solo. Si termina bien, se lanzan las " & CountRows(colPartesCar) & " partes en paralelo.",
                               varFaseCar = "partes", "⏳ Paso 2 de 2: " & CountRows(colPartesCar) & " partes en paralelo (" & Text(varFilasArchCar, "#,##0") & " filas). La pantalla consulta el avance cada 3 segundos.",
                               "⏳ Smelter está trabajando; la pantalla consulta el avance cada 3 segundos.")
@@ -704,7 +753,7 @@ Screens:
                       Variant: Vertical
                       Properties:
                         AccessibleLabel: ="Mis últimas cargas de archivos del banco"
-                        DisplayMode: =DisplayMode.View
+                        DisplayMode: =DisplayMode.Edit
                         FocusedBorderColor: =gblC.teal
                         FocusedBorderThickness: =2
                         Height: =Parent.Height - Self.Y
@@ -727,7 +776,7 @@ Screens:
                               PaddingLeft: =0
                               Size: =10
                               Text: =ThisItem.'[IJ] Name'
-                              Width: =Parent.TemplateWidth - 3*gblE.Pad - 150
+                              Width: =Parent.TemplateWidth - 3*gblE.Pad - 150 - If(btnHistAccionCar.Visible, btnHistAccionCar.Width + gblE.PadSm, 0)
                               Wrap: =false
                               X: =gblE.Pad
                               Y: =10
@@ -747,7 +796,7 @@ Screens:
                                     & Text(Coalesce(ThisItem.'[IJ] Success Count', 0), "#,##0") & " éxitos · "
                                     & Text(Coalesce(ThisItem.'[IJ] Fail Count', 0), "#,##0") & " fallos · "
                                     & Text(Coalesce(ThisItem.'[IJ] Skipped Count', 0), "#,##0") & " omitidas"
-                              Width: =Parent.TemplateWidth - 3*gblE.Pad - 150
+                              Width: =Parent.TemplateWidth - 3*gblE.Pad - 150 - If(btnHistAccionCar.Visible, btnHistAccionCar.Width + gblE.PadSm, 0)
                               Wrap: =false
                               X: =gblE.Pad
                               Y: =32
@@ -777,9 +826,115 @@ Screens:
                               Text: |-
                                 =Switch(ThisItem.'[IJ] Status',
                                     '[IJ] Status (TBL | SMLT | Import Jobs)'.Processing, "Procesando", '[IJ] Status (TBL | SMLT | Import Jobs)'.Completed, "Terminada",
-                                    '[IJ] Status (TBL | SMLT | Import Jobs)'.CompletedWithErrors, "Con errores", '[IJ] Status (TBL | SMLT | Import Jobs)'.Failed, "Falló", "En cola")
+                                    '[IJ] Status (TBL | SMLT | Import Jobs)'.CompletedWithErrors, "Con errores", '[IJ] Status (TBL | SMLT | Import Jobs)'.Failed, "Falló",
+                                    '[IJ] Status (TBL | SMLT | Import Jobs)'.Queued, "En cola", "Sin lanzar")
                               Width: =14 + 7*Len(Self.Text)
                               X: =Parent.TemplateWidth - Self.Width - gblE.Pad
+                              Y: =(Parent.TemplateHeight - Self.Height) / 2
+                        - btnHistAccionCar:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderColor: =If(LookUp(colAccionCar, Id = ThisItem.'TBL | SMLT | Import Job').Accion = "relanzar", gblC.teal, gblC.redInk)
+                              BorderThickness: =1
+                              Color: =If(LookUp(colAccionCar, Id = ThisItem.'TBL | SMLT | Import Job').Accion = "relanzar", gblC.teal, gblC.redInk)
+                              DisplayMode: =If(varOcupadoCar || varPollCar, DisplayMode.Disabled, DisplayMode.Edit)
+                              Fill: =If(LookUp(colAccionCar, Id = ThisItem.'TBL | SMLT | Import Job').Accion = "relanzar", gblC.tealSuave, gblC.redBg)
+                              FocusedBorderColor: =gblC.ink
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Semibold
+                              Height: =30
+                              OnSelect: |-
+                                =// Partes sin lanzar de una carga paralela (opción b, 2026-10-22). Se relee TODO del servidor antes de
+                                // escribir: el job de padres y sus partes SIN estado (mismo creador, nombre «<nombre> · parte …»).
+                                //  - Padres Terminada → partes En cola, igual que tmrAvanceCar (el orquestador de Smelter dispara con
+                                //    estado = En cola; su archivo lo subió PartirCarga hace rato).
+                                //  - Padres Falló / con errores / nunca en cola (> 10 min) → partes (y padres sin estado) Falló, como
+                                //    hace tmrAvanceCar: Falló no dispara nada en Smelter y deja de contar «en curso» en Reconciliación.
+                                // Solo partes SIN estado: una parte ya en cola o procesando nunca se vuelve a tocar.
+                                Set(varOcupadoCar, true);
+                                Refresh('TBL | SMLT | Import Jobs');
+                                Set(varAccSelCar, LookUp(colAccionCar, Id = ThisItem.'TBL | SMLT | Import Job'));
+                                IfError(
+                                    Set(varPadSelCar, LookUp('TBL | SMLT | Import Jobs', 'TBL | SMLT | Import Job' = varAccSelCar.Id));
+                                    ClearCollect(colRelCar,
+                                        Filter(
+                                            Filter('TBL | SMLT | Import Jobs',
+                                                StartsWith('[IJ] Name', varAccSelCar.Base & " · parte ") && 'Created By'.User = gblUsuarioDV.User),
+                                            IsBlank('[IJ] Status')
+                                        )
+                                    );
+                                    Set(varAccHoyCar,
+                                        If(varPadSelCar.'[IJ] Status' = '[IJ] Status (TBL | SMLT | Import Jobs)'.Completed, "relanzar",
+                                            varPadSelCar.'[IJ] Status' = '[IJ] Status (TBL | SMLT | Import Jobs)'.Failed
+                                                || varPadSelCar.'[IJ] Status' = '[IJ] Status (TBL | SMLT | Import Jobs)'.CompletedWithErrors
+                                                || (IsBlank(varPadSelCar.'[IJ] Status') && varPadSelCar.'Created On' < DateAdd(Now(), -10, TimeUnit.Minutes)), "descartar",
+                                            ""));
+                                    If(varAccHoyCar <> varAccSelCar.Accion || CountRows(colRelCar) = 0,
+                                        Notify("La carga cambió de estado desde que se abrió la pantalla: no se tocó nada. Revisá la lista actualizada.", NotificationType.Warning),
+                                        varAccHoyCar = "relanzar",
+                                        ForAll(colRelCar As P,
+                                            Patch('TBL | SMLT | Import Jobs', P,
+                                                {'[IJ] Status': '[IJ] Status (TBL | SMLT | Import Jobs)'.Queued})
+                                        );
+                                        Notify("Se pusieron en cola " & CountRows(colRelCar) & " partes. El avance se ve en esta lista al volver a entrar.", NotificationType.Success),
+                                        ForAll(colRelCar As P,
+                                            Patch('TBL | SMLT | Import Jobs', P,
+                                                {'[IJ] Status': '[IJ] Status (TBL | SMLT | Import Jobs)'.Failed})
+                                        );
+                                        If(IsBlank(varPadSelCar.'[IJ] Status'),
+                                            Patch('TBL | SMLT | Import Jobs', varPadSelCar,
+                                                {'[IJ] Status': '[IJ] Status (TBL | SMLT | Import Jobs)'.Failed}));
+                                        Notify("Se descartaron " & CountRows(colRelCar) & " partes sin lanzar: no se cargó ninguna cuenta de esta carga. Volvé a cargar el archivo.", NotificationType.Information)
+                                    ),
+                                    Notify("No se pudo actualizar la carga: " & FirstError.Message, NotificationType.Error)
+                                );
+                                Refresh('TBL | SMLT | Import Jobs');
+                                ClearCollect(colHistCar,
+                                    FirstN(
+                                        Sort(
+                                            Filter('TBL | SMLT | Import Jobs', 'Created By'.User = gblUsuarioDV.User),
+                                            'Created On', SortOrder.Descending
+                                        ),
+                                        20
+                                    )
+                                );
+                                ClearCollect(colAccionCar,
+                                    Filter(
+                                        ForAll(Filter(colHistCar, EndsWith('[IJ] Name', " · padres")) As J,
+                                            With({b: Left(J.'[IJ] Name', Len(J.'[IJ] Name') - Len(" · padres"))},
+                                                {
+                                                    Id: J.'TBL | SMLT | Import Job',
+                                                    Base: b,
+                                                    SinLanzar: CountIf(colHistCar, StartsWith('[IJ] Name', b & " · parte ") && IsBlank('[IJ] Status')),
+                                                    Accion: If(J.'[IJ] Status' = '[IJ] Status (TBL | SMLT | Import Jobs)'.Completed, "relanzar",
+                                                        J.'[IJ] Status' = '[IJ] Status (TBL | SMLT | Import Jobs)'.Failed
+                                                            || J.'[IJ] Status' = '[IJ] Status (TBL | SMLT | Import Jobs)'.CompletedWithErrors
+                                                            || (IsBlank(J.'[IJ] Status') && J.'Created On' < DateAdd(Now(), -10, TimeUnit.Minutes)), "descartar",
+                                                        "")
+                                                }
+                                            )
+                                        ),
+                                        SinLanzar > 0 && Accion <> ""
+                                    )
+                                );
+                                Set(varOcupadoCar, false)
+                              RadiusBottomLeft: =8
+                              RadiusBottomRight: =8
+                              RadiusTopLeft: =8
+                              RadiusTopRight: =8
+                              Size: =9
+                              Text: |-
+                                =If(LookUp(colAccionCar, Id = ThisItem.'TBL | SMLT | Import Job').Accion = "relanzar",
+                                    "▶ Relanzar partes (" & LookUp(colAccionCar, Id = ThisItem.'TBL | SMLT | Import Job').SinLanzar & ")",
+                                    "✕ Descartar partes (" & LookUp(colAccionCar, Id = ThisItem.'TBL | SMLT | Import Job').SinLanzar & ")")
+                              Tooltip: |-
+                                =If(LookUp(colAccionCar, Id = ThisItem.'TBL | SMLT | Import Job').Accion = "relanzar",
+                                    "La primera etapa terminó bien, pero sus partes nunca se pusieron en cola (se salió de la pantalla). Las pone en cola ahora.",
+                                    "La primera etapa no terminó bien (o nunca arrancó): las partes no se pueden lanzar. Las marca Falló para que no bloqueen Reconciliación.")
+                              Visible: =!IsBlank(LookUp(colAccionCar, Id = ThisItem.'TBL | SMLT | Import Job'))
+                              Width: =14 + 7*Len(Self.Text)
+                              X: =chpHistEstadoCar.X - Self.Width - gblE.PadSm
                               Y: =(Parent.TemplateHeight - Self.Height) / 2
                         - recSepHistCar:
                             Control: GroupContainer@1.5.0
@@ -919,6 +1074,26 @@ Screens:
                               'Created On', SortOrder.Descending
                           ),
                           20
+                      )
+                  );
+                  // Mismo cálculo que OnVisible (partes sin lanzar por job de padres).
+                  ClearCollect(colAccionCar,
+                      Filter(
+                          ForAll(Filter(colHistCar, EndsWith('[IJ] Name', " · padres")) As J,
+                              With({b: Left(J.'[IJ] Name', Len(J.'[IJ] Name') - Len(" · padres"))},
+                                  {
+                                      Id: J.'TBL | SMLT | Import Job',
+                                      Base: b,
+                                      SinLanzar: CountIf(colHistCar, StartsWith('[IJ] Name', b & " · parte ") && IsBlank('[IJ] Status')),
+                                      Accion: If(J.'[IJ] Status' = '[IJ] Status (TBL | SMLT | Import Jobs)'.Completed, "relanzar",
+                                          J.'[IJ] Status' = '[IJ] Status (TBL | SMLT | Import Jobs)'.Failed
+                                              || J.'[IJ] Status' = '[IJ] Status (TBL | SMLT | Import Jobs)'.CompletedWithErrors
+                                              || (IsBlank(J.'[IJ] Status') && J.'Created On' < DateAdd(Now(), -10, TimeUnit.Minutes)), "descartar",
+                                          "")
+                                  }
+                              )
+                          ),
+                          SinLanzar > 0 && Accion <> ""
                       )
                   )
               )
