@@ -340,13 +340,13 @@ Screens:
                         Clear(colPartesCar);
                         // Carga paralela: la carga REAL se parte en el servidor (btnPartirCar) antes de poner nada en cola.
                         // La prueba en seco (y la carga real con nfCargaParalela = false) va en un job, archivo entero; con
-                        // nfValidarLargo, antes el servidor mide el largo de los valores (btnValidarCar), que Smelter no detecta.
+                        // nfValidarLargo, antes el servidor mide el largo de los valores (btnRevisarLargoCar), que Smelter no detecta.
                         If(!varEsPruebaCar && nfCargaParalela,
                             Set(varFaseCar, "partir");
                             Select(btnPartirCar),
                             nfValidarLargo,
                             Set(varFaseCar, "validar");
-                            Select(btnValidarCar),
+                            Select(btnRevisarLargoCar),
                             Set(varFaseCar, "unico");
                             Set(varArmarCar, DateAdd(Now(), 20, TimeUnit.Seconds));
                             Set(varPollCar, true)
@@ -421,7 +421,7 @@ Screens:
                   Text: ="Partir"
                   Visible: =false
                   Width: =10
-            - btnValidarCar:
+            - btnRevisarLargoCar:
                 Control: Classic/Button@2.2.0
                 Properties:
                   BorderThickness: =0
