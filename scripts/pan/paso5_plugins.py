@@ -11,8 +11,8 @@ REGLA DE PanGuard (paso 8 del plan):
     --desactivar-panguard   los desactiva (rollback)
   Los pasos de ClaveDesdeCuenta, CuentaDesdeInteraccion, AprobacionEspecial, ActualizacionConInteraccion, EmailDesdeUsuario,
   RepartoAsignacion, RepartoPorAgente, ColumnasAsignacion, CargaSobreAsignacion, Reclasificacion, InteraccionDelCobrador,
-  GrabacionInteraccion, VincularActualizacionPendiente, ReciboRepetido, EspecialDesdeCuenta, IdentidadEnInteraccion y
-  TramoCartera quedan activos.
+  GrabacionInteraccion, VincularActualizacionPendiente, ReciboRepetido, EspecialDesdeCuenta, IdentidadEnInteraccion,
+  TramoCartera y TipoDesdeProducto quedan activos.
 
 Las Custom APIs (SolicitarEspecial, AltaCuenta y, desde 1.0.9.7, PartirCarga de la carga paralela) no tienen pasos: sus tipos
 vienen en la misma dll y las define scripts/pan/paso12_custom_api.py DESPUES de este paso. PartirCarga necesita ademas las
@@ -177,6 +177,15 @@ def definir_pasos():
             columnas=cols + ['sanic_cm_as_ultimacarga'], legacy=False,
             imagen=dict(nombre=IMAGEN_PREVIA, atributos=cols) if mensaje == 'Update' else None,
             descripcion='F3: la Especial de la carga toma tipo, nota y retiro de la cuenta (solo lo vacio)'))
+    # TipoDesdeProducto (O3): la cuenta toma el tipo de su producto (la carga solo resuelve el lookup por CodigoProducto)
+    for mensaje in ('Create', 'Update'):
+        pasos.append(dict(
+            tipo=NS + 'TipoDesdeProducto', mensaje=mensaje, entidad=P + 'cuenta', panguard=False,
+            filtro=['sanic_cm_ct_productoid'] if mensaje == 'Update' else [],
+            columnas=['sanic_cm_ct_productoid', 'sanic_cm_ct_tipoproducto'], legacy=False,
+            imagen=dict(nombre=IMAGEN_PREVIA, atributos=['sanic_cm_ct_productoid', 'sanic_cm_ct_tipoproducto'])
+            if mensaje == 'Update' else None,
+            descripcion='O3: la cuenta toma el tipo de su producto (lo que muestra el cobrador)'))
     # IdentidadEnInteraccion (borrado por salida de cartera): la interaccion guarda ultimos 4, CIF y clave HMAC de su cuenta,
     # porque la cuenta se borra 14 dias despues de salir y la interaccion vive 2 anos. Nunca rechaza.
     pasos.append(dict(

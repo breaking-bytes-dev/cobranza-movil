@@ -254,6 +254,11 @@ namespace Sanic.CobranzaMovil.Plugins
         public const string PagoTramo = "sanic_cm_pg_tramo";
         public const int TramosCartera = 20;
 
+        // O3: la carga resuelve el producto por CodigoProducto (lookup) pero no llena el tipo de la cuenta, que es lo que
+        // muestra la app. TipoDesdeProducto lo copia del producto.
+        public const string CuentaProductoId = "sanic_cm_ct_productoid";
+        public const string CuentaTipoProducto = "sanic_cm_ct_tipoproducto";
+
         // Imagen previa que registra el paso Update de ClaveDesdeCuenta
         public const string NombreImagenPrevia = "PreImage";
     }
