@@ -58,7 +58,7 @@ ComponentDefinitions:
                   PaddingRight: =0
                   PaddingTop: =0
                   Size: =gblT.fxs
-                  Text: =Switch(gblSync, "ok", "Sincronizado", "sync", "Sincronizando…", "pend", "Pendiente de subir", "warn", "Sincronizado con avisos", "error", "Error al sincronizar", "Sin conexión")
+                  Text: =Switch(gblSync, "ok", "Todo subido", "sync", "Sincronizando…", "pend", "Pendiente de subir", "warn", "Sincronizado con avisos", "error", "Error al sincronizar", "Sin conexión")
                   Width: =180
       - Button9:
           Control: ModernButton@1.0.0

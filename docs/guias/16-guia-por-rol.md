@@ -141,7 +141,7 @@ Lo que dice la matriz en palabras:
 | **Detalle de cuenta** | Tipo (Diaria, Incobrable, Especial), saldos, mora; si es Especial: retiro y nota; historial | **Ver el número completo** (se oculta solo), registrar una interacción |
 | **Interacción** | Datos de la cuenta, productos a los que aplica, ubicación (GPS) | Comentario (con respuestas rápidas), **pagos** (monto, moneda, recibo), **actualización de datos** (teléfonos, direcciones, correo); guardar |
 | **Pagos del día** | Lo cobrado hoy, por moneda | Solo ver |
-| **Sincronización** | Estado real de la sincronización, capturas de hoy ("pendiente de subir" o "subida") | "Buscar actualizaciones", "Sincronización completa" |
+| **Sincronización** | Estado real de la sincronización, capturas de hoy ("pendiente de subir" o "subida") | "↻ Recargar la lista" (relee el teléfono), "⟳ Actualizar todo desde el servidor" (abre el Estado del dispositivo → Buscar actualizaciones; al terminar la cartera se rearma sola) |
 
 Ajustes ("Aa"): tema día o noche y tamaño de letra.
 
@@ -161,7 +161,7 @@ Ajustes ("Aa"): tema día o noche y tamaño de letra.
 
 **Sin conexión:**
 - Todo se guarda en el teléfono y sube al sincronizar.
-- La píldora pasa a "Pendiente de subir" y vuelve a "Sincronizado" cuando sube.
+- La píldora pasa a "Pendiente de subir" y vuelve a "Todo subido" cuando sube.
 
 **Qué asignaciones muestra:**
 - Solo **activas**.
@@ -192,7 +192,7 @@ Ajustes ("Aa"): tema día o noche y tamaño de letra.
 
 | # | Paso | Resultado esperado |
 |---|---|---|
-| L-1 | Abrir la app con el cobrador | Inicio con su nombre, píldora "Sincronizado" |
+| L-1 | Abrir la app con el cobrador | Inicio con su nombre, píldora "Todo subido" |
 | L-2 | Cartera | Solo sus clientes. El conteo "N cuentas" coincide con sus asignaciones activas, sin contar Especiales sin aprobar |
 | L-3 | Filtro "Especial" | Solo Especiales **aprobadas** |
 | L-4 | Abrir una cuenta → "Ver número" | Número completo unos segundos; después vuelve a `•••• 1234` |
@@ -201,7 +201,7 @@ Ajustes ("Aa"): tema día o noche y tamaño de letra.
 | L-7 | Recibo repetido, o pago sin recibo | El botón queda bloqueado y el aviso dice qué falta |
 | L-8 | Actualizar datos: teléfono "12ab" | Bloquea con aviso. Con "8888-1234" habilita |
 | L-9 | **Modo avión** (o sin datos): registrar interacción con pago | Guarda; píldora "Pendiente de subir"; el pago se ve en el historial y suma a "Cobrado hoy" |
-| L-10 | Volver a la conexión | Píldora "Sincronizado". En el backoffice (User1) la interacción aparece en "Por transcribir", con agente y N° de interacción |
+| L-10 | Volver a la conexión | Píldora "Todo subido". En el backoffice (User1) la interacción aparece en "Por transcribir", con agente y N° de interacción |
 | L-11 | Con GPS activado: registrar | Tarjeta "Ubicación capturada" con 5 decimales. En Dataverse, latitud y longitud con 5 o 6 decimales (**APP-11, pendiente en teléfono real**) |
 | L-12 | Sin GPS: registrar | Tarjeta ámbar; "Guardar sin ubicación" pide un segundo toque |
 | L-13 | Sincronización → "Capturas de hoy" | Las del día, la más reciente arriba, con "pendiente de subir" o "subida" |

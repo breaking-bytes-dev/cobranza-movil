@@ -134,7 +134,7 @@ Screens:
                               LayoutMinWidth: =16
                               PaddingBottom: =0
                               Size: =gblT.flg
-                              Text: =Switch(gblSync, "ok", "Sincronizado", "sync", "Sincronizando…", "pend", "Pendiente de subir", "warn", "Sincronizado con avisos", "error", "Error al sincronizar", "Sin conexión")
+                              Text: =Switch(gblSync, "ok", "Todo subido", "sync", "Sincronizando…", "pend", "Pendiente de subir", "warn", "Sincronizado con avisos", "error", "Error al sincronizar", "Sin conexión")
                               VerticalAlign: =VerticalAlign.Bottom
                         - Label19:
                             Control: Label@2.5.1
@@ -146,7 +146,7 @@ Screens:
                               LayoutMinWidth: =16
                               PaddingTop: =0
                               Size: =gblT.fsm
-                              Text: =Switch(gblSync, "ok", "Todo al día con el servidor", "sync", "Intercambiando datos con el servidor…", "pend", "Hay capturas por subir", "warn", "Tocá «Sincronización completa» para ver el aviso", "error", "Tocá «Sincronización completa» para ver el error", "Se suben cuando vuelva la señal")
+                              Text: =Switch(gblSync, "ok", "No hay capturas por subir. Los cambios del servidor bajan solos cada ~5 min", "sync", "Intercambiando datos con el servidor…", "pend", "Hay capturas por subir", "warn", "Tocá «Actualizar todo desde el servidor» para ver el aviso", "error", "Tocá «Actualizar todo desde el servidor» para ver el error", "Se suben cuando vuelva la señal")
                               VerticalAlign: =VerticalAlign.Top
             - cardDet:
                 Control: GroupContainer@1.5.0
@@ -245,7 +245,7 @@ Screens:
                               LayoutMinHeight: =16
                               LayoutMinWidth: =16
                               Size: =gblT.fbase
-                              Text: ="ver en «Sincronización completa»"
+                              Text: ="ver en «Actualizar todo desde el servidor»"
                   - cmpKV_2:
                       Control: GroupContainer@1.5.0
                       Variant: AutoLayout
@@ -289,34 +289,40 @@ Screens:
                 Properties:
                   AlignInContainer: =AlignInContainer.Stretch
                   BorderStyle: =BorderStyle.None
+                  Color: =gblC.ink2
+                  Fill: =gblC.chipBg
+                  Height: =54
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  OnSelect: |-
+                    =// O5: Refresh relee la base del TELÉFONO (no baja nada del servidor): rearma las pantallas con lo que ya llegó.
+                    // Funciona sin señal. Lo que baja del servidor es «Actualizar todo desde el servidor».
+                    Refresh('CM | TBL | Interaccions'); Refresh('CM | TBL | Pagos'); Refresh('CM | TBL | Actualizacion de datos'); Refresh('CM | TBL | Asignacions'); Refresh('CM | TBL | Cuentas'); Refresh('CM | TBL | PAN de cuentas'); Set(varRecargarCartera, true); Set(varCliCargado, Blank()); Set(varPend, CountRows(Filter('CM | TBL | Interaccions', IsBlank('[IN] Numero de Interaccion')))); Notify("Lista recargada con los datos del teléfono.", NotificationType.Information)
+                  RadiusBottomLeft: =14
+                  RadiusBottomRight: =14
+                  RadiusTopLeft: =14
+                  RadiusTopRight: =14
+                  Text: ="↻ Recargar la lista"
+            - btnSyncCompleta:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  AlignInContainer: =AlignInContainer.Stretch
+                  BorderStyle: =BorderStyle.None
                   Color: =gblC.white
                   DisplayMode: =If(Connection.Connected, DisplayMode.Edit, DisplayMode.Disabled)
                   Fill: =gblC.teal
                   Height: =54
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
-                  OnSelect: =Refresh('CM | TBL | Interaccions'); Refresh('CM | TBL | Pagos'); Refresh('CM | TBL | Actualizacion de datos'); Refresh('CM | TBL | Asignacions'); Refresh('CM | TBL | Cuentas'); Refresh('CM | TBL | PAN de cuentas'); Set(varRecargarCartera, true); Set(varCliCargado, Blank()); Set(varPend, CountRows(Filter('CM | TBL | Interaccions', IsBlank('[IN] Numero de Interaccion')))); Notify("Actualizando…", NotificationType.Information)
+                  OnSelect: |-
+                    =// O5: Power Fx no tiene una función que baje datos. Esto abre el Estado del dispositivo, cuyo botón de actualizar
+                    // hace la sincronización completa (revisa cada registro del teléfono). Al terminar, tmrSync_Cart rearma la cartera.
+                    ShowHostInfo(HostInfo.OfflineSync)
                   RadiusBottomLeft: =14
                   RadiusBottomRight: =14
                   RadiusTopLeft: =14
                   RadiusTopRight: =14
-                  Text: =If(Connection.Connected,"↻ Buscar actualizaciones","Sin conexión — no se puede sincronizar")
-            - btnSyncCompleta:
-                Control: Classic/Button@2.2.0
-                Properties:
-                  AlignInContainer: =AlignInContainer.Stretch
-                  BorderStyle: =BorderStyle.None
-                  Color: =gblC.ink2
-                  Fill: =gblC.chipBg
-                  Height: =54
-                  LayoutMinHeight: =16
-                  LayoutMinWidth: =16
-                  OnSelect: =ShowHostInfo(HostInfo.OfflineSync)
-                  RadiusBottomLeft: =14
-                  RadiusBottomRight: =14
-                  RadiusTopLeft: =14
-                  RadiusTopRight: =14
-                  Text: ="⟳ Sincronización completa"
+                  Text: =If(Connection.Connected, "⟳ Actualizar todo desde el servidor", "Sin conexión — no se puede actualizar")
                   Visible: =Host.OfflineEnabled
             - lblSyncCompletaHint:
                 Control: Label@2.5.1
@@ -327,7 +333,7 @@ Screens:
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
                   Size: =gblT.fxs
-                  Text: ="Abre el estado del dispositivo. Ahí tocá «Buscar actualizaciones» (Check for updates) para revisar toda tu cartera y quitar lo que ya no te corresponde."
+                  Text: ="Abre el estado del dispositivo; ahí tocá «Buscar actualizaciones» (Check for updates) para bajar todo lo nuevo y quitar lo que ya no te corresponde. Al volver, tu cartera se recarga sola."
                   Visible: =Host.OfflineEnabled
             - lblVersionSync:
                 Control: Label@2.5.1
@@ -486,7 +492,7 @@ Screens:
                         LayoutMinWidth: =16
                         Size: =gblT.fxs
                         Text: |-
-                          ="El número de interacción (INT-) y de pago (PAG-) lo asigna el servidor cuando la captura se sube. Hasta entonces se ve «pendiente de subir». «⚠ incompleta»: la visita subió, pero falta su pago o su actualización de datos; tocá «Buscar actualizaciones» y, si sigue así, avisá a BackOffice."
+                          ="El número de interacción (INT-) y de pago (PAG-) lo asigna el servidor cuando la captura se sube. Hasta entonces se ve «pendiente de subir». «⚠ incompleta»: la visita subió, pero falta su pago o su actualización de datos; tocá «Actualizar todo desde el servidor» y, si sigue así, avisá a BackOffice."
       - cmpSheet_7:
           Control: CanvasComponent
           ComponentName: cmpSheet

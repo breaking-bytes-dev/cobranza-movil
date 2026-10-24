@@ -38,7 +38,11 @@ Screens:
             Notify("No se pudo guardar el orden de la cartera. Se reintenta al salir de nuevo.", NotificationType.Warning))
       OnVisible: |-
         =// La cartera se arma en btnCargarCartera (también la usan ↻ y Sincronización): al entrar la primera vez o si se pidió recargar.
-        If(!varCarteraLista || varRecargarCartera, Select(btnCargarCartera))
+        // O5: la lista es una foto; si la base del teléfono ya tiene otra cantidad de asignaciones (el delta sync trajo una
+        // aprobada o quitó una cerrada), se rearma. Con la cartera truncada (varCarteraIncompleta) nunca coincidiría: no se compara.
+        If(!varCarteraLista || varRecargarCartera
+            || (!varCarteraIncompleta && varNAsigCartera <> CountRows(Filter('CM | TBL | Asignacions', '[AS] Estado' = true && ('[AS] Tipo' <> 'Choice | CM | Tipo asignacion'.Especial || '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado)))),
+            Select(btnCargarCartera))
     Children:
       - cmpNav_2:
           Control: CanvasComponent
@@ -46,6 +50,25 @@ Screens:
           Properties:
             Height: =64
             Y: =Parent.Height - Self.Height
+      - tmrSync_Cart:
+          Control: Timer@2.1.0
+          Properties:
+            AutoPause: =false
+            AutoStart: =true
+            Duration: =5000
+            OnTimerEnd: |-
+              =// O5: ninguna función de Power Fx baja datos; los trae el reproductor (al abrir, cada ~5 min o con «Actualizar»
+              // del Estado del dispositivo). Cuando una sincronización termina (gblSync deja "sync"), la cartera y el cliente
+              // se rearman con lo que llegó. AutoPause false: sigue mirando aunque el cobrador esté en otra pantalla.
+              // Con cambios de orden sin guardar no se rearma acá (se perderían): queda marcado y se rearma al volver.
+              If(varSyncPrev = "sync" && gblSync <> "sync",
+                  Set(varCliCargado, Blank());
+                  If(App.ActiveScreen = scrCartera && CountIf(colClientes, dirty) = 0,
+                      Select(btnCargarCartera),
+                      Set(varRecargarCartera, true)));
+              Set(varSyncPrev, gblSync)
+            Repeat: =true
+            Visible: =false
       - conMaster:
           Control: GroupContainer@1.5.0
           Variant: AutoLayout
@@ -1076,6 +1099,7 @@ Screens:
                           Patch(colClientes, LookUp(colClientes, cid = r.cid), { orden: N.Value })))));
               Set(varCarteraLista, true);
               Set(varRecargarCartera, false);
+              Set(varNAsigCartera, CountRows(colAsigRaw));
               Set(varFechaUltimaActualizacion, Now());
               UpdateContext({varshowLoader: false})
             Visible: =false

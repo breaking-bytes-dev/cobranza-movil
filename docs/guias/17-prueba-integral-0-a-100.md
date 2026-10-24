@@ -68,11 +68,11 @@ Automatizado: `node run.js --carga-ui` hace F1 por esta pantalla (checks F1u-01.
 
 | ☐ | Paso | Qué tiene que ver |
 |---|---|---|
-| ☐ | 2.1 📱 Cobrador (User5): abrir la app → Sincronización → "Sincronización completa" | La píldora vuelve a "Sincronizado" |
+| ☐ | 2.1 📱 Cobrador (User5): abrir la app → Sincronización → "Actualizar todo desde el servidor" | La píldora vuelve a "Todo subido" |
 | ☐ | 2.2 📱 Cartera | Aparece el cliente **QA-E2E-INT** con las cuentas **A (Diaria)** y **B (Incobrable)**. **No** aparece la C (Especial Pendiente) |
 | ☐ | 2.3 📱 Abrir la cuenta A → **Ver número** | Muestra el número completo unos segundos y vuelve a `•••• NNNN` |
 | ☐ | 2.4 Admin y carga: repetir 1.2–1.3 con el **mismo CSV** (como la carga del día siguiente) | Completed, **sin registros nuevos**: la carga es idempotente |
-| ☐ | 2.5 📱 Cobrador: Sincronización completa → Cliente QA-E2E-INT | Sigue viendo **solo A y B**: la C (Especial Pendiente) **no** aparece. Antes del 2026-10-06, la segunda carga le daba acceso heredado a la C, con el número completo (defecto 2) |
+| ☐ | 2.5 📱 Cobrador: Actualizar todo desde el servidor → Cliente QA-E2E-INT | Sigue viendo **solo A y B**: la C (Especial Pendiente) **no** aparece. Antes del 2026-10-06, la segunda carga le daba acceso heredado a la C, con el número completo (defecto 2) |
 
 ## 3. Admin (User4) en el backoffice
 
@@ -116,7 +116,7 @@ Automatizado: `node run.js --carga-ui` hace F1 por esta pantalla (checks F1u-01.
 | ☐ | 6.4 **Modo avión**. Cuenta C → interacción "QA-E2E-INT sin señal" con pago (recibo "QA-E2E-INT-R2") y **Actualizar datos** (teléfono celular "8888-0000") → Guardar | "✓ Guardado. Se sube en la próxima sincronización". Píldora **Pendiente de subir**; "Capturas de hoy" la muestra "pendiente de subir" |
 | ☐ | 6.5 📱 Con GPS activado, en otra interacción | Tarjeta "Ubicación capturada" con coordenadas de 5 decimales |
 | ☐ | 6.6 Sin GPS | Tarjeta ámbar; "Guardar sin ubicación" pide un segundo toque |
-| ☐ | 6.7 Quitar el modo avión | La píldora pasa a "Sincronizado"; "Capturas de hoy" marca "subida" |
+| ☐ | 6.7 Quitar el modo avión | La píldora pasa a "Todo subido"; "Capturas de hoy" marca "subida" |
 | ☐ | 6.8 Cartera → reordenar la ruta con las flechas → salir y volver | Se mantiene el orden |
 
 ## 7. BackOffice (User1) en el backoffice
@@ -136,7 +136,7 @@ Automatizado: `node run.js --carga-ui` hace F1 por esta pantalla (checks F1u-01.
 |---|---|---|
 | ☐ | 8.1 Cierres → pestaña Incobrables → la cuenta **B** → motivo "Recuperada" → Cerrar | Sale de la lista |
 | ☐ | 8.2 Pestaña Especiales → la **C** → "Gestión completada", detalle "QA-E2E-INT" → Cerrar | Sale de la lista |
-| ☐ | 8.3 📱 Cobrador: Sincronización completa → Cartera | Ya **no** aparecen B ni la Especial C. Siguen A (Diaria) y la Especial de A |
+| ☐ | 8.3 📱 Cobrador: Actualizar todo desde el servidor → Cartera | Ya **no** aparecen B ni la Especial C. Siguen A (Diaria) y la Especial de A |
 
 ## 9. Solicitante (User2): seguimiento
 
@@ -151,7 +151,7 @@ Automatizado: `node run.js --carga-ui` hace F1 por esta pantalla (checks F1u-01.
   Borra todo lo que tenga el prefijo **QA-E2E-INT**: interacciones (con sus pagos y actualizaciones), asignaciones,
   carga diaria, bóveda, cuentas, direcciones, teléfonos, el cliente y los Import Jobs de la corrida.
 - Borrar el CSV de la máquina donde se armó.
-- 📱 En el teléfono: "Sincronización completa", para que desaparezca todo lo QA.
+- 📱 En el teléfono: "Actualizar todo desde el servidor", para que desaparezca todo lo QA.
 - **Nunca** borrar los datos fijos de las suites (QA-R1, AS-2077, AS-2134) ni el agente QA.
 
 ---
