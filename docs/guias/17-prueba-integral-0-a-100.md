@@ -128,7 +128,7 @@ Automatizado: `node run.js --carga-ui` hace F1 por esta pantalla (checks F1u-01.
 | ☐ | 7.3 La interacción "QA-E2E-INT sin señal" | Su pago (R2) y la **actualización de datos** con el antes y el después del teléfono celular |
 | ☐ | 7.4 Escribir el código "QAINT1" + **Enter** (el foco pasa a "Grabar") + **Enter** | "✓ … grabada — siguiente". Sale de la cola. Un Tab o un clic afuera **no** graban |
 | ☐ | 7.5 Grabar la otra con "QAINT2" | Sale de la cola |
-| ☐ | 7.6 Transcritas hoy | Las dos, con sus pagos; el total coincide |
+| ☐ | 7.6 Transcritas (hoy y «Grabó» = vos, por defecto) | Las dos, con sus pagos; el total coincide. Con «Grabó: Todos» y otro día también se ven las de los demás |
 
 ## 8. Admin (User4): cierre
 

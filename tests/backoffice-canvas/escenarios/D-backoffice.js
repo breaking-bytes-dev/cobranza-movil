@@ -86,7 +86,7 @@ async function flujoTranscripcion(e, app, suite, yo) {
 
 // Arqueo "Transcritas hoy" (F-01b).
 async function arqueo(e, app, yo) {
-      await c.ir(app, 'Transcritas hoy', 'scrTranscritas');
+      await c.ir(app, 'Transcritas', 'scrTranscritas');
       const k = await pl.kpis(app);
       const t = await v.transcritasHoy(yo);
       e.check(c.num(k.TRANSCRITAS) === t, 'KPI TRANSCRITAS = API (grabadas hoy por mí)', t, k.TRANSCRITAS);

@@ -319,7 +319,7 @@ Fase C: R-04, E-01c, D-02f, F-03, F-03c (el plugin mueve el dueño) y F-03b.
 |---|---|
 | **Inicio** | Ver EN COLA, CON PAGO, TRANSCRITAS HOY y "Cobrado hoy" |
 | **Por transcribir** | Cola de las interacciones **pendientes** de todos los cobradores (la más vieja primero). Para cada una ve: cliente, cuenta con el **número completo** (bóveda; el único rol que lo ve), comentario, pagos y la actualización de datos (antes y después). Escribe el **código del core**: **Enter (o Tab) lleva el foco a "Grabar" y Enter otra vez graba** (desde 2026-10-09: Power Apps no distingue Enter de Tab ni de un clic afuera, y antes cualquiera de los tres grababa) |
-| **Transcritas hoy** | Arqueo del día: lo que **él** grabó hoy, con sus pagos. Solo lectura |
+| **Transcritas** | Arqueo por día (por defecto hoy) de lo grabado, con sus pagos y quién lo grabó. Por defecto lo suyo; el combo «Grabó» muestra lo de otro BackOffice o de todos. Elige el día (calendario o «Hoy») y busca por CIF, cliente, últimos dígitos de la tarjeta o localizador. Solo lectura |
 
 **Al grabar** la app manda el estado Grabado y el código (en mayúsculas, hasta 10); la **fecha** y "grabado por" los pone el
 servidor (DAT-11). Después avanza a la siguiente. Si falla, avisa y la interacción **queda** en la cola. Si otra persona del
@@ -340,10 +340,10 @@ BackOffice la grabó antes, el servidor devuelve un error y no pisa su grabació
 
 | # | Paso | Resultado esperado |
 |---|---|---|
-| BO-1 | Abrir el backoffice | Menú con solo Inicio, Por transcribir y Transcritas hoy |
+| BO-1 | Abrir el backoffice | Menú con solo Inicio, Por transcribir y Transcritas |
 | BO-2 | Por transcribir | La interacción QA del cobrador (L-5 o L-9) está en la cola, con agente, cuenta, número completo y su pago |
 | BO-3 | Escribir un código QA → Enter | "✓ IN-xxxx grabada — siguiente…"; sale de la cola |
-| BO-4 | Transcritas hoy | Aparece con su pago; el total coincide con lo grabado |
+| BO-4 | Transcritas | Aparece con su pago; el total coincide con lo grabado |
 
 ### 7.4 Pruebas automáticas
 

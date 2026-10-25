@@ -126,7 +126,7 @@ module.exports = async function faseH(suite) {
   try {
     await inf.correr('H-03', 'BackOffice (Transcritas hoy): lista enmascarada y detalle con el número completo leído de la bóveda (QA)', 'BackOffice', async (e) => {
       if (!suite.datos.transcritoOk) { e.bloquear('depende de F-01 (no hay interacciones QA transcritas hoy)'); return; }
-      await c.ir(app, 'Transcritas hoy', 'scrTranscritas(H)');
+      await c.ir(app, 'Transcritas', 'scrTranscritas(H)');
       const lista = (await pl.ctl(app, 'lblCuentaTsc').locator('visible=true').allInnerTexts()).filter(x => /E2E/.test(x));
       e.check(lista.length > 0 && lista.every(x => x.includes('•••• E2E1') && !x.includes('QA-E2E-CTA')), 'la lista muestra la cuenta QA enmascarada (•••• E2E1), nunca el número completo', '•••• E2E1', lista.slice(0, 3));
       app.red.marcar('H:scrTranscritas(detalle)');

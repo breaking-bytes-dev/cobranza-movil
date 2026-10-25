@@ -11,75 +11,20 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =// 2) Fuentes (delegables). El KPI TRANSCRITAS es conteo EXACTO
-        //    directo al datasource (CountIf delega) con la MISMA condición del Filter del paso 3.
-        Set(varNTscTsc,
-            CountIf('CM | TBL | Interaccions',
-                '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Grabado
-                && '[IN] Fecha grabacion' >= Today()
-                && '[IN] Grabado por'.User = gblUsuarioDV.User));
-        // ESCALA: los pagos de HOY (de todos los cobradores) se traen por tramos (TramoCartera, de su interacción), cada
-        // consulta bajo el límite de 2000 filas: hasta unos 30.000 pagos por día. El tramo va CONSTANTE (T.Value): un If,
-        // DateAdd o un campo de colección en el Filter no delega y trae la tabla entera. El último Collect: pagos sin tramo.
-        Clear(colPagosHoyTsc);
-        ForAll(Sequence(20, 0) As T,
-            Collect(colPagosHoyTsc, Filter('CM | TBL | Pagos', 'Fecha del pago' >= Today() && '[PG] Tramo' = T.Value)));
-        Collect(colPagosHoyTsc, Filter('CM | TBL | Pagos', 'Fecha del pago' >= Today() && '[PG] Tramo' = Blank()));
-        If(CountRows(colPagosHoyTsc) >= 30000,
-            Notify("Hoy hay más de 30.000 pagos: el arqueo de esta pantalla puede estar incompleto. Avisá a soporte.", NotificationType.Warning));
-        // 3) Arqueo del día (base en colTscTmpTsc): SOLO lo grabado HOY por MÍ.
-        //    choice por valor + comparación de fecha + lookup por registro = delegable (00 §4.2).
-        //    Datos de la cuenta navegando el lookup '[IN] Cuenta' (lo resuelve el servidor, sin
-        //    catálogo de cuentas truncable al Data row limit).
-        ClearCollect(colTscTmpTsc,
-            AddColumns(
-                Filter('CM | TBL | Interaccions',
-                    '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Grabado
-                    && '[IN] Fecha grabacion' >= Today()
-                    && '[IN] Grabado por'.User = gblUsuarioDV.User) As IntTsc,
-                clienteTsc, Upper(Coalesce(IntTsc.'[IN] Cuenta'.'Nombre Cliente', "—")),   // LED-01
-                cifTsc, Coalesce(IntTsc.'[IN] Cuenta'.'CIF Cliente', "—"),
-                prodTsc, Coalesce(IntTsc.'[IN] Cuenta'.'Tipo Producto', "—"),
-                ult4Tsc, Coalesce(IntTsc.'[IN] Cuenta'.'Últimos 4', ""),
-                cuentaIdTsc, IntTsc.'[IN] Cuenta'.'CM | TBL | Cuenta',
-                // F10: "ok" la actualización vinculada existe; "sinv" entró sin vincular (F8); "falta" no llegó.
-                // IntTsc y no ThisRecord: adentro del LookUp, ThisRecord es la ACTUALIZACIÓN (la fórmula no compilaba).
-                datosTsc, If(!IntTsc.'[IN] Actualiza info', "",
-                    !IsBlank(LookUp('CM | TBL | Actualizacion de datos', '[AD] Interaccion'.'CM | TBL | Interaccion' = IntTsc.'CM | TBL | Interaccion')), "ok",
-                    !IsBlank(LookUp('CM | TBL | Actualizacion de datos', '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = IntTsc.'[IN] Cuenta'.'CM | TBL | Cuenta')), "sinv",
-                    "falta")
-            )
-        );
-        // 4) Pagos del arqueo = pagos de HOY (ya en memoria) ∩ mis transcritas.
-        //    Filter sobre COLECCIÓN → cero delegación involucrada: permitido (00 §4.1).
-        ClearCollect(colPagosTsc,
-            Filter(colPagosHoyTsc,
-                !IsBlank(LookUp(colTscTmpTsc, '[IN] Numero de Interaccion' = '[PG] Numero Interaccion'))));
-        // 5) Chip 💵 de la fila: montos por interacción HORNEADOS una vez (todo sobre colecciones,
-        //    en memoria — R1-02). La base vive en colTscTmpTsc (SIN pagos*) y colTscTsc se escribe
-        //    UNA sola vez ya con pagos*: si AddColumns leyera colTscTsc, su esquema ya trae
-        //    pagosNioTsc → "A column named 'pagosNioTsc' already exists".
-        ClearCollect(colTscTsc,
-            AddColumns(colTscTmpTsc,
-                pagosNioTsc, Sum(Filter(colPagosTsc,
-                    '[PG] Numero Interaccion' = '[IN] Numero de Interaccion'
-                    && '[PG] Moneda' = 'Choice | CM | Monedas en Pago'.NIO), '[PG] Monto'),
-                pagosUsdTsc, Sum(Filter(colPagosTsc,
-                    '[PG] Numero Interaccion' = '[IN] Numero de Interaccion'
-                    && '[PG] Moneda' = 'Choice | CM | Monedas en Pago'.USD), '[PG] Monto')
-            )
-        );
-        // 6) Estado del panel
-        Set(varSelTsc, Blank());
-        Set(varPanelTsc, false)
+        =// Transcritas (2026-10-24): lo grabado el día elegido por cualquier BackOffice; por defecto HOY y YO (el arqueo
+        // de siempre). La fecha, el que grabó y la búsqueda se conservan al volver a la pantalla.
+        If(IsBlank(varFechaTsc), Set(varFechaTsc, Today()));
+        If(IsBlank(varGrabTsc), Set(varGrabTsc, Coalesce(gblUsuarioDV.'Full Name', "Todos")));
+        Set(varAvisoTsc, false);
+        Select(btnCargarTsc)
     Children:
       - cmpEncTsc:
           Control: CanvasComponent
           ComponentName: cmpEncabezado
           Properties:
             Height: =If(nfMovil, gblE.AltoBarra + 84, 84)
-            Subtitulo: ="Tu arqueo del día — código grabado y auditoría sellada."
-            Titulo: ="Transcritas hoy"
+            Subtitulo: ="Arqueo por día y por quién grabó — código grabado y auditoría sellada."
+            Titulo: ="Transcritas"
             Width: =Parent.Width - Self.X
             X: =If(nfMovil, 0, gblE.AnchoNav)
       - btnActualizarTsc:
@@ -93,57 +38,7 @@ Screens:
             FocusedBorderThickness: =2
             Font: =Font.'Segoe UI'
             Height: =gblE.AltoInput
-            OnSelect: |-
-              =Set(varNTscTsc,
-                  CountIf('CM | TBL | Interaccions',
-                      '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Grabado
-                      && '[IN] Fecha grabacion' >= Today()
-                      && '[IN] Grabado por'.User = gblUsuarioDV.User));
-              // ESCALA: los pagos de HOY (de todos los cobradores) se traen por tramos (TramoCartera, de su interacción), cada
-              // consulta bajo el límite de 2000 filas: hasta unos 30.000 pagos por día. El tramo va CONSTANTE (T.Value): un If,
-              // DateAdd o un campo de colección en el Filter no delega y trae la tabla entera. El último Collect: pagos sin tramo.
-              Clear(colPagosHoyTsc);
-              ForAll(Sequence(20, 0) As T,
-                  Collect(colPagosHoyTsc, Filter('CM | TBL | Pagos', 'Fecha del pago' >= Today() && '[PG] Tramo' = T.Value)));
-              Collect(colPagosHoyTsc, Filter('CM | TBL | Pagos', 'Fecha del pago' >= Today() && '[PG] Tramo' = Blank()));
-              If(CountRows(colPagosHoyTsc) >= 30000,
-                  Notify("Hoy hay más de 30.000 pagos: el arqueo de esta pantalla puede estar incompleto. Avisá a soporte.", NotificationType.Warning));
-              // La lectura principal se verifica aparte (ver scrCargaArchivo): sin esto, el ✓ salía aunque la lectura fallara.
-              Set(varErrTsc, IfError(Left(Text(varNTscTsc), 0), Coalesce(FirstError.Message, "sin detalle")));
-              Set(varErrTsc, varErrTsc & IfError(Left(Text(CountRows(ClearCollect(colTscTmpTsc,
-                  AddColumns(
-                      Filter('CM | TBL | Interaccions',
-                          '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Grabado
-                          && '[IN] Fecha grabacion' >= Today()
-                          && '[IN] Grabado por'.User = gblUsuarioDV.User) As IntTsc,
-                      clienteTsc, Upper(Coalesce(IntTsc.'[IN] Cuenta'.'Nombre Cliente', "—")),
-                      cifTsc, Coalesce(IntTsc.'[IN] Cuenta'.'CIF Cliente', "—"),
-                      prodTsc, Coalesce(IntTsc.'[IN] Cuenta'.'Tipo Producto', "—"),
-                      ult4Tsc, Coalesce(IntTsc.'[IN] Cuenta'.'Últimos 4', ""),
-                      cuentaIdTsc, IntTsc.'[IN] Cuenta'.'CM | TBL | Cuenta',
-                      // F10: "ok" la actualización vinculada existe; "sinv" entró sin vincular (F8); "falta" no llegó
-                      datosTsc, If(!IntTsc.'[IN] Actualiza info', "",
-                          !IsBlank(LookUp('CM | TBL | Actualizacion de datos', '[AD] Interaccion'.'CM | TBL | Interaccion' = IntTsc.'CM | TBL | Interaccion')), "ok",
-                          !IsBlank(LookUp('CM | TBL | Actualizacion de datos', '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = IntTsc.'[IN] Cuenta'.'CM | TBL | Cuenta')), "sinv",
-                          "falta")
-                  )
-              ))), 0), " " & Coalesce(FirstError.Message, "sin detalle")));
-              ClearCollect(colPagosTsc,
-                  Filter(colPagosHoyTsc,
-                      !IsBlank(LookUp(colTscTmpTsc, '[IN] Numero de Interaccion' = '[PG] Numero Interaccion'))));
-              ClearCollect(colTscTsc,
-                  AddColumns(colTscTmpTsc,
-                      pagosNioTsc, Sum(Filter(colPagosTsc,
-                          '[PG] Numero Interaccion' = '[IN] Numero de Interaccion'
-                          && '[PG] Moneda' = 'Choice | CM | Monedas en Pago'.NIO), '[PG] Monto'),
-                      pagosUsdTsc, Sum(Filter(colPagosTsc,
-                          '[PG] Numero Interaccion' = '[IN] Numero de Interaccion'
-                          && '[PG] Moneda' = 'Choice | CM | Monedas en Pago'.USD), '[PG] Monto')
-                  )
-              );
-              If(IsBlank(varErrTsc),
-                  Notify("✓ Arqueo actualizado", NotificationType.Success, 2500),   // LED-05
-                  Notify("No se pudo actualizar el arqueo: " & TextoError(varErrTsc), NotificationType.Error))
+            OnSelect: =Set(varAvisoTsc, true); Select(btnCargarTsc)
             Size: =10
             Text: ="↻ Actualizar"
             Width: =140
@@ -170,7 +65,7 @@ Screens:
                   EsHero: =false
                   Etiqueta: ="TRANSCRITAS"
                   Height: =96
-                  Valor: =Text(varNTscTsc)
+                  Valor: =Text(galTscTsc.AllItemsCount)
                   Width: =If(nfMovil, Parent.Width, (Parent.Width - gblE.PadSm)/2)
             - cmpKpiPagosTsc:
                 Control: CanvasComponent
@@ -181,12 +76,108 @@ Screens:
                   Etiqueta: ="PAGOS TRANSCRITOS"
                   Height: =96
                   Valor: |-
-                    =Moneda(
-                        Sum(Filter(colPagosTsc, '[PG] Moneda' = 'Choice | CM | Monedas en Pago'.NIO), '[PG] Monto'),
-                        Sum(Filter(colPagosTsc, '[PG] Moneda' = 'Choice | CM | Monedas en Pago'.USD), '[PG] Monto'))
+                    =// Suma de las filas que muestra la lista (día, quién grabó y búsqueda).
+                    Moneda(Sum(galTscTsc.AllItems, pagosNioTsc), Sum(galTscTsc.AllItems, pagosUsdTsc))
                   Width: =If(nfMovil, Parent.Width, (Parent.Width - gblE.PadSm)/2)
                   X: =If(nfMovil, 0, cmpKpiTransTsc.Width + gblE.PadSm)
                   Y: =If(nfMovil, 96 + gblE.PadSm, 0)
+      - conFiltrosTsc:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            DropShadow: =DropShadow.None
+            Fill: =Color.Transparent
+            Height: =If(nfMovil, 3 * gblE.AltoInput + 2 * gblE.PadSm, gblE.AltoInput)
+            LayoutDirection: =LayoutDirection.Horizontal
+            LayoutGap: =gblE.PadSm
+            LayoutWrap: =nfMovil
+            Width: =conKpisTsc.Width
+            X: =conKpisTsc.X
+            Y: =conKpisTsc.Y + conKpisTsc.Height + gblE.Pad
+          Children:
+            - dtpFechaTsc:
+                Control: Classic/DatePicker@2.6.0
+                Properties:
+                  AccessibleLabel: ="Día de grabación"
+                  BorderColor: =gblC.borde
+                  Color: =gblC.ink
+                  DefaultDate: =varFechaTsc
+                  Fill: =gblC.card
+                  FillPortions: =0
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  OnChange: |-
+                    =// UN día (el arqueo es por jornada). Sin fecha (borrada a mano) vuelve a hoy.
+                    Set(varFechaTsc, Coalesce(Self.SelectedDate, Today()));
+                    Select(btnCargarTsc)
+                  Size: =10
+                  StartOfWeek: =StartOfWeek.Monday
+                  Width: =If(nfMovil, (Parent.Width - gblE.PadSm) * 0.6, 170)
+            - btnHoyTsc:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  Color: =If(varFechaTsc = Today(), gblC.muted, gblC.teal)
+                  Fill: =gblC.card
+                  FillPortions: =0
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  OnSelect: =Set(varFechaTsc, Today()); Reset(dtpFechaTsc); Select(btnCargarTsc)
+                  Size: =10
+                  Text: ="Hoy"
+                  Width: =If(nfMovil, (Parent.Width - gblE.PadSm) * 0.4, 70)
+            - txtBuscaTsc:
+                Control: Classic/TextInput@2.3.2
+                Properties:
+                  AccessibleLabel: ="Buscar por CIF, cliente, tarjeta o localizador"
+                  BorderColor: =gblC.borde
+                  Default: =""
+                  DelayOutput: =true
+                  Fill: =gblC.card
+                  FillPortions: =1
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  HintText: ="🔍 CIF, cliente, últimos dígitos de la tarjeta o localizador"
+                  LayoutMinWidth: =220
+                  OnChange: =Set(varBuscaTsc, Trim(Self.Text))
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Size: =10
+                  Width: =If(nfMovil, Parent.Width, 320)
+            - cmbGrabTsc:
+                Control: Classic/ComboBox@2.4.0
+                Properties:
+                  AccessibleLabel: ="Quién la grabó"
+                  BorderColor: =gblC.borde
+                  DefaultSelectedItems: =[varGrabTsc]
+                  DisplayFields: =["Value"]
+                  Fill: =gblC.card
+                  FillPortions: =0
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  InputTextPlaceholder: ="Grabó (todos)"
+                  IsSearchable: =true
+                  Items: |-
+                    =// "Todos", yo (aunque ese día no haya grabado nada) y los demás que grabaron ese día.
+                    Ungroup(Table(
+                        {g: ["Todos"]},
+                        {g: [Coalesce(gblUsuarioDV.'Full Name', "—")]},
+                        {g: Filter(Sort(Distinct(colTscTsc, grabTsc), Value), Value <> Coalesce(gblUsuarioDV.'Full Name', "—"))}
+                    ), g)
+                  OnChange: =Set(varGrabTsc, Coalesce(Self.Selected.Value, "Todos"))
+                  SearchFields: =["Value"]
+                  SelectMultiple: =false
+                  Size: =10
+                  Width: =If(nfMovil, Parent.Width, 260)
       - conListaTsc:
           Control: GroupContainer@1.5.0
           Variant: ManualLayout
@@ -202,17 +193,24 @@ Screens:
             RadiusTopRight: =gblE.Radio
             Width: =conKpisTsc.Width
             X: =conKpisTsc.X
-            Y: =conKpisTsc.Y + conKpisTsc.Height + gblE.Pad
+            Y: =conFiltrosTsc.Y + conFiltrosTsc.Height + gblE.PadSm
           Children:
             - galTscTsc:
                 Control: Gallery@2.15.0
                 Variant: Vertical
                 Properties:
-                  AccessibleLabel: ="Interacciones transcritas hoy"
+                  AccessibleLabel: ="Interacciones transcritas"
                   FocusedBorderColor: =gblC.teal
                   FocusedBorderThickness: =2
                   Height: =Parent.Height - 2*gblE.PadSm
-                  Items: =Sort(colTscTsc, '[IN] Fecha grabacion', SortOrder.Descending)
+                  Items: |-
+                    =// Quién grabó (combo) y búsqueda: CIF, cliente o localizador (contiene), tarjeta (últimos dígitos) o N° INT.
+                    Sort(Filter(colTscTsc,
+                            (varGrabTsc = "Todos" || grabTsc = varGrabTsc) &&
+                            (IsBlank(varBuscaTsc) || varBuscaTsc in cifTsc || varBuscaTsc in clienteTsc ||
+                             EndsWith(ult4Tsc, varBuscaTsc) || varBuscaTsc in '[IN] NombreAgente' ||
+                             varBuscaTsc in '[IN] Numero de Interaccion')),
+                         '[IN] Fecha grabacion', SortOrder.Descending)
                   OnSelect: =Set(varSelTsc, ThisItem); Set(varPanelTsc, true)
                   ShowScrollbar: =false
                   TemplateFill: =If(ThisItem.IsSelected, gblC.tealSuave, gblC.card)
@@ -264,7 +262,8 @@ Screens:
                         PaddingLeft: =0
                         Size: =8
                         Text: |-
-                          =ThisItem.'[IN] Numero de Interaccion' & " · 🏍️ " & ThisItem.'[IN] NombreAgente' & " · " & Text(ThisItem.'Fecha de captura', "HH:mm")
+                          =ThisItem.'[IN] Numero de Interaccion' & " · 🏍️ " & ThisItem.'[IN] NombreAgente' & " · " & Text(ThisItem.'Fecha de captura', "HH:mm") &
+                              " · ✍️ " & ThisItem.grabTsc
                         Width: =lblClienteTsc.Width
                         Wrap: =false
                         X: =gblE.PadSm
@@ -381,11 +380,77 @@ Screens:
                   Height: =140
                   Icono: |-
                     ="🗒️"
-                  Mensaje: ="Lo que transcribas hoy aparece acá — tu arqueo del día."
-                  Titulo: ="Nada todavía."
-                  Visible: =CountRows(colTscTsc) = 0
+                  Mensaje: |-
+                    =If(!IsBlank(varBuscaTsc), "Nada coincide con «" & varBuscaTsc & "».",
+                        "No hay transcritas " & If(varFechaTsc = Today(), "hoy", "el " & Text(varFechaTsc, "dd/mm/yyyy")) &
+                        If(varGrabTsc = "Todos", ".", " grabadas por " & varGrabTsc & "."))
+                  Titulo: ="Nada para mostrar."
+                  Visible: =galTscTsc.AllItemsCount = 0
                   Width: =Parent.Width
                   Y: =(Parent.Height - Self.Height)/2
+      - btnCargarTsc:
+          Control: Classic/Button@2.2.0
+          Properties:
+            OnSelect: |-
+              =// Transcritas del día varFechaTsc, de TODOS los que graban: el filtro por quién grabó y la búsqueda son en memoria
+              // (galTscTsc.Items). Comparaciones de fecha con variables y choice por valor = delegable (00 §4.2).
+              Set(varFinTsc, DateAdd(varFechaTsc, 1));
+              // ESCALA: los pagos del día (de todos los cobradores) se traen por tramos (TramoCartera, de su interacción), cada
+              // consulta bajo el límite de 2000 filas: hasta unos 30.000 pagos por día. El tramo va CONSTANTE (T.Value): un If,
+              // DateAdd o un campo de colección en el Filter no delega y trae la tabla entera. El último Collect: pagos sin tramo.
+              Clear(colPagosHoyTsc);
+              ForAll(Sequence(20, 0) As T,
+                  Collect(colPagosHoyTsc, Filter('CM | TBL | Pagos', 'Fecha del pago' >= varFechaTsc && 'Fecha del pago' < varFinTsc && '[PG] Tramo' = T.Value)));
+              Collect(colPagosHoyTsc, Filter('CM | TBL | Pagos', 'Fecha del pago' >= varFechaTsc && 'Fecha del pago' < varFinTsc && '[PG] Tramo' = Blank()));
+              If(CountRows(colPagosHoyTsc) >= 30000,
+                  Notify("Ese día hay más de 30.000 pagos: el arqueo de esta pantalla puede estar incompleto. Avisá a soporte.", NotificationType.Warning));
+              // La lectura principal se verifica aparte (ver scrCargaArchivo): sin esto, el ✓ salía aunque la lectura fallara.
+              // Datos de la cuenta navegando el lookup '[IN] Cuenta' (lo resuelve el servidor). IntTsc y no ThisRecord: adentro
+              // del LookUp, ThisRecord es la ACTUALIZACIÓN.
+              Set(varErrTsc, IfError(Left(Text(CountRows(ClearCollect(colTscTmpTsc,
+                  AddColumns(
+                      Filter('CM | TBL | Interaccions',
+                          '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Grabado
+                          && '[IN] Fecha grabacion' >= varFechaTsc && '[IN] Fecha grabacion' < varFinTsc) As IntTsc,
+                      clienteTsc, Upper(Coalesce(IntTsc.'[IN] Cuenta'.'Nombre Cliente', "—")),   // LED-01
+                      cifTsc, Coalesce(IntTsc.'[IN] Cuenta'.'CIF Cliente', "—"),
+                      prodTsc, Coalesce(IntTsc.'[IN] Cuenta'.'Tipo Producto', "—"),
+                      ult4Tsc, Coalesce(IntTsc.'[IN] Cuenta'.'Últimos 4', ""),
+                      cuentaIdTsc, IntTsc.'[IN] Cuenta'.'CM | TBL | Cuenta',
+                      grabTsc, Coalesce(IntTsc.'[IN] Grabado por'.'Full Name', "—"),
+                      // F10: "ok" la actualización vinculada existe; "sinv" entró sin vincular (F8); "falta" no llegó.
+                      datosTsc, If(!IntTsc.'[IN] Actualiza info', "",
+                          !IsBlank(LookUp('CM | TBL | Actualizacion de datos', '[AD] Interaccion'.'CM | TBL | Interaccion' = IntTsc.'CM | TBL | Interaccion')), "ok",
+                          !IsBlank(LookUp('CM | TBL | Actualizacion de datos', '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = IntTsc.'[IN] Cuenta'.'CM | TBL | Cuenta')), "sinv",
+                          "falta")
+                  )
+              ))), 0), Coalesce(FirstError.Message, "sin detalle")));
+              If(CountRows(colTscTmpTsc) >= 2000,
+                  Notify("Ese día hay 2.000 o más transcritas: la lista puede estar incompleta. Avisá a soporte.", NotificationType.Warning));
+              // Pagos del arqueo = pagos del día (ya en memoria) ∩ las transcritas del día. Todo sobre colecciones (00 §4.1).
+              ClearCollect(colPagosTsc,
+                  Filter(colPagosHoyTsc,
+                      !IsBlank(LookUp(colTscTmpTsc, '[IN] Numero de Interaccion' = '[PG] Numero Interaccion'))));
+              // Montos por interacción HORNEADOS una vez (R1-02). La base es colTscTmpTsc (SIN pagos*): si AddColumns leyera
+              // colTscTsc, su esquema ya trae pagosNioTsc → "A column named 'pagosNioTsc' already exists".
+              ClearCollect(colTscTsc,
+                  AddColumns(colTscTmpTsc,
+                      pagosNioTsc, Sum(Filter(colPagosTsc,
+                          '[PG] Numero Interaccion' = '[IN] Numero de Interaccion'
+                          && '[PG] Moneda' = 'Choice | CM | Monedas en Pago'.NIO), '[PG] Monto'),
+                      pagosUsdTsc, Sum(Filter(colPagosTsc,
+                          '[PG] Numero Interaccion' = '[IN] Numero de Interaccion'
+                          && '[PG] Moneda' = 'Choice | CM | Monedas en Pago'.USD), '[PG] Monto')
+                  )
+              );
+              Set(varSelTsc, Blank());
+              Set(varPanelTsc, false);
+              If(!IsBlank(varErrTsc),
+                  Notify("No se pudo leer las transcritas: " & TextoError(varErrTsc), NotificationType.Error),
+                 varAvisoTsc,
+                  Notify("✓ Arqueo actualizado", NotificationType.Success, 2500));   // LED-05
+              Set(varAvisoTsc, false)
+            Visible: =false
       - recScrimTsc:
           Control: Rectangle@2.3.0
           Properties:

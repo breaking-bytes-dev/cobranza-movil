@@ -134,7 +134,7 @@ ComponentDefinitions:
                             {
                                 Orden: 3,
                                 Icono: "✅",
-                                Titulo: "Transcritas hoy",
+                                Titulo: "Transcritas",
                                 Ruta: "tsc",
                                 Roles: "Backoffice"
                             },

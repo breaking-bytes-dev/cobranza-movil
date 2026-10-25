@@ -59,8 +59,8 @@ async function f8(ctx) {
       const sigue = (await pl.ctl(app, 'btnFilaColaTrx').locator('visible=true').filter({ hasText: ctx.nombreCliente }).count());
       ctx.chk('F8-10', sigue === 0, 'la interacción salió de la cola sin recargar');
     });
-    await ctx.paso('F8-11', 'Transcritas hoy', async () => {
-      await ui.ir(app, 'Transcritas hoy', 'scrTranscritas');
+    await ctx.paso('F8-11', 'Transcritas', async () => {
+      await ui.ir(app, 'Transcritas', 'scrTranscritas');
       const k = await pl.kpis(app);
       const t = await v.transcritasHoy(U.bo);
       ctx.chk('F8-11', c.num(k['TRANSCRITAS']) === t && t >= 1, `Transcritas hoy: KPI TRANSCRITAS = API (${k['TRANSCRITAS']} vs ${t})`);
