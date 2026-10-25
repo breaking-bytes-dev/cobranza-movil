@@ -393,6 +393,33 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         }
 
         [Theory]
+        [InlineData("Cliente", 200)]
+        [InlineData("DireccionCasa", 200)]
+        [InlineData("DireccionEC", 200)]
+        [InlineData("DireccionTrabajo", 200)]
+        [InlineData("Departamento", 100)]
+        [InlineData("Distrito", 100)]
+        [InlineData("Trabajo", 200)]
+        [InlineData("NumeroCelular", 20)]
+        [InlineData("NumeroCasa", 20)]
+        [InlineData("NombreFianza", 200)]
+        [InlineData("DireccionFianza", 200)]
+        [InlineData("Ciclo", 10)]
+        [InlineData("TipoEspecial", 200)]
+        [InlineData("Nota", 400)]
+        public void Cada_campo_libre_tiene_el_tope_de_su_columna(string campo, int largo)
+        {
+            var e = new Escenario(Admin);
+            e.H.Inputs[campo] = new string('a', largo + 1);
+            Assert.Contains(campo + " pasa de " + largo + " caracteres", e.Rechaza().Message);
+            e.NoCreoNada();
+
+            var justo = new Escenario(Admin);
+            justo.H.Inputs[campo] = new string('a', largo);
+            justo.Ejecutar();
+        }
+
+        [Theory]
         [InlineData("Nota")]
         [InlineData("TipoEspecial")]
         [InlineData("DireccionTrabajo")]

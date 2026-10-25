@@ -36,10 +36,16 @@ namespace Sanic.CobranzaMovil.Plugins
     /// </summary>
     public sealed class AltaCuenta : PluginBase
     {
+        // Topes = el largo de la columna mas corta a la que va cada valor (cliente, direccion, telefono, fiador, cuenta):
+        // con uno mayor la prueba en seco daba OK y el job de Smelter fallaba despues (1.0.10.2).
         private const int LargoCif = 20;
         private const int LargoNombre = 200;
-        private const int LargoTexto = 250;
-        private const int LargoNota = 2000;
+        private const int LargoDireccion = 200;
+        private const int LargoZona = 100;
+        private const int LargoTelefono = 20;
+        private const int LargoCiclo = 10;
+        private const int LargoTexto = 200;
+        private const int LargoNota = 400;
         private const int DigitosDePan = 13;
         private const decimal MontoMaximo = 1000000000m;
         private const int EnteroMaximo = 100000;
@@ -86,17 +92,17 @@ namespace Sanic.CobranzaMovil.Plugins
             var tipo = TipoAsignacion(local);
 
             var nombre = Texto(local, "Cliente", LargoNombre, false, true);
-            var direcciones = TiposDireccion.ToDictionary(t => t, t => Texto(local, "Direccion" + t, LargoTexto, false, true));
-            var departamento = Texto(local, "Departamento", LargoTexto, false, true);
-            var distrito = Texto(local, "Distrito", LargoTexto, false, true);
+            var direcciones = TiposDireccion.ToDictionary(t => t, t => Texto(local, "Direccion" + t, LargoDireccion, false, true));
+            var departamento = Texto(local, "Departamento", LargoZona, false, true);
+            var distrito = Texto(local, "Distrito", LargoZona, false, true);
             var trabajo = Texto(local, "Trabajo", LargoTexto, false, true);
             var telefonos = new Dictionary<string, string>
             {
-                { "Celular", Texto(local, "NumeroCelular", LargoTexto, false, true) },
-                { "Casa", Texto(local, "NumeroCasa", LargoTexto, false, true) },
+                { "Celular", Texto(local, "NumeroCelular", LargoTelefono, false, true) },
+                { "Casa", Texto(local, "NumeroCasa", LargoTelefono, false, true) },
             };
             var nombreFianza = Texto(local, "NombreFianza", LargoTexto, false, true);
-            var direccionFianza = Texto(local, "DireccionFianza", LargoTexto, false, true);
+            var direccionFianza = Texto(local, "DireccionFianza", LargoDireccion, false, true);
 
             fila["SaldoVencidoNIO"] = Monto(local, "SaldoVencidoNIO", true);
             fila["SaldoVencidoUSD"] = Monto(local, "SaldoVencidoUSD", true);
@@ -110,7 +116,7 @@ namespace Sanic.CobranzaMovil.Plugins
             fila["NivelMora"] = Entero(local, "NivelMora");
             fila["FechaUltimoPago"] = Fecha(local, "FechaUltimoPago");
             fila["FechaPago"] = Fecha(local, "FechaPago");
-            fila["Ciclo"] = Texto(local, "Ciclo", LargoTexto, false, true);
+            fila["Ciclo"] = Texto(local, "Ciclo", LargoCiclo, false, true);
             fila["TipoEspecial"] = Texto(local, "TipoEspecial", LargoTexto, false, true);
             fila["Nota"] = Texto(local, "Nota", LargoNota, false, true);
             var agenteId = Id(local, Esquema.ParamAgenteId, "el agente");
