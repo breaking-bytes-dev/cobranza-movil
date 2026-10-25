@@ -276,7 +276,7 @@ Después de que se aprueba (el dueño pasa al cobrador), el Solicitante **sigue 
 | Pantalla | Qué puede hacer |
 |---|---|
 | **Inicio** | Ver POR APROBAR y "Cobrado hoy" |
-| **Aprobaciones** | Ver la cola de Especiales **pendientes y activas de todos los solicitantes**. Elegir una y: **aprobar eligiendo el localizador** (buscador de agentes activos con usuario) o **rechazar con motivo** |
+| **Aprobaciones** | Ver la cola de Especiales **pendientes y activas de todos los solicitantes**. Elegir una y: **aprobar eligiendo el localizador** (buscador de agentes activos con usuario) o **rechazar con motivo**. Filtros por fecha de solicitud, solicitante y buscador de CIF, cliente o cuenta (en el servidor) |
 | **Reasignar** (desde 2026-10-14) | Buscar una asignación por cliente, cuenta o localizador (el Supervisor ve las **Especiales aprobadas y activas**), elegir el **nuevo localizador** (activo y con usuario) y confirmar. Solo escribe el agente: el plugin de reparto mueve el dueño y los compartidos. Las Diarias no se reasignan a mano: gana el CSV |
 | **Cartera por localizador** (desde 2026-10-09) | Ver cada localizador con sus asignaciones **activas** por tipo (Diaria / Incobrable / Especial). Al elegir uno se abre el detalle: cliente, cuenta enmascarada, tipo, estado de aprobación, mora y saldo. Solo lectura. Las Especiales en Borrador o Pendiente cuentan acá aunque el cobrador no las vea en el teléfono |
 | **Historial de Especiales** (desde 2026-10-09) | Ver las Especiales **aprobadas y rechazadas**: quién la pidió, quién la resolvió, a qué localizador fue, motivo de rechazo, retiro y si sigue activa o cerrada. Filtros por resultado, por los últimos 7/30/90 días (último cambio) y por activas/cerradas. Solo lectura |
