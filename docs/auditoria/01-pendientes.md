@@ -86,6 +86,7 @@ Cerrados en DEV antes del 2026-10-14 (detalle en [00-lista-consolidada.md](00-li
 Cerrados el 2026-10-24 (cobrador, scrPagos; verificados en la web con User5 y en el teléfono con User6, versión 72a1867):
 - **APP-34**: hueco entre tarjetas en Pagos de hoy → una fila por pago en una galería de alto fijo; la tarjeta toma el ancho de la galería.
 - **APP-35**: «Pagos e interacciones» con pestañas, día elegible (‹ ›, calendario, hasta 90 días) y búsqueda por cliente o últimos dígitos.
+- **APP-36** (backoffice, Por transcribir): se veían 2 pagos (galería de 74 px fijos sin barra) y 4 campos de la actualización (tope de 4) → comentario, pagos y datos en una sola zona con desplazamiento, listas a alto completo y la cuenta de cada pago. Verificado en la web con User1 (IN-1363: 6 pagos y 7 campos), versión 0fb34e5.
 
 Cerrados el 2026-10-19:
 
