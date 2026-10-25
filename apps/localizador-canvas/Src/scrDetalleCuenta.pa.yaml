@@ -425,8 +425,8 @@ Screens:
                               LayoutMinWidth: =16
                               Size: =gblT.fbase
                               Text: |-
-                                =// Fecha sin hora guardada como medianoche UTC: se vuelve a UTC para no mostrar el día anterior en Managua.
-                                If(IsBlank(varCuenta.'[CT] Fecha Ultimo Pago'), "", Text(DateAdd(varCuenta.'[CT] Fecha Ultimo Pago', TimeZoneOffset(varCuenta.'[CT] Fecha Ultimo Pago'), TimeUnit.Minutes), "dd/mm/yyyy"))
+                                =// '[CT] Último pago' es DateOnly (2026-10-25): el día que manda el banco, sin zona horaria.
+                                If(IsBlank(varCuenta.'[CT] Último pago'), "", Text(varCuenta.'[CT] Último pago', "dd/mm/yyyy"))
                   - conFila_Ciclo:
                       Control: GroupContainer@1.5.0
                       Variant: AutoLayout

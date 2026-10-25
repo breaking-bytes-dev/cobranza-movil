@@ -13,10 +13,6 @@ App:
          With({ pn: If(nio>0, "C$ " & Text(nio, "#,##0.00", "en-US"), ""),
                 pu: If(usd>0, "US$ " & Text(usd, "#,##0.00", "en-US"), "") },
             Coalesce(pn & If(!IsBlank(pn) && !IsBlank(pu), " · ", "") & pu, "C$ 0.00"));
-      // Fecha sin hora guardada como medianoche UTC (FechaCarga): se vuelve a UTC para no mostrar el día anterior en Managua.
-      FechaUtc(f:DateTime): Date =
-         If(IsBlank(f), Blank(),
-            With({ x: DateAdd(f, TimeZoneOffset(f), TimeUnit.Minutes) }, Date(Year(x), Month(x), Day(x))));
       PanMasc(u4:Text): Text =
          If(IsBlank(u4), "", "•••• " & u4);
       EspTipo(notas:Text): Text =
