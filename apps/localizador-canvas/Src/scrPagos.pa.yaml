@@ -1,13 +1,20 @@
 # ************************************************************************************************
 # Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
 # Use the maker portal to create and edit your Power Apps.
-# 
+#
 # The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
-# 
+#
 # For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
 # ************************************************************************************************
 Screens:
   scrPagos:
+    Properties:
+      OnVisible: |-
+        =// APP-35: pagos e interacciones del día elegido (por defecto hoy). Se releen al entrar: puede haber capturas nuevas.
+        If(IsBlank(varPagFecha), Set(varPagFecha, Today()));
+        If(IsBlank(varPagTab), Set(varPagTab, "pagos"));
+        Set(varCalPag, false);
+        Select(btnCargarPag)
     Children:
       - conMaster_5:
           Control: GroupContainer@1.5.0
@@ -18,8 +25,7 @@ Screens:
             Height: =Parent.Height
             LayoutAlignItems: =LayoutAlignItems.Center
             LayoutDirection: =LayoutDirection.Vertical
-            LayoutGap: =20
-            LayoutOverflowY: =LayoutOverflow.Scroll
+            LayoutGap: =10
             PaddingBottom: =8
             PaddingLeft: =8
             PaddingRight: =8
@@ -43,8 +49,8 @@ Screens:
                       ComponentName: cmpHeaderBack
                       Properties:
                         Height: =Parent.Height
-                        Subtitulo: ="Por cuenta y por moneda"
-                        Titulo: ="Pagos de Hoy"
+                        Subtitulo: ="Elegí el día; buscá por cliente o tarjeta"
+                        Titulo: ="Pagos e interacciones"
                         Width: =Parent.Width
                   - Button1_6:
                       Control: ModernButton@1.0.0
@@ -71,6 +77,95 @@ Screens:
                         Width: =If(gblScale = 1, 50,gblScale = 1.2,60,gblScale = 1.45,70,80)
                         X: =Parent.Width - Self.Width - 14
                         Y: =Self.Height - 20
+            - conFechaPag:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  FillPortions: =0
+                  Height: =If(gblScale = 1, 40,gblScale = 1.2,46,gblScale = 1.45,52,58)
+                  LayoutAlignItems: =LayoutAlignItems.Stretch
+                  LayoutDirection: =LayoutDirection.Horizontal
+                  LayoutGap: =6
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  Width: =Parent.Width - Parent.PaddingLeft * 2
+                Children:
+                  - btnDiaAnt:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        AccessibleLabel: ="Día anterior"
+                        BorderColor: =gblC.cardBorder
+                        BorderThickness: =1
+                        Color: =gblC.ink
+                        DisabledBorderColor: =gblC.cardBorder
+                        DisabledColor: =gblC.cardBorder
+                        DisabledFill: =gblC.surface
+                        DisplayMode: |-
+                          =// El teléfono guarda 90 días de interacciones y pagos (perfil offline): más atrás no hay nada que mostrar.
+                          If(varPagFecha <= DateAdd(Today(), -89), DisplayMode.Disabled, DisplayMode.Edit)
+                        FillPortions: =0
+                        Fill: =gblC.surface
+                        HoverFill: =gblC.accentBg
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        OnSelect: =Set(varPagFecha, DateAdd(varPagFecha, -1)); Select(btnCargarPag)
+                        PressedFill: =gblC.accentBg
+                        RadiusBottomLeft: =10
+                        RadiusBottomRight: =10
+                        RadiusTopLeft: =10
+                        RadiusTopRight: =10
+                        Size: =gblT.flg
+                        Text: ="‹"
+                        Width: =If(gblScale = 1, 44,gblScale = 1.2,50,gblScale = 1.45,56,62)
+                  - btnFechaPag:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        AccessibleLabel: ="Elegir el día en el calendario"
+                        BorderColor: =gblC.cardBorder
+                        BorderThickness: =1
+                        Color: =gblC.accent
+                        Fill: =gblC.surface
+                        FillPortions: =1
+                        FontWeight: =FontWeight.Bold
+                        HoverFill: =gblC.accentBg
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        OnSelect: =Set(varCalMes, Date(Year(varPagFecha), Month(varPagFecha), 1)); Set(varCalPag, true)
+                        PressedFill: =gblC.accentBg
+                        RadiusBottomLeft: =10
+                        RadiusBottomRight: =10
+                        RadiusTopLeft: =10
+                        RadiusTopRight: =10
+                        Size: =gblT.fsm
+                        Text: |-
+                          ="📅 " & If(varPagFecha = Today(), "Hoy · ", varPagFecha = DateAdd(Today(), -1), "Ayer · ", "") &
+                              Proper(Text(varPagFecha, "ddd dd/mm/yyyy", "es-ES")) & "  ▾"
+                  - btnDiaSig:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        AccessibleLabel: ="Día siguiente"
+                        BorderColor: =gblC.cardBorder
+                        BorderThickness: =1
+                        Color: =gblC.ink
+                        DisabledBorderColor: =gblC.cardBorder
+                        DisabledColor: =gblC.cardBorder
+                        DisabledFill: =gblC.surface
+                        DisplayMode: =If(varPagFecha >= Today(), DisplayMode.Disabled, DisplayMode.Edit)
+                        FillPortions: =0
+                        Fill: =gblC.surface
+                        HoverFill: =gblC.accentBg
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        OnSelect: =Set(varPagFecha, DateAdd(varPagFecha, 1)); Select(btnCargarPag)
+                        PressedFill: =gblC.accentBg
+                        RadiusBottomLeft: =10
+                        RadiusBottomRight: =10
+                        RadiusTopLeft: =10
+                        RadiusTopRight: =10
+                        Size: =gblT.flg
+                        Text: ="›"
+                        Width: =If(gblScale = 1, 44,gblScale = 1.2,50,gblScale = 1.45,56,62)
             - cardTotalCli_3:
                 Control: GroupContainer@1.5.0
                 Variant: AutoLayout
@@ -92,78 +187,306 @@ Screens:
                   RadiusBottomRight: =14
                   RadiusTopLeft: =14
                   RadiusTopRight: =14
-                  X: =40
-                  Y: =40
+                  Width: =Parent.Width - Parent.PaddingLeft * 2
                 Children:
                   - lblTL_3:
                       Control: Label@2.5.1
                       Properties:
+                        AlignInContainer: =AlignInContainer.Stretch
                         AutoHeight: =true
                         Color: =gblC.muted2
                         LayoutMinHeight: =16
                         LayoutMinWidth: =16
                         Size: =gblT.fxs
-                        Text: ="Total cobrado"
+                        Text: |-
+                          ="Total cobrado " & If(varPagFecha = Today(), "hoy", "el " & Text(varPagFecha, "dd/mm/yyyy")) &
+                              " · " & CountRows(colPagDia) & " pago(s) · " & CountRows(colIntDia) & " interacción(es)"
                   - lblTB_3:
                       Control: Label@2.5.1
                       Properties:
+                        AlignInContainer: =AlignInContainer.Stretch
                         AutoHeight: =true
                         Color: =gblC.accent
                         FontWeight: =FontWeight.Bold
                         LayoutMinHeight: =16
                         LayoutMinWidth: =16
                         Size: =gblT.fbig
-                        Text: =Moneda(colCobN, colCobU)
-            - galGrupos:
-                Control: Gallery@2.15.0
-                Variant: VariableHeight
+                        Text: |-
+                          =Moneda(Sum(Filter(colPagDia, '[PG] Moneda' = 'Choice | CM | Monedas en Pago'.NIO), '[PG] Monto'),
+                                  Sum(Filter(colPagDia, '[PG] Moneda' = 'Choice | CM | Monedas en Pago'.USD), '[PG] Monto'))
+            - conTabsPag:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
                 Properties:
                   AlignInContainer: =AlignInContainer.Center
-                  TemplatePadding: =0
-                  TemplateSize: |-
-                    =// En una galería de alto variable es el alto MÍNIMO de la fila: chico para que cada tarjeta mida lo que su contenido
-                    20
-                  Items: |-
-                    =GroupBy(AddColumns(AddColumns(AddColumns(colPagHoy,
-                               ctaId,  Cuenta.'CM | TBL | Cuenta'),
-                               ctaRec, LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = ctaId)),
-                               cliNom, ctaRec.'Nombre Cliente',
-                               prod,   ctaRec.'Tipo Producto',
-                               u4,     ctaRec.'Últimos 4'),
-                             cliNom,prod,ctaId,u4,Lineas)
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.borderSoft
+                  FillPortions: =0
+                  Height: =If(gblScale = 1, 36,gblScale = 1.2,42,gblScale = 1.45,46,50)
+                  LayoutAlignItems: =LayoutAlignItems.Center
+                  LayoutDirection: =LayoutDirection.Horizontal
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
-                  Width: =Parent.Width - Parent.PaddingLeft*2
+                  PaddingBottom: =2
+                  PaddingLeft: =2
+                  PaddingRight: =2
+                  PaddingTop: =2
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Width: =Parent.Width - Parent.PaddingLeft * 2
                 Children:
-                  - cmpTarjeta:
+                  - btnTabPagos:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Stretch
+                        BorderStyle: =BorderStyle.None
+                        Color: =If(varPagTab="pagos", gblC.accent, gblC.ink3)
+                        Fill: =If(varPagTab="pagos", gblC.surface, Color.Transparent)
+                        FillPortions: =1
+                        FontWeight: =If(varPagTab="pagos", FontWeight.Bold, FontWeight.Normal)
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        OnSelect: =Set(varPagTab, "pagos")
+                        RadiusBottomRight: =0
+                        RadiusTopRight: =0
+                        Size: =gblT.fxs
+                        Text: ="💵 Pagos (" & CountRows(colPagDia) & ")"
+                  - btnTabInter:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Stretch
+                        BorderStyle: =BorderStyle.None
+                        Color: =If(varPagTab="inter", gblC.accent, gblC.ink3)
+                        Fill: =If(varPagTab="inter", gblC.surface, Color.Transparent)
+                        FillPortions: =1
+                        FontWeight: =If(varPagTab="inter", FontWeight.Bold, FontWeight.Normal)
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        OnSelect: =Set(varPagTab, "inter")
+                        RadiusBottomLeft: =0
+                        RadiusTopLeft: =0
+                        Size: =gblT.fxs
+                        Text: ="🗒 Interacciones (" & CountRows(colIntDia) & ")"
+            - txtBuscarPag:
+                Control: Classic/TextInput@2.3.2
+                Properties:
+                  AccessibleLabel: |-
+                    ="Buscar por nombre del cliente o últimos dígitos de la tarjeta"
+                  BorderColor: =gblC.cardBorder
+                  BorderThickness: =1
+                  Color: =gblC.ink
+                  Default: =""
+                  DelayOutput: =true
+                  Fill: =gblC.surface
+                  FillPortions: =0
+                  Height: =If(gblScale = 1, 40,gblScale = 1.2,46,gblScale = 1.45,52,58)
+                  HintText: ="🔍 Cliente o últimos dígitos de la tarjeta…"
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  OnChange: =Set(varBuscarPag, Trim(Self.Text))
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Size: =gblT.fsm
+                  Width: =Parent.Width - Parent.PaddingLeft * 2
+            - lblVacioPag:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Center
+                  AlignInContainer: =AlignInContainer.Stretch
+                  AutoHeight: =true
+                  Color: =gblC.muted
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  Size: =gblT.fsm
+                  Text: |-
+                    =If(varPagTab = "pagos", "No hay pagos", "No hay interacciones") &
+                        If(IsBlank(varBuscarPag), If(varPagFecha = Today(), " hoy", " el " & Text(varPagFecha, "dd/mm/yyyy")),
+                           " que coincidan con «" & varBuscarPag & "»") & "."
+                  Visible: =If(varPagTab = "pagos", galPagosDia.AllItemsCount, galInterDia.AllItemsCount) = 0
+            - galPagosDia:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  AlignInContainer: =AlignInContainer.Stretch
+                  FillPortions: =1
+                  Items: |-
+                    =// APP-34: una fila por pago y galería de alto fijo. La versión anterior (galería de alto variable con otra
+                    // galería adentro, una tarjeta por cuenta) dejaba huecos: el alto de la fila no seguía al de la tarjeta.
+                    // La búsqueda: nombre del cliente (contiene) o últimos dígitos de la tarjeta (termina en).
+                    Sort(Filter(colPagDia, IsBlank(varBuscarPag) || varBuscarPag in cliNom || EndsWith(u4, varBuscarPag)),
+                         'Fecha del pago', SortOrder.Descending)
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  TemplatePadding: =0
+                  TemplateSize: =If(gblScale = 1, 70,gblScale = 1.2,80,gblScale = 1.45,94,110)
+                  Visible: =varPagTab = "pagos"
+                Children:
+                  - conPagRow:
                       Control: GroupContainer@1.5.0
                       Variant: AutoLayout
                       Properties:
+                        BorderColor: =gblC.cardBorder
+                        BorderThickness: =1
+                        DropShadow: =DropShadow.None
                         Fill: =gblC.surface
-                        Height: =lblGCli.Height + lblGProd.Height + galLineas.Height + 20
+                        Height: =Parent.TemplateHeight - 8
                         LayoutAlignItems: =LayoutAlignItems.Center
-                        LayoutDirection: =LayoutDirection.Vertical
-                        PaddingBottom: =8
-                        PaddingLeft: =8
-                        PaddingRight: =8
-                        PaddingTop: =8
-                        Width: =App.Width - 20 - 32
-                        X: =10
-                        Y: =10
+                        LayoutDirection: =LayoutDirection.Horizontal
+                        LayoutGap: =8
+                        PaddingLeft: =12
+                        PaddingRight: =12
+                        RadiusBottomLeft: =12
+                        RadiusBottomRight: =12
+                        RadiusTopLeft: =12
+                        RadiusTopRight: =12
+                        Width: =Parent.TemplateWidth
                       Children:
-                        - lblGCli:
+                        - conPagIzq:
+                            Control: GroupContainer@1.5.0
+                            Variant: AutoLayout
+                            Properties:
+                              DropShadow: =DropShadow.None
+                              FillPortions: =1
+                              LayoutDirection: =LayoutDirection.Vertical
+                              LayoutJustifyContent: =LayoutJustifyContent.Center
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                            Children:
+                              - lblPCli:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    AutoHeight: =true
+                                    Color: =gblC.ink
+                                    FontWeight: =FontWeight.Semibold
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    PaddingBottom: =0
+                                    PaddingTop: =0
+                                    Size: =gblT.fsm
+                                    Text: =Coalesce(ThisItem.cliNom, "(cuenta ya no asignada)")
+                                    Wrap: =false
+                              - lblPCta:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    AutoHeight: =true
+                                    Color: =gblC.muted
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    PaddingBottom: =0
+                                    PaddingTop: =0
+                                    Size: =gblT.fxs
+                                    Text: =If(IsBlank(ThisItem.prod), "", ThisItem.prod & " · ") & PanMasc(ThisItem.u4)
+                                    Wrap: =false
+                        - conPagDer:
+                            Control: GroupContainer@1.5.0
+                            Variant: AutoLayout
+                            Properties:
+                              DropShadow: =DropShadow.None
+                              FillPortions: =0
+                              LayoutDirection: =LayoutDirection.Vertical
+                              LayoutJustifyContent: =LayoutJustifyContent.Center
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              Width: =Parent.Width * 0.42
+                            Children:
+                              - lblPMonto:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    Align: =Align.Right
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    AutoHeight: =true
+                                    Color: =gblC.accent
+                                    FontWeight: =FontWeight.Bold
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    PaddingBottom: =0
+                                    PaddingTop: =0
+                                    Size: =gblT.fbase
+                                    Text: =If(Text(ThisItem.'[PG] Moneda')="USD","US$ ","C$ ") & Text(ThisItem.'[PG] Monto',"#,##0.00", "en-US")
+                                    Wrap: =false
+                              - lblPRec:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    Align: =Align.Right
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    AutoHeight: =true
+                                    Color: =gblC.muted2
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    PaddingBottom: =0
+                                    PaddingTop: =0
+                                    Size: =gblT.f2xs
+                                    Text: ="Rec. " & ThisItem.'[PG] Numero recibo' & " · " & Text(ThisItem.'Fecha del pago', "hh:mm")
+                                    Wrap: =false
+                  - btnAbrirPag:
+                      Control: ModernButton@1.0.0
+                      Properties:
+                        AccessibleLabel: |-
+                          ="Abrir cliente " & ThisItem.cliNom
+                        Appearance: =ButtonAppearance.Transparent
+                        DisplayMode: =If(IsBlank(ThisItem.cid), DisplayMode.Disabled, DisplayMode.Edit)
+                        Height: =Parent.TemplateHeight - 8
+                        OnSelect: =Set(varCliente, ThisItem.cid); Set(varCliTab, "inter"); Navigate(scrCliente, ScreenTransition.Cover)
+                        Text: =
+                        Width: =Parent.TemplateWidth
+            - galInterDia:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  AlignInContainer: =AlignInContainer.Stretch
+                  FillPortions: =1
+                  Items: |-
+                    =Sort(Filter(colIntDia, IsBlank(varBuscarPag) || varBuscarPag in cliNom || EndsWith(u4, varBuscarPag)),
+                         'Fecha de captura', SortOrder.Descending)
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  TemplatePadding: =0
+                  TemplateSize: =If(gblScale = 1, 132,gblScale = 1.2,154,gblScale = 1.45,184,216)
+                  Visible: =varPagTab = "inter"
+                Children:
+                  - conIntRow:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        BorderColor: =gblC.cardBorder
+                        BorderThickness: =1
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.surface
+                        Height: =Parent.TemplateHeight - 8
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutGap: =3
+                        LayoutJustifyContent: =LayoutJustifyContent.Center
+                        PaddingBottom: =8
+                        PaddingLeft: =12
+                        PaddingRight: =12
+                        PaddingTop: =8
+                        RadiusBottomLeft: =12
+                        RadiusBottomRight: =12
+                        RadiusTopLeft: =12
+                        RadiusTopRight: =12
+                        Width: =Parent.TemplateWidth
+                      Children:
+                        - lblIHead:
                             Control: Label@2.5.1
                             Properties:
                               AlignInContainer: =AlignInContainer.Stretch
                               AutoHeight: =true
-                              Color: =gblC.muted2
-                              FontWeight: =FontWeight.Bold
-                              LayoutMinWidth: =
-                              Size: =gblT.fxs
-                              Text: =ThisItem.cliNom
-                              X: =40
-                              Y: =40
-                        - lblGProd:
+                              Color: =gblC.ink
+                              FontWeight: =FontWeight.Semibold
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =0
+                              PaddingTop: =0
+                              Size: =gblT.fsm
+                              Text: ="🕘 " & Text(ThisItem.'Fecha de captura', "hh:mm") & " · " & Coalesce(ThisItem.cliNom, "(cuenta ya no asignada)")
+                              Wrap: =false
+                        - lblICta:
                             Control: Label@2.5.1
                             Properties:
                               AlignInContainer: =AlignInContainer.Stretch
@@ -171,63 +494,319 @@ Screens:
                               Color: =gblC.muted
                               LayoutMinHeight: =16
                               LayoutMinWidth: =16
+                              PaddingBottom: =0
+                              PaddingTop: =0
                               Size: =gblT.fxs
                               Text: =If(IsBlank(ThisItem.prod), "", ThisItem.prod & " · ") & PanMasc(ThisItem.u4)
-                        - galLineas:
-                            Control: Gallery@2.15.0
-                            Variant: Vertical
+                              Wrap: =false
+                        - lblIComDia:
+                            Control: Label@2.5.1
                             Properties:
-                              FillPortions: =0
-                              Height: |-
-                                =// Mismo alto que TemplateSize: si no coinciden quedan huecos entre los pagos y al pie de la tarjeta
-                                Self.AllItemsCount * Self.TemplateHeight
-                              Items: =ThisItem.Lineas
+                              AlignInContainer: =AlignInContainer.Stretch
+                              Color: =gblC.ink2
+                              FillPortions: =1
                               LayoutMinHeight: =16
                               LayoutMinWidth: =16
-                              TemplatePadding: =0
-                              TemplateSize: =If(gblScale = 1, 52,gblScale = 1.2,60,gblScale = 1.45,72,84)
-                            Children:
-                              - conLin:
-                                  Control: GroupContainer@1.5.0
-                                  Variant: AutoLayout
-                                  Properties:
-                                    DropShadow: =DropShadow.None
-                                    Height: =Parent.TemplateHeight
-                                    LayoutDirection: =LayoutDirection.Vertical
-                                    LayoutJustifyContent: =LayoutJustifyContent.Center
-                                    PaddingBottom: =4
-                                    PaddingLeft: =8
-                                    PaddingRight: =8
-                                    PaddingTop: =4
-                                    Width: =Parent.TemplateWidth
-                                  Children:
-                                    - lblLV:
-                                        Control: Label@2.5.1
-                                        Properties:
-                                          AlignInContainer: =AlignInContainer.Start
-                                          AutoHeight: =true
-                                          Color: =gblC.ink
-                                          LayoutMinHeight: =16
-                                          LayoutMinWidth: =16
-                                          PaddingBottom: =0
-                                          PaddingTop: =0
-                                          Size: =gblT.fbase
-                                          Text: =If(Text(ThisItem.'[PG] Moneda')="USD","US$ ","C$ ") & Text(ThisItem.'[PG] Monto',"#,##0.00", "en-US")
-                                          VerticalAlign: =VerticalAlign.Top
-                                          Width: =Parent.Width - 16
-                                    - lblLR:
-                                        Control: Label@2.5.1
-                                        Properties:
-                                          AutoHeight: =true
-                                          Color: =gblC.muted2
-                                          LayoutMinHeight: =16
-                                          LayoutMinWidth: =16
-                                          PaddingBottom: =0
-                                          PaddingTop: =0
-                                          Size: =gblT.f2xs
-                                          Text: ="Recibo " & ThisItem.'[PG] Numero recibo' & " · " & Text(ThisItem.'Fecha del pago', "hh:mm")
-                                          VerticalAlign: =VerticalAlign.Top
-                                          Width: =Parent.Width - 16
+                              PaddingBottom: =0
+                              PaddingTop: =0
+                              Size: =gblT.fxs
+                              Text: |-
+                                =// Hasta dos renglones; el comentario completo se ve al tocar la tarjeta (cliente → Interacciones).
+                                Coalesce(ThisItem.'[IN] Comentario', "(sin comentario)")
+                              VerticalAlign: =VerticalAlign.Top
+                        - lblITags:
+                            Control: Label@2.5.1
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Stretch
+                              AutoHeight: =true
+                              Color: =gblC.accentInk
+                              FontWeight: =FontWeight.Semibold
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =0
+                              PaddingTop: =0
+                              Size: =gblT.f2xs
+                              Text: |-
+                                =Concat(Filter(Table(
+                                    {t: If(IsBlank(ThisItem.pagTxt), "", "💵 " & ThisItem.pagTxt)},
+                                    {t: If(ThisItem.'[IN] Actualiza info', "✏️ Datos actualizados", "")},
+                                    {t: If(IsBlank(ThisItem.'[IN] Latitud'), "", "📍 Con ubicación")},
+                                    {t: If(IsBlank(ThisItem.'[IN] Numero de Interaccion'), "⏳ Pendiente de subir", "")}
+                                ), !IsBlank(t)), t, " · ")
+                              Wrap: =false
+                  - btnAbrirInt:
+                      Control: ModernButton@1.0.0
+                      Properties:
+                        AccessibleLabel: |-
+                          ="Abrir cliente " & ThisItem.cliNom
+                        Appearance: =ButtonAppearance.Transparent
+                        DisplayMode: =If(IsBlank(ThisItem.cid), DisplayMode.Disabled, DisplayMode.Edit)
+                        Height: =Parent.TemplateHeight - 8
+                        OnSelect: =Set(varCliente, ThisItem.cid); Set(varCliTab, "inter"); Navigate(scrCliente, ScreenTransition.Cover)
+                        Text: =
+                        Width: =Parent.TemplateWidth
+      - btnCargarPag:
+          Control: Classic/Button@2.2.0
+          Properties:
+            OnSelect: |-
+              =// APP-35: lee de la base del teléfono los pagos y las interacciones del día elegido. Solo comparaciones de fecha
+              // (delegables offline). La cuenta se trae UNA vez por fila (ctaRec) y de ahí salen nombre, producto, últimos 4 y CIF.
+              ClearCollect(colPagDia,
+                  AddColumns(AddColumns(AddColumns(
+                      Filter('CM | TBL | Pagos', 'Fecha del pago' >= varPagFecha && 'Fecha del pago' < DateAdd(varPagFecha, 1)),
+                          ctaId, Cuenta.'CM | TBL | Cuenta'),
+                          ctaRec, LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = ctaId)),
+                          cliNom, ctaRec.'Nombre Cliente',
+                          prod, ctaRec.'Tipo Producto',
+                          u4, ctaRec.'Últimos 4',
+                          cid, ctaRec.'CIF Cliente'));
+              ClearCollect(colIntDia,
+                  AddColumns(AddColumns(AddColumns(
+                      Filter('CM | TBL | Interaccions', 'Fecha de captura' >= varPagFecha && 'Fecha de captura' < DateAdd(varPagFecha, 1)),
+                          cta, '[IN] Cuenta'.'CM | TBL | Cuenta',
+                          intId, 'CM | TBL | Interaccion'),
+                          ctaRec, LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = cta),
+                          pagTxt, Concat(Filter('CM | TBL | Pagos', '[PG] Interaccion'.'CM | TBL | Interaccion' = intId),
+                                         If(Text('[PG] Moneda')="USD","US$ ","C$ ") & Text('[PG] Monto',"#,##0.00", "en-US") &
+                                         " (rec. " & '[PG] Numero recibo' & ")", " · ")),
+                          cliNom, ctaRec.'Nombre Cliente',
+                          prod, ctaRec.'Tipo Producto',
+                          u4, ctaRec.'Últimos 4',
+                          cid, ctaRec.'CIF Cliente'))
+            Visible: =false
+      - conCalPag:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            DropShadow: =DropShadow.None
+            Fill: =RGBA(0,0,0,0.45)
+            Height: =Parent.Height
+            Visible: =varCalPag
+            Width: =Parent.Width
+          Children:
+            - btnCalFondo:
+                Control: ModernButton@1.0.0
+                Properties:
+                  AccessibleLabel: ="Cerrar el calendario"
+                  Appearance: =ButtonAppearance.Transparent
+                  Height: =Parent.Height
+                  OnSelect: =Set(varCalPag, false)
+                  Text: =
+                  Width: =Parent.Width
+            - conCalCard:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.surface
+                  Height: =conCalNav.Height + galSemana.Height + galCal.Height + lblCalNota.Height + conCalPie.Height + 32 + 4 * 8
+                  LayoutDirection: =LayoutDirection.Vertical
+                  LayoutGap: =8
+                  PaddingBottom: =16
+                  PaddingLeft: =16
+                  PaddingRight: =16
+                  PaddingTop: =16
+                  RadiusBottomLeft: =16
+                  RadiusBottomRight: =16
+                  RadiusTopLeft: =16
+                  RadiusTopRight: =16
+                  Width: =Min(Parent.Width - 32, 460)
+                  X: =(Parent.Width - Self.Width) / 2
+                  Y: =Max(16, (Parent.Height - Self.Height) / 2)
+                Children:
+                  - conCalNav:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        FillPortions: =0
+                        Height: =If(gblScale = 1, 40,gblScale = 1.2,46,gblScale = 1.45,52,58)
+                        LayoutAlignItems: =LayoutAlignItems.Stretch
+                        LayoutDirection: =LayoutDirection.Horizontal
+                        LayoutGap: =6
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                      Children:
+                        - btnMesAnt:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              AccessibleLabel: ="Mes anterior"
+                              BorderStyle: =BorderStyle.None
+                              Color: =gblC.ink
+                              DisabledColor: =gblC.cardBorder
+                              DisabledFill: =Color.Transparent
+                              DisplayMode: |-
+                                =If(varCalMes <= Date(Year(DateAdd(Today(), -89)), Month(DateAdd(Today(), -89)), 1), DisplayMode.Disabled, DisplayMode.Edit)
+                              Fill: =Color.Transparent
+                              FillPortions: =0
+                              HoverFill: =gblC.accentBg
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              OnSelect: =Set(varCalMes, DateAdd(varCalMes, -1, TimeUnit.Months))
+                              PressedFill: =gblC.accentBg
+                              Size: =gblT.flg
+                              Text: ="‹"
+                              Width: =If(gblScale = 1, 44,gblScale = 1.2,50,gblScale = 1.45,56,62)
+                        - lblCalMes:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =Align.Center
+                              Color: =gblC.ink
+                              FillPortions: =1
+                              FontWeight: =FontWeight.Bold
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              Size: =gblT.fmd
+                              Text: =Proper(Text(varCalMes, "mmmm yyyy", "es-ES"))
+                        - btnMesSig:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              AccessibleLabel: ="Mes siguiente"
+                              BorderStyle: =BorderStyle.None
+                              Color: =gblC.ink
+                              DisabledColor: =gblC.cardBorder
+                              DisabledFill: =Color.Transparent
+                              DisplayMode: =If(varCalMes >= Date(Year(Today()), Month(Today()), 1), DisplayMode.Disabled, DisplayMode.Edit)
+                              Fill: =Color.Transparent
+                              FillPortions: =0
+                              HoverFill: =gblC.accentBg
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              OnSelect: =Set(varCalMes, DateAdd(varCalMes, 1, TimeUnit.Months))
+                              PressedFill: =gblC.accentBg
+                              Size: =gblT.flg
+                              Text: ="›"
+                              Width: =If(gblScale = 1, 44,gblScale = 1.2,50,gblScale = 1.45,56,62)
+                  - galSemana:
+                      Control: Gallery@2.15.0
+                      Variant: Vertical
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Stretch
+                        FillPortions: =0
+                        Height: =Self.TemplateHeight
+                        Items: =["L", "M", "X", "J", "V", "S", "D"]
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        TemplatePadding: =0
+                        TemplateSize: =gblT.fxs * 2
+                        WrapCount: =7
+                      Children:
+                        - lblSemDia:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =Align.Center
+                              Color: =gblC.muted
+                              FontWeight: =FontWeight.Semibold
+                              Height: =Parent.TemplateHeight
+                              Size: =gblT.fxs
+                              Text: =ThisItem.Value
+                              Width: =Parent.TemplateWidth
+                  - galCal:
+                      Control: Gallery@2.15.0
+                      Variant: Vertical
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Stretch
+                        FillPortions: =0
+                        Height: =6 * Self.TemplateHeight
+                        Items: |-
+                          =// 6 semanas desde el lunes de la semana en que empieza el mes (L a D).
+                          With({ini: DateAdd(varCalMes, -(Weekday(varCalMes, StartOfWeek.Monday) - 1))},
+                              ForAll(Sequence(42, 0), {d: DateAdd(ini, Value)}))
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        TemplatePadding: =0
+                        TemplateSize: =Min((Min(App.Width - 32, 460) - 32) / 7, If(gblScale = 1, 44,gblScale = 1.2,50,gblScale = 1.45,56,62))
+                        WrapCount: =7
+                      Children:
+                        - btnCalDia:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              AccessibleLabel: =Text(ThisItem.d, "dddd dd/mm/yyyy", "es-ES")
+                              BorderStyle: =BorderStyle.None
+                              Color: =If(ThisItem.d = varPagFecha, gblC.white, Month(ThisItem.d) <> Month(varCalMes), gblC.muted, gblC.ink)
+                              DisabledColor: =gblC.cardBorder
+                              DisabledFill: =Color.Transparent
+                              DisplayMode: =If(ThisItem.d > Today() || ThisItem.d < DateAdd(Today(), -89), DisplayMode.Disabled, DisplayMode.Edit)
+                              Fill: =If(ThisItem.d = varPagFecha, gblC.accent, ThisItem.d = Today(), gblC.accentBg, Color.Transparent)
+                              FontWeight: =If(ThisItem.d = varPagFecha || ThisItem.d = Today(), FontWeight.Bold, FontWeight.Normal)
+                              Height: =Parent.TemplateHeight - 4
+                              HoverFill: =gblC.accentBg
+                              OnSelect: =Set(varPagFecha, ThisItem.d); Set(varCalPag, false); Select(btnCargarPag)
+                              PaddingLeft: =0
+                              PaddingRight: =0
+                              PressedFill: =gblC.accentBg
+                              RadiusBottomLeft: =8
+                              RadiusBottomRight: =8
+                              RadiusTopLeft: =8
+                              RadiusTopRight: =8
+                              Size: =gblT.fsm
+                              Text: =Day(ThisItem.d)
+                              Width: =Parent.TemplateWidth - 4
+                              X: =2
+                              Y: =2
+                  - lblCalNota:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =Align.Center
+                        AlignInContainer: =AlignInContainer.Stretch
+                        AutoHeight: =true
+                        Color: =gblC.muted
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Size: =gblT.f2xs
+                        Text: ="El teléfono guarda tus últimos 90 días."
+                  - conCalPie:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        FillPortions: =0
+                        Height: =If(gblScale = 1, 40,gblScale = 1.2,46,gblScale = 1.45,52,58)
+                        LayoutAlignItems: =LayoutAlignItems.Stretch
+                        LayoutDirection: =LayoutDirection.Horizontal
+                        LayoutGap: =8
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                      Children:
+                        - btnCalHoy:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderColor: =gblC.accentBorder
+                              BorderThickness: =1
+                              Color: =gblC.accent
+                              Fill: =gblC.accentBg
+                              FillPortions: =1
+                              FontWeight: =FontWeight.Bold
+                              HoverFill: =gblC.accentBg
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              OnSelect: =Set(varPagFecha, Today()); Set(varCalPag, false); Select(btnCargarPag)
+                              PressedFill: =gblC.accentBg
+                              RadiusBottomLeft: =10
+                              RadiusBottomRight: =10
+                              RadiusTopLeft: =10
+                              RadiusTopRight: =10
+                              Size: =gblT.fsm
+                              Text: ="Hoy"
+                        - btnCalCerrar:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderColor: =gblC.cardBorder
+                              BorderThickness: =1
+                              Color: =gblC.ink2
+                              Fill: =gblC.surface
+                              FillPortions: =1
+                              HoverFill: =gblC.borderSoft
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              OnSelect: =Set(varCalPag, false)
+                              PressedFill: =gblC.borderSoft
+                              RadiusBottomLeft: =10
+                              RadiusBottomRight: =10
+                              RadiusTopLeft: =10
+                              RadiusTopRight: =10
+                              Size: =gblT.fsm
+                              Text: ="Cerrar"
       - cmpSheet_6:
           Control: CanvasComponent
           ComponentName: cmpSheet

@@ -140,7 +140,7 @@ Lo que dice la matriz en palabras:
 | **Cliente** | Cuentas del cliente, teléfonos, direcciones, historial de **sus** interacciones con pagos | Llamar, abrir el mapa, abrir una cuenta |
 | **Detalle de cuenta** | Tipo (Diaria, Incobrable, Especial), saldos, mora; si es Especial: retiro y nota; historial | **Ver el número completo** (se oculta solo), registrar una interacción |
 | **Interacción** | Datos de la cuenta, productos a los que aplica, ubicación (GPS) | Comentario (con respuestas rápidas), **pagos** (monto, moneda, recibo), **actualización de datos** (teléfonos, direcciones, correo); guardar |
-| **Pagos del día** | Lo cobrado hoy, por moneda | Solo ver |
+| **Pagos e interacciones** | Lo cobrado y lo gestionado en un día (por defecto hoy): pestañas **Pagos** e **Interacciones**, total por moneda | Cambiar de día (‹ › o el calendario 📅, hasta 90 días atrás), buscar por cliente o por los últimos dígitos de la tarjeta, abrir el cliente tocando la tarjeta |
 | **Sincronización** | Estado real de la sincronización, capturas de hoy ("pendiente de subir" o "subida") | "↻ Recargar la lista" (relee el teléfono), "⟳ Actualizar todo desde el servidor" (abre el Estado del dispositivo → Buscar actualizaciones; al terminar la cartera se rearma sola) |
 
 Ajustes ("Aa"): tema día o noche y tamaño de letra.

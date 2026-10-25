@@ -38,6 +38,8 @@
 
 | ID | Problema | Propuesta | Quién | Esfuerzo | Estado |
 |---|---|---|---|---|---|
+| APP-34 (2026-10-24) | Pagos de hoy: hueco grande entre una tarjeta y la otra (sigue tras 8e66a5e). Causa: galería de alto variable con una galería anidada adentro; el alto de la fila no sigue al de la tarjeta | Sin galerías anidadas: una fila por pago en una galería de alto fijo según la escala (patrón de scrCliente) | CM | Chico | En curso |
+| APP-35 (2026-10-24) | El cobrador no puede ver lo que hizo otro día: Pagos de hoy solo muestra los pagos de hoy y no hay ninguna lista de interacciones de días pasados | En la misma pantalla: (1) pestañas **Pagos / Interacciones** (todas las del día); (2) **selector de fecha** (‹ día › y un calendario) que muestra los pagos y las interacciones de ese día; (3) **búsqueda** por nombre del cliente o por los últimos dígitos de la tarjeta. Alcance: lo que guarda el teléfono (perfil offline: 90 días de interacciones y pagos) | CM | Mediano | En curso |
 | APP-11 | El GPS con 6 decimales nunca se probó con GPS real (el Android de pruebas no tiene) | Una captura desde tu teléfono con el GPS encendido; yo verifico los decimales en Dataverse | Dueño (teléfono) | Chico | Pendiente (decisión: seguir esperando) |
 
 ## 4. Documentación

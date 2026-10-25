@@ -252,7 +252,9 @@ Screens:
                           ="Ver el detalle de lo cobrado hoy"
                         Appearance: =ButtonAppearance.Transparent
                         Height: =Parent.Height
-                        OnSelect: =Navigate(scrPagos)
+                        OnSelect: |-
+                          =// APP-35: desde Inicio se abre siempre en hoy y en la pestaña Pagos.
+                          Set(varPagFecha, Today()); Set(varPagTab, "pagos"); Navigate(scrPagos)
                         RadiusBottomLeft: =16
                         RadiusBottomRight: =16
                         RadiusTopLeft: =16
