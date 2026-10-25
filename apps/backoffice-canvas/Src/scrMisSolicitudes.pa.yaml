@@ -11,41 +11,26 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =// Mis Especiales — Filter delegable (choice por valor + lookup por registro, 00 §4.2);
-        // AddColumns y Sort corren EN MEMORIA sobre el resultado (cota 2000, 00 §4.1).
-        // Datos de la cuenta navegando el lookup '[AS] Cuenta' (lo resuelve el servidor, sin
-        // catálogo de cuentas truncable al Data row limit).
-        ClearCollect(colSolSol,
-            Sort(
-                AddColumns(
-                    Filter('CM | TBL | Asignacions',
-                        '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
-                        && '[AS] Solicitado por'.User = gblUsuarioDV.User),
-                    clienteSol, Upper(Coalesce(
-                        ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
-                    ult4Sol, Coalesce(
-                        ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
-                    prodSol, Coalesce(
-                        ThisRecord.'[AS] Cuenta'.'Tipo Producto', "—"),
-                    saldoNioSol, Coalesce(
-                        ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO', 0),
-                    saldoUsdSol, Coalesce(
-                        ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD', 0),
-                    moraSol, Coalesce(
-                        ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
-                    agenteSol, '[AS] Agente'.'[AG] Nombre'
-                ),
-                '[AS] Fecha de Asignacion', SortOrder.Descending
-            )
-        );
-        Set(varPanelSol, false)
+        =// Filtros (APP-39): por defecto el último mes (de hace un mes a hoy), todos los estados, sin cobrador, CIF ni cuenta.
+        // Se conservan entre visitas de la misma sesión; «Limpiar» vuelve a los valores por defecto.
+        If(IsBlank(varDesdeSol), Set(varDesdeSol, DateAdd(Today(), -1, TimeUnit.Months)));
+        If(IsBlank(varHastaSol), Set(varHastaSol, Today()));
+        If(IsBlank(varEstSol), Set(varEstSol, "Todos"));
+        If(IsBlank(varAgSol), Set(varAgSol, "Todos"));
+        // Cobradores del filtro (todos, por nombre). El DropDown aplica Default una sola vez: Reset después de cargar.
+        ClearCollect(colAgSol, {nom: "Todos"});
+        Collect(colAgSol, ForAll(Sort('CM | TBL | Agentes', '[AG] Nombre'), {nom: ThisRecord.'[AG] Nombre'}));
+        Reset(drpAgSol);
+        Set(varPanelSol, false);
+        Set(varAvisoSol, false);
+        Select(btnCargarSol)
     Children:
       - cmpEncSol:
           Control: CanvasComponent
           ComponentName: cmpEncabezado
           Properties:
             Height: =If(nfMovil, gblE.AltoBarra + 84, 84)
-            Subtitulo: ="Estado de tus asignaciones Especiales."
+            Subtitulo: ="Estado de tus asignaciones Especiales · " & CountRows(colSolSol) & If(CountRows(colSolSol) = 1, " solicitud", " solicitudes") & " con estos filtros."
             Titulo: ="Mis solicitudes"
             Width: =Parent.Width - Self.X
             X: =If(nfMovil, 0, gblE.AnchoNav)
@@ -60,34 +45,7 @@ Screens:
             FocusedBorderThickness: =2
             Font: =Font.'Segoe UI'
             Height: =gblE.AltoBoton
-            OnSelect: |-
-              =// La lectura se verifica (ver scrCargaArchivo): sin esto, el ✓ salía aunque fallara.
-              Set(varErrSol, IfError(Left(Text(CountRows(ClearCollect(colSolSol,
-                  Sort(
-                      AddColumns(
-                          Filter('CM | TBL | Asignacions',
-                              '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
-                              && '[AS] Solicitado por'.User = gblUsuarioDV.User),
-                          clienteSol, Upper(Coalesce(
-                              ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
-                          ult4Sol, Coalesce(
-                              ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
-                          prodSol, Coalesce(
-                              ThisRecord.'[AS] Cuenta'.'Tipo Producto', "—"),
-                          saldoNioSol, Coalesce(
-                              ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO', 0),
-                          saldoUsdSol, Coalesce(
-                              ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD', 0),
-                          moraSol, Coalesce(
-                              ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
-                          agenteSol, '[AS] Agente'.'[AG] Nombre'
-                      ),
-                      '[AS] Fecha de Asignacion', SortOrder.Descending
-                  )
-              ))), 0), Coalesce(FirstError.Message, "sin detalle")));
-              If(IsBlank(varErrSol),
-                  Notify("✓ Lista actualizada", NotificationType.Success, 2500),
-                  Notify("No se pudo actualizar la lista: " & TextoError(varErrSol), NotificationType.Error))
+            OnSelect: =Set(varAvisoSol, true); Select(btnCargarSol)
             Size: =9
             Text: ="↻ Actualizar"
             Width: =130
@@ -125,6 +83,204 @@ Screens:
                   + Max(gblE.Pad, (Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - gblE.AnchoMax) / 2)
             Y: =cmpEncSol.Y + cmpEncSol.Height
           Children:
+            - conFiltrosSol:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Fill: =Color.Transparent
+                  Height: =If(nfMovil, 4 * gblE.AltoInput + 3 * gblE.PadSm, If(Self.Width >= 1400, gblE.AltoInput, 2 * gblE.AltoInput + gblE.PadSm))
+                  LayoutDirection: =LayoutDirection.Horizontal
+                  LayoutGap: =gblE.PadSm
+                  LayoutWrap: =true
+                  Width: =Min(Parent.Width - 2*gblE.Pad, gblE.AnchoMax)
+                  X: =gblE.Pad
+                  Y: =gblE.Pad
+                Children:
+                  - lblDesdeSol:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.muted
+                        FillPortions: =0
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: ="Creadas del"
+                        Visible: =!nfMovil
+                        Width: =78
+                  - dtpDesdeSol:
+                      Control: Classic/DatePicker@2.6.0
+                      Properties:
+                        AccessibleLabel: ="Creadas desde"
+                        BorderColor: =gblC.borde
+                        Color: =gblC.ink
+                        DefaultDate: =varDesdeSol
+                        DisplayMode: =If(varCargandoSol, DisplayMode.Disabled, DisplayMode.Edit)
+                        Fill: =gblC.card
+                        FillPortions: =0
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        OnChange: |-
+                          =Set(varDesdeSol, Coalesce(Self.SelectedDate, DateAdd(Today(), -1, TimeUnit.Months)));
+                          If(varDesdeSol > varHastaSol, Set(varHastaSol, varDesdeSol); Reset(dtpHastaSol));
+                          Select(btnCargarSol)
+                        Size: =10
+                        StartOfWeek: =StartOfWeek.Monday
+                        Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, 150)
+                  - lblHastaSol:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.muted
+                        FillPortions: =0
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: ="al"
+                        Visible: =!nfMovil
+                        Width: =18
+                  - dtpHastaSol:
+                      Control: Classic/DatePicker@2.6.0
+                      Properties:
+                        AccessibleLabel: ="Creadas hasta"
+                        BorderColor: =gblC.borde
+                        Color: =gblC.ink
+                        DefaultDate: =varHastaSol
+                        DisplayMode: =If(varCargandoSol, DisplayMode.Disabled, DisplayMode.Edit)
+                        Fill: =gblC.card
+                        FillPortions: =0
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        OnChange: |-
+                          =Set(varHastaSol, Coalesce(Self.SelectedDate, Today()));
+                          If(varHastaSol < varDesdeSol, Set(varDesdeSol, varHastaSol); Reset(dtpDesdeSol));
+                          Select(btnCargarSol)
+                        Size: =10
+                        StartOfWeek: =StartOfWeek.Monday
+                        Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, 150)
+                  - drpEstSol:
+                      Control: Classic/DropDown@2.3.1
+                      Properties:
+                        AccessibleLabel: ="Estado de la solicitud"
+                        BorderColor: =gblC.borde
+                        BorderThickness: =1
+                        ChevronBackground: =gblC.card
+                        ChevronFill: =gblC.ink2
+                        ChevronHoverBackground: =gblC.pantalla
+                        ChevronHoverFill: =gblC.teal
+                        Color: =gblC.ink
+                        DisplayMode: =If(varCargandoSol, DisplayMode.Disabled, DisplayMode.Edit)
+                        Fill: =gblC.card
+                        FillPortions: =0
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        HoverColor: =gblC.ink
+                        HoverFill: =gblC.pantalla
+                        PressedColor: =gblC.card
+                        PressedFill: =gblC.teal
+                        SelectionColor: =gblC.card
+                        SelectionFill: =gblC.teal
+                        Size: =10
+                        Default: =Coalesce(varEstSol, "Todos")
+                        Items: =["Todos", "Pendiente aprobación", "Aprobada", "Rechazada", "Cerrada"]
+                        Items.Value: =Value
+                        OnChange: =Set(varEstSol, Coalesce(Self.Selected.Value, "Todos")); Select(btnCargarSol)
+                        Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, 200)
+                  - drpAgSol:
+                      Control: Classic/DropDown@2.3.1
+                      Properties:
+                        AccessibleLabel: ="Cobrador (localizador)"
+                        BorderColor: =gblC.borde
+                        BorderThickness: =1
+                        ChevronBackground: =gblC.card
+                        ChevronFill: =gblC.ink2
+                        ChevronHoverBackground: =gblC.pantalla
+                        ChevronHoverFill: =gblC.teal
+                        Color: =gblC.ink
+                        DisplayMode: =If(varCargandoSol, DisplayMode.Disabled, DisplayMode.Edit)
+                        Fill: =gblC.card
+                        FillPortions: =0
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        HoverColor: =gblC.ink
+                        HoverFill: =gblC.pantalla
+                        PressedColor: =gblC.card
+                        PressedFill: =gblC.teal
+                        SelectionColor: =gblC.card
+                        SelectionFill: =gblC.teal
+                        Size: =10
+                        Default: =Coalesce(varAgSol, "Todos")
+                        Items: =colAgSol
+                        Items.Value: =nom
+                        OnChange: =Set(varAgSol, Coalesce(Self.Selected.nom, "Todos")); Select(btnCargarSol)
+                        Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, 240)
+                  - txtCifSol:
+                      Control: Classic/TextInput@2.3.2
+                      Properties:
+                        AccessibleLabel: ="CIF del cliente"
+                        BorderColor: =gblC.borde
+                        Default: =varCifSol
+                        DelayOutput: =true
+                        DisplayMode: =If(varCargandoSol, DisplayMode.Disabled, DisplayMode.Edit)
+                        Fill: =gblC.card
+                        FillPortions: =0
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        HintText: ="CIF"
+                        OnChange: =Set(varCifSol, Trim(Self.Text)); Select(btnCargarSol)
+                        RadiusBottomLeft: =10
+                        RadiusBottomRight: =10
+                        RadiusTopLeft: =10
+                        RadiusTopRight: =10
+                        Size: =10
+                        Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, 170)
+                  - txtCtaSol:
+                      Control: Classic/TextInput@2.3.2
+                      Properties:
+                        AccessibleLabel: ="Últimos 4 dígitos de la cuenta"
+                        BorderColor: =gblC.borde
+                        Default: =varCtaSol
+                        DelayOutput: =true
+                        DisplayMode: =If(varCargandoSol, DisplayMode.Disabled, DisplayMode.Edit)
+                        Fill: =gblC.card
+                        FillPortions: =0
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        HintText: ="Cuenta (últimos 4)"
+                        OnChange: =Set(varCtaSol, Trim(Self.Text)); Select(btnCargarSol)
+                        RadiusBottomLeft: =10
+                        RadiusBottomRight: =10
+                        RadiusTopLeft: =10
+                        RadiusTopRight: =10
+                        Size: =10
+                        Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, 150)
+                  - btnLimpiarSol:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderColor: =gblC.borde
+                        BorderThickness: =1
+                        Color: =gblC.teal
+                        DisplayMode: =If(varCargandoSol, DisplayMode.Disabled, DisplayMode.Edit)
+                        Fill: =gblC.card
+                        FillPortions: =0
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        OnSelect: |-
+                          =Set(varDesdeSol, DateAdd(Today(), -1, TimeUnit.Months)); Set(varHastaSol, Today());
+                          Set(varEstSol, "Todos"); Set(varAgSol, "Todos"); Set(varCifSol, ""); Set(varCtaSol, "");
+                          Reset(dtpDesdeSol); Reset(dtpHastaSol); Reset(drpEstSol); Reset(drpAgSol); Reset(txtCifSol); Reset(txtCtaSol);
+                          Select(btnCargarSol)
+                        Size: =10
+                        Text: ="Limpiar"
+                        Tooltip: ="Último mes, todos los estados, sin cobrador, CIF ni cuenta"
+                        Width: =If(nfMovil, Parent.Width, 90)
             - conListaSol:
                 Control: GroupContainer@1.5.0
                 Variant: ManualLayout
@@ -133,14 +289,14 @@ Screens:
                   BorderThickness: =1
                   DropShadow: =DropShadow.None
                   Fill: =gblC.card
-                  Height: =Parent.Height - 2*gblE.Pad
+                  Height: =Parent.Height - Self.Y - gblE.Pad
                   RadiusBottomLeft: =gblE.Radio
                   RadiusBottomRight: =gblE.Radio
                   RadiusTopLeft: =gblE.Radio
                   RadiusTopRight: =gblE.Radio
                   Width: =Min(Parent.Width - 2*gblE.Pad, gblE.AnchoMax)
                   X: =gblE.Pad
-                  Y: =gblE.Pad
+                  Y: =conFiltrosSol.Y + conFiltrosSol.Height + gblE.PadSm
                 Children:
                   - galSolSol:
                       Control: Gallery@2.15.0
@@ -329,6 +485,19 @@ Screens:
                               Width: =Parent.TemplateWidth
                               X: =0
                               Y: =0
+                  - lblCargandoSol:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =Align.Center
+                        Color: =gblC.teal
+                        Fill: =RGBA(255, 255, 255, 0.88)
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =Parent.Height
+                        Size: =12
+                        Text: ="⏳ Cargando tus solicitudes…"
+                        Visible: =varCargandoSol
+                        Width: =Parent.Width
             - cmpVacioSol:
                 Control: CanvasComponent
                 ComponentName: cmpVacio
@@ -336,12 +505,99 @@ Screens:
                   Height: =200
                   Icono: |-
                     ="🗂️"
-                  Mensaje: ="Creá la primera con el botón «✨ Nueva solicitud», arriba a la derecha."
-                  Titulo: ="Sin solicitudes todavía"
-                  Visible: =CountRows(colSolSol) = 0
+                  Mensaje: |-
+                    ="No hay solicitudes creadas del " & Text(varDesdeSol, "dd/mm/yyyy") & " al " & Text(varHastaSol, "dd/mm/yyyy") &
+                        " con estos filtros. Probá con otras fechas o «Limpiar»."
+                  Titulo: ="Sin solicitudes"
+                  Visible: =CountRows(colSolSol) = 0 && !varCargandoSol
                   Width: =Min(420, Parent.Width - 2*gblE.Pad)
                   X: =(Parent.Width - Self.Width) / 2
-                  Y: =(Parent.Height - Self.Height) / 2
+                  Y: =conListaSol.Y + 80
+      - btnCargarSol:
+          Control: Classic/Button@2.2.0
+          Properties:
+            OnSelect: |-
+              =// Mis Especiales con TODOS los filtros en el servidor (APP-39): cada cambio de filtro vuelve a consultar Dataverse, así el
+              // límite de 2000 filas aplica a lo que coincide con los filtros y no a todo el historial. Delegable: choice y booleano por
+              // valor, fechas y lookups contra variables; las partes «IsBlank(var) ||» y «var = "x" &&» no tocan columnas.
+              // CIF y cuenta viven en la CUENTA, no en la asignación: primero las cuentas que coinciden (Cuentas, delegable; hasta 50)
+              // y después sus Especiales, una consulta por cuenta. AddColumns directo sobre el Filter (los datos de la cuenta los
+              // resuelve el servidor navegando '[AS] Cuenta').
+              Set(varCargandoSol, true);
+              Set(varFinSol, DateAdd(varHastaSol, 1));
+              Set(varAgRecSol, If(IsBlank(varAgSol) || varAgSol = "Todos", Blank(), LookUp('CM | TBL | Agentes', '[AG] Nombre' = varAgSol)));
+              Set(varErrSol, Blank());
+              Clear(colSolRawSol);
+              Clear(colCtaSol);
+              IfError(
+                  If(IsBlank(varCifSol) && IsBlank(varCtaSol),
+                      Collect(colSolRawSol,
+                          AddColumns(
+                              Filter('CM | TBL | Asignacions',
+                                  '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                                  && '[AS] Solicitado por'.User = gblUsuarioDV.User
+                                  && 'Created On' >= varDesdeSol && 'Created On' < varFinSol
+                                  && (IsBlank(varAgRecSol) || '[AS] Agente'.'CM | TBL | Agente' = varAgRecSol.'CM | TBL | Agente')
+                                  && (varEstSol = "Todos"
+                                      || (varEstSol = "Pendiente aprobación" && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion')
+                                      || (varEstSol = "Aprobada" && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado && '[AS] Estado' = true)
+                                      || (varEstSol = "Rechazada" && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Rechazada)
+                                      || (varEstSol = "Cerrada" && '[AS] Estado' = false && '[AS] Estado de aprobacion' <> 'Choice | CM | Estado aprobacion especial'.Rechazada))),
+                              clienteSol, Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
+                              ult4Sol, Coalesce(ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
+                              prodSol, Coalesce(ThisRecord.'[AS] Cuenta'.'Tipo Producto', "—"),
+                              saldoNioSol, Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO', 0),
+                              saldoUsdSol, Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD', 0),
+                              moraSol, Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
+                              agenteSol, '[AS] Agente'.'[AG] Nombre'
+                          )
+                      ),
+                      ClearCollect(colCtaSol,
+                          FirstN(Filter('CM | TBL | Cuentas',
+                              (IsBlank(varCifSol) || StartsWith('CIF Cliente', varCifSol))
+                              && (IsBlank(varCtaSol) || 'Últimos 4' = varCtaSol)), 51));
+                      ForAll(FirstN(colCtaSol, 50) As C,
+                          Collect(colSolRawSol,
+                              AddColumns(
+                                  Filter('CM | TBL | Asignacions',
+                                      '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                                      && '[AS] Solicitado por'.User = gblUsuarioDV.User
+                                      && 'Created On' >= varDesdeSol && 'Created On' < varFinSol
+                                      && (IsBlank(varAgRecSol) || '[AS] Agente'.'CM | TBL | Agente' = varAgRecSol.'CM | TBL | Agente')
+                                      && (varEstSol = "Todos"
+                                          || (varEstSol = "Pendiente aprobación" && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion')
+                                          || (varEstSol = "Aprobada" && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado && '[AS] Estado' = true)
+                                          || (varEstSol = "Rechazada" && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Rechazada)
+                                          || (varEstSol = "Cerrada" && '[AS] Estado' = false && '[AS] Estado de aprobacion' <> 'Choice | CM | Estado aprobacion especial'.Rechazada))
+                                      && '[AS] Cuenta'.'CM | TBL | Cuenta' = C.'CM | TBL | Cuenta'),
+                                  clienteSol, Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
+                                  ult4Sol, Coalesce(ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
+                                  prodSol, Coalesce(ThisRecord.'[AS] Cuenta'.'Tipo Producto', "—"),
+                                  saldoNioSol, Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO', 0),
+                                  saldoUsdSol, Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD', 0),
+                                  moraSol, Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
+                                  agenteSol, '[AS] Agente'.'[AG] Nombre'
+                              )
+                          )
+                      )
+                  ),
+                  Set(varErrSol, Coalesce(FirstError.Message, "sin detalle"))
+              );
+              ClearCollect(colSolSol, Sort(colSolRawSol, '[AS] Fecha de Asignacion', SortOrder.Descending));
+              If(CountRows(colSolRawSol) >= 2000,
+                  Notify("Hay 2.000 o más solicitudes con estos filtros y se muestran 2.000. Acotá las fechas o filtrá por estado, cobrador, CIF o cuenta.", NotificationType.Warning));
+              If(CountRows(colCtaSol) > 50,
+                  Notify("Más de 50 cuentas coinciden con ese CIF o cuenta: se buscó en las primeras 50. Escribí el CIF completo.", NotificationType.Warning));
+              If(!IsBlank(varErrSol),
+                  Notify("No se pudo leer la lista: " & TextoError(varErrSol), NotificationType.Error),
+                  varAvisoSol,
+                  Notify("✓ Lista actualizada", NotificationType.Success, 2500));
+              Set(varPanelSol, false);
+              Set(varAvisoSol, false);
+              Set(varCargandoSol, false)
+            Height: =1
+            Visible: =false
+            Width: =1
       - recScrimSol:
           Control: Rectangle@2.3.0
           Properties:
