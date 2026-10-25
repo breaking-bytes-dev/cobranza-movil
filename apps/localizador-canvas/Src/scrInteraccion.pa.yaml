@@ -1214,6 +1214,10 @@ Screens:
                                             !IsBlank(LookUp('CM | TBL | Pagos', '[PG] Numero recibo' = rec))))) > 0
                       },
                       If(
+                        /* APP-43: localizador desactivado por el Admin → no se registra (el servidor también lo rechaza) */
+                        gblAgenteInactivo,
+                            UpdateContext({locGuardando: false});
+                            Notify("Tu localizador está desactivado: no podés registrar visitas ni pagos. Hablá con tu supervisor.", NotificationType.Error),
                         /* APP-11: sin coordenadas del GPS → se avisa y hay que confirmarlo con un segundo toque */
                         IsBlank(Location.Latitude) && !locConfirmaSinGps,
                             UpdateContext({locGuardando: false, locConfirmaSinGps: true});

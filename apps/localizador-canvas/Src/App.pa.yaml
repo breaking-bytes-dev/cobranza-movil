@@ -32,6 +32,8 @@ App:
       // User().Email es el UPN; el correo del agente lo deriva el servidor del usuario vinculado, en minúsculas
       // (plugin EmailDesdeUsuario). Comparar en minúsculas: offline la comparación la hace la base local del teléfono.
       gblAgente = LookUp('CM | TBL | Agentes', 'Email Usuario' = Lower(User().Email));
+      // APP-43: el Admin desactivó el localizador → la app bloquea el registro (el servidor también lo rechaza, 1.0.10.1).
+      gblAgenteInactivo = !IsBlank(gblAgente) && !gblAgente.'[AG] Activo';
       // APP-14: estado de sincronización del dispositivo. Es una señal: se recalcula sola. En el navegador no hay
       // sincronización (Connection.Sync vacío): ahí solo se distingue con o sin conexión.
       gblSync = If(IsBlank(Connection.Sync), If(Connection.Connected, "ok", "off"),

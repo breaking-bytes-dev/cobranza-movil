@@ -813,3 +813,21 @@ Screens:
             Height: =Parent.Height
             Visible: =varSheetEscala
             Width: =Parent.Width
+      - lblBloqueoInactivo:
+          Control: Label@2.5.1
+          Properties:
+            Align: =Align.Center
+            Color: =gblC.redInk
+            Fill: =gblC.screen
+            Font: =gblFont
+            FontWeight: =FontWeight.Semibold
+            Height: =Parent.Height
+            PaddingLeft: =24
+            PaddingRight: =24
+            Size: =gblT.flg
+            Text: |-
+              ="⛔ Tu localizador está desactivado." & Char(10) & Char(10) &
+                  "No podés ver tu cartera ni registrar visitas o pagos. Hablá con tu supervisor."
+            VerticalAlign: =VerticalAlign.Middle
+            Visible: =gblAgenteInactivo
+            Width: =Parent.Width

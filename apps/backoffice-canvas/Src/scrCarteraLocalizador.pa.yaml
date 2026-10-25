@@ -16,6 +16,7 @@ Screens:
         // intermedia truncable al Data row limit. La cartera del agente elegido se carga al tocarlo.
         Set(varPanelCpl, false);
         Set(varAgeCpl, Blank());
+        Set(varInactCpl, false);
         Reset(txtBuscarCpl)
     Children:
       - cmpEncCpl:
@@ -59,7 +60,9 @@ Screens:
                   RadiusTopLeft: =10
                   RadiusTopRight: =10
                   Size: =10
-                  Width: =If(nfMovil, Parent.Width - btnActualizarCpl.Width - gblE.PadSm, Min(420, Parent.Width - btnActualizarCpl.Width - gblE.PadSm))
+                  Width: |-
+                    =If(nfMovil, Parent.Width - btnActualizarCpl.Width - gblE.PadSm,
+                        Min(420, Parent.Width - btnActualizarCpl.Width - btnInactivosCpl.Width - 2*gblE.PadSm))
                   Y: =2
             - icoBuscarCpl:
                 Control: Classic/Icon@2.5.0
@@ -73,6 +76,32 @@ Screens:
                   Width: =20
                   X: =txtBuscarCpl.X + 8
                   Y: =txtBuscarCpl.Y + (txtBuscarCpl.Height - Self.Height) / 2
+            - btnInactivosCpl:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  AccessibleLabel: =If(varInactCpl, "Ocultar localizadores inactivos", "Incluir localizadores inactivos")
+                  BorderColor: =If(varInactCpl, gblC.teal, gblC.borde)
+                  BorderThickness: =1
+                  Color: =If(varInactCpl, gblC.teal, gblC.ink2)
+                  Fill: =If(varInactCpl, gblC.tealSuave, gblC.card)
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoBoton
+                  HoverFill: =ColorFade(Self.Fill, 10%)
+                  OnSelect: |-
+                    =// APP-43: un localizador desactivado puede quedar con cartera abierta (desactivar no la cierra ni la
+                    // mueve). Con este chip el supervisor lo ve y la reasigna.
+                    Set(varInactCpl, !varInactCpl)
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Size: =10
+                  Text: =If(varInactCpl, "✓ Incluye inactivos", "Incluir inactivos")
+                  Width: =160
+                  X: =If(nfMovil, 0, txtBuscarCpl.X + txtBuscarCpl.Width + gblE.PadSm)
+                  Y: =If(nfMovil, txtBuscarCpl.Y + txtBuscarCpl.Height + gblE.PadSm, 2)
             - btnActualizarCpl:
                 Control: Classic/Button@2.2.0
                 Properties:
@@ -112,22 +141,23 @@ Screens:
                   RadiusTopLeft: =gblE.Radio
                   RadiusTopRight: =gblE.Radio
                   Width: =Parent.Width
-                  Y: =btnActualizarCpl.Y + btnActualizarCpl.Height + gblE.PadSm
+                  Y: =Max(btnActualizarCpl.Y + btnActualizarCpl.Height, btnInactivosCpl.Y + btnInactivosCpl.Height) + gblE.PadSm
                 Children:
                   - galAgentesCpl:
                       Control: Gallery@2.15.0
                       Variant: Vertical
                       Properties:
-                        AccessibleLabel: ="Localizadores activos"
+                        AccessibleLabel: =If(varInactCpl, "Localizadores activos e inactivos", "Localizadores activos")
                         FocusedBorderColor: =gblC.teal
                         FocusedBorderThickness: =2
                         Height: =Parent.Height - 2*gblE.PadSm
                         Items: |-
                           =// Directo a Dataverse, todo delegable: igualdad booleana + StartsWith + Sort por
                           // columna. Sin With (cortaba la delegación — ver scrNuevaSolicitud.galCtaNva).
+                          // APP-43: «Incluir inactivos» se resuelve antes de enviar (cláusula plegada).
                           Sort(
                               Filter('CM | TBL | Agentes',
-                                  '[AG] Activo' = true
+                                  (varInactCpl || '[AG] Activo' = true)
                                   && StartsWith('[AG] Nombre', Trim(txtBuscarCpl.Text))),
                               '[AG] Nombre')
                         OnSelect: |-
@@ -213,7 +243,7 @@ Screens:
                         - lblEmailCpl:
                             Control: Label@2.5.1
                             Properties:
-                              Color: =If(IsBlank(ThisItem.'Email Usuario'), gblC.redInk, gblC.muted)
+                              Color: =If(IsBlank(ThisItem.'Email Usuario') || !ThisItem.'[AG] Activo', gblC.redInk, gblC.muted)
                               FocusedBorderColor: =gblC.teal
                               FocusedBorderThickness: =2
                               Font: =Font.'Segoe UI'
@@ -222,6 +252,7 @@ Screens:
                               Size: =9
                               Text: |-
                                 =// Vínculo con el usuario de Entra: sin usuario, sus asignaciones no llegan a ningún celular.
+                                If(!ThisItem.'[AG] Activo', "⛔ Inactivo · ", "") &
                                 If(IsBlank(ThisItem.'Email Usuario'),
                                     "⚠ Sin usuario vinculado",
                                     ThisItem.'Email Usuario')
