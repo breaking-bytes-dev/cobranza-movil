@@ -172,7 +172,8 @@ Screens:
                     =// "Todos" primero y después los nombres (colGrabTsc la arma btnCargarTsc). Con Ungroup/Distinct en Items el
                     // combo clásico no resolvía la columna a mostrar y las filas salían en blanco (2026-10-24). La columna se llama
                     // Value: es la única que este combo, editado por YAML, muestra (con otra, ni el valor por defecto aparecía).
-                    Sort(colGrabTsc, If(Value = "Todos", "0", "1" & Value))
+                    // Ya viene ordenada (Todos, yo, los demás por nombre): un Sort acá con «Value» en la fórmula lo dejaba vacío.
+                    colGrabTsc
                   OnChange: =Set(varGrabTsc, Coalesce(Self.Selected.Value, "Todos"))
                   SearchFields: =["Value"]
                   SelectMultiple: =false
@@ -445,9 +446,9 @@ Screens:
               );
               // Opciones del combo «Grabó»: Todos, yo (aunque ese día no haya grabado) y los demás que grabaron ese día.
               ClearCollect(colGrabTsc, {Value: "Todos"});
-              ForAll(GroupBy(colTscTmpTsc, grabTsc, filasTsc) As G, Collect(colGrabTsc, {Value: G.grabTsc}));
-              If(!IsBlank(gblUsuarioDV.'Full Name') && IsBlank(LookUp(colGrabTsc, Value = gblUsuarioDV.'Full Name')),
-                  Collect(colGrabTsc, {Value: gblUsuarioDV.'Full Name'}));
+              If(!IsBlank(gblUsuarioDV.'Full Name'), Collect(colGrabTsc, {Value: gblUsuarioDV.'Full Name'}));
+              ForAll(Sort(GroupBy(colTscTmpTsc, grabTsc, filasTsc), grabTsc) As G,
+                  If(G.grabTsc <> Coalesce(gblUsuarioDV.'Full Name', ""), Collect(colGrabTsc, {Value: G.grabTsc})));
               Set(varSelTsc, Blank());
               Set(varPanelTsc, false);
               If(!IsBlank(varErrTsc),
