@@ -18,7 +18,7 @@ Screens:
         // Solicitantes con Especiales pendientes: el Filter delega (tipo, estado y aprobación) y el Distinct sobre el lookup
         // corre en memoria sobre esas filas (hasta 2000 pendientes). Nada de «IsBlank(lookup)» en un Filter: rompe la
         // delegación de TODA la consulta (APP-40, visto en la red).
-        ClearCollect(colPideAprb, {nom: "Todos los solicitantes"}, {nom: "Sin solicitante (carga)"});
+        ClearCollect(colPideAprb, {nom: "Todos los solicitantes"});
         Collect(colPideAprb, ForAll(Sort(Filter(Distinct(
             Filter('CM | TBL | Asignacions',
                 '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial && '[AS] Estado' = true
@@ -410,7 +410,7 @@ Screens:
               // después sus Especiales pendientes, una consulta por cuenta.
               Set(varCargandoAprb, true);
               Set(varFinAprb, If(IsBlank(varHastaAprb), Blank(), DateAdd(varHastaAprb, 1)));
-              Set(varPideRecAprb, If(varPideAprb in ["Todos los solicitantes", "Sin solicitante (carga)"], Blank(), LookUp(Users, 'Full Name' = varPideAprb)));
+              Set(varPideRecAprb, If(IsBlank(varPideAprb) || varPideAprb = "Todos los solicitantes", Blank(), LookUp(Users, 'Full Name' = varPideAprb)));
               Set(varErrAprb, Blank());
               Clear(colAprobAprb);
               Clear(colCtaAprb);
@@ -424,9 +424,7 @@ Screens:
                                   '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion'
                                   && (IsBlank(varDesdeAprb) || 'Created On' >= varDesdeAprb)
                                   && (IsBlank(varFinAprb) || 'Created On' < varFinAprb)
-                                  && (varPideAprb = "Todos los solicitantes"
-                                      || (varPideAprb = "Sin solicitante (carga)" && '[AS] Solicitado por' = Blank())
-                                      || (!IsBlank(varPideRecAprb) && '[AS] Solicitado por'.User = varPideRecAprb.User))),
+                                  && (IsBlank(varPideRecAprb) || '[AS] Solicitado por'.User = varPideRecAprb.User)),
                               clienteAprb,
                               Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
                               ult4Aprb, Coalesce(ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
@@ -448,9 +446,7 @@ Screens:
                                       '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion'
                                       && (IsBlank(varDesdeAprb) || 'Created On' >= varDesdeAprb)
                                       && (IsBlank(varFinAprb) || 'Created On' < varFinAprb)
-                                      && (varPideAprb = "Todos los solicitantes"
-                                          || (varPideAprb = "Sin solicitante (carga)" && '[AS] Solicitado por' = Blank())
-                                          || (!IsBlank(varPideRecAprb) && '[AS] Solicitado por'.User = varPideRecAprb.User))
+                                      && (IsBlank(varPideRecAprb) || '[AS] Solicitado por'.User = varPideRecAprb.User)
                                       && '[AS] Cuenta'.'CM | TBL | Cuenta' = C.'CM | TBL | Cuenta'),
                                   clienteAprb,
                                   Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
