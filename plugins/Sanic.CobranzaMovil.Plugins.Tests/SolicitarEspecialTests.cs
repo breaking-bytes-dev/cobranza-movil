@@ -138,7 +138,6 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         public void Sin_Especial_la_crea_con_los_permisos_del_llamador()
         {
             var e = new Escenario(new[] { Solicitante });
-            var antes = DateTime.UtcNow.AddSeconds(-1);
             e.Ejecutar();
 
             Assert.NotNull(e.Creada);
@@ -156,7 +155,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             Assert.Equal(40m, c.GetAttributeValue<decimal>("sanic_cm_as_retirousd"));
             Assert.Equal("Retiro — el cliente viaja", c.GetAttributeValue<string>("sanic_cm_as_notas"));
             Assert.Equal(Harness.UsuarioLlamador, c.GetAttributeValue<EntityReference>(SolicitadoPor).Id);
-            Assert.True(c.GetAttributeValue<DateTime>("sanic_cm_as_fechasignacion") >= antes);
+            Assert.False(c.Contains("sanic_cm_as_fechasignacion"));   // columna retirada el 2026-10-25
             Assert.Equal(HoyEnManagua(), c.GetAttributeValue<DateTime>("sanic_cm_as_fechaasignada"));
             // Sin agente a proposito: lo pone el Supervisor al aprobar. Sin dueno: queda el llamador.
             Assert.False(c.Contains("sanic_cm_as_agenteid"));
@@ -226,7 +225,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             Assert.Equal(40m, r.GetAttributeValue<decimal>("sanic_cm_as_retirousd"));
             Assert.Equal("Retiro — el cliente viaja", r.GetAttributeValue<string>("sanic_cm_as_notas"));
             Assert.Equal(Harness.UsuarioLlamador, r.GetAttributeValue<EntityReference>(SolicitadoPor).Id);
-            Assert.True(r.Contains("sanic_cm_as_fechasignacion"));
+            Assert.False(r.Contains("sanic_cm_as_fechasignacion"));
             Assert.Equal(HoyEnManagua(), r.GetAttributeValue<DateTime>("sanic_cm_as_fechaasignada"));
             foreach (var limpia in new[] { "sanic_cm_as_agenteid", "sanic_cm_as_resolutorid", "sanic_cm_as_motivo",
                 "sanic_cm_as_motivorechazo", "sanic_cm_as_fechacierre" })

@@ -92,7 +92,6 @@ namespace Sanic.CobranzaMovil.Plugins
                 r[Esquema.AsignacionRetiroUsd] = retiroUsd;
                 r[Esquema.AsignacionNotas] = notas;
                 r[Esquema.AsignacionSolicitadoPor] = llamador;
-                r[Esquema.AsignacionFechaAsignacion] = DateTime.UtcNow;
                 r[Esquema.AsignacionFechaAsignada] = HoyDelLlamador(local);
                 r[Esquema.AsignacionAgente] = null;
                 r[Esquema.AsignacionResolutor] = null;
@@ -115,7 +114,6 @@ namespace Sanic.CobranzaMovil.Plugins
             nueva[Esquema.AsignacionRetiroUsd] = retiroUsd;
             nueva[Esquema.AsignacionNotas] = notas;
             nueva[Esquema.AsignacionSolicitadoPor] = llamador;
-            nueva[Esquema.AsignacionFechaAsignacion] = DateTime.UtcNow;
             nueva[Esquema.AsignacionFechaAsignada] = HoyDelLlamador(local);
             Guid id;
             try

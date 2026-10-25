@@ -112,7 +112,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             // servicio del sistema (DAT-14); el Solicitante solo pide y lee. Antes editaba retiro y notas, y hasta cerraba
             // la Especial que S-7 le compartia ya aprobada.
             foreach (var columna in new[] { "sanic_cm_as_estado", "sanic_cm_as_estadoaprobacion", "sanic_cm_as_retironio",
-                "sanic_cm_as_retirousd", "sanic_cm_as_notas", "sanic_cm_as_solicitadopor", "sanic_cm_as_fechasignacion",
+                "sanic_cm_as_retirousd", "sanic_cm_as_notas", "sanic_cm_as_solicitadopor", "sanic_cm_as_fechaasignada",
                 "sanic_cm_as_agenteid", "sanic_cm_as_resolutorid", "sanic_cm_as_motivo", "sanic_cm_as_motivorechazo",
                 "sanic_cm_as_fechacierre", "sanic_cm_as_tipo", "sanic_cm_as_cuentaid", "sanic_cm_as_orden" })
             {
@@ -138,7 +138,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         public void Sin_roles_de_CM_no_se_frena_la_carga()
         {
             Pasa(Cambio("sanic_cm_as_tipo", "sanic_cm_as_cuentaid", "sanic_cm_as_clavepan", "sanic_cm_as_ultimacarga",
-                "sanic_cm_as_fechasignacion", "sanic_cm_as_agenteid"));
+                "sanic_cm_as_fechaasignada", "sanic_cm_as_agenteid"));
         }
 
         [Theory]

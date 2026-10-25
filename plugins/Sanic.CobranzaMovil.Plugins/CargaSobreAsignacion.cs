@@ -36,11 +36,6 @@ namespace Sanic.CobranzaMovil.Plugins
             }
             var previa = local.ObtenerImagenPrevia();
 
-            if (target.Contains(Esquema.AsignacionFechaAsignacion) && previa.GetAttributeValue<DateTime?>(Esquema.AsignacionFechaAsignacion) != null)
-            {
-                target.Attributes.Remove(Esquema.AsignacionFechaAsignacion);
-                local.Trace("DAT-31: se conserva la fecha de asignacion.");
-            }
             if (target.Contains(Esquema.AsignacionFechaAsignada) && previa.GetAttributeValue<DateTime?>(Esquema.AsignacionFechaAsignada) != null)
             {
                 target.Attributes.Remove(Esquema.AsignacionFechaAsignada);
