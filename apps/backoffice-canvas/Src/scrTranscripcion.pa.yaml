@@ -756,261 +756,80 @@ Screens:
                               Wrap: =false
                               X: =gblE.Pad
                               Y: =98
-                  - lblComentTrx:
-                      Control: Label@2.5.1
+                  - conCuerpoTrx:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
                       Properties:
-                        Color: =gblC.ink
-                        Fill: =gblC.pantalla
-                        FocusedBorderColor: =gblC.teal
-                        FocusedBorderThickness: =2
-                        Font: =Font.'Segoe UI'
-                        Height: =96
-                        PaddingBottom: =12
-                        PaddingLeft: =12
-                        PaddingRight: =12
-                        PaddingTop: =12
-                        Size: =11
-                        Text: =varActualTrx.'[IN] Comentario'
-                        VerticalAlign: =VerticalAlign.Top
-                        Visible: =!IsBlank(varActualTrx)
-                        Width: =Parent.Width - 2*gblE.Pad
-                        X: =gblE.Pad
-                        Y: =conIdentidadTrx.Y + conIdentidadTrx.Height + gblE.PadSm
-                  - lblSecPagosTrx:
-                      Control: Label@2.5.1
-                      Properties:
-                        Color: =gblC.muted
-                        FocusedBorderColor: =gblC.teal
-                        FocusedBorderThickness: =2
-                        Font: =Font.'Segoe UI'
-                        FontWeight: =FontWeight.Bold
-                        Height: =18
-                        PaddingLeft: =0
-                        Size: =8
-                        Text: ="PAGOS (" & galPagosTrx.AllItemsCount & ")"
-                        Visible: =!IsBlank(varActualTrx) && varActualTrx.'[IN] Aplica pago'
-                        Width: =Parent.Width - 2*gblE.Pad
-                        Wrap: =false
-                        X: =gblE.Pad
-                        Y: =lblComentTrx.Y + lblComentTrx.Height + gblE.PadSm
-                  - galPagosTrx:
-                      Control: Gallery@2.15.0
-                      Variant: Vertical
-                      Properties:
-                        AccessibleLabel: ="Pagos de la interacción"
-                        FocusedBorderColor: =gblC.teal
-                        FocusedBorderThickness: =2
+                        DropShadow: =DropShadow.None
                         Height: |-
-                          =// Todos los pagos si entran. Antes medía 74 fijos y sin barra: de 5 pagos se veían 2 (2026-10-24).
-                          // El espacio que queda hasta la barra del código se reparte: primero lo que pide la actualización
-                          // de datos (si la hay), y los pagos se quedan con el resto (mínimo 3 filas, con barra si no entran).
-                          Min(Self.AllItemsCount * Self.TemplateHeight,
-                              Max(3 * Self.TemplateHeight,
-                                  conCodigoTrx.Y - Self.Y - gblE.PadSm -
-                                  If(varActualTrx.'[IN] Actualiza info', 22 + gblE.PadSm + CountRows(colCambiosTrx) * 52 + 10 + 10, 0)))
-                        Items: |-
-                          =Filter('CM | TBL | Pagos',
-                              '[PG] Numero Interaccion' = varActualTrx.'[IN] Numero de Interaccion')
-                        ShowScrollbar: =Self.AllItemsCount * Self.TemplateHeight > Self.Height
-                        TemplatePadding: =0
-                        TemplateSize: =34
-                        Visible: =!IsBlank(varActualTrx) && varActualTrx.'[IN] Aplica pago'
-                        Width: =Parent.Width - 2*gblE.Pad
-                        X: =gblE.Pad
-                        Y: =lblSecPagosTrx.Y + 22
+                          =// Comentario, pagos y actualización de datos en UNA zona que se desplaza (2026-10-24): con muchos pagos y
+                          // todos los campos no entraban entre la tarjeta y la barra del código, y las listas se cortaban.
+                          conCodigoTrx.Y - Self.Y - gblE.PadSm
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutGap: =gblE.PadSm
+                        LayoutOverflowY: =LayoutOverflow.Scroll
+                        PaddingLeft: =gblE.Pad
+                        Visible: =!IsBlank(varActualTrx)
+                        Width: =Parent.Width
+                        Y: =conIdentidadTrx.Y + conIdentidadTrx.Height + gblE.PadSm
                       Children:
-                        - lblPagoMontoTrx:
+                        - lblComentTrx:
                             Control: Label@2.5.1
                             Properties:
+                              FillPortions: =0
                               Color: =gblC.ink
+                              Fill: =gblC.pantalla
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              Height: =96
+                              PaddingBottom: =12
+                              PaddingLeft: =12
+                              PaddingRight: =12
+                              PaddingTop: =12
+                              Size: =11
+                              Text: =varActualTrx.'[IN] Comentario'
+                              VerticalAlign: =VerticalAlign.Top
+                              Visible: =!IsBlank(varActualTrx)
+                              Width: =Parent.Width - 2*gblE.Pad
+                        - lblSecPagosTrx:
+                            Control: Label@2.5.1
+                            Properties:
+                              FillPortions: =0
+                              Color: =gblC.muted
                               FocusedBorderColor: =gblC.teal
                               FocusedBorderThickness: =2
                               Font: =Font.'Segoe UI'
                               FontWeight: =FontWeight.Bold
-                              Height: =22
+                              Height: =18
                               PaddingLeft: =0
-                              Size: =10
-                              Text: |-
-                                =If(ThisItem.'[PG] Moneda' = 'Choice | CM | Monedas en Pago'.USD, "US$ ", "C$ ")
-                                    & Text(ThisItem.'[PG] Monto', "#,##0.00")
-                              Width: =Parent.TemplateWidth * 0.35
+                              Size: =8
+                              Text: ="PAGOS (" & galPagosTrx.AllItemsCount & ")"
+                              Visible: =!IsBlank(varActualTrx) && varActualTrx.'[IN] Aplica pago'
+                              Width: =Parent.Width - 2*gblE.Pad
                               Wrap: =false
-                              Y: =6
-                        - lblPagoCuentaTrx:
-                            Control: Label@2.5.1
-                            Properties:
-                              Align: =Align.Center
-                              Color: =gblC.ink2
-                              FocusedBorderColor: =gblC.teal
-                              FocusedBorderThickness: =2
-                              Font: =Font.'Segoe UI'
-                              Height: =22
-                              Size: =10
-                              Text: |-
-                                =// Un cobro puede repartirse entre varias cuentas del cliente: a cuál se aplica este pago.
-                                "Cuenta •••• " & LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = ThisItem.Cuenta.'CM | TBL | Cuenta').'Últimos 4'
-                              Width: =Parent.TemplateWidth * 0.25
-                              Wrap: =false
-                              X: =Parent.TemplateWidth * 0.35
-                              Y: =6
-                        - lblPagoReciboTrx:
-                            Control: Label@2.5.1
-                            Properties:
-                              Align: =Align.Right
-                              Color: =If(ThisItem.'[PG] Recibo repetido', gblC.redInk, gblC.muted)
-                              FocusedBorderColor: =gblC.teal
-                              FocusedBorderThickness: =2
-                              Font: =Font.'Segoe UI'
-                              Height: =22
-                              PaddingRight: =0
-                              Size: =10
-                              # F6: el servidor marca el recibo que ya existía (no lo rechaza): BackOffice lo revisa
-                              Text: ="Recibo " & ThisItem.'[PG] Numero recibo' & If(ThisItem.'[PG] Recibo repetido', " ⚠ REPETIDO", "")
-                              Width: =Parent.TemplateWidth * 0.4
-                              Wrap: =false
-                              X: =Parent.TemplateWidth * 0.6
-                              Y: =6
-                        - recSepPagoTrx:
-                            Control: GroupContainer@1.5.0
-                            Variant: ManualLayout
-                            Properties:
-                              BorderThickness: =0
-                              DropShadow: =DropShadow.None
-                              Fill: =gblC.hairline
-                              Height: =1
-                              Width: =Parent.TemplateWidth
-                              Y: =Parent.TemplateHeight - 1
-                  - lblSecDatosTrx:
-                      Control: Label@2.5.1
-                      Properties:
-                        Color: =If(IsBlank(varADTrx) || varADSinVincTrx, gblC.redInk, gblC.espInk)
-                        FocusedBorderColor: =gblC.teal
-                        FocusedBorderThickness: =2
-                        Font: =Font.'Segoe UI'
-                        FontWeight: =FontWeight.Bold
-                        Height: =18
-                        PaddingLeft: =0
-                        Size: =8
-                        # F10: tres estados. La marca "Actualiza info" sola no alcanza: la actualización pudo no llegar (F8)
-                        Text: |-
-                          =If(IsBlank(varADTrx), "⚠ MARCADA CON DATOS NUEVOS, PERO LOS DATOS NO LLEGARON — CONSULTÁ AL COBRADOR",
-                              varADSinVincTrx, "⚠ DATOS SIN VINCULAR (LLEGARON SEPARADOS DE LA VISITA) — REVISALOS Y GRABALOS EN EL CORE",
-                              "✏️ ACTUALIZACIÓN DE DATOS — GRABALA TAMBIÉN EN EL CORE")
-                        Visible: =!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info'
-                        Width: =Parent.Width - 2*gblE.Pad
-                        X: =gblE.Pad
-                        Y: |-
-                          =If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Aplica pago',
-                              galPagosTrx.Y + galPagosTrx.Height + gblE.PadSm, lblSecPagosTrx.Y)
-                  - conCambiosTrx:
-                      Control: GroupContainer@1.5.0
-                      Variant: ManualLayout
-                      Properties:
-                        BorderColor: =gblC.espInk
-                        BorderThickness: =2
-                        DropShadow: =DropShadow.None
-                        Fill: =gblC.espBg
-                        Height: |-
-                          =// Los 7 campos posibles (antes se cortaba en 4); si no entran hasta la barra del código, la galería muestra barra.
-                          Max(0, Min(CountRows(colCambiosTrx) * 52 + 10,
-                              conCodigoTrx.Y - lblSecDatosTrx.Y - 32))
-                        RadiusBottomLeft: =gblE.RadioSm
-                        RadiusBottomRight: =gblE.RadioSm
-                        RadiusTopLeft: =gblE.RadioSm
-                        RadiusTopRight: =gblE.RadioSm
-                        Visible: =!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info'
-                        Width: =Parent.Width - 2*gblE.Pad
-                        X: =gblE.Pad
-                        Y: =lblSecDatosTrx.Y + 22
-                      Children:
-                        - galCambiosTrx:
+                        - galPagosTrx:
                             Control: Gallery@2.15.0
                             Variant: Vertical
                             Properties:
-                              AccessibleLabel: ="Cambios de datos propuestos"
+                              FillPortions: =0
+                              AccessibleLabel: ="Pagos de la interacción"
                               FocusedBorderColor: =gblC.teal
                               FocusedBorderThickness: =2
-                              Height: =Parent.Height - 10
-                              Items: =colCambiosTrx
-                              ShowScrollbar: =CountRows(colCambiosTrx) * 52 > Self.Height
+                              Height: |-
+                                =// Alto completo: la zona de comentario, pagos y datos (conCuerpoTrx) es la que se desplaza. Antes medía 74
+                                // fijos y sin barra: de 5 pagos se veían 2 (2026-10-24).
+                                Self.AllItemsCount * Self.TemplateHeight
+                              Items: |-
+                                =Filter('CM | TBL | Pagos',
+                                    '[PG] Numero Interaccion' = varActualTrx.'[IN] Numero de Interaccion')
+                              ShowScrollbar: =false
                               TemplatePadding: =0
-                              TemplateSize: =52
-                              Width: =Parent.Width - 8
-                              X: =4
-                              Y: =5
+                              TemplateSize: =34
+                              Visible: =!IsBlank(varActualTrx) && varActualTrx.'[IN] Aplica pago'
+                              Width: =Parent.Width - 2*gblE.Pad
                             Children:
-                              - lblCamKTrx:
-                                  Control: Label@2.5.1
-                                  Properties:
-                                    Color: =gblC.espInk
-                                    FocusedBorderColor: =gblC.teal
-                                    FocusedBorderThickness: =2
-                                    Font: =Font.'Segoe UI'
-                                    FontWeight: =FontWeight.Bold
-                                    Height: =14
-                                    PaddingLeft: =0
-                                    Size: =8
-                                    Text: =ThisItem.campoTrx
-                                    Width: =Parent.TemplateWidth - 2*gblE.PadSm
-                                    Wrap: =false
-                                    X: =gblE.PadSm
-                                    Y: =4
-                              - lblCamAntesTrx:
-                                  Control: Label@2.5.1
-                                  Properties:
-                                    Color: =gblC.muted
-                                    FocusedBorderColor: =gblC.teal
-                                    FocusedBorderThickness: =2
-                                    Font: =Font.'Segoe UI'
-                                    Height: =28
-                                    PaddingLeft: =0
-                                    Size: =9
-                                    Strikethrough: =true
-                                    Text: =ThisItem.antesTrx
-                                    Visible: =!IsBlank(ThisItem.antesTrx)
-                                    Width: =Parent.TemplateWidth * 0.38
-                                    X: =gblE.PadSm
-                                    Y: =20
-                              - lblCamFlechaTrx:
-                                  Control: Label@2.5.1
-                                  Properties:
-                                    Color: =gblC.espInk
-                                    FocusedBorderColor: =gblC.teal
-                                    FocusedBorderThickness: =2
-                                    Font: =Font.'Segoe UI'
-                                    FontWeight: =FontWeight.Bold
-                                    Height: =28
-                                    PaddingLeft: =0
-                                    Size: =10
-                                    Text: ="→"
-                                    Visible: =!IsBlank(ThisItem.antesTrx)
-                                    Width: =20
-                                    Wrap: =false
-                                    X: =gblE.PadSm + Parent.TemplateWidth * 0.38
-                                    Y: =20
-                              - chpCamNuevoTrx:
-                                  Control: Classic/Button@2.2.0
-                                  Properties:
-                                    BorderThickness: =0
-                                    Color: =Color.White
-                                    DisplayMode: =DisplayMode.View
-                                    Fill: =gblC.espInk
-                                    FocusedBorderColor: =gblC.teal
-                                    FocusedBorderThickness: =2
-                                    Font: =Font.'Segoe UI'
-                                    FontWeight: =FontWeight.Bold
-                                    Height: =22
-                                    RadiusBottomLeft: =8
-                                    RadiusBottomRight: =8
-                                    RadiusTopLeft: =8
-                                    RadiusTopRight: =8
-                                    Size: =8
-                                    Text: ="NUEVO"
-                                    Visible: =IsBlank(ThisItem.antesTrx)
-                                    Width: =14 + 7*Len(Self.Text)
-                                    X: =gblE.PadSm
-                                    Y: =22
-                              - lblCamNuevoTrx:
+                              - lblPagoMontoTrx:
                                   Control: Label@2.5.1
                                   Properties:
                                     Color: =gblC.ink
@@ -1018,15 +837,201 @@ Screens:
                                     FocusedBorderThickness: =2
                                     Font: =Font.'Segoe UI'
                                     FontWeight: =FontWeight.Bold
-                                    Height: =28
+                                    Height: =22
                                     PaddingLeft: =0
                                     Size: =10
-                                    Text: =ThisItem.nuevoTrx
-                                    Width: =Parent.TemplateWidth * 0.5
-                                    X: |-
-                                      =If(IsBlank(ThisItem.antesTrx), gblE.PadSm + 64,
-                                          gblE.PadSm + Parent.TemplateWidth * 0.38 + 24)
-                                    Y: =20
+                                    Text: |-
+                                      =If(ThisItem.'[PG] Moneda' = 'Choice | CM | Monedas en Pago'.USD, "US$ ", "C$ ")
+                                          & Text(ThisItem.'[PG] Monto', "#,##0.00")
+                                    Width: =Parent.TemplateWidth * 0.35
+                                    Wrap: =false
+                                    Y: =6
+                              - lblPagoCuentaTrx:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    Align: =Align.Center
+                                    Color: =gblC.ink2
+                                    FocusedBorderColor: =gblC.teal
+                                    FocusedBorderThickness: =2
+                                    Font: =Font.'Segoe UI'
+                                    Height: =22
+                                    Size: =10
+                                    Text: |-
+                                      =// Un cobro puede repartirse entre varias cuentas del cliente: a cuál se aplica este pago.
+                                      "Cuenta •••• " & LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = ThisItem.Cuenta.'CM | TBL | Cuenta').'Últimos 4'
+                                    Width: =Parent.TemplateWidth * 0.25
+                                    Wrap: =false
+                                    X: =Parent.TemplateWidth * 0.35
+                                    Y: =6
+                              - lblPagoReciboTrx:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    Align: =Align.Right
+                                    Color: =If(ThisItem.'[PG] Recibo repetido', gblC.redInk, gblC.muted)
+                                    FocusedBorderColor: =gblC.teal
+                                    FocusedBorderThickness: =2
+                                    Font: =Font.'Segoe UI'
+                                    Height: =22
+                                    PaddingRight: =0
+                                    Size: =10
+                                    # F6: el servidor marca el recibo que ya existía (no lo rechaza): BackOffice lo revisa
+                                    Text: ="Recibo " & ThisItem.'[PG] Numero recibo' & If(ThisItem.'[PG] Recibo repetido', " ⚠ REPETIDO", "")
+                                    Width: =Parent.TemplateWidth * 0.4
+                                    Wrap: =false
+                                    X: =Parent.TemplateWidth * 0.6
+                                    Y: =6
+                              - recSepPagoTrx:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: ManualLayout
+                                  Properties:
+                                    BorderThickness: =0
+                                    DropShadow: =DropShadow.None
+                                    Fill: =gblC.hairline
+                                    Height: =1
+                                    Width: =Parent.TemplateWidth
+                                    Y: =Parent.TemplateHeight - 1
+                        - lblSecDatosTrx:
+                            Control: Label@2.5.1
+                            Properties:
+                              FillPortions: =0
+                              Color: =If(IsBlank(varADTrx) || varADSinVincTrx, gblC.redInk, gblC.espInk)
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =18
+                              PaddingLeft: =0
+                              Size: =8
+                              # F10: tres estados. La marca "Actualiza info" sola no alcanza: la actualización pudo no llegar (F8)
+                              Text: |-
+                                =If(IsBlank(varADTrx), "⚠ MARCADA CON DATOS NUEVOS, PERO LOS DATOS NO LLEGARON — CONSULTÁ AL COBRADOR",
+                                    varADSinVincTrx, "⚠ DATOS SIN VINCULAR (LLEGARON SEPARADOS DE LA VISITA) — REVISALOS Y GRABALOS EN EL CORE",
+                                    "✏️ ACTUALIZACIÓN DE DATOS — GRABALA TAMBIÉN EN EL CORE")
+                              Visible: =!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info'
+                              Width: =Parent.Width - 2*gblE.Pad
+                        - conCambiosTrx:
+                            Control: GroupContainer@1.5.0
+                            Variant: ManualLayout
+                            Properties:
+                              FillPortions: =0
+                              BorderColor: =gblC.espInk
+                              BorderThickness: =2
+                              DropShadow: =DropShadow.None
+                              Fill: =gblC.espBg
+                              Height: |-
+                                =// Los 7 campos posibles a alto completo (antes se cortaba en 4); desplaza conCuerpoTrx.
+                                CountRows(colCambiosTrx) * 52 + 10
+                              RadiusBottomLeft: =gblE.RadioSm
+                              RadiusBottomRight: =gblE.RadioSm
+                              RadiusTopLeft: =gblE.RadioSm
+                              RadiusTopRight: =gblE.RadioSm
+                              Visible: =!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info'
+                              Width: =Parent.Width - 2*gblE.Pad
+                            Children:
+                              - galCambiosTrx:
+                                  Control: Gallery@2.15.0
+                                  Variant: Vertical
+                                  Properties:
+                                    AccessibleLabel: ="Cambios de datos propuestos"
+                                    FocusedBorderColor: =gblC.teal
+                                    FocusedBorderThickness: =2
+                                    Height: =Parent.Height - 10
+                                    Items: =colCambiosTrx
+                                    ShowScrollbar: =false
+                                    TemplatePadding: =0
+                                    TemplateSize: =52
+                                    Width: =Parent.Width - 8
+                                    X: =4
+                                    Y: =5
+                                  Children:
+                                    - lblCamKTrx:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          Color: =gblC.espInk
+                                          FocusedBorderColor: =gblC.teal
+                                          FocusedBorderThickness: =2
+                                          Font: =Font.'Segoe UI'
+                                          FontWeight: =FontWeight.Bold
+                                          Height: =14
+                                          PaddingLeft: =0
+                                          Size: =8
+                                          Text: =ThisItem.campoTrx
+                                          Width: =Parent.TemplateWidth - 2*gblE.PadSm
+                                          Wrap: =false
+                                          X: =gblE.PadSm
+                                          Y: =4
+                                    - lblCamAntesTrx:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          Color: =gblC.muted
+                                          FocusedBorderColor: =gblC.teal
+                                          FocusedBorderThickness: =2
+                                          Font: =Font.'Segoe UI'
+                                          Height: =28
+                                          PaddingLeft: =0
+                                          Size: =9
+                                          Strikethrough: =true
+                                          Text: =ThisItem.antesTrx
+                                          Visible: =!IsBlank(ThisItem.antesTrx)
+                                          Width: =Parent.TemplateWidth * 0.38
+                                          X: =gblE.PadSm
+                                          Y: =20
+                                    - lblCamFlechaTrx:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          Color: =gblC.espInk
+                                          FocusedBorderColor: =gblC.teal
+                                          FocusedBorderThickness: =2
+                                          Font: =Font.'Segoe UI'
+                                          FontWeight: =FontWeight.Bold
+                                          Height: =28
+                                          PaddingLeft: =0
+                                          Size: =10
+                                          Text: ="→"
+                                          Visible: =!IsBlank(ThisItem.antesTrx)
+                                          Width: =20
+                                          Wrap: =false
+                                          X: =gblE.PadSm + Parent.TemplateWidth * 0.38
+                                          Y: =20
+                                    - chpCamNuevoTrx:
+                                        Control: Classic/Button@2.2.0
+                                        Properties:
+                                          BorderThickness: =0
+                                          Color: =Color.White
+                                          DisplayMode: =DisplayMode.View
+                                          Fill: =gblC.espInk
+                                          FocusedBorderColor: =gblC.teal
+                                          FocusedBorderThickness: =2
+                                          Font: =Font.'Segoe UI'
+                                          FontWeight: =FontWeight.Bold
+                                          Height: =22
+                                          RadiusBottomLeft: =8
+                                          RadiusBottomRight: =8
+                                          RadiusTopLeft: =8
+                                          RadiusTopRight: =8
+                                          Size: =8
+                                          Text: ="NUEVO"
+                                          Visible: =IsBlank(ThisItem.antesTrx)
+                                          Width: =14 + 7*Len(Self.Text)
+                                          X: =gblE.PadSm
+                                          Y: =22
+                                    - lblCamNuevoTrx:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          Color: =gblC.ink
+                                          FocusedBorderColor: =gblC.teal
+                                          FocusedBorderThickness: =2
+                                          Font: =Font.'Segoe UI'
+                                          FontWeight: =FontWeight.Bold
+                                          Height: =28
+                                          PaddingLeft: =0
+                                          Size: =10
+                                          Text: =ThisItem.nuevoTrx
+                                          Width: =Parent.TemplateWidth * 0.5
+                                          X: |-
+                                            =If(IsBlank(ThisItem.antesTrx), gblE.PadSm + 64,
+                                                gblE.PadSm + Parent.TemplateWidth * 0.38 + 24)
+                                          Y: =20
                   - cmpVacioDetTrx:
                       Control: CanvasComponent
                       ComponentName: cmpVacio
