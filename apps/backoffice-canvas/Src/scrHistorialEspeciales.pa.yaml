@@ -1079,7 +1079,7 @@ Screens:
                   PaddingRight: =0
                   Size: =9
                   Text: |-
-                    ="Solicitada " & Coalesce(Text(galHes.Selected.'[AS] Fecha de Asignacion', "dd/mm/yyyy"), "—") &
+                    ="Solicitada " & Coalesce(Text(galHes.Selected.'[AS] Fecha asignada', "dd/mm/yyyy"), "—") &
                         " · último cambio " & Text(galHes.Selected.'Modified On', "dd/mm/yyyy HH:mm")
                   Width: =Parent.Width - 2*gblE.Pad - 110
                   Wrap: =false

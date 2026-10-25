@@ -475,7 +475,7 @@ Screens:
                         LayoutJustifyContent: =LayoutJustifyContent.SpaceBetween
                         PaddingBottom: =8
                         PaddingTop: =8
-                        Visible: =!IsBlank(varAsig.'[AS] Fecha de Asignacion')
+                        Visible: =!IsBlank(varAsig.'[AS] Fecha asignada')
                         Width: =Parent.Width
                       Children:
                         - lblAsignadaTipo:
@@ -500,8 +500,8 @@ Screens:
                               LayoutMinWidth: =16
                               Size: =gblT.fbase
                               Text: |-
-                                =// La carga la graba como medianoche UTC (se vuelve a UTC); una Especial pedida en la app tiene la hora real.
-                                If(IsBlank(varAsig.'Última carga'), Text(varAsig.'[AS] Fecha de Asignacion', "dd/mm/yyyy"), Text(FechaUtc(varAsig.'[AS] Fecha de Asignacion'), "dd/mm/yyyy"))
+                                =// 'Fecha asignada' es DateOnly (2026-10-25): el día tal cual, venga de la carga o de una Especial pedida en la app.
+                                Text(varAsig.'[AS] Fecha asignada', "dd/mm/yyyy")
                   - conFila_UltCarga:
                       Control: GroupContainer@1.5.0
                       Variant: AutoLayout

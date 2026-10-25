@@ -358,7 +358,7 @@ Screens:
                               Height: =16
                               PaddingLeft: =0
                               Size: =8
-                              Text: =ThisItem.'[AS] Numero' & " · " & Text(ThisItem.'[AS] Fecha de Asignacion', "dd/mm HH:mm")
+                              Text: =ThisItem.'[AS] Numero' & " · " & Text(ThisItem.'[AS] Fecha asignada', "dd/mm/yyyy")
                               Width: =lblClienteFilaSol.Width
                               Wrap: =false
                               X: =gblE.PadSm
@@ -583,7 +583,7 @@ Screens:
                   ),
                   Set(varErrSol, Coalesce(FirstError.Message, "sin detalle"))
               );
-              ClearCollect(colSolSol, Sort(colSolRawSol, '[AS] Fecha de Asignacion', SortOrder.Descending));
+              ClearCollect(colSolSol, Sort(colSolRawSol, 'Created On', SortOrder.Descending));
               If(CountRows(colSolRawSol) >= 2000,
                   Notify("Hay 2.000 o más solicitudes con estos filtros y se muestran 2.000. Acotá las fechas o filtrá por estado, cobrador, CIF o cuenta.", NotificationType.Warning));
               If(CountRows(colCtaSol) > 50,
@@ -877,7 +877,7 @@ Screens:
                   PaddingLeft: =0
                   PaddingRight: =0
                   Size: =10
-                  Text: =Text(galSolSol.Selected.'[AS] Fecha de Asignacion', "dd/mm HH:mm")
+                  Text: =Text(galSolSol.Selected.'[AS] Fecha asignada', "dd/mm/yyyy")
                   Width: =Parent.Width - 2*gblE.Pad - 110
                   Wrap: =false
                   X: =gblE.Pad + 110

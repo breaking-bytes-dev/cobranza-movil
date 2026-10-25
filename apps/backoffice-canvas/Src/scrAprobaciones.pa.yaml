@@ -225,7 +225,9 @@ Screens:
                   FocusedBorderColor: =gblC.teal
                   FocusedBorderThickness: =2
                   Height: =Parent.Height - Self.Y - gblE.Pad
-                  Items: =Sort(colAprobAprb, '[AS] Fecha de Asignacion', SortOrder.Ascending)
+                  Items: |-
+                    =// FIFO por el momento en que entró la solicitud (Created On lo pone el servidor). 'Fecha asignada' es solo el día.
+                    Sort(colAprobAprb, 'Created On', SortOrder.Ascending)
                   OnSelect: |-
                     =// Cada apertura del panel arranca sin localizador elegido y con el buscador vacío.
                     Set(varSelAprb, ThisItem);
@@ -283,7 +285,7 @@ Screens:
                         PaddingLeft: =0
                         Size: =8
                         Text: |-
-                          ="Pide: " & ThisItem.pideAprb & " · " & Text(ThisItem.'[AS] Fecha de Asignacion', "dd/mm HH:mm")
+                          ="Pide: " & ThisItem.pideAprb & " · " & Text(ThisItem.'[AS] Fecha asignada', "dd/mm/yyyy")
                         Width: =lblFilaClienteAprb.Width
                         Wrap: =false
                         X: =gblE.Pad
@@ -732,7 +734,7 @@ Screens:
                   PaddingLeft: =0
                   PaddingRight: =0
                   Size: =10
-                  Text: =varSelAprb.pideAprb & " · " & Text(varSelAprb.'[AS] Fecha de Asignacion', "dd/mm HH:mm")
+                  Text: =varSelAprb.pideAprb & " · " & Text(varSelAprb.'[AS] Fecha asignada', "dd/mm/yyyy")
                   Width: =Parent.Width - 2*gblE.Pad - 130
                   Wrap: =false
                   X: =gblE.Pad + 130
