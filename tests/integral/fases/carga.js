@@ -38,7 +38,7 @@ async function f0(ctx, { conservarCsv = false } = {}) {
 
 // ── F1 ─────────────────────────────────────────────────────────────────────────────────────────
 const SEL_CT = 'sanic_cm_tbl_cuentaid,sanic_cm_ct_numerodecuenta,sanic_cm_ct_ultimos4,sanic_cm_ct_clavepan,sanic_cm_ct_nombrecliente,sanic_cm_ct_cifcliente,sanic_cm_ct_saldovencidonio,sanic_cm_ct_diasmora,sanic_cm_ct_tipoespecial,sanic_cm_ct_nota,sanic_cm_ct_retironio,_sanic_cm_ct_productoid_value,_sanic_cm_ct_fiador_value,_ownerid_value';
-const SEL_AS = 'sanic_cm_tbl_asignacionid,sanic_cm_as_numero,sanic_cm_as_tipo,sanic_cm_as_estado,sanic_cm_as_estadoaprobacion,sanic_cm_as_clavepan,sanic_cm_as_retironio,sanic_cm_as_notas,sanic_cm_as_ultimacarga,sanic_cm_as_fechasignacion,_sanic_cm_as_agenteid_value,_sanic_cm_as_cuentaid_value,_ownerid_value';
+const SEL_AS = 'sanic_cm_tbl_asignacionid,sanic_cm_as_numero,sanic_cm_as_tipo,sanic_cm_as_estado,sanic_cm_as_estadoaprobacion,sanic_cm_as_clavepan,sanic_cm_as_retironio,sanic_cm_as_notas,sanic_cm_as_ultimacarga,sanic_cm_as_fechaasignada,_sanic_cm_as_agenteid_value,_sanic_cm_as_cuentaid_value,_ownerid_value';
 
 async function f1(ctx) {
   ctx.requiere(ctx.secretos, 'F0 no generó el CSV');

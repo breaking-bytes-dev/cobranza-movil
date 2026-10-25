@@ -65,7 +65,7 @@ const F = {
   }),
   boveda: (i, cta) => ({ sanic_cm_cp_name: '****E2EM', sanic_cm_cp_pan: `QA${RUN}P${i}`, sanic_cm_cp_clavepan: cta.sanic_cm_ct_clavepan, 'sanic_cm_cp_cuentaid@odata.bind': bind('cuenta', cta.sanic_cm_tbl_cuentaid) }),
   asignacion: (i, cta, extra = {}) => ({
-    sanic_cm_as_tipo: 1, sanic_cm_as_estado: false, sanic_cm_as_motivo: `${P} descartable`, sanic_cm_as_fechasignacion: new Date().toISOString(),
+    sanic_cm_as_tipo: 1, sanic_cm_as_estado: false, sanic_cm_as_motivo: `${P} descartable`, sanic_cm_as_fechaasignada: new Date().toISOString().slice(0, 10),
     'sanic_cm_as_cuentaid@odata.bind': bind('cuenta', cta.sanic_cm_tbl_cuentaid), ...extra,
   }),
   interaccion: (i, ctaId = fx.cta0.sanic_cm_tbl_cuentaid, ageId = fx.age0) => ({
@@ -113,7 +113,7 @@ async function payloadAlta(rol, t, propios) {
   if (t === 'cuenta') return F.cuenta(i);
   if (t === 'asignacion') { // Especial Pendiente pedida por él mismo, como SolicitarEspecial
     const c = await crearSP('cuenta', F.cuenta(i));
-    return { sanic_cm_as_tipo: 3, sanic_cm_as_estado: true, sanic_cm_as_estadoaprobacion: 2, sanic_cm_as_notas: `${P} pedida`, sanic_cm_as_fechasignacion: new Date().toISOString(),
+    return { sanic_cm_as_tipo: 3, sanic_cm_as_estado: true, sanic_cm_as_estadoaprobacion: 2, sanic_cm_as_notas: `${P} pedida`, sanic_cm_as_fechaasignada: new Date().toISOString().slice(0, 10),
       'sanic_cm_as_cuentaid@odata.bind': bind('cuenta', c.sanic_cm_tbl_cuentaid), 'sanic_cm_as_solicitadopor@odata.bind': `/systemusers(${U[rol]})` };
   }
   if (t === 'boveda') { const c = await crearSP('cuenta', F.cuenta(i)); return F.boveda(i, c); }
@@ -247,12 +247,12 @@ async function casosDeColumna() {
 
   console.log('\n══ Altas de asignación que saltean la aprobación');
   const ctaD = await crearSP('cuenta', F.cuenta('D'));
-  const rd = await caso('COL-SOL-7', 'sol', 'Solicitante crea una Diaria activa con un agente (sin aprobación)', 'n', 'S-6: el Solicitante pide Especiales; las Diarias las trae la carga', () => como(U.sol, 'POST', 'sanic_cm_tbl_asignacions', { sanic_cm_as_tipo: 1, sanic_cm_as_estado: true, sanic_cm_as_fechasignacion: new Date().toISOString(), 'sanic_cm_as_cuentaid@odata.bind': bind('cuenta', ctaD.sanic_cm_tbl_cuentaid), 'sanic_cm_as_agenteid@odata.bind': bind('agente', fx.age0), 'sanic_cm_as_solicitadopor@odata.bind': `/systemusers(${U.sol})` }));
+  const rd = await caso('COL-SOL-7', 'sol', 'Solicitante crea una Diaria activa con un agente (sin aprobación)', 'n', 'S-6: el Solicitante pide Especiales; las Diarias las trae la carga', () => como(U.sol, 'POST', 'sanic_cm_tbl_asignacions', { sanic_cm_as_tipo: 1, sanic_cm_as_estado: true, sanic_cm_as_fechaasignada: new Date().toISOString().slice(0, 10), 'sanic_cm_as_cuentaid@odata.bind': bind('cuenta', ctaD.sanic_cm_tbl_cuentaid), 'sanic_cm_as_agenteid@odata.bind': bind('agente', fx.age0), 'sanic_cm_as_solicitadopor@odata.bind': `/systemusers(${U.sol})` }));
   if (rd.ok && rd.json) anotar('asignacion', rd.json.sanic_cm_tbl_asignacionid);
-  const rad = await caso('COL-ADM-D', 'adm', 'Admin crea una Diaria activa con un agente', 'n', 'H2: las Diarias solo llegan por la carga (dueño, 2026-10-19)', () => como(U.adm, 'POST', 'sanic_cm_tbl_asignacions', { sanic_cm_as_tipo: 1, sanic_cm_as_estado: true, sanic_cm_as_fechasignacion: new Date().toISOString(), 'sanic_cm_as_cuentaid@odata.bind': bind('cuenta', ctaD.sanic_cm_tbl_cuentaid), 'sanic_cm_as_agenteid@odata.bind': bind('agente', fx.age0) }));
+  const rad = await caso('COL-ADM-D', 'adm', 'Admin crea una Diaria activa con un agente', 'n', 'H2: las Diarias solo llegan por la carga (dueño, 2026-10-19)', () => como(U.adm, 'POST', 'sanic_cm_tbl_asignacions', { sanic_cm_as_tipo: 1, sanic_cm_as_estado: true, sanic_cm_as_fechaasignada: new Date().toISOString().slice(0, 10), 'sanic_cm_as_cuentaid@odata.bind': bind('cuenta', ctaD.sanic_cm_tbl_cuentaid), 'sanic_cm_as_agenteid@odata.bind': bind('agente', fx.age0) }));
   if (rad.ok && rad.json) anotar('asignacion', rad.json.sanic_cm_tbl_asignacionid);
   const ctaO = await crearSP('cuenta', F.cuenta('O'));
-  const ro = await caso('COL-SOL-8', 'sol', 'Solicitante crea una Especial a nombre de otro', 'n', 'S-7: "Solicitado por" solo a sí mismo', () => como(U.sol, 'POST', 'sanic_cm_tbl_asignacions', { sanic_cm_as_tipo: 3, sanic_cm_as_estado: true, sanic_cm_as_estadoaprobacion: 2, sanic_cm_as_fechasignacion: new Date().toISOString(), 'sanic_cm_as_cuentaid@odata.bind': bind('cuenta', ctaO.sanic_cm_tbl_cuentaid), 'sanic_cm_as_solicitadopor@odata.bind': `/systemusers(${U.sup})` }));
+  const ro = await caso('COL-SOL-8', 'sol', 'Solicitante crea una Especial a nombre de otro', 'n', 'S-7: "Solicitado por" solo a sí mismo', () => como(U.sol, 'POST', 'sanic_cm_tbl_asignacions', { sanic_cm_as_tipo: 3, sanic_cm_as_estado: true, sanic_cm_as_estadoaprobacion: 2, sanic_cm_as_fechaasignada: new Date().toISOString().slice(0, 10), 'sanic_cm_as_cuentaid@odata.bind': bind('cuenta', ctaO.sanic_cm_tbl_cuentaid), 'sanic_cm_as_solicitadopor@odata.bind': `/systemusers(${U.sup})` }));
   if (ro.ok && ro.json) anotar('asignacion', ro.json.sanic_cm_tbl_asignacionid);
 
   console.log('\n══ Interacción: grabación (DAT-11) y captura fuera de la cartera');

@@ -79,7 +79,7 @@ for pre, email, clientes, cuentas in FIXTURES:
         crear('cuentapans', {'sanic_cm_cp_name': '****' + pan[-4:], 'sanic_cm_cp_pan': pan, 'sanic_cm_cp_clavepan': clave,
                              'sanic_cm_cp_cuentaid@odata.bind': b('cuentas', cid)})
         extra = {'sanic_cm_as_estadoaprobacion': 1, 'sanic_cm_as_retironio': esp[0], 'sanic_cm_as_notas': esp[1]} if esp else {}
-        a = crear('asignacions', {'sanic_cm_as_tipo': tipo, 'sanic_cm_as_estado': True, 'sanic_cm_as_fechasignacion': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+        a = crear('asignacions', {'sanic_cm_as_tipo': tipo, 'sanic_cm_as_estado': True, 'sanic_cm_as_fechaasignada': time.strftime('%Y-%m-%d', time.gmtime()),
                                   'sanic_cm_as_cuentaid@odata.bind': b('cuentas', cid), 'sanic_cm_as_agenteid@odata.bind': b('agentes', ag[P + 'agenteid']), **extra})
         asig.append(a[P + 'asignacionid'])
         print(f'  cuenta {pre}-CTA-{n} (tarjeta ****{pan[-4:]}) tipo {tipo} → asignación creada')

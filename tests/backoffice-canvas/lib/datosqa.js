@@ -109,7 +109,7 @@ async function crearEspecialPendiente(cuenta, solicitanteId, nota, { notas, nio 
   const a = await crear('asignacion', {
     sanic_cm_as_clavepan: cuenta.sanic_cm_ct_clavepan, sanic_cm_as_tipo: 3, sanic_cm_as_estado: estado,
     sanic_cm_as_estadoaprobacion: 2, sanic_cm_as_retironio: nio, sanic_cm_as_notas: notas || `Verificación — ${P} ${nota}`,
-    sanic_cm_as_fechasignacion: new Date().toISOString(),
+    sanic_cm_as_fechaasignada: new Date().toISOString().slice(0, 10),
     ...(estado ? {} : { sanic_cm_as_motivo: `Gestión completada — ${P} ${nota}`, sanic_cm_as_fechacierre: new Date().toISOString() }),
     'sanic_cm_as_cuentaid@odata.bind': bind('sanic_cm_tbl_cuentas', cuenta.sanic_cm_tbl_cuentaid),
     'sanic_cm_as_solicitadopor@odata.bind': bind('systemusers', solicitanteId),

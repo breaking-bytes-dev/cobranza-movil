@@ -457,9 +457,18 @@ def main():
                             'attributes': atributos, 'messagepropertyname': 'Target',
                             'sdkmessageprocessingstepid@odata.bind': '/sdkmessageprocessingsteps(%s)' % paso_id})
                 elif imgs[0]['attributes'] != atributos or imgs[0]['entityalias'] != p['imagen']['nombre'] or imgs[0]['imagetype'] != 0:
-                    accion('actualizar imagen previa de ' + p['nombre'], 'PATCH',
-                           'sdkmessageprocessingstepimages(%s)' % imgs[0]['sdkmessageprocessingstepimageid'],
-                           {'attributes': atributos, 'entityalias': p['imagen']['nombre'], 'imagetype': 0})
+                    # PATCH sobre la imagen devuelve 0x80040216 en DEV (2026-10-25): se borra y se crea de nuevo, y se toca el
+                    # paso (descripción ida y vuelta) porque el servicio sigue usando la imagen vieja hasta que el paso cambia.
+                    accion('borrar imagen previa vieja de ' + p['nombre'], 'DELETE',
+                           'sdkmessageprocessingstepimages(%s)' % imgs[0]['sdkmessageprocessingstepimageid'])
+                    accion('crear imagen previa %s (%s) en %s' % (p['imagen']['nombre'], atributos, p['nombre']),
+                           'POST', 'sdkmessageprocessingstepimages',
+                           {'name': p['imagen']['nombre'], 'entityalias': p['imagen']['nombre'], 'imagetype': 0,
+                            'attributes': atributos, 'messagepropertyname': 'Target',
+                            'sdkmessageprocessingstepid@odata.bind': '/sdkmessageprocessingsteps(%s)' % paso_id})
+                    desc = dv.get('sdkmessageprocessingsteps(%s)?$select=description' % paso_id).get('description') or ''
+                    accion('recargar el paso ' + p['nombre'], 'PATCH', 'sdkmessageprocessingsteps(%s)' % paso_id, {'description': desc + ' '})
+                    accion('recargar el paso ' + p['nombre'] + ' (descripción original)', 'PATCH', 'sdkmessageprocessingsteps(%s)' % paso_id, {'description': desc})
 
     print('\nRESUMEN pasos:', json.dumps(resumen, ensure_ascii=False))
     if not mod:
