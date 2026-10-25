@@ -169,14 +169,9 @@ Screens:
                   InputTextPlaceholder: ="Grabó (todos)"
                   IsSearchable: =true
                   Items: |-
-                    =// "Todos", yo (aunque ese día no haya grabado nada) y los demás que grabaron ese día. Columna con nombre
-                    // propio (nom) armada con GroupBy: con Distinct y [ ] la columna salía Value o Result según la versión y el
-                    // combo mostraba las filas en blanco (2026-10-24).
-                    With({yo: Coalesce(gblUsuarioDV.'Full Name', "—")},
-                        Ungroup(Table(
-                            {g: Table({nom: "Todos"}, {nom: yo})},
-                            {g: Sort(Filter(ForAll(GroupBy(colTscTsc, grabTsc, filasTsc) As G, {nom: G.grabTsc}), nom <> yo), nom)}
-                        ), g))
+                    =// "Todos" primero y después los nombres (colGrabTsc la arma btnCargarTsc). Con Ungroup/Distinct en Items el
+                    // combo clásico no resolvía la columna a mostrar y las filas salían en blanco (2026-10-24).
+                    Sort(colGrabTsc, If(nom = "Todos", "0", "1" & nom))
                   OnChange: =Set(varGrabTsc, Coalesce(Self.Selected.nom, "Todos"))
                   SearchFields: =["nom"]
                   SelectMultiple: =false
@@ -447,6 +442,11 @@ Screens:
                           && '[PG] Moneda' = 'Choice | CM | Monedas en Pago'.USD), '[PG] Monto')
                   )
               );
+              // Opciones del combo «Grabó»: Todos, yo (aunque ese día no haya grabado) y los demás que grabaron ese día.
+              ClearCollect(colGrabTsc, {nom: "Todos"});
+              ForAll(GroupBy(colTscTmpTsc, grabTsc, filasTsc) As G, Collect(colGrabTsc, {nom: G.grabTsc}));
+              If(!IsBlank(gblUsuarioDV.'Full Name') && IsBlank(LookUp(colGrabTsc, nom = gblUsuarioDV.'Full Name')),
+                  Collect(colGrabTsc, {nom: gblUsuarioDV.'Full Name'}));
               Set(varSelTsc, Blank());
               Set(varPanelTsc, false);
               If(!IsBlank(varErrTsc),
