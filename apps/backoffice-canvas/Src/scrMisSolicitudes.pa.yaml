@@ -15,10 +15,10 @@ Screens:
         // Se conservan entre visitas de la misma sesión; «Limpiar» vuelve a los valores por defecto.
         If(IsBlank(varDesdeSol), Set(varDesdeSol, DateAdd(Today(), -1, TimeUnit.Months)));
         If(IsBlank(varHastaSol), Set(varHastaSol, Today()));
-        If(IsBlank(varEstSol), Set(varEstSol, "Todos"));
-        If(IsBlank(varAgSol), Set(varAgSol, "Todos"));
+        If(IsBlank(varEstSol), Set(varEstSol, "Todos los estados"));
+        If(IsBlank(varAgSol), Set(varAgSol, "Todos los cobradores"));
         // Cobradores del filtro (todos, por nombre). El DropDown aplica Default una sola vez: Reset después de cargar.
-        ClearCollect(colAgSol, {nom: "Todos"});
+        ClearCollect(colAgSol, {nom: "Todos los cobradores"});
         Collect(colAgSol, ForAll(Sort('CM | TBL | Agentes', '[AG] Nombre'), {nom: ThisRecord.'[AG] Nombre'}));
         Reset(drpAgSol);
         Set(varPanelSol, false);
@@ -182,10 +182,10 @@ Screens:
                         SelectionColor: =gblC.card
                         SelectionFill: =gblC.teal
                         Size: =10
-                        Default: =Coalesce(varEstSol, "Todos")
-                        Items: =["Todos", "Pendiente aprobación", "Aprobada", "Rechazada", "Cerrada"]
+                        Default: =Coalesce(varEstSol, "Todos los estados")
+                        Items: =["Todos los estados", "Pendiente aprobación", "Aprobada", "Rechazada", "Cerrada"]
                         Items.Value: =Value
-                        OnChange: =Set(varEstSol, Coalesce(Self.Selected.Value, "Todos")); Select(btnCargarSol)
+                        OnChange: =Set(varEstSol, Coalesce(Self.Selected.Value, "Todos los estados")); Select(btnCargarSol)
                         Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, 200)
                   - drpAgSol:
                       Control: Classic/DropDown@2.3.1
@@ -210,10 +210,10 @@ Screens:
                         SelectionColor: =gblC.card
                         SelectionFill: =gblC.teal
                         Size: =10
-                        Default: =Coalesce(varAgSol, "Todos")
+                        Default: =Coalesce(varAgSol, "Todos los cobradores")
                         Items: =colAgSol
                         Items.Value: =nom
-                        OnChange: =Set(varAgSol, Coalesce(Self.Selected.nom, "Todos")); Select(btnCargarSol)
+                        OnChange: =Set(varAgSol, Coalesce(Self.Selected.nom, "Todos los cobradores")); Select(btnCargarSol)
                         Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, 240)
                   - txtCifSol:
                       Control: Classic/TextInput@2.3.2
@@ -274,7 +274,7 @@ Screens:
                         Height: =gblE.AltoInput
                         OnSelect: |-
                           =Set(varDesdeSol, DateAdd(Today(), -1, TimeUnit.Months)); Set(varHastaSol, Today());
-                          Set(varEstSol, "Todos"); Set(varAgSol, "Todos"); Set(varCifSol, ""); Set(varCtaSol, "");
+                          Set(varEstSol, "Todos los estados"); Set(varAgSol, "Todos los cobradores"); Set(varCifSol, ""); Set(varCtaSol, "");
                           Reset(dtpDesdeSol); Reset(dtpHastaSol); Reset(drpEstSol); Reset(drpAgSol); Reset(txtCifSol); Reset(txtCtaSol);
                           Select(btnCargarSol)
                         Size: =10
@@ -525,7 +525,7 @@ Screens:
               // resuelve el servidor navegando '[AS] Cuenta').
               Set(varCargandoSol, true);
               Set(varFinSol, DateAdd(varHastaSol, 1));
-              Set(varAgRecSol, If(IsBlank(varAgSol) || varAgSol = "Todos", Blank(), LookUp('CM | TBL | Agentes', '[AG] Nombre' = varAgSol)));
+              Set(varAgRecSol, If(IsBlank(varAgSol) || varAgSol = "Todos los cobradores", Blank(), LookUp('CM | TBL | Agentes', '[AG] Nombre' = varAgSol)));
               Set(varErrSol, Blank());
               Clear(colSolRawSol);
               Clear(colCtaSol);
@@ -538,7 +538,7 @@ Screens:
                                   && '[AS] Solicitado por'.User = gblUsuarioDV.User
                                   && 'Created On' >= varDesdeSol && 'Created On' < varFinSol
                                   && (IsBlank(varAgRecSol) || '[AS] Agente'.'CM | TBL | Agente' = varAgRecSol.'CM | TBL | Agente')
-                                  && (varEstSol = "Todos"
+                                  && (varEstSol = "Todos los estados"
                                       || (varEstSol = "Pendiente aprobación" && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion')
                                       || (varEstSol = "Aprobada" && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado && '[AS] Estado' = true)
                                       || (varEstSol = "Rechazada" && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Rechazada)
@@ -564,7 +564,7 @@ Screens:
                                       && '[AS] Solicitado por'.User = gblUsuarioDV.User
                                       && 'Created On' >= varDesdeSol && 'Created On' < varFinSol
                                       && (IsBlank(varAgRecSol) || '[AS] Agente'.'CM | TBL | Agente' = varAgRecSol.'CM | TBL | Agente')
-                                      && (varEstSol = "Todos"
+                                      && (varEstSol = "Todos los estados"
                                           || (varEstSol = "Pendiente aprobación" && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion')
                                           || (varEstSol = "Aprobada" && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado && '[AS] Estado' = true)
                                           || (varEstSol = "Rechazada" && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Rechazada)

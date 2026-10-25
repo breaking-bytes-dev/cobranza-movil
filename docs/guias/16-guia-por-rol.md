@@ -230,7 +230,7 @@ NODE_PATH=../backoffice-canvas/node_modules node grupo2.js
 |---|---|
 | **Inicio** | Ver PENDIENTES, APROBADAS y RECHAZADAS de **sus** Especiales ("Tus solicitudes Especiales"). No ve "Cobrado hoy" |
 | **Nueva solicitud** | Buscar una cuenta (por últimos 4, CIF o nombre), elegir el tipo, el retiro NIO/USD y el motivo, y **enviar** la Especial. Queda **Pendiente de aprobación**, **sin agente** |
-| **Mis solicitudes** | Seguir sus Especiales: estado, motivo de rechazo y agente asignado. Solo lectura |
+| **Mis solicitudes** | Seguir sus Especiales: estado, motivo de rechazo y agente asignado. Filtros por fecha de creación (por defecto el último mes), estado, cobrador, CIF y cuenta (últimos 4); cada cambio consulta al servidor. «Limpiar» vuelve a los valores por defecto. Solo lectura |
 
 **Reglas de "Enviar":**
 - Exige cuenta, tipo, retiro mayor que 0 y motivo.
