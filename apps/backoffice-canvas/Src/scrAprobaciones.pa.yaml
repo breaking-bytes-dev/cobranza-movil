@@ -12,35 +12,27 @@ Screens:
       Fill: =gblC.pantalla
       OnVisible: |-
         =// Localizador: buscador + galería (galAgeAprb, Filter directo delegado, B-04) — sin catálogo.
-        // La cola + datos de la cuenta horneados navegando el lookup '[AS] Cuenta' (lo resuelve el
-        // servidor, sin catálogo de cuentas truncable al Data row limit).
-        ClearCollect(colAprobAprb,
-            AddColumns(
-                Filter('CM | TBL | Asignacions',
-                    '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial &&
-                    '[AS] Estado' = true &&  // B-18: una Especial cerrada estando pendiente no se aprueba
-                    '[AS] Estado de aprobacion' =
-                        'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion'),
-                clienteAprb,
-                Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
-                ult4Aprb, Coalesce(ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
-                prodAprb, Coalesce(ThisRecord.'[AS] Cuenta'.'Tipo Producto', "—"),
-                nioAprb, ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO',
-                usdAprb, ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD',
-                pideAprb, Coalesce('[AS] Solicitado por'.'Full Name', "—")
-            )
-        );
-        // Estado de pantalla
-        Set(varSelAprb, Blank());
-        Set(varAgeAprb, Blank());
-        Set(varPanelAprb, false)
+        // Filtros (APP-40): fecha de solicitud (por defecto SIN límite: es una cola FIFO y las más viejas van primero),
+        // solicitante y un buscador de CIF, nombre del cliente o últimos 4 de la cuenta. Se conservan en la sesión.
+        If(IsBlank(varPideAprb), Set(varPideAprb, "Todos los solicitantes"));
+        // Solicitantes con Especiales pendientes (Distinct sobre el lookup corre en memoria: hasta 2000 pendientes).
+        ClearCollect(colPideAprb, {nom: "Todos los solicitantes"}, {nom: "Sin solicitante (carga)"});
+        Collect(colPideAprb, ForAll(Sort(Distinct(
+            Filter('CM | TBL | Asignacions',
+                '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial && '[AS] Estado' = true
+                && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion'
+                && !IsBlank('[AS] Solicitado por')),
+            '[AS] Solicitado por'.'Full Name'), Value), {nom: Value}));
+        Reset(drpPideAprb);
+        Set(varAvisoAprb, false);
+        Select(btnCargarAprb)
     Children:
       - cmpEncAprb:
           Control: CanvasComponent
           ComponentName: cmpEncabezado
           Properties:
             Height: =If(nfMovil, gblE.AltoBarra + 84, 84)
-            Subtitulo: ="FIFO — asigná localizador y aprobá, o rechazá con motivo."
+            Subtitulo: ="FIFO — asigná localizador y aprobá, o rechazá con motivo · " & CountRows(colAprobAprb) & If(CountRows(colAprobAprb) = 1, " pendiente", " pendientes") & " con estos filtros."
             Titulo: ="Aprobaciones pendientes"
             Width: =Parent.Width - Self.X
             X: =If(nfMovil, 0, gblE.AnchoNav)
@@ -68,30 +60,162 @@ Screens:
                   FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =36
-                  OnSelect: |-
-                    =ClearCollect(colAprobAprb,
-                        AddColumns(
-                            Filter('CM | TBL | Asignacions',
-                                '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial &&
-                                '[AS] Estado' = true &&  // B-18: una Especial cerrada estando pendiente no se aprueba
-                                '[AS] Estado de aprobacion' =
-                                    'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion'),
-                            clienteAprb,
-                            Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
-                            ult4Aprb, Coalesce(ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
-                            prodAprb, Coalesce(ThisRecord.'[AS] Cuenta'.'Tipo Producto', "—"),
-                            nioAprb, ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO',
-                            usdAprb, ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD',
-                            pideAprb, Coalesce('[AS] Solicitado por'.'Full Name', "—")
-                        )
-                    );
-                    Set(varSelAprb, Blank());
-                    Set(varAgeAprb, Blank());
-                    Set(varPanelAprb, false)
+                  OnSelect: =Set(varAvisoAprb, true); Select(btnCargarAprb)
+                  DisplayMode: =If(varCargandoAprb, DisplayMode.Disabled, DisplayMode.Edit)
                   Size: =9
                   Text: ="↻ Actualizar"
                   Width: =140
                   X: =Parent.Width - Self.Width - gblE.Pad
+            - conFiltrosAprb:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Fill: =Color.Transparent
+                  Height: =If(nfMovil, 4 * gblE.AltoInput + 3 * gblE.PadSm, If(Self.Width >= 1180, gblE.AltoInput, 2 * gblE.AltoInput + gblE.PadSm))
+                  LayoutDirection: =LayoutDirection.Horizontal
+                  LayoutGap: =gblE.PadSm
+                  LayoutWrap: =true
+                  Width: =If(nfMovil, Parent.Width - 2*gblE.Pad, btnActualizarAprb.X - gblE.Pad - gblE.PadSm)
+                  X: =gblE.Pad
+                  Y: =If(nfMovil, btnActualizarAprb.Y + btnActualizarAprb.Height + gblE.PadSm, 0)
+                Children:
+                  - lblDesdeAprb:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.muted
+                        FillPortions: =0
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: ="Pedidas del"
+                        Visible: =!nfMovil
+                        Width: =78
+                  - dtpDesdeAprb:
+                      Control: Classic/DatePicker@2.6.0
+                      Properties:
+                        AccessibleLabel: ="Pedidas desde (vacío = sin límite)"
+                        BorderColor: =gblC.borde
+                        Color: =gblC.ink
+                        DefaultDate: =varDesdeAprb
+                        DisplayMode: =If(varCargandoAprb, DisplayMode.Disabled, DisplayMode.Edit)
+                        Fill: =gblC.card
+                        FillPortions: =0
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        OnChange: |-
+                          =// Vacío = sin límite por ese lado.
+                          Set(varDesdeAprb, Self.SelectedDate);
+                          If(!IsBlank(varDesdeAprb) && !IsBlank(varHastaAprb) && varDesdeAprb > varHastaAprb, Set(varHastaAprb, varDesdeAprb); Reset(dtpHastaAprb));
+                          Select(btnCargarAprb)
+                        Size: =10
+                        StartOfWeek: =StartOfWeek.Monday
+                        Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, 150)
+                  - lblHastaAprb:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.muted
+                        FillPortions: =0
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: ="al"
+                        Visible: =!nfMovil
+                        Width: =18
+                  - dtpHastaAprb:
+                      Control: Classic/DatePicker@2.6.0
+                      Properties:
+                        AccessibleLabel: ="Pedidas hasta (vacío = sin límite)"
+                        BorderColor: =gblC.borde
+                        Color: =gblC.ink
+                        DefaultDate: =varHastaAprb
+                        DisplayMode: =If(varCargandoAprb, DisplayMode.Disabled, DisplayMode.Edit)
+                        Fill: =gblC.card
+                        FillPortions: =0
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        OnChange: |-
+                          =// Vacío = sin límite por ese lado.
+                          Set(varHastaAprb, Self.SelectedDate);
+                          If(!IsBlank(varDesdeAprb) && !IsBlank(varHastaAprb) && varHastaAprb < varDesdeAprb, Set(varDesdeAprb, varHastaAprb); Reset(dtpDesdeAprb));
+                          Select(btnCargarAprb)
+                        Size: =10
+                        StartOfWeek: =StartOfWeek.Monday
+                        Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, 150)
+                  - drpPideAprb:
+                      Control: Classic/DropDown@2.3.1
+                      Properties:
+                        AccessibleLabel: ="Solicitante"
+                        BorderColor: =gblC.borde
+                        BorderThickness: =1
+                        ChevronBackground: =gblC.card
+                        ChevronFill: =gblC.ink2
+                        ChevronHoverBackground: =gblC.pantalla
+                        ChevronHoverFill: =gblC.teal
+                        Color: =gblC.ink
+                        DisplayMode: =If(varCargandoAprb, DisplayMode.Disabled, DisplayMode.Edit)
+                        Fill: =gblC.card
+                        FillPortions: =0
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        HoverColor: =gblC.ink
+                        HoverFill: =gblC.pantalla
+                        PressedColor: =gblC.card
+                        PressedFill: =gblC.teal
+                        SelectionColor: =gblC.card
+                        SelectionFill: =gblC.teal
+                        Size: =10
+                        Default: =Coalesce(varPideAprb, "Todos los solicitantes")
+                        Items: =colPideAprb
+                        Items.Value: =nom
+                        OnChange: =Set(varPideAprb, Coalesce(Self.Selected.nom, "Todos los solicitantes")); Select(btnCargarAprb)
+                        Width: =If(nfMovil, Parent.Width, 230)
+                  - txtBuscaAprb:
+                      Control: Classic/TextInput@2.3.2
+                      Properties:
+                        AccessibleLabel: ="Buscar por CIF, nombre del cliente o últimos 4 de la cuenta"
+                        BorderColor: =gblC.borde
+                        Default: =varBuscaAprb
+                        DelayOutput: =true
+                        DisplayMode: =If(varCargandoAprb, DisplayMode.Disabled, DisplayMode.Edit)
+                        Fill: =gblC.card
+                        FillPortions: =1
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        HintText: ="🔍 CIF, nombre del cliente o últimos 4 de la cuenta"
+                        LayoutMinWidth: =240
+                        OnChange: =Set(varBuscaAprb, Trim(Self.Text)); Select(btnCargarAprb)
+                        RadiusBottomLeft: =10
+                        RadiusBottomRight: =10
+                        RadiusTopLeft: =10
+                        RadiusTopRight: =10
+                        Size: =10
+                        Width: =If(nfMovil, Parent.Width, 300)
+                  - btnLimpiarAprb:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderColor: =gblC.borde
+                        BorderThickness: =1
+                        Color: =gblC.teal
+                        DisplayMode: =If(varCargandoAprb, DisplayMode.Disabled, DisplayMode.Edit)
+                        Fill: =gblC.card
+                        FillPortions: =0
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        OnSelect: |-
+                          =Set(varDesdeAprb, Blank()); Set(varHastaAprb, Blank()); Set(varPideAprb, "Todos los solicitantes"); Set(varBuscaAprb, "");
+                          Reset(dtpDesdeAprb); Reset(dtpHastaAprb); Reset(drpPideAprb); Reset(txtBuscaAprb);
+                          Select(btnCargarAprb)
+                        Size: =10
+                        Text: ="Limpiar"
+                        Tooltip: ="Sin fechas, todos los solicitantes y sin búsqueda"
+                        Width: =If(nfMovil, Parent.Width, 90)
             - galAprobAprb:
                 Control: Gallery@2.15.0
                 Variant: Vertical
@@ -114,7 +238,7 @@ Screens:
                   TemplateSize: =84
                   Width: =Parent.Width - 2*gblE.Pad
                   X: =gblE.Pad
-                  Y: =btnActualizarAprb.Y + btnActualizarAprb.Height + gblE.PadSm
+                  Y: =Max(btnActualizarAprb.Y + btnActualizarAprb.Height, conFiltrosAprb.Y + conFiltrosAprb.Height) + gblE.PadSm
                 Children:
                   - lblFilaClienteAprb:
                       Control: Label@2.5.1
@@ -243,6 +367,21 @@ Screens:
                         Width: =Parent.TemplateWidth
                         X: =0
                         Y: =0
+            - lblCargandoAprb:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Center
+                  Color: =gblC.teal
+                  Fill: =RGBA(255, 255, 255, 0.88)
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =galAprobAprb.Height
+                  Size: =12
+                  Text: ="⏳ Cargando la cola de aprobación…"
+                  Visible: =varCargandoAprb
+                  Width: =galAprobAprb.Width
+                  X: =galAprobAprb.X
+                  Y: =galAprobAprb.Y
             - cmpVacioAprb:
                 Control: CanvasComponent
                 ComponentName: cmpVacio
@@ -250,12 +389,97 @@ Screens:
                   Height: =200
                   Icono: |-
                     ="🎉"
-                  Mensaje: ="Las solicitudes Especiales nuevas aparecen acá apenas el Solicitante las envía."
-                  Titulo: ="Nada por aprobar"
-                  Visible: =CountRows(colAprobAprb) = 0
+                  Mensaje: |-
+                    =If(IsBlank(varDesdeAprb) && IsBlank(varHastaAprb) && varPideAprb = "Todos los solicitantes" && IsBlank(varBuscaAprb),
+                        "Las solicitudes Especiales nuevas aparecen acá apenas el Solicitante las envía.",
+                        "Ninguna pendiente coincide con estos filtros. Probá con otros o «Limpiar».")
+                  Titulo: =If(IsBlank(varDesdeAprb) && IsBlank(varHastaAprb) && varPideAprb = "Todos los solicitantes" && IsBlank(varBuscaAprb), "Nada por aprobar", "Sin resultados")
+                  Visible: =CountRows(colAprobAprb) = 0 && !varCargandoAprb
                   Width: =Min(420, Parent.Width - 2*gblE.Pad)
                   X: =(Parent.Width - Self.Width) / 2
                   Y: =galAprobAprb.Y + 80
+      - btnCargarAprb:
+          Control: Classic/Button@2.2.0
+          Properties:
+            OnSelect: |-
+              =// Cola de aprobación con TODOS los filtros en el servidor (APP-40, mismo patrón que Mis solicitudes): cada cambio vuelve
+              // a consultar Dataverse y el límite de 2000 filas aplica a lo que coincide. Las partes «IsBlank(var) ||» y «var = "x" &&»
+              // no tocan columnas y Power Apps las resuelve antes de enviar (verificado en la red, APP-39).
+              // CIF, cliente y cuenta viven en la CUENTA: primero las cuentas que coinciden (una consulta a Cuentas, hasta 50) y
+              // después sus Especiales pendientes, una consulta por cuenta.
+              Set(varCargandoAprb, true);
+              Set(varFinAprb, If(IsBlank(varHastaAprb), Blank(), DateAdd(varHastaAprb, 1)));
+              Set(varPideRecAprb, If(varPideAprb in ["Todos los solicitantes", "Sin solicitante (carga)"], Blank(), LookUp(Users, 'Full Name' = varPideAprb)));
+              Set(varErrAprb, Blank());
+              Clear(colAprobAprb);
+              Clear(colCtaAprb);
+              IfError(
+                  If(IsBlank(varBuscaAprb),
+                      Collect(colAprobAprb,
+                          AddColumns(
+                              Filter('CM | TBL | Asignacions',
+                                  '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial &&
+                                  '[AS] Estado' = true &&  // B-18: una Especial cerrada estando pendiente no se aprueba
+                                  '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion'
+                                  && (IsBlank(varDesdeAprb) || 'Created On' >= varDesdeAprb)
+                                  && (IsBlank(varFinAprb) || 'Created On' < varFinAprb)
+                                  && (varPideAprb = "Todos los solicitantes"
+                                      || (varPideAprb = "Sin solicitante (carga)" && IsBlank('[AS] Solicitado por'))
+                                      || (!IsBlank(varPideRecAprb) && '[AS] Solicitado por'.User = varPideRecAprb.User))),
+                              clienteAprb,
+                              Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
+                              ult4Aprb, Coalesce(ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
+                              prodAprb, Coalesce(ThisRecord.'[AS] Cuenta'.'Tipo Producto', "—"),
+                              nioAprb, ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO',
+                              usdAprb, ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD',
+                              pideAprb, Coalesce('[AS] Solicitado por'.'Full Name', "—")
+                          )
+                      ),
+                      ClearCollect(colCtaAprb,
+                          FirstN(Filter('CM | TBL | Cuentas',
+                              StartsWith('CIF Cliente', varBuscaAprb) || varBuscaAprb in 'Nombre Cliente' || 'Últimos 4' = varBuscaAprb), 51));
+                      ForAll(FirstN(colCtaAprb, 50) As C,
+                          Collect(colAprobAprb,
+                              AddColumns(
+                                  Filter('CM | TBL | Asignacions',
+                                      '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial &&
+                                      '[AS] Estado' = true &&  // B-18: una Especial cerrada estando pendiente no se aprueba
+                                      '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion'
+                                      && (IsBlank(varDesdeAprb) || 'Created On' >= varDesdeAprb)
+                                      && (IsBlank(varFinAprb) || 'Created On' < varFinAprb)
+                                      && (varPideAprb = "Todos los solicitantes"
+                                          || (varPideAprb = "Sin solicitante (carga)" && IsBlank('[AS] Solicitado por'))
+                                          || (!IsBlank(varPideRecAprb) && '[AS] Solicitado por'.User = varPideRecAprb.User))
+                                      && '[AS] Cuenta'.'CM | TBL | Cuenta' = C.'CM | TBL | Cuenta'),
+                                  clienteAprb,
+                                  Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
+                                  ult4Aprb, Coalesce(ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
+                                  prodAprb, Coalesce(ThisRecord.'[AS] Cuenta'.'Tipo Producto', "—"),
+                                  nioAprb, ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO',
+                                  usdAprb, ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD',
+                                  pideAprb, Coalesce('[AS] Solicitado por'.'Full Name', "—")
+                              )
+                          )
+                      )
+                  ),
+                  Set(varErrAprb, Coalesce(FirstError.Message, "sin detalle"))
+              );
+              If(CountRows(colAprobAprb) >= 2000,
+                  Notify("Hay 2.000 o más pendientes con estos filtros y se muestran 2.000 (las más viejas primero). Acotá con fechas, solicitante o el buscador.", NotificationType.Warning));
+              If(CountRows(colCtaAprb) > 50,
+                  Notify("Más de 50 cuentas coinciden con la búsqueda: se buscó en las primeras 50. Escribí más del CIF o del nombre.", NotificationType.Warning));
+              If(!IsBlank(varErrAprb),
+                  Notify("No se pudo leer la cola: " & TextoError(varErrAprb), NotificationType.Error),
+                  varAvisoAprb,
+                  Notify("✓ Cola actualizada", NotificationType.Success, 2500));
+              Set(varSelAprb, Blank());
+              Set(varAgeAprb, Blank());
+              Set(varPanelAprb, false);
+              Set(varAvisoAprb, false);
+              Set(varCargandoAprb, false)
+            Height: =1
+            Visible: =false
+            Width: =1
       - recScrimAprb:
           Control: Rectangle@2.3.0
           Properties:
