@@ -79,4 +79,4 @@ async function tocar(app, nombre, { esperaMs = 2500 } = {}) {
   await (await pl.visible(app, nombre)).click({ timeout: 15000 });
   await app.red.quieta(app.page, { quietoMs: 2500, maxMs: 30000, minMs: esperaMs });
 }
-module.exports = { ...pl, abrir, foto, pantalla, tocar, APP_ID };
+module.exports = { ...pl, abrir, abrirUnaVez, foto, pantalla, tocar, APP_ID };
