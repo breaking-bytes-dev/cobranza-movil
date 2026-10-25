@@ -39,6 +39,7 @@ Screens:
             FocusedBorderThickness: =2
             Font: =Font.'Segoe UI'
             Height: =gblE.AltoInput
+            DisplayMode: =If(varCargandoTsc, DisplayMode.Disabled, DisplayMode.Edit)
             OnSelect: =Set(varAvisoTsc, true); Select(btnCargarTsc)
             Size: =10
             Text: ="↻ Actualizar"
@@ -105,6 +106,7 @@ Screens:
                   DefaultDate: =varFechaTsc
                   Fill: =gblC.card
                   FillPortions: =0
+                  DisplayMode: =If(varCargandoTsc, DisplayMode.Disabled, DisplayMode.Edit)
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
                   OnChange: |-
@@ -124,6 +126,7 @@ Screens:
                   FillPortions: =0
                   FocusedBorderColor: =gblC.teal
                   FocusedBorderThickness: =2
+                  DisplayMode: =If(varCargandoTsc, DisplayMode.Disabled, DisplayMode.Edit)
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
                   OnSelect: =Set(varFechaTsc, Today()); Reset(dtpFechaTsc); Select(btnCargarTsc)
@@ -394,12 +397,28 @@ Screens:
                   Visible: =galTscTsc.AllItemsCount = 0
                   Width: =Parent.Width
                   Y: =(Parent.Height - Self.Height)/2
+            - lblCargandoTsc:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Center
+                  Color: =gblC.teal
+                  Fill: =RGBA(255, 255, 255, 0.88)
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =Parent.Height
+                  Size: =12
+                  Text: |-
+                    ="⏳ Cargando las transcritas " & If(varFechaTsc = Today(), "de hoy", "del " & Text(varFechaTsc, "dd/mm/yyyy")) & "…"
+                  Visible: =varCargandoTsc
+                  Width: =Parent.Width
       - btnCargarTsc:
           Control: Classic/Button@2.2.0
           Properties:
             OnSelect: |-
               =// Transcritas del día varFechaTsc, de TODOS los que graban: el filtro por quién grabó y la búsqueda son en memoria
               // (galTscTsc.Items). Comparaciones de fecha con variables y choice por valor = delegable (00 §4.2).
+              // Aviso «Cargando…» sobre la lista mientras se leen los datos (tarda unos segundos; 2026-10-24).
+              Set(varCargandoTsc, true);
               Set(varFinTsc, DateAdd(varFechaTsc, 1));
               // ESCALA: los pagos del día (de todos los cobradores) se traen por tramos (TramoCartera, de su interacción), cada
               // consulta bajo el límite de 2000 filas: hasta unos 30.000 pagos por día. El tramo va CONSTANTE (T.Value): un If,
@@ -454,13 +473,17 @@ Screens:
               If(!IsBlank(gblUsuarioDV.'Full Name'), Collect(colGrabTsc, {nom: gblUsuarioDV.'Full Name'}));
               ForAll(Sort(GroupBy(colTscTmpTsc, grabTsc, filasTsc), grabTsc) As G,
                   If(G.grabTsc <> Coalesce(gblUsuarioDV.'Full Name', ""), Collect(colGrabTsc, {nom: G.grabTsc})));
+              // El DropDown aplica Default una sola vez (antes de tener opciones y usuario): se fija YO y se reinicia.
+              If(IsBlank(varGrabTsc) && !IsBlank(gblUsuarioDV.'Full Name'), Set(varGrabTsc, gblUsuarioDV.'Full Name'));
+              Reset(drpGrabTsc);
               Set(varSelTsc, Blank());
               Set(varPanelTsc, false);
               If(!IsBlank(varErrTsc),
                   Notify("No se pudo leer las transcritas: " & TextoError(varErrTsc), NotificationType.Error),
                  varAvisoTsc,
                   Notify("✓ Arqueo actualizado", NotificationType.Success, 2500));   // LED-05
-              Set(varAvisoTsc, false)
+              Set(varAvisoTsc, false);
+              Set(varCargandoTsc, false)
             Visible: =false
       - recScrimTsc:
           Control: Rectangle@2.3.0
