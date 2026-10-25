@@ -800,11 +800,18 @@ Screens:
                         AccessibleLabel: ="Pagos de la interacción"
                         FocusedBorderColor: =gblC.teal
                         FocusedBorderThickness: =2
-                        Height: =74
+                        Height: |-
+                          =// Todos los pagos si entran. Antes medía 74 fijos y sin barra: de 5 pagos se veían 2 (2026-10-24).
+                          // El espacio que queda hasta la barra del código se reparte: primero lo que pide la actualización
+                          // de datos (si la hay), y los pagos se quedan con el resto (mínimo 3 filas, con barra si no entran).
+                          Min(Self.AllItemsCount * Self.TemplateHeight,
+                              Max(3 * Self.TemplateHeight,
+                                  conCodigoTrx.Y - Self.Y - gblE.PadSm -
+                                  If(varActualTrx.'[IN] Actualiza info', 22 + gblE.PadSm + CountRows(colCambiosTrx) * 52 + 10 + 10, 0)))
                         Items: |-
                           =Filter('CM | TBL | Pagos',
                               '[PG] Numero Interaccion' = varActualTrx.'[IN] Numero de Interaccion')
-                        ShowScrollbar: =false
+                        ShowScrollbar: =Self.AllItemsCount * Self.TemplateHeight > Self.Height
                         TemplatePadding: =0
                         TemplateSize: =34
                         Visible: =!IsBlank(varActualTrx) && varActualTrx.'[IN] Aplica pago'
@@ -826,8 +833,25 @@ Screens:
                               Text: |-
                                 =If(ThisItem.'[PG] Moneda' = 'Choice | CM | Monedas en Pago'.USD, "US$ ", "C$ ")
                                     & Text(ThisItem.'[PG] Monto', "#,##0.00")
-                              Width: =Parent.TemplateWidth * 0.55
+                              Width: =Parent.TemplateWidth * 0.35
                               Wrap: =false
+                              Y: =6
+                        - lblPagoCuentaTrx:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =Align.Center
+                              Color: =gblC.ink2
+                              FocusedBorderColor: =gblC.teal
+                              FocusedBorderThickness: =2
+                              Font: =Font.'Segoe UI'
+                              Height: =22
+                              Size: =10
+                              Text: |-
+                                =// Un cobro puede repartirse entre varias cuentas del cliente: a cuál se aplica este pago.
+                                "Cuenta •••• " & LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = ThisItem.Cuenta.'CM | TBL | Cuenta').'Últimos 4'
+                              Width: =Parent.TemplateWidth * 0.25
+                              Wrap: =false
+                              X: =Parent.TemplateWidth * 0.35
                               Y: =6
                         - lblPagoReciboTrx:
                             Control: Label@2.5.1
@@ -842,9 +866,9 @@ Screens:
                               Size: =10
                               # F6: el servidor marca el recibo que ya existía (no lo rechaza): BackOffice lo revisa
                               Text: ="Recibo " & ThisItem.'[PG] Numero recibo' & If(ThisItem.'[PG] Recibo repetido', " ⚠ REPETIDO", "")
-                              Width: =Parent.TemplateWidth * 0.45
+                              Width: =Parent.TemplateWidth * 0.4
                               Wrap: =false
-                              X: =Parent.TemplateWidth * 0.55
+                              X: =Parent.TemplateWidth * 0.6
                               Y: =6
                         - recSepPagoTrx:
                             Control: GroupContainer@1.5.0
@@ -887,7 +911,8 @@ Screens:
                         DropShadow: =DropShadow.None
                         Fill: =gblC.espBg
                         Height: |-
-                          =Max(0, Min(Min(CountRows(colCambiosTrx), 4) * 52 + 10,
+                          =// Los 7 campos posibles (antes se cortaba en 4); si no entran hasta la barra del código, la galería muestra barra.
+                          Max(0, Min(CountRows(colCambiosTrx) * 52 + 10,
                               conCodigoTrx.Y - lblSecDatosTrx.Y - 32))
                         RadiusBottomLeft: =gblE.RadioSm
                         RadiusBottomRight: =gblE.RadioSm
@@ -907,7 +932,7 @@ Screens:
                               FocusedBorderThickness: =2
                               Height: =Parent.Height - 10
                               Items: =colCambiosTrx
-                              ShowScrollbar: =false
+                              ShowScrollbar: =CountRows(colCambiosTrx) * 52 > Self.Height
                               TemplatePadding: =0
                               TemplateSize: =52
                               Width: =Parent.Width - 8
