@@ -79,10 +79,8 @@ Screens:
             // no la evalúe para otros roles aunque su contenedor esté oculto (403, B-05).
             Refresh('CM | TBL | Carga diarias');  // F1: sin esto, la carga de hoy no se veía hasta recargar la app
             Set(varUltCargaIni, nfUltimaCarga);
-            // Corte = 00:00 UTC del día de la última carga. 'Última carga' es UserLocal y el import la graba
-            // a medianoche UTC; [CD] FechaCarga es DateOnly. Sin este ajuste, en UTC-6 todo parece "desaparecido".
-            Set(varCorteIni, With({d0: DateTime(Year(varUltCargaIni), Month(varUltCargaIni), Day(varUltCargaIni), 0, 0, 0)},
-                DateAdd(d0, -TimeZoneOffset(d0), TimeUnit.Minutes)));
+            // Corte = el DÍA de la última carga: 'Última carga' es DateOnly desde 2026-10-25 (día contra día, sin zona).
+            Set(varCorteIni, Date(Year(varUltCargaIni), Month(varUltCargaIni), Day(varUltCargaIni)));
             Concurrent(
                 Set(varNDesapIni,
                     CountIf('CM | TBL | Asignacions',

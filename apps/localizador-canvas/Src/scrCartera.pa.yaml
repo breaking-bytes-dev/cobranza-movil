@@ -370,14 +370,15 @@ Screens:
                             Control: Label@2.5.1
                             Properties:
                               AutoHeight: =true
-                              Color: =If(FechaUtc(Max(Filter(colAsig, '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria), ultCarga)) = Today(), gblC.accentInk, gblC.redInk)
+                              Color: =If(First(Sort(Filter(colAsig, '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria && !IsBlank(ultCarga)), ultCarga, SortOrder.Descending)).ultCarga = Today(), gblC.accentInk, gblC.redInk)
                               FontWeight: =FontWeight.Bold
                               LayoutMinHeight: =16
                               LayoutMinWidth: =16
                               Size: =gblT.fxs
                               Text: |-
                                 =// El cobrador confirma que tiene la carga de hoy: la fecha más reciente de sus Diarias.
-                                With({ d: FechaUtc(Max(Filter(colAsig, '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria), ultCarga)) },
+                                // 'Última carga' es DateOnly (2026-10-25): llega como Date, sin zona; Sort en vez de Max (Max es numérico).
+                                With({ d: First(Sort(Filter(colAsig, '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria && !IsBlank(ultCarga)), ultCarga, SortOrder.Descending)).ultCarga },
                                     If(IsBlank(d), "⚠ No hay carga diaria en el teléfono. Sincronizá.",
                                         d = Today(), "✓ Carga diaria de hoy · " & Text(d, "dd/mm/yyyy"),
                                         "⚠ Carga diaria del " & Text(d, "dd/mm/yyyy") & ": todavía no es la de hoy. Sincronizá."))

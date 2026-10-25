@@ -532,7 +532,7 @@ Screens:
                             Properties:
                               Align: =Align.Right
                               AutoHeight: =true
-                              Color: =If(FechaUtc(varAsig.'Última carga') = Today(), gblC.accentInk, gblC.redInk)
+                              Color: =If(varAsig.'Última carga' = Today(), gblC.accentInk, gblC.redInk)
                               FillPortions: =1
                               FontWeight: =FontWeight.Semibold
                               LayoutMinHeight: =16
@@ -540,7 +540,7 @@ Screens:
                               Size: =gblT.fbase
                               Text: |-
                                 =// Verde si es la carga de hoy; rojo con ⚠ si no.
-                                With({ d: FechaUtc(varAsig.'Última carga') },
+                                With({ d: varAsig.'Última carga' },
                                     Text(d, "dd/mm/yyyy") & If(d = Today(), "  ✓ hoy", "  ⚠"))
             - Container16_2:
                 Control: GroupContainer@1.5.0
