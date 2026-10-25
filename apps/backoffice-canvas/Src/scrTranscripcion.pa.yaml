@@ -769,6 +769,7 @@ Screens:
                         LayoutGap: =gblE.PadSm
                         LayoutOverflowY: =LayoutOverflow.Scroll
                         PaddingLeft: =gblE.Pad
+                        PaddingRight: =gblE.Pad
                         Visible: =!IsBlank(varActualTrx)
                         Width: =Parent.Width
                         Y: =conIdentidadTrx.Y + conIdentidadTrx.Height + gblE.PadSm
