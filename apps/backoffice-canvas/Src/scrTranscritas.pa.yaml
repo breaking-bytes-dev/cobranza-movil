@@ -14,7 +14,8 @@ Screens:
         =// Transcritas (2026-10-24): lo grabado el día elegido por cualquier BackOffice; por defecto HOY y YO (el arqueo
         // de siempre). La fecha, el que grabó y la búsqueda se conservan al volver a la pantalla.
         If(IsBlank(varFechaTsc), Set(varFechaTsc, Today()));
-        If(IsBlank(varGrabTsc), Set(varGrabTsc, Coalesce(gblUsuarioDV.'Full Name', "Todos")));
+        // Quién grabó: varGrabTsc vacío = YO. No se fija acá: gblUsuarioDV puede no estar resuelto al abrir (B-06, App) y
+        // quedaba "Todos"; las fórmulas usan Coalesce(varGrabTsc, gblUsuarioDV.'Full Name', "Todos").
         Set(varAvisoTsc, false);
         Select(btnCargarTsc)
     Children:
@@ -156,7 +157,7 @@ Screens:
                 Properties:
                   AccessibleLabel: ="Quién la grabó"
                   BorderColor: =gblC.borde
-                  DefaultSelectedItems: =[varGrabTsc]
+                  DefaultSelectedItems: =[Coalesce(varGrabTsc, gblUsuarioDV.'Full Name', "Todos")]
                   DisplayFields: =["Value"]
                   Fill: =gblC.card
                   FillPortions: =0
@@ -206,7 +207,7 @@ Screens:
                   Items: |-
                     =// Quién grabó (combo) y búsqueda: CIF, cliente o localizador (contiene), tarjeta (últimos dígitos) o N° INT.
                     Sort(Filter(colTscTsc,
-                            (varGrabTsc = "Todos" || grabTsc = varGrabTsc) &&
+                            (Coalesce(varGrabTsc, gblUsuarioDV.'Full Name', "Todos") = "Todos" || grabTsc = Coalesce(varGrabTsc, gblUsuarioDV.'Full Name', "Todos")) &&
                             (IsBlank(varBuscaTsc) || varBuscaTsc in cifTsc || varBuscaTsc in clienteTsc ||
                              EndsWith(ult4Tsc, varBuscaTsc) || varBuscaTsc in '[IN] NombreAgente' ||
                              varBuscaTsc in '[IN] Numero de Interaccion')),
@@ -383,7 +384,7 @@ Screens:
                   Mensaje: |-
                     =If(!IsBlank(varBuscaTsc), "Nada coincide con «" & varBuscaTsc & "».",
                         "No hay transcritas " & If(varFechaTsc = Today(), "hoy", "el " & Text(varFechaTsc, "dd/mm/yyyy")) &
-                        If(varGrabTsc = "Todos", ".", " grabadas por " & varGrabTsc & "."))
+                        If(Coalesce(varGrabTsc, gblUsuarioDV.'Full Name', "Todos") = "Todos", ".", " grabadas por " & Coalesce(varGrabTsc, gblUsuarioDV.'Full Name', "Todos") & "."))
                   Titulo: ="Nada para mostrar."
                   Visible: =galTscTsc.AllItemsCount = 0
                   Width: =Parent.Width
