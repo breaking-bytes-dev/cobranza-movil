@@ -317,7 +317,16 @@ Screens:
                     =// APP-34: una fila por pago y galería de alto fijo. La versión anterior (galería de alto variable con otra
                     // galería adentro, una tarjeta por cuenta) dejaba huecos: el alto de la fila no seguía al de la tarjeta.
                     // La búsqueda: nombre del cliente (contiene) o últimos dígitos de la tarjeta (termina en).
-                    Sort(Filter(colPagDia, IsBlank(varBuscarPag) || varBuscarPag in cliNom || EndsWith(u4, varBuscarPag)),
+                    // La cuenta se trae UNA vez por fila (ctaRec) y de ahí salen los datos (patrón de Inicio).
+                    Sort(Filter(
+                        AddColumns(AddColumns(AddColumns(colPagDia,
+                                ctaId, Cuenta.'CM | TBL | Cuenta'),
+                                ctaRec, LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = ctaId)),
+                                cliNom, ctaRec.'Nombre Cliente',
+                                prod, ctaRec.'Tipo Producto',
+                                u4, ctaRec.'Últimos 4',
+                                cid, ctaRec.'CIF Cliente'),
+                        IsBlank(varBuscarPag) || varBuscarPag in cliNom || EndsWith(u4, varBuscarPag)),
                          'Fecha del pago', SortOrder.Descending)
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
@@ -442,7 +451,15 @@ Screens:
                   AlignInContainer: =AlignInContainer.Stretch
                   FillPortions: =1
                   Items: |-
-                    =Sort(Filter(colIntDia, IsBlank(varBuscarPag) || varBuscarPag in cliNom || EndsWith(u4, varBuscarPag)),
+                    =Sort(Filter(
+                        AddColumns(AddColumns(AddColumns(colIntDia,
+                                cta, '[IN] Cuenta'.'CM | TBL | Cuenta'),
+                                ctaRec, LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = cta)),
+                                cliNom, ctaRec.'Nombre Cliente',
+                                prod, ctaRec.'Tipo Producto',
+                                u4, ctaRec.'Últimos 4',
+                                cid, ctaRec.'CIF Cliente'),
+                        IsBlank(varBuscarPag) || varBuscarPag in cliNom || EndsWith(u4, varBuscarPag)),
                          'Fecha de captura', SortOrder.Descending)
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
@@ -528,7 +545,9 @@ Screens:
                               Size: =gblT.f2xs
                               Text: |-
                                 =Concat(Filter(Table(
-                                    {t: If(IsBlank(ThisItem.pagTxt), "", "💵 " & ThisItem.pagTxt)},
+                                    {t: With({p: Filter('CM | TBL | Pagos', '[PG] Interaccion'.'CM | TBL | Interaccion' = ThisItem.'CM | TBL | Interaccion')},
+                                        If(IsEmpty(p), "", "💵 " & Concat(p, If(Text('[PG] Moneda')="USD","US$ ","C$ ") & Text('[PG] Monto',"#,##0.00", "en-US") &
+                                            " (rec. " & '[PG] Numero recibo' & ")", " · ")))},
                                     {t: If(ThisItem.'[IN] Actualiza info', "✏️ Datos actualizados", "")},
                                     {t: If(IsBlank(ThisItem.'[IN] Latitud'), "", "📍 Con ubicación")},
                                     {t: If(IsBlank(ThisItem.'[IN] Numero de Interaccion'), "⏳ Pendiente de subir", "")}
@@ -549,30 +568,12 @@ Screens:
           Control: Classic/Button@2.2.0
           Properties:
             OnSelect: |-
-              =// APP-35: lee de la base del teléfono los pagos y las interacciones del día elegido. Solo comparaciones de fecha
-              // (delegables offline). La cuenta se trae UNA vez por fila (ctaRec) y de ahí salen nombre, producto, últimos 4 y CIF.
-              ClearCollect(colPagDia,
-                  AddColumns(AddColumns(AddColumns(
-                      Filter('CM | TBL | Pagos', 'Fecha del pago' >= varPagFecha && 'Fecha del pago' < DateAdd(varPagFecha, 1)),
-                          ctaId, Cuenta.'CM | TBL | Cuenta'),
-                          ctaRec, LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = ctaId)),
-                          cliNom, ctaRec.'Nombre Cliente',
-                          prod, ctaRec.'Tipo Producto',
-                          u4, ctaRec.'Últimos 4',
-                          cid, ctaRec.'CIF Cliente'));
-              ClearCollect(colIntDia,
-                  AddColumns(AddColumns(AddColumns(
-                      Filter('CM | TBL | Interaccions', 'Fecha de captura' >= varPagFecha && 'Fecha de captura' < DateAdd(varPagFecha, 1)),
-                          cta, '[IN] Cuenta'.'CM | TBL | Cuenta',
-                          intId, 'CM | TBL | Interaccion'),
-                          ctaRec, LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = cta),
-                          pagTxt, Concat(Filter('CM | TBL | Pagos', '[PG] Interaccion'.'CM | TBL | Interaccion' = intId),
-                                         If(Text('[PG] Moneda')="USD","US$ ","C$ ") & Text('[PG] Monto',"#,##0.00", "en-US") &
-                                         " (rec. " & '[PG] Numero recibo' & ")", " · ")),
-                          cliNom, ctaRec.'Nombre Cliente',
-                          prod, ctaRec.'Tipo Producto',
-                          u4, ctaRec.'Últimos 4',
-                          cid, ctaRec.'CIF Cliente'))
+              =// APP-35: lee de la base del teléfono los pagos y las interacciones del día elegido, con el mismo filtro que Inicio
+              // (solo comparaciones de fecha: delegables offline). La colección va SIN columnas calculadas: con AddColumns y el
+              // registro de la cuenta adentro del ClearCollect quedaba vacía sin ningún error en el teléfono (2026-10-24).
+              // Nombre, producto, últimos 4 y CIF se agregan en el Items de cada galería, como en Inicio.
+              ClearCollect(colPagDia, Filter('CM | TBL | Pagos', 'Fecha del pago' >= varPagFecha && 'Fecha del pago' < DateAdd(varPagFecha, 1)));
+              ClearCollect(colIntDia, Filter('CM | TBL | Interaccions', 'Fecha de captura' >= varPagFecha && 'Fecha de captura' < DateAdd(varPagFecha, 1)))
             Visible: =false
       - conCalPag:
           Control: GroupContainer@1.5.0
@@ -610,7 +611,7 @@ Screens:
                   RadiusBottomRight: =16
                   RadiusTopLeft: =16
                   RadiusTopRight: =16
-                  Width: =Min(Parent.Width - 32, 460)
+                  Width: =Min(Parent.Width - 24, 620)
                   X: =(Parent.Width - Self.Width) / 2
                   Y: =Max(16, (Parent.Height - Self.Height) / 2)
                 Children:
@@ -681,14 +682,15 @@ Screens:
                       Control: Gallery@2.15.0
                       Variant: Vertical
                       Properties:
-                        AlignInContainer: =AlignInContainer.Stretch
+                        AlignInContainer: =AlignInContainer.Start
                         FillPortions: =0
                         Height: =Self.TemplateHeight
                         Items: =["L", "M", "X", "J", "V", "S", "D"]
                         LayoutMinHeight: =16
                         LayoutMinWidth: =16
                         TemplatePadding: =0
-                        TemplateSize: =gblT.fxs * 2
+                        TemplateSize: =gblT.fsm * 2.2
+                        Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
                         WrapCount: =7
                       Children:
                         - lblSemDia:
@@ -705,7 +707,7 @@ Screens:
                       Control: Gallery@2.15.0
                       Variant: Vertical
                       Properties:
-                        AlignInContainer: =AlignInContainer.Stretch
+                        AlignInContainer: =AlignInContainer.Start
                         FillPortions: =0
                         Height: =6 * Self.TemplateHeight
                         Items: |-
@@ -715,7 +717,10 @@ Screens:
                         LayoutMinHeight: =16
                         LayoutMinWidth: =16
                         TemplatePadding: =0
-                        TemplateSize: =Min((Min(App.Width - 32, 460) - 32) / 7, If(gblScale = 1, 44,gblScale = 1.2,50,gblScale = 1.45,56,62))
+                        TemplateSize: |-
+                          =// Celdas casi cuadradas: el ancho de cada una es Width / 7 (WrapCount); el alto se acota para que entre en pantalla.
+                          Min(Self.Width / 7, If(gblScale = 1, 56,gblScale = 1.2,62,gblScale = 1.45,70,78))
+                        Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
                         WrapCount: =7
                       Children:
                         - btnCalDia:
@@ -739,7 +744,7 @@ Screens:
                               RadiusBottomRight: =8
                               RadiusTopLeft: =8
                               RadiusTopRight: =8
-                              Size: =gblT.fsm
+                              Size: =gblT.fmd
                               Text: =Day(ThisItem.d)
                               Width: =Parent.TemplateWidth - 4
                               X: =2

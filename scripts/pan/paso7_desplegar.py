@@ -12,7 +12,9 @@ Sello de versión (F7): cada app lleva en App.Formulas `nfVersion = "dev";`. Se 
 "<commit>[+dirty] <aaaa-mm-dd HH:MM UTC>" en lugar de "dev" (el repo no cambia), y tras importar se guarda en
 local/version-desplegada.json: las suites lo comparan con lo que muestra la app servida antes de probar.
 Usa el perfil activo de pac (SP de DEV). Después: paso3_reconciliar.py --aplicar.
-Uso: python3 scripts/pan/paso7_desplegar.py [--aplicar]"""
+--parche: exporta e importa la solución cm_parche (paso22_parche.py) en vez de cm_core, y solo swapea las apps que el
+parche contiene. Mucho más rápido y no toca plugins, flows ni roles (no están en el parche). Sin paso3 después.
+Uso: python3 scripts/pan/paso7_desplegar.py [--parche] [--aplicar]"""
 import datetime, html, json, os, re, shutil, signal, subprocess, sys, tempfile, time, zipfile
 import yaml
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'seguridad'))
@@ -26,6 +28,7 @@ APPS = [  # (carpeta, nombre de la canvas app, mínimo de .pa.yaml esperado)
     ('apps/backoffice-canvas', 'sanic_appcmbackofficecanvas_d0162', 17),
 ]
 APLICAR = '--aplicar' in sys.argv
+SOLUCION = 'cm_parche' if '--parche' in sys.argv else 'cm_core_cobranzamovil'
 tmp = tempfile.mkdtemp(prefix='cm-deploy-')
 
 def pac(*args):
@@ -90,9 +93,13 @@ for carpeta, nombre, minimo in APPS:
     msapps[nombre] = (open(destino, 'rb').read(), ldr, perfil)
 
 fresco = os.path.join(tmp, 'fresh.zip')
-pac('solution', 'export', '--name', 'cm_core_cobranzamovil', '--path', fresco, '--managed', 'false', '--overwrite')
+pac('solution', 'export', '--name', SOLUCION, '--path', fresco, '--managed', 'false', '--overwrite')
 zin = zipfile.ZipFile(fresco)
 cust = zin.read('customizations.xml').decode('utf-8')
+# En el parche solo van las apps que contiene (paso22_parche.py --app …); las demás no se tocan.
+msapps = {n: v for n, v in msapps.items() if f'<Name>{n}</Name>' in cust}
+if not msapps: raise SystemExit(f'{SOLUCION} no contiene ninguna de las apps: agregarla con paso22_parche.py --app … --aplicar')
+print(f'solución: {SOLUCION} · apps que se despliegan: {", ".join(msapps)}')
 
 def actualizar_app(cust, nombre, ldr, perfil):
     i = cust.index(f'<Name>{nombre}</Name>'); ini = cust.rindex('<CanvasApp>', 0, i); fin = cust.index('</CanvasApp>', i)
@@ -177,4 +184,4 @@ finally:  # aunque la importación falle, los estados de pasos y flows vuelven a
         os.remove(ESTADO)
     else:
         print(f'⚠ quedaron pasos o flows sin restaurar: el estado previo sigue en {ESTADO} y el próximo deploy lo usa')
-print('Importado. Falta: python3 scripts/seguridad/paso3_reconciliar.py --aplicar')
+print('Importado.' if SOLUCION == 'cm_parche' else 'Importado. Falta: python3 scripts/seguridad/paso3_reconciliar.py --aplicar')
