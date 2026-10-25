@@ -191,6 +191,44 @@ Screens:
                               "⛔ Hay una carga del banco en curso (en cola, procesando o preparándose): esperá a que termine para cerrar en lote. Mientras tanto, las Diarias que todavía no se cargaron se ven «fuera de cartera».")
                         Width: =Parent.Width - 2*gblE.Pad
                         X: =gblE.Pad
+            - conUmbralRec:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderThickness: =0
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.redInk
+                  Height: =If(nfMovil, 150, 96)
+                  RadiusBottomLeft: =gblE.Radio
+                  RadiusBottomRight: =gblE.Radio
+                  RadiusTopLeft: =gblE.Radio
+                  RadiusTopRight: =gblE.Radio
+                  Visible: =varRojoRec
+                  Width: =Min(gblE.AnchoMax, Parent.Width - 2*gblE.Pad)
+                  X: =gblE.Pad
+                  Y: =conCargaRec.Y + If(conCargaRec.Visible, conCargaRec.Height + gblE.PadSm, 0)
+                Children:
+                  - lblUmbralAlertaRec:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =Color.White
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =Parent.Height
+                        PaddingLeft: =0
+                        Size: =11
+                        Text: |-
+                          =// Umbral de cordura (2026-10-25): pasa de BLOQUEO a ALERTA. Más del 30% suele ser un archivo truncado o una
+                          // carga incompleta, pero puede ser real (el banco sacó media cartera): el Admin decide con la confirmación.
+                          "🚨 ATENCIÓN: el " & varPctRec & "% de las Diarias (" & varNDesapRec & " de " & varNDiariasRec &
+                              ") NO vino en la carga de hoy. Lo normal es mucho menos: suele ser un archivo TRUNCADO o una carga incompleta. " &
+                              "Revisá el Monitoreo de carga antes de cerrar. Si cerrás, desaparecen del teléfono de los cobradores " &
+                              "(si el banco las vuelve a mandar, se reabren solas)."
+                        VerticalAlign: =VerticalAlign.Middle
+                        Width: =Parent.Width - 2*gblE.Pad
+                        X: =gblE.Pad
             - conResumenRec:
                 Control: GroupContainer@1.5.0
                 Variant: ManualLayout
@@ -206,7 +244,7 @@ Screens:
                   RadiusTopRight: =gblE.Radio
                   Width: =Min(gblE.AnchoMax, Parent.Width - 2*gblE.Pad)
                   X: =gblE.Pad
-                  Y: =conCargaRec.Y + If(conCargaRec.Visible, conCargaRec.Height + gblE.PadSm, 0)
+                  Y: =conUmbralRec.Y + If(conUmbralRec.Visible, conUmbralRec.Height + gblE.PadSm, 0)
                 Children:
                   - lblResumenRec:
                       Control: Label@2.5.1
@@ -260,8 +298,8 @@ Screens:
                         Size: =9
                         Text: |-
                           =If(varRojoRec,
-                              "⛔ Umbral superado (>30%). Esto huele a archivo truncado — NO cierres en lote. Verificá la carga primero.",
-                              "Umbral de cordura: si superara el 30%, se bloquea el cierre en lote.")
+                              "🚨 Supera el umbral de cordura (30%). Podés cerrar, pero solo si confirmaste que la carga está completa.",
+                              "Umbral de cordura: si superara el 30%, se muestra una alerta antes de cerrar.")
                         VerticalAlign: =VerticalAlign.Top
                         Width: =Parent.Width - 2*gblE.Pad
                         X: =gblE.Pad
@@ -290,7 +328,7 @@ Screens:
                   BorderThickness: =1
                   DropShadow: =DropShadow.None
                   Fill: =gblC.card
-                  Height: =Parent.Height - Self.Y - If(CountRows(colDesapRec) > 0, 156 + gblE.PadSm, 0) - gblE.Pad
+                  Height: =Parent.Height - Self.Y - If(CountRows(colDesapRec) > 0, conAccionRec.Height + gblE.PadSm, 0) - gblE.Pad
                   RadiusBottomLeft: =gblE.Radio
                   RadiusBottomRight: =gblE.Radio
                   RadiusTopLeft: =gblE.Radio
@@ -415,7 +453,7 @@ Screens:
                   BorderThickness: =1
                   DropShadow: =DropShadow.None
                   Fill: =gblC.card
-                  Height: =156
+                  Height: =If(nfMovil && varRojoRec, 180, 156)
                   RadiusBottomLeft: =gblE.Radio
                   RadiusBottomRight: =gblE.Radio
                   RadiusTopLeft: =gblE.Radio
@@ -429,11 +467,11 @@ Screens:
                       Control: Classic/CheckBox@2.1.0
                       Properties:
                         Color: =gblC.ink
-                        DisplayMode: =If(varRojoRec || nfUltimaCarga < Today() || varCargaBloqRec, DisplayMode.Disabled, DisplayMode.Edit)
+                        DisplayMode: =If(nfUltimaCarga < Today() || varCargaBloqRec, DisplayMode.Disabled, DisplayMode.Edit)
                         FocusedBorderColor: =gblC.teal
                         FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
-                        Height: =48
+                        Height: =If(nfMovil && varRojoRec, 72, 48)
                         OnCheck: |-
                           =// Habilitación fresca: al confirmar se vuelve a mirar si hay una carga en curso (la pantalla pudo
                           // quedar abierta mientras empezaba una). Mismo bloque que el OnVisible.
@@ -469,10 +507,15 @@ Screens:
                           );
                           Set(varEnCursoRec, Coalesce(varEnColaRec, false) || CountIf(colJobsRec, IsBlank('[IJ] Status')) > 0);
                           Set(varVerifCargaRec, !IsBlank(varTplPrinRec) && !IsBlank(varTplPadRec) && !IsBlank(varTplParRec) && !IsBlank(varEnColaRec) && varLeyoJobsRec);
-                          Set(varCargaBloqRec, !varVerifCargaRec || varEnCursoRec)
+                          Set(varCargaBloqRec, !varVerifCargaRec || varEnCursoRec);
+                          If(varRojoRec,
+                              Notify("🚨 Vas a cerrar el " & varPctRec & "% de las Diarias. Si la carga vino truncada, esto vacía la cartera de los cobradores.",
+                                  NotificationType.Warning, 6000))
                         Size: =9
                         Text: |-
-                          ="Confirmo: revisé la lista y la carga de hoy es correcta (cierre con motivo ""fuera de cartera"")"
+                          =If(varRojoRec,
+                              "Confirmo que el " & varPctRec & "% es REAL: revisé el Monitoreo de carga, el archivo de hoy está completo y el banco sacó estas " & varNDesapRec & " Diarias",
+                              "Confirmo: revisé la lista y la carga de hoy es correcta (cierre con motivo ""fuera de cartera"")")
                         Width: =Parent.Width - 2*gblE.Pad
                         X: =gblE.Pad
                         Y: =gblE.PadSm
@@ -480,18 +523,18 @@ Screens:
                       Control: Classic/Button@2.2.0
                       Properties:
                         BorderThickness: =0
-                        Color: =gblC.redInk
+                        Color: =If(varRojoRec, Color.White, gblC.redInk)
                         DisabledColor: =Color.White
                         DisabledFill: =ColorFade(gblC.redBg, 60%)
                         DisplayMode: |-
-                          =If(chkConfirmarRec.Value && !varRojoRec && nfUltimaCarga >= Today() && !varCargaBloqRec,
+                          =If(chkConfirmarRec.Value && nfUltimaCarga >= Today() && !varCargaBloqRec,
                               DisplayMode.Edit, DisplayMode.Disabled)
-                        Fill: =gblC.redBg
+                        Fill: =If(varRojoRec, gblC.redInk, gblC.redBg)
                         FocusedBorderColor: =gblC.teal
                         FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         Height: =gblE.AltoBoton
-                        HoverFill: =ColorFade(gblC.redBg, 10%)
+                        HoverFill: =ColorFade(Self.Fill, 10%)
                         OnSelect: |-
                           =// UN solo Patch masivo: ForAll DEVUELVE la tabla de cambios (no muta adentro) y
                           // cada registro lleva la PK ('CM | TBL | Asignacion') → Patch actualiza esas filas.
@@ -554,7 +597,9 @@ Screens:
                           )
                         Size: =10
                         Text: |-
-                          ="🧹 Cerrar " & CountRows(colDesapRec) & " asignaciones en lote"
+                          =If(varRojoRec,
+                              "⚠ Cerrar " & CountRows(colDesapRec) & " en lote IGUAL (" & varPctRec & "%)",
+                              "🧹 Cerrar " & CountRows(colDesapRec) & " asignaciones en lote")
                         Width: =Parent.Width - 2*gblE.Pad
                         X: =gblE.Pad
                         Y: =chkConfirmarRec.Y + chkConfirmarRec.Height + gblE.PadSm
