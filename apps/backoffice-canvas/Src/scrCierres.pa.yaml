@@ -30,6 +30,8 @@ Screens:
                     ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
                 ult4Cie, Coalesce(
                     ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
+                cifCie, Coalesce(ThisRecord.'[AS] Cuenta'.'CIF Cliente', ""),
+                locCie, Coalesce(ThisRecord.'[AS] Agente'.'[AG] Nombre', "—"),
                 diasCie, Coalesce(
                     ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
                 nioCie, Coalesce(
@@ -56,6 +58,8 @@ Screens:
                     ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
                 ult4Cie, Coalesce(
                     ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
+                cifCie, Coalesce(ThisRecord.'[AS] Cuenta'.'CIF Cliente', ""),
+                locCie, Coalesce(ThisRecord.'[AS] Agente'.'[AG] Nombre', "—"),
                 diasCie, Coalesce(
                     ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
                 nioCie, Coalesce(
@@ -72,6 +76,8 @@ Screens:
         );
         // Estado de pantalla (resetea tab/panel entre visitas — gotcha de persistencia)
         Set(varTabCie, "incob");
+        Set(varBuscaCie, "");
+        Reset(txtBuscaCie);
         Set(varSelCie, Blank());
         Set(varPanelCie, false)
     Children:
@@ -192,6 +198,8 @@ Screens:
                                 ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
                             ult4Cie, Coalesce(
                                 ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
+                            cifCie, Coalesce(ThisRecord.'[AS] Cuenta'.'CIF Cliente', ""),
+                            locCie, Coalesce(ThisRecord.'[AS] Agente'.'[AG] Nombre', "—"),
                             diasCie, Coalesce(
                                 ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
                             nioCie, Coalesce(
@@ -218,6 +226,8 @@ Screens:
                                 ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
                             ult4Cie, Coalesce(
                                 ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
+                            cifCie, Coalesce(ThisRecord.'[AS] Cuenta'.'CIF Cliente', ""),
+                            locCie, Coalesce(ThisRecord.'[AS] Agente'.'[AG] Nombre', "—"),
                             diasCie, Coalesce(
                                 ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
                             nioCie, Coalesce(
@@ -239,6 +249,28 @@ Screens:
                   Width: =140
                   X: =Parent.Width - Self.Width - gblE.Pad
                   Y: =gblE.PadSm
+            - txtBuscaCie:
+                Control: Classic/TextInput@2.3.2
+                Properties:
+                  AccessibleLabel: ="Buscar por cliente, CIF, tarjeta o localizador"
+                  BorderColor: =gblC.borde
+                  Default: =""
+                  DelayOutput: =true
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =44
+                  HintText: ="🔍 Cliente, CIF, últimos dígitos de la tarjeta o localizador"
+                  OnChange: =Set(varBuscaCie, Trim(Self.Text))
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Size: =10
+                  Width: =If(nfMovil, Parent.Width - 2*gblE.Pad, Max(200, btnActualizarCie.X - Self.X - gblE.PadSm))
+                  X: =If(nfMovil, gblE.Pad, conTabsCie.X + conTabsCie.Width + gblE.PadSm)
+                  Y: =If(nfMovil, conTabsCie.Y + conTabsCie.Height + gblE.PadSm, gblE.PadSm)
             - galCierresCie:
                 Control: Gallery@2.15.0
                 Variant: Vertical
@@ -248,10 +280,14 @@ Screens:
                   FocusedBorderThickness: =2
                   Height: =Parent.Height - Self.Y - gblE.Pad
                   Items: |-
-                    =Filter(colCierresCie,
+                    =// Búsqueda en memoria sobre colCierresCie (ya cargada): cliente, CIF, últimos dígitos de la tarjeta o localizador.
+                    Filter(colCierresCie,
                         If(varTabCie = "incob",
                             '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable,
-                            '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial))
+                            '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial)
+                        && (IsBlank(varBuscaCie)
+                            || varBuscaCie in clienteCie || varBuscaCie in cifCie
+                            || EndsWith(ult4Cie, varBuscaCie) || varBuscaCie in locCie))
                   OnSelect: |-
                     =Set(varSelCie, ThisItem);
                     Set(varPanelCie, true);
@@ -263,7 +299,7 @@ Screens:
                   TemplateSize: =gblE.AltoFila
                   Width: =Min(gblE.AnchoMax, Parent.Width - 2*gblE.Pad)
                   X: =gblE.Pad
-                  Y: =conTabsCie.Y + conTabsCie.Height + gblE.PadSm
+                  Y: =If(nfMovil, txtBuscaCie.Y + txtBuscaCie.Height, conTabsCie.Y + conTabsCie.Height) + gblE.PadSm
                 Children:
                   - lblNombreCie:
                       Control: Label@2.5.1
@@ -292,8 +328,7 @@ Screens:
                         PaddingLeft: =0
                         Size: =9
                         Text: |-
-                          =CuentaMasc(ThisItem.ult4Cie) & " · 🏍️ " &
-                              Coalesce(ThisItem.'[AS] Agente'.'[AG] Nombre', "—")
+                          =CuentaMasc(ThisItem.ult4Cie) & If(IsBlank(ThisItem.cifCie), "", " · CIF " & ThisItem.cifCie) & " · 🏍️ " & ThisItem.locCie
                         Width: =Parent.TemplateWidth * 0.38
                         Wrap: =false
                         X: =gblE.Pad
@@ -390,8 +425,11 @@ Screens:
                 Properties:
                   Height: =200
                   Icono: ="✨"
-                  Mensaje: ="No hay " & If(varTabCie = "incob", "Incobrables", "Especiales") & " activas para cerrar."
-                  Titulo: ="Nada activo"
+                  Mensaje: |-
+                    =If(IsBlank(varBuscaCie),
+                        "No hay " & If(varTabCie = "incob", "Incobrables", "Especiales") & " activas para cerrar.",
+                        "Ninguna " & If(varTabCie = "incob", "Incobrable", "Especial") & " coincide con «" & varBuscaCie & "».")
+                  Titulo: =If(IsBlank(varBuscaCie), "Nada activo", "Sin resultados")
                   Visible: =galCierresCie.AllItemsCount = 0
                   Width: =Min(420, Parent.Width - 2*gblE.Pad)
                   X: =(Parent.Width - Self.Width) / 2
