@@ -43,7 +43,14 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         {
             var a = new Entity(Agente, id);
             a["sanic_cm_ag_nombre"] = nombre;
+            a["sanic_cm_ag_activo"] = true;
             return a;
+        }
+
+        private static Entity Inactivo(Entity agente)
+        {
+            agente["sanic_cm_ag_activo"] = false;
+            return agente;
         }
 
         /// <summary>Roles para las consultas sobre "role" y agentes vinculados para la consulta sobre el agente.</summary>
@@ -516,6 +523,50 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
 
             Assert.Contains("mas de un agente", Rechaza(Crear(Nueva(true, Guid.NewGuid()), new[] { Localizador },
                 AgenteDe(Guid.NewGuid(), "B"), AgenteDe(Guid.NewGuid(), "A"))).Message);
+        }
+
+        // ------------------------------------------------------------------ APP-43: agente desactivado
+
+        [Fact]
+        public void Un_cobrador_con_el_agente_desactivado_se_rechaza()
+        {
+            var t = Nueva(true, null);
+            var e = Rechaza(Crear(t, new[] { Localizador }, Inactivo(AgenteDe(Guid.NewGuid(), "QA"))));
+            Assert.Contains("desactivado", e.Message);
+            Assert.False(t.Contains(InAgente));
+        }
+
+        [Fact]
+        public void Un_agente_sin_el_dato_de_activo_se_rechaza()
+        {
+            var a = AgenteDe(Guid.NewGuid(), "QA");
+            a.Attributes.Remove("sanic_cm_ag_activo");
+            Assert.Contains("desactivado", Rechaza(Crear(Nueva(true, null), new[] { Localizador }, a)).Message);
+        }
+
+        [Fact]
+        public void Con_dos_agentes_el_enviado_desactivado_se_rechaza()
+        {
+            var a = Guid.NewGuid();
+            Assert.Contains("desactivado", Rechaza(Crear(Nueva(true, a), new[] { Localizador },
+                AgenteDe(Guid.NewGuid(), "B"), Inactivo(AgenteDe(a, "A")))).Message);
+        }
+
+        [Fact]
+        public void Lee_si_el_agente_esta_activo()
+        {
+            var h = Crear(Nueva(true, null), new[] { Localizador }, AgenteDe(Guid.NewGuid(), "QA"));
+            h.Ejecutar(new InteraccionDelCobrador());
+            Assert.Contains("sanic_cm_ag_activo", ConsultaDeAgente(h).ColumnSet.Columns);
+        }
+
+        [Fact]
+        public void El_Admin_registra_aunque_el_agente_este_desactivado()
+        {
+            var elegido = Guid.NewGuid();
+            var t = Nueva(true, elegido);
+            Crear(t, new[] { Localizador, Admin }, Inactivo(AgenteDe(elegido, "QA"))).Ejecutar(new InteraccionDelCobrador());
+            Assert.Equal(elegido, t.GetAttributeValue<EntityReference>(InAgente).Id);
         }
 
         [Fact]

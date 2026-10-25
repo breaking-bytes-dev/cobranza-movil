@@ -15,6 +15,7 @@ namespace Sanic.CobranzaMovil.Plugins
     /// - Si la crea un cobrador (rol Localizador, sin Admin/Servicio), el agente es el vinculado a SU usuario: lo pone el
     ///   servidor y no la app, asi nadie registra visitas a nombre de otro. Con dos agentes vinculados vale el enviado
     ///   si es uno de ellos.
+    /// - APP-43 (1.0.10.1): si el Admin desactivo ese agente, el cobrador ya no registra (la app tambien lo bloquea).
     /// - El cobrador solo registra en cuentas de su cartera (H3, <see cref="ExigirCuentaDeSuCartera"/>); con tolerancia por
     ///   fecha de captura si se la reasignaron mientras estaba sin senal (1.0.8.5, <see cref="EraSuyaALaFecha"/>).
     /// - La interaccion del cobrador nace Pendiente de grabar en el CORE: el estado, el codigo, la fecha y el usuario
@@ -223,7 +224,7 @@ namespace Sanic.CobranzaMovil.Plugins
 
         private static void PonerAgenteDelCobrador(LocalContext local, Entity target)
         {
-            var q = new QueryExpression(Esquema.Agente) { ColumnSet = new ColumnSet(Esquema.AgenteNombre), TopCount = 2 };
+            var q = new QueryExpression(Esquema.Agente) { ColumnSet = new ColumnSet(Esquema.AgenteNombre, Esquema.AgenteActivo), TopCount = 2 };
             q.Criteria.AddCondition(Esquema.AgenteUsuario, ConditionOperator.Equal, local.Context.UserId);
             var agentes = local.ServicioSistema.RetrieveMultiple(q).Entities;
             if (agentes.Count == 0)
@@ -238,6 +239,11 @@ namespace Sanic.CobranzaMovil.Plugins
             if (agente == null)
             {
                 throw local.Error("tu usuario esta vinculado a mas de un agente; pedile al Admin que deje uno solo.");
+            }
+
+            if (agente.GetAttributeValue<bool?>(Esquema.AgenteActivo) != true)
+            {
+                throw local.Error("tu localizador esta desactivado: no podes registrar visitas ni pagos. Habla con tu supervisor.");
             }
 
             target[Esquema.InteraccionAgente] = new EntityReference(Esquema.Agente, agente.Id);
