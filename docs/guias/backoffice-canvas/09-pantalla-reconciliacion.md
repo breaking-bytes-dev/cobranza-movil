@@ -6,6 +6,7 @@
 > - Conteos `varNDesapRec/varNDiariasRec` con `CountIf` (denominador del umbral 30% exacto); control NUEVO `lblTopeRec` ("Mostrando las primeras N…") y `conResumenRec.Height` variable.
 > - Fecha de la fila con `DateAdd(…, TimeZoneOffset(…))` guardada por `IsBlank` (template vacío).
 > - `btnCerrarRec`: UN `Patch` masivo con tabla de registros con PK (receta 7.17), sin `LookUp` por fila.
+> - **Umbral 30 % = alerta, no bloqueo (2026-10-25):** card roja `conUmbralRec`/`lblUmbralAlertaRec`, casilla y botón con texto y color de alerta; `varRojoRec` ya no deshabilita la casilla ni el botón.
 > - `chkConfirmarRec` sin `Wrap` (PA2108) y texto nuevo; `galDesapRec` en `DisplayMode.View`, sin overlay.
 
 Reconciliación de Diarias (DEC-018): lista las asignaciones **Diaria activas** cuya `'Última carga'`

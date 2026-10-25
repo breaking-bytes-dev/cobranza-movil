@@ -187,7 +187,7 @@ stateDiagram-v2
     Activa --> Cerrada: llega el otro tipo (Diaria ↔ Incobrable) → cierre Reclasificada (DAT-15)
 ```
 
-**Freno del cierre en lote:** la app no deja cerrar si las desaparecidas superan el **30%** o si no hay carga de hoy. Es un
+**Freno del cierre en lote:** la app no deja cerrar si no hay carga de hoy o si hay una en curso. Si las desaparecidas superan el **30%**, muestra una alerta roja y pide una confirmación explícita, pero deja cerrar (decisión 2026-10-25). Es un
 freno de la app, no del servidor.
 
 **Cambios del cobrador:** solo el orden de su ruta (`[AS] Orden`), también sin conexión. El servidor lo impone (S-11).
