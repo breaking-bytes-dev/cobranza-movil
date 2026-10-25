@@ -1,5 +1,7 @@
 using System;
+using System.Linq;
 using System.ServiceModel;
+using Microsoft.Crm.Sdk.Messages;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Query;
 using Moq;
@@ -30,6 +32,8 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         private const string Admin = "SR | CM | Admin";
 
         private static readonly Guid CuentaId = Guid.NewGuid();
+        private const int ZonaManagua = 33;
+        private static DateTime HoyEnManagua() { return DateTime.UtcNow.AddHours(-6).Date; }
 
         /// <summary>Un llamado a la API con dos servicios: el del llamador (h.Service) y el del sistema.</summary>
         private sealed class Escenario
@@ -54,6 +58,15 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
                 Sistema.Setup(s => s.RetrieveMultiple(It.Is<QueryBase>(q => Tabla(q) == "role"))).Returns(filasRoles);
                 Sistema.Setup(s => s.RetrieveMultiple(It.Is<QueryBase>(q => Tabla(q) == Asignacion))).Returns(new EntityCollection(especiales));
                 Sistema.Setup(s => s.Update(It.IsAny<Entity>())).Callback<Entity>(e => Actualizada = e);
+                // Zona horaria del llamador (Fecha asignada): Managua, UTC-6 sin horario de verano.
+                var ajustes = new Entity("usersettings");
+                ajustes["timezonecode"] = ZonaManagua;
+                Sistema.Setup(s => s.RetrieveMultiple(It.Is<QueryBase>(q => Tabla(q) == "usersettings"))).Returns(new EntityCollection(new[] { ajustes }));
+                Sistema.Setup(s => s.Execute(It.IsAny<LocalTimeFromUtcTimeRequest>()))
+                    .Returns<OrganizationRequest>(r => new LocalTimeFromUtcTimeResponse
+                    {
+                        Results = { { "LocalTime", ((DateTime)r["UtcTime"]).AddHours(-6) } }
+                    });
 
                 H.Service.Setup(s => s.Retrieve(Cuenta, CuentaId, It.IsAny<ColumnSet>())).Returns(new Entity(Cuenta, CuentaId));
                 H.Service.Setup(s => s.Create(It.IsAny<Entity>())).Callback<Entity>(e => Creada = e).Returns(IdNuevo);
@@ -144,6 +157,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             Assert.Equal("Retiro — el cliente viaja", c.GetAttributeValue<string>("sanic_cm_as_notas"));
             Assert.Equal(Harness.UsuarioLlamador, c.GetAttributeValue<EntityReference>(SolicitadoPor).Id);
             Assert.True(c.GetAttributeValue<DateTime>("sanic_cm_as_fechasignacion") >= antes);
+            Assert.Equal(HoyEnManagua(), c.GetAttributeValue<DateTime>("sanic_cm_as_fechaasignada"));
             // Sin agente a proposito: lo pone el Supervisor al aprobar. Sin dueno: queda el llamador.
             Assert.False(c.Contains("sanic_cm_as_agenteid"));
             Assert.False(c.Contains("ownerid"));
@@ -213,6 +227,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             Assert.Equal("Retiro — el cliente viaja", r.GetAttributeValue<string>("sanic_cm_as_notas"));
             Assert.Equal(Harness.UsuarioLlamador, r.GetAttributeValue<EntityReference>(SolicitadoPor).Id);
             Assert.True(r.Contains("sanic_cm_as_fechasignacion"));
+            Assert.Equal(HoyEnManagua(), r.GetAttributeValue<DateTime>("sanic_cm_as_fechaasignada"));
             foreach (var limpia in new[] { "sanic_cm_as_agenteid", "sanic_cm_as_resolutorid", "sanic_cm_as_motivo",
                 "sanic_cm_as_motivorechazo", "sanic_cm_as_fechacierre" })
             {
@@ -263,7 +278,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             var e = new Escenario(new[] { Solicitante }, cerrada);
             e.Ejecutar();
             Assert.Equal("reactivada", e.H.Outputs["Resultado"]);
-            e.Sistema.Verify(s => s.Execute(It.IsAny<OrganizationRequest>()), Times.Never());
+            e.Sistema.Verify(s => s.Execute(It.Is<OrganizationRequest>(r => !(r is LocalTimeFromUtcTimeRequest))), Times.Never());
         }
 
         [Fact]
@@ -274,7 +289,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             var e = new Escenario(new[] { Solicitante }, cerrada);
             e.Ejecutar();
             Assert.Equal("reactivada", e.H.Outputs["Resultado"]);
-            e.Sistema.Verify(s => s.Execute(It.IsAny<OrganizationRequest>()), Times.Never());
+            e.Sistema.Verify(s => s.Execute(It.Is<OrganizationRequest>(r => !(r is LocalTimeFromUtcTimeRequest))), Times.Never());
         }
 
         [Fact]
@@ -282,11 +297,11 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         {
             var crea = new Escenario(new[] { Solicitante });
             crea.Ejecutar();
-            crea.Sistema.Verify(s => s.Execute(It.IsAny<OrganizationRequest>()), Times.Never());
+            crea.Sistema.Verify(s => s.Execute(It.Is<OrganizationRequest>(r => !(r is LocalTimeFromUtcTimeRequest))), Times.Never());
 
             var existe = new Escenario(new[] { Solicitante }, EspecialExistente(true, Pendiente, "Ana"));
             existe.Ejecutar();
-            existe.Sistema.Verify(s => s.Execute(It.IsAny<OrganizationRequest>()), Times.Never());
+            existe.Sistema.Verify(s => s.Execute(It.Is<OrganizationRequest>(r => !(r is LocalTimeFromUtcTimeRequest))), Times.Never());
         }
 
         [Fact]
@@ -406,6 +421,36 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             Assert.DoesNotContain("viaja", texto);
             Assert.DoesNotContain(CuentaId.ToString(), texto);
             Assert.DoesNotContain("Otra persona", texto);
+        }
+
+        [Fact]
+        public void La_fecha_asignada_es_el_dia_en_la_zona_del_llamador()
+        {
+            var e = new Escenario(new[] { Solicitante });
+            e.Ejecutar();
+            var pedido = e.Sistema.Invocations.Select(i => i.Arguments.FirstOrDefault()).OfType<LocalTimeFromUtcTimeRequest>().Single();
+            Assert.Equal(ZonaManagua, pedido.TimeZoneCode);
+            Assert.Equal(HoyEnManagua(), e.Creada.GetAttributeValue<DateTime>("sanic_cm_as_fechaasignada"));
+        }
+
+        [Fact]
+        public void Sin_zona_del_llamador_la_fecha_asignada_es_el_dia_UTC()
+        {
+            var e = new Escenario(new[] { Solicitante });
+            e.Sistema.Setup(s => s.RetrieveMultiple(It.Is<QueryBase>(q => ((QueryExpression)q).EntityName == "usersettings"))).Returns(new EntityCollection());
+            e.Ejecutar();
+            Assert.Equal(DateTime.UtcNow.Date, e.Creada.GetAttributeValue<DateTime>("sanic_cm_as_fechaasignada"));
+        }
+
+        [Fact]
+        public void Si_falla_la_zona_del_llamador_igual_la_crea_con_el_dia_UTC()
+        {
+            var e = new Escenario(new[] { Solicitante });
+            e.Sistema.Setup(s => s.Execute(It.IsAny<LocalTimeFromUtcTimeRequest>()))
+                .Throws(new FaultException<OrganizationServiceFault>(new OrganizationServiceFault { ErrorCode = -1 }, "x"));
+            e.Ejecutar();
+            Assert.Equal("creada", e.H.Outputs["Resultado"]);
+            Assert.Equal(DateTime.UtcNow.Date, e.Creada.GetAttributeValue<DateTime>("sanic_cm_as_fechaasignada"));
         }
     }
 }

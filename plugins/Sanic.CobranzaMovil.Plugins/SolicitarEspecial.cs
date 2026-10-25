@@ -93,6 +93,7 @@ namespace Sanic.CobranzaMovil.Plugins
                 r[Esquema.AsignacionNotas] = notas;
                 r[Esquema.AsignacionSolicitadoPor] = llamador;
                 r[Esquema.AsignacionFechaAsignacion] = DateTime.UtcNow;
+                r[Esquema.AsignacionFechaAsignada] = HoyDelLlamador(local);
                 r[Esquema.AsignacionAgente] = null;
                 r[Esquema.AsignacionResolutor] = null;
                 r[Esquema.AsignacionMotivo] = null;
@@ -115,6 +116,7 @@ namespace Sanic.CobranzaMovil.Plugins
             nueva[Esquema.AsignacionNotas] = notas;
             nueva[Esquema.AsignacionSolicitadoPor] = llamador;
             nueva[Esquema.AsignacionFechaAsignacion] = DateTime.UtcNow;
+            nueva[Esquema.AsignacionFechaAsignada] = HoyDelLlamador(local);
             Guid id;
             try
             {
@@ -220,6 +222,35 @@ namespace Sanic.CobranzaMovil.Plugins
             salida[Esquema.SalidaSolicitadoPor] = solicitadoPor ?? string.Empty;
             salida[Esquema.SalidaEstadoAprobacion] = aprobacion == null ? 0 : aprobacion.Value;
             local.Trace("resultado: {0}.", resultado);
+        }
+
+        /// <summary>
+        /// "Fecha asignada" (DateOnly, 2026-10-25): el dia de HOY para quien pide, en la zona horaria de su configuracion
+        /// personal de Dataverse (en UTC, despues de las 18:00 de Managua ya seria manana). Si no se puede leer, el dia UTC.
+        /// </summary>
+        private static DateTime HoyDelLlamador(LocalContext local)
+        {
+            var ahora = DateTime.UtcNow;
+            try
+            {
+                var q = new QueryExpression("usersettings") { ColumnSet = new ColumnSet("timezonecode"), TopCount = 1 };
+                q.Criteria.AddCondition("systemuserid", ConditionOperator.Equal, local.Context.UserId);
+                var filas = local.ServicioSistema.RetrieveMultiple(q);
+                var fila = filas == null ? null : filas.Entities.FirstOrDefault();
+                var zona = fila == null ? null : fila.GetAttributeValue<int?>("timezonecode");
+                if (zona.HasValue)
+                {
+                    var r = local.ServicioSistema.Execute(new LocalTimeFromUtcTimeRequest { TimeZoneCode = zona.Value, UtcTime = ahora })
+                        as LocalTimeFromUtcTimeResponse;
+                    if (r != null) return DateTime.SpecifyKind(r.LocalTime.Date, DateTimeKind.Unspecified);
+                }
+                local.Trace("sin zona horaria del llamador: la fecha asignada usa el dia UTC.");
+            }
+            catch (FaultException<OrganizationServiceFault> ex)
+            {
+                local.Trace("no se pudo leer la zona horaria del llamador (codigo {0}): la fecha asignada usa el dia UTC.", ex.Detail == null ? 0 : ex.Detail.ErrorCode);
+            }
+            return DateTime.SpecifyKind(ahora.Date, DateTimeKind.Unspecified);
         }
     }
 }

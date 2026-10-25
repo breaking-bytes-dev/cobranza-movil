@@ -41,6 +41,11 @@ namespace Sanic.CobranzaMovil.Plugins
                 target.Attributes.Remove(Esquema.AsignacionFechaAsignacion);
                 local.Trace("DAT-31: se conserva la fecha de asignacion.");
             }
+            if (target.Contains(Esquema.AsignacionFechaAsignada) && previa.GetAttributeValue<DateTime?>(Esquema.AsignacionFechaAsignada) != null)
+            {
+                target.Attributes.Remove(Esquema.AsignacionFechaAsignada);
+                local.Trace("DAT-31: se conserva la fecha asignada.");
+            }
 
             if (target.Contains(Esquema.AsignacionEstado) || previa.GetAttributeValue<bool?>(Esquema.AsignacionEstado) != false)
             {

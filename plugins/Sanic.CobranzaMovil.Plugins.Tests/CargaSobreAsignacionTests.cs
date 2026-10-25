@@ -17,6 +17,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         private const string Motivo = "sanic_cm_as_motivo";
         private const string FechaCierre = "sanic_cm_as_fechacierre";
         private const string FechaAsignacion = "sanic_cm_as_fechasignacion";
+        private const string FechaAsignada = "sanic_cm_as_fechaasignada";
         private const string UltimaCarga = "sanic_cm_as_ultimacarga";
         private const string Tipo = "sanic_cm_as_tipo";
         private const int Diaria = 1, Incobrable = 2, Especial = 3;
@@ -27,7 +28,11 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             p[Estado] = estado;
             p[Tipo] = new OptionSetValue(tipo);
             if (motivo != null) p[Motivo] = motivo;
-            if (fechaAsignacion.HasValue) p[FechaAsignacion] = fechaAsignacion.Value;
+            if (fechaAsignacion.HasValue)
+            {
+                p[FechaAsignacion] = fechaAsignacion.Value;
+                p[FechaAsignada] = fechaAsignacion.Value.Date;
+            }
             return p;
         }
 
@@ -36,6 +41,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             var t = new Entity(Asignacion, previa.Id);
             t[UltimaCarga] = DateTime.UtcNow.Date;
             t[FechaAsignacion] = DateTime.UtcNow.Date;
+            t[FechaAsignada] = DateTime.UtcNow.Date;
             t["sanic_cm_as_agenteid"] = new EntityReference("sanic_cm_tbl_agente", Guid.NewGuid());
             return t;
         }
@@ -119,13 +125,16 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         {
             var t = Ejecutar(Previa(true, Diaria, null, new DateTime(2026, 6, 22)));
             Assert.False(t.Contains(FechaAsignacion));
+            Assert.False(t.Contains(FechaAsignada));
             Assert.True(t.Contains(UltimaCarga));
         }
 
         [Fact]
         public void Sin_fecha_de_asignacion_previa_la_carga_la_completa()
         {
-            Assert.True(Ejecutar(Previa(true, Diaria, null)).Contains(FechaAsignacion));
+            var t = Ejecutar(Previa(true, Diaria, null));
+            Assert.True(t.Contains(FechaAsignacion));
+            Assert.True(t.Contains(FechaAsignada));
         }
 
         [Fact]

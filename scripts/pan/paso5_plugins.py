@@ -126,7 +126,7 @@ def definir_pasos():
         columnas=['sanic_cm_as_orden', 'sanic_cm_as_estadoaprobacion'], legacy=False, imagen=None,
         descripcion='S-11: cada rol de CM escribe solo las columnas de la asignacion que usa su pantalla'))
     # CargaSobreAsignacion (DAT-10, DAT-31): la carga reabre lo que cerro el sistema y no pisa la fecha de asignacion.
-    cols = ['sanic_cm_as_estado', 'sanic_cm_as_motivo', 'sanic_cm_as_tipo', 'sanic_cm_as_fechasignacion']
+    cols = ['sanic_cm_as_estado', 'sanic_cm_as_motivo', 'sanic_cm_as_tipo', 'sanic_cm_as_fechasignacion', 'sanic_cm_as_fechaasignada']
     pasos.append(dict(
         tipo=NS + 'CargaSobreAsignacion', mensaje='Update', entidad=P + 'asignacion', panguard=False,
         filtro=['sanic_cm_as_ultimacarga'], columnas=cols + ['sanic_cm_as_ultimacarga', 'sanic_cm_as_fechacierre'], legacy=False,

@@ -89,6 +89,7 @@ namespace Sanic.CobranzaMovil.Plugins
         public const string AsignacionMotivoRechazo = "sanic_cm_as_motivorechazo";
         public const string AsignacionFechaCierre = "sanic_cm_as_fechacierre";
         public const string AsignacionFechaAsignacion = "sanic_cm_as_fechasignacion";
+        public const string AsignacionFechaAsignada = "sanic_cm_as_fechaasignada";     // DateOnly (2026-10-25): el dia, sin zona
         public const string AsignacionUltimaCarga = "sanic_cm_as_ultimacarga";
         public const string AsignacionResolutor = "sanic_cm_as_resolutorid";
         public const string AsignacionNotas = "sanic_cm_as_notas";
