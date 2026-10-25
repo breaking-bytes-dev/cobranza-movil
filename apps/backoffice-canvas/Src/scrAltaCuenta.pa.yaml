@@ -28,6 +28,15 @@ Screens:
         Set(varErrorAlt, "");
         Set(varHechaAlt, "");
         Set(varTipoHechaAlt, "");
+        Set(varVerPanAlt, true);
+        Set(varProdAlt, Blank());
+        Set(varAgeAlt, Blank());
+        // Desplegables (2026-10-25): productos y agentes activos, ordenados, con una etiqueta legible. Tablas chicas.
+        ClearCollect(colProdAlt, ForAll(Sort('CM | TBL | Productos', '[PR] Codigo') As P,
+            {etq: P.'[PR] Codigo' & " · " & P.'[PR] Tipo', id: P.'CM | TBL | Producto'}));
+        ClearCollect(colAgeAlt, ForAll(Sort(Filter('CM | TBL | Agentes', '[AG] Activo' = true), '[AG] Nombre') As A,
+            {etq: A.'[AG] Nombre' & " · " & Coalesce(A.'Email Usuario', "sin usuario"), id: A.'CM | TBL | Agente'}));
+        Reset(drpProdAlt); Reset(drpAgeAlt);
         Reset(txtPanAlt)
     Children:
       - cmpEncAlt:
@@ -118,6 +127,7 @@ Screens:
                         FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         Height: =gblE.AltoInput
+                        MaxLength: =20
                         HintText: ="CIF tal como lo manda el banco"
                         RadiusBottomLeft: =10
                         RadiusBottomRight: =10
@@ -159,6 +169,7 @@ Screens:
                         FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         Height: =gblE.AltoInput
+                        MaxLength: =200
                         HintText: ="Si el CIF ya existe se usa el de Dataverse"
                         RadiusBottomLeft: =10
                         RadiusBottomRight: =10
@@ -171,7 +182,9 @@ Screens:
                   - lblPanTitAlt:
                       Control: Label@2.5.1
                       Properties:
-                        Color: =gblC.ink2
+                        Color: |-
+                          =With({d: SoloDigitos(txtPanAlt.Text)},
+                              If(IsBlank(d), gblC.ink2, LuhnOk(d), gblC.okInk, gblC.redInk))
                         FocusedBorderColor: =gblC.teal
                         FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
@@ -179,7 +192,12 @@ Screens:
                         Height: =18
                         PaddingLeft: =0
                         Size: =9
-                        Text: ="Número de tarjeta *"
+                        Text: |-
+                          =// Ayuda en vivo: cuántos dígitos van y si pasa el dígito verificador (el servidor lo vuelve a controlar).
+                          With({d: SoloDigitos(txtPanAlt.Text)},
+                              "Número de tarjeta *" & If(IsBlank(d), "",
+                                  " · " & Len(d) & " dígitos " &
+                                  If(!IsMatch(d, "\d{13,19}"), "(van de 13 a 19)", LuhnOk(d), "✓ verificador OK", "✗ no pasa el verificador")))
                         Width: =lblCifTitAlt.Width
                         Wrap: =false
                         X: |-
@@ -201,15 +219,40 @@ Screens:
                         Font: =Font.'Segoe UI'
                         Height: =gblE.AltoInput
                         HintText: ="13 a 19 dígitos"
-                        Mode: =TextMode.Password
+                        MaxLength: =23
+                        Mode: =If(varVerPanAlt && !varValidoAlt, TextMode.SingleLine, TextMode.Password)
                         RadiusBottomLeft: =10
                         RadiusBottomRight: =10
                         RadiusTopLeft: =10
                         RadiusTopRight: =10
                         Size: =10
-                        Width: =lblCifTitAlt.Width
+                        Width: =lblCifTitAlt.Width - btnVerPanAlt.Width - 4
                         X: =lblPanTitAlt.X
                         Y: =lblPanTitAlt.Y + 22
+                  - btnVerPanAlt:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderColor: =gblC.borde
+                        BorderThickness: =1
+                        Color: =gblC.ink2
+                        DisplayMode: =If(varOcupadoAlt || varValidoAlt, DisplayMode.Disabled, DisplayMode.Edit)
+                        Fill: =gblC.card
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        HoverFill: =ColorFade(gblC.card, 10%)
+                        OnSelect: =Set(varVerPanAlt, !varVerPanAlt)
+                        RadiusBottomLeft: =10
+                        RadiusBottomRight: =10
+                        RadiusTopLeft: =10
+                        RadiusTopRight: =10
+                        Size: =9
+                        Text: =If(varVerPanAlt && !varValidoAlt, "Ocultar", "Mostrar")
+                        Tooltip: ="Mostrar u ocultar el número de tarjeta"
+                        Width: =80
+                        X: =txtPanAlt.X + txtPanAlt.Width + 4
+                        Y: =txtPanAlt.Y
                   - lblProdTitAlt:
                       Control: Label@2.5.1
                       Properties:
@@ -230,84 +273,37 @@ Screens:
                         Y: |-
                           =With({n: If(nfMovil, 2, 4)},
                               lblDatosAlt.Y + lblDatosAlt.Height + gblE.PadSm + RoundDown(3 / n, 0) * (62 + gblE.PadSm))
-                  - txtBuscarProdAlt:
-                      Control: Classic/TextInput@2.3.2
+                  - drpProdAlt:
+                      Control: Classic/DropDown@2.3.1
                       Properties:
-                        AccessibleLabel: ="Buscar producto por código o tipo"
+                        AccessibleLabel: ="Producto"
+                        AllowEmptySelection: =true
                         BorderColor: =gblC.borde
+                        BorderThickness: =1
+                        ChevronBackground: =gblC.card
+                        ChevronFill: =gblC.ink2
+                        ChevronHoverBackground: =gblC.pantalla
+                        ChevronHoverFill: =gblC.teal
+                        Color: =gblC.ink
                         Default: =""
-                        DelayOutput: =true
                         DisplayMode: =If(varOcupadoAlt || varValidoAlt, DisplayMode.Disabled, DisplayMode.Edit)
                         Fill: =gblC.card
-                        FocusedBorderColor: =gblC.teal
-                        FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         Height: =gblE.AltoInput
-                        HintText: ="Código o tipo de producto"
-                        RadiusBottomLeft: =10
-                        RadiusBottomRight: =10
-                        RadiusTopLeft: =10
-                        RadiusTopRight: =10
+                        HoverColor: =gblC.ink
+                        HoverFill: =gblC.pantalla
+                        Items: =colProdAlt
+                        Items.Value: =etq
+                        OnChange: |-
+                          =Set(varProdAlt, If(IsBlank(Self.Selected.id), Blank(), LookUp('CM | TBL | Productos', 'CM | TBL | Producto' = Self.Selected.id)))
+                        PressedColor: =gblC.card
+                        PressedFill: =gblC.teal
+                        SelectionColor: =gblC.card
+                        SelectionFill: =gblC.teal
                         Size: =10
-                        Visible: =IsBlank(varProdAlt)
                         Width: =lblCifTitAlt.Width
                         X: =lblProdTitAlt.X
                         Y: =lblProdTitAlt.Y + 22
-                  - conProdSelAlt:
-                      Control: GroupContainer@1.5.0
-                      Variant: ManualLayout
-                      Properties:
-                        BorderColor: =gblC.teal
-                        BorderThickness: =1
-                        DropShadow: =DropShadow.None
-                        Fill: =gblC.tealSuave
-                        Height: =gblE.AltoInput
-                        RadiusBottomLeft: =10
-                        RadiusBottomRight: =10
-                        RadiusTopLeft: =10
-                        RadiusTopRight: =10
-                        Visible: =!IsBlank(varProdAlt)
-                        Width: =lblCifTitAlt.Width
-                        X: =lblProdTitAlt.X
-                        Y: =lblProdTitAlt.Y + 22
-                      Children:
-                        - lblProdSelAlt:
-                            Control: Label@2.5.1
-                            Properties:
-                              Color: =gblC.ink
-                              FocusedBorderColor: =gblC.teal
-                              FocusedBorderThickness: =2
-                              Font: =Font.'Segoe UI'
-                              FontWeight: =FontWeight.Semibold
-                              Height: =Parent.Height
-                              PaddingLeft: =0
-                              Size: =10
-                              Text: =varProdAlt.'[PR] Codigo' & " · " & varProdAlt.'[PR] Tipo'
-                              Width: =Parent.Width - 3*gblE.PadSm - btnCambiarProdAlt.Width
-                              Wrap: =false
-                              X: =gblE.PadSm
-                        - btnCambiarProdAlt:
-                            Control: Classic/Button@2.2.0
-                            Properties:
-                              BorderColor: =gblC.borde
-                              BorderThickness: =1
-                              Color: =gblC.ink2
-                              DisplayMode: =If(varOcupadoAlt || varValidoAlt, DisplayMode.Disabled, DisplayMode.Edit)
-                              Fill: =gblC.card
-                              FocusedBorderColor: =gblC.teal
-                              FocusedBorderThickness: =2
-                              Font: =Font.'Segoe UI'
-                              Height: =28
-                              HoverFill: =ColorFade(gblC.card, 10%)
-                              OnSelect: |-
-                                =Set(varProdAlt, Blank());
-                                Reset(txtBuscarProdAlt)
-                              Size: =9
-                              Text: ="Cambiar"
-                              Tooltip: ="Elegir otro producto"
-                              Width: =80
-                              X: =Parent.Width - Self.Width - gblE.PadSm
-                              Y: =(Parent.Height - Self.Height) / 2
                   - lblAgeTitAlt:
                       Control: Label@2.5.1
                       Properties:
@@ -328,84 +324,38 @@ Screens:
                         Y: |-
                           =With({n: If(nfMovil, 2, 4)},
                               lblDatosAlt.Y + lblDatosAlt.Height + gblE.PadSm + RoundDown(4 / n, 0) * (62 + gblE.PadSm))
-                  - txtBuscarAgeAlt:
-                      Control: Classic/TextInput@2.3.2
+                  - drpAgeAlt:
+                      Control: Classic/DropDown@2.3.1
                       Properties:
-                        AccessibleLabel: ="Buscar localizador por nombre"
+                        AccessibleLabel: ="Localizador (solo activos)"
+                        AllowEmptySelection: =true
                         BorderColor: =gblC.borde
+                        BorderThickness: =1
+                        ChevronBackground: =gblC.card
+                        ChevronFill: =gblC.ink2
+                        ChevronHoverBackground: =gblC.pantalla
+                        ChevronHoverFill: =gblC.teal
+                        Color: =gblC.ink
                         Default: =""
-                        DelayOutput: =true
                         DisplayMode: =If(varOcupadoAlt || varValidoAlt, DisplayMode.Disabled, DisplayMode.Edit)
                         Fill: =gblC.card
-                        FocusedBorderColor: =gblC.teal
-                        FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         Height: =gblE.AltoInput
-                        HintText: ="Nombre del localizador (activo)"
-                        RadiusBottomLeft: =10
-                        RadiusBottomRight: =10
-                        RadiusTopLeft: =10
-                        RadiusTopRight: =10
+                        HoverColor: =gblC.ink
+                        HoverFill: =gblC.pantalla
+                        Items: =colAgeAlt
+                        Items.Value: =etq
+                        OnChange: |-
+                          =// Solo activos (el servidor rechaza uno inactivo). Sin usuario es válido: la cuenta va a «Cartera sin cobrador».
+                          Set(varAgeAlt, If(IsBlank(Self.Selected.id), Blank(), LookUp('CM | TBL | Agentes', 'CM | TBL | Agente' = Self.Selected.id)))
+                        PressedColor: =gblC.card
+                        PressedFill: =gblC.teal
+                        SelectionColor: =gblC.card
+                        SelectionFill: =gblC.teal
                         Size: =10
-                        Visible: =IsBlank(varAgeAlt)
                         Width: =lblCifTitAlt.Width
                         X: =lblAgeTitAlt.X
                         Y: =lblAgeTitAlt.Y + 22
-                  - conAgeSelAlt:
-                      Control: GroupContainer@1.5.0
-                      Variant: ManualLayout
-                      Properties:
-                        BorderColor: =gblC.teal
-                        BorderThickness: =1
-                        DropShadow: =DropShadow.None
-                        Fill: =gblC.tealSuave
-                        Height: =gblE.AltoInput
-                        RadiusBottomLeft: =10
-                        RadiusBottomRight: =10
-                        RadiusTopLeft: =10
-                        RadiusTopRight: =10
-                        Visible: =!IsBlank(varAgeAlt)
-                        Width: =lblCifTitAlt.Width
-                        X: =lblAgeTitAlt.X
-                        Y: =lblAgeTitAlt.Y + 22
-                      Children:
-                        - lblAgeSelAlt:
-                            Control: Label@2.5.1
-                            Properties:
-                              Color: =gblC.ink
-                              FocusedBorderColor: =gblC.teal
-                              FocusedBorderThickness: =2
-                              Font: =Font.'Segoe UI'
-                              FontWeight: =FontWeight.Semibold
-                              Height: =Parent.Height
-                              PaddingLeft: =0
-                              Size: =10
-                              Text: =varAgeAlt.'[AG] Nombre'
-                              Width: =Parent.Width - 3*gblE.PadSm - btnCambiarAgeAlt.Width
-                              Wrap: =false
-                              X: =gblE.PadSm
-                        - btnCambiarAgeAlt:
-                            Control: Classic/Button@2.2.0
-                            Properties:
-                              BorderColor: =gblC.borde
-                              BorderThickness: =1
-                              Color: =gblC.ink2
-                              DisplayMode: =If(varOcupadoAlt || varValidoAlt, DisplayMode.Disabled, DisplayMode.Edit)
-                              Fill: =gblC.card
-                              FocusedBorderColor: =gblC.teal
-                              FocusedBorderThickness: =2
-                              Font: =Font.'Segoe UI'
-                              Height: =28
-                              HoverFill: =ColorFade(gblC.card, 10%)
-                              OnSelect: |-
-                                =Set(varAgeAlt, Blank());
-                                Reset(txtBuscarAgeAlt)
-                              Size: =9
-                              Text: ="Cambiar"
-                              Tooltip: ="Elegir otro localizador"
-                              Width: =80
-                              X: =Parent.Width - Self.Width - gblE.PadSm
-                              Y: =(Parent.Height - Self.Height) / 2
                   - lblTipoTitAlt:
                       Control: Label@2.5.1
                       Properties:
@@ -479,6 +429,7 @@ Screens:
                         Font: =Font.'Segoe UI'
                         Format: =TextFormat.Number
                         Height: =gblE.AltoInput
+                        MaxLength: =14
                         HintText: ="0.00"
                         RadiusBottomLeft: =10
                         RadiusBottomRight: =10
@@ -521,6 +472,7 @@ Screens:
                         Font: =Font.'Segoe UI'
                         Format: =TextFormat.Number
                         Height: =gblE.AltoInput
+                        MaxLength: =14
                         HintText: ="0.00"
                         RadiusBottomLeft: =10
                         RadiusBottomRight: =10
@@ -563,6 +515,7 @@ Screens:
                         Font: =Font.'Segoe UI'
                         Format: =TextFormat.Number
                         Height: =gblE.AltoInput
+                        MaxLength: =14
                         HintText: ="0.00"
                         RadiusBottomLeft: =10
                         RadiusBottomRight: =10
@@ -605,6 +558,7 @@ Screens:
                         Font: =Font.'Segoe UI'
                         Format: =TextFormat.Number
                         Height: =gblE.AltoInput
+                        MaxLength: =6
                         HintText: ="0"
                         RadiusBottomLeft: =10
                         RadiusBottomRight: =10
@@ -647,6 +601,7 @@ Screens:
                         Font: =Font.'Segoe UI'
                         Format: =TextFormat.Number
                         Height: =gblE.AltoInput
+                        MaxLength: =6
                         HintText: ="0"
                         RadiusBottomLeft: =10
                         RadiusBottomRight: =10
@@ -688,6 +643,7 @@ Screens:
                         FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         Height: =gblE.AltoInput
+                        MaxLength: =10
                         HintText: ="2026-10-20"
                         RadiusBottomLeft: =10
                         RadiusBottomRight: =10
@@ -729,6 +685,7 @@ Screens:
                         FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         Height: =gblE.AltoInput
+                        MaxLength: =20
                         HintText: ="Teléfono celular (cliente nuevo)"
                         RadiusBottomLeft: =10
                         RadiusBottomRight: =10
@@ -770,6 +727,7 @@ Screens:
                         FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         Height: =gblE.AltoInput
+                        MaxLength: =200
                         HintText: ="Cliente nuevo"
                         RadiusBottomLeft: =10
                         RadiusBottomRight: =10
@@ -811,6 +769,7 @@ Screens:
                         FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         Height: =gblE.AltoInput
+                        MaxLength: =200
                         HintText: ="Nombre del fiador (opcional)"
                         RadiusBottomLeft: =10
                         RadiusBottomRight: =10
@@ -852,6 +811,7 @@ Screens:
                         FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         Height: =gblE.AltoInput
+                        MaxLength: =400
                         HintText: ="Sin números de tarjeta"
                         RadiusBottomLeft: =10
                         RadiusBottomRight: =10
@@ -893,6 +853,7 @@ Screens:
                         FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         Height: =gblE.AltoInput
+                        MaxLength: =20
                         HintText: ="Cliente nuevo"
                         RadiusBottomLeft: =10
                         RadiusBottomRight: =10
@@ -934,6 +895,7 @@ Screens:
                         FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         Height: =gblE.AltoInput
+                        MaxLength: =200
                         HintText: ="Cliente nuevo"
                         RadiusBottomLeft: =10
                         RadiusBottomRight: =10
@@ -975,6 +937,7 @@ Screens:
                         FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         Height: =gblE.AltoInput
+                        MaxLength: =100
                         HintText: ="Cliente nuevo"
                         RadiusBottomLeft: =10
                         RadiusBottomRight: =10
@@ -1016,6 +979,7 @@ Screens:
                         FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         Height: =gblE.AltoInput
+                        MaxLength: =100
                         HintText: ="Cliente nuevo"
                         RadiusBottomLeft: =10
                         RadiusBottomRight: =10
@@ -1057,6 +1021,7 @@ Screens:
                         FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         Height: =gblE.AltoInput
+                        MaxLength: =200
                         HintText: ="Si el fiador ya existe, se usa la suya"
                         RadiusBottomLeft: =10
                         RadiusBottomRight: =10
@@ -1100,6 +1065,7 @@ Screens:
                         Font: =Font.'Segoe UI'
                         Format: =TextFormat.Number
                         Height: =gblE.AltoInput
+                        MaxLength: =14
                         HintText: ="0.00"
                         RadiusBottomLeft: =10
                         RadiusBottomRight: =10
@@ -1144,6 +1110,7 @@ Screens:
                         Font: =Font.'Segoe UI'
                         Format: =TextFormat.Number
                         Height: =gblE.AltoInput
+                        MaxLength: =14
                         HintText: ="0.00"
                         RadiusBottomLeft: =10
                         RadiusBottomRight: =10
@@ -1154,212 +1121,6 @@ Screens:
                         Width: =lblCifTitAlt.Width
                         X: =lblRetUsdTitAlt.X
                         Y: =lblRetUsdTitAlt.Y + 22
-                  - galProdAlt:
-                      Control: Gallery@2.15.0
-                      Variant: Vertical
-                      Properties:
-                        AccessibleLabel: ="Productos que coinciden con la búsqueda"
-                        BorderColor: =gblC.borde
-                        BorderThickness: =1
-                        Fill: =gblC.card
-                        FocusedBorderColor: =gblC.teal
-                        FocusedBorderThickness: =2
-                        Height: =Min(Max(Self.AllItemsCount, 1), 4) * Self.TemplateHeight
-                        Items: |-
-                          =// Productos: tabla chica. StartsWith delega; con el buscador vacío no se consulta (la galería no se ve).
-                          Filter('CM | TBL | Productos',
-                              StartsWith('[PR] Codigo', Trim(txtBuscarProdAlt.Text)) || StartsWith('[PR] Tipo', Trim(txtBuscarProdAlt.Text)))
-                        OnSelect: |-
-                          =Set(varProdAlt, ThisItem);
-                          Reset(txtBuscarProdAlt)
-                        ShowScrollbar: =false
-                        TemplateFill: =gblC.card
-                        TemplatePadding: =0
-                        TemplateSize: =48
-                        Visible: =IsBlank(varProdAlt) && Len(Trim(txtBuscarProdAlt.Text)) >= 1
-                        Width: =lblCifTitAlt.Width
-                        X: =txtBuscarProdAlt.X
-                        Y: =txtBuscarProdAlt.Y + txtBuscarProdAlt.Height + 2
-                      Children:
-                        - lblFila1ProdAlt:
-                            Control: Label@2.5.1
-                            Properties:
-                              Color: =gblC.ink
-                              FocusedBorderColor: =gblC.teal
-                              FocusedBorderThickness: =2
-                              Font: =Font.'Segoe UI'
-                              FontWeight: =FontWeight.Semibold
-                              Height: =20
-                              PaddingLeft: =0
-                              Size: =10
-                              Text: =ThisItem.'[PR] Codigo'
-                              Width: =Parent.TemplateWidth - 2*gblE.PadSm
-                              Wrap: =false
-                              X: =gblE.PadSm
-                              Y: =5
-                        - lblFila2ProdAlt:
-                            Control: Label@2.5.1
-                            Properties:
-                              Color: =gblC.muted
-                              FocusedBorderColor: =gblC.teal
-                              FocusedBorderThickness: =2
-                              Font: =Font.'Segoe UI'
-                              Height: =18
-                              PaddingLeft: =0
-                              Size: =9
-                              Text: =ThisItem.'[PR] Tipo'
-                              Width: =lblFila1ProdAlt.Width
-                              Wrap: =false
-                              X: =gblE.PadSm
-                              Y: =lblFila1ProdAlt.Y + lblFila1ProdAlt.Height + 2
-                        - recSepProdAlt:
-                            Control: GroupContainer@1.5.0
-                            Variant: ManualLayout
-                            Properties:
-                              BorderThickness: =0
-                              DropShadow: =DropShadow.None
-                              Fill: =gblC.hairline
-                              Height: =1
-                              Width: =Parent.TemplateWidth
-                              Y: =Parent.TemplateHeight - 1
-                        - btnFilaProdAlt:
-                            Control: Classic/Button@2.2.0
-                            Properties:
-                              BorderThickness: =0
-                              Color: =Color.Transparent
-                              Fill: =Color.Transparent
-                              FocusedBorderColor: =gblC.teal
-                              FocusedBorderThickness: =2
-                              Height: =Parent.TemplateHeight
-                              HoverFill: =RGBA(15, 107, 107, 0.06)
-                              OnSelect: =Select(Parent)
-                              PressedFill: =RGBA(15, 107, 107, 0.12)
-                              TabIndex: =0
-                              Text: ="Elegir el producto " & ThisItem.'[PR] Codigo'
-                              Width: =Parent.TemplateWidth
-                              X: =0
-                              Y: =0
-                  - lblSinProdAlt:
-                      Control: Label@2.5.1
-                      Properties:
-                        Color: =gblC.muted
-                        Fill: =gblC.card
-                        FocusedBorderColor: =gblC.teal
-                        FocusedBorderThickness: =2
-                        Font: =Font.'Segoe UI'
-                        Height: =galProdAlt.Height
-                        PaddingLeft: =gblE.PadSm
-                        Size: =9
-                        Text: ="Ningún producto empieza con «" & Trim(txtBuscarProdAlt.Text) & "»."
-                        Visible: =galProdAlt.Visible && galProdAlt.AllItemsCount = 0
-                        Width: =galProdAlt.Width
-                        Wrap: =false
-                        X: =galProdAlt.X
-                        Y: =galProdAlt.Y
-                  - galAgeAlt:
-                      Control: Gallery@2.15.0
-                      Variant: Vertical
-                      Properties:
-                        AccessibleLabel: ="Localizadores activos que coinciden con la búsqueda"
-                        BorderColor: =gblC.borde
-                        BorderThickness: =1
-                        Fill: =gblC.card
-                        FocusedBorderColor: =gblC.teal
-                        FocusedBorderThickness: =2
-                        Height: =Min(Max(Self.AllItemsCount, 1), 4) * Self.TemplateHeight
-                        Items: |-
-                          =// Solo agentes activos (el servidor rechaza uno inactivo). Un agente sin usuario es válido: la cuenta queda en el
-                          // equipo "Cartera sin cobrador" hasta que se lo vincule. Mismo patrón que galAgeAprb (B-04: buscador + galería).
-                          Filter('CM | TBL | Agentes',
-                              '[AG] Activo' = true
-                              && StartsWith('[AG] Nombre', Trim(txtBuscarAgeAlt.Text)))
-                        OnSelect: |-
-                          =Set(varAgeAlt, ThisItem);
-                          Reset(txtBuscarAgeAlt)
-                        ShowScrollbar: =false
-                        TemplateFill: =gblC.card
-                        TemplatePadding: =0
-                        TemplateSize: =48
-                        Visible: =IsBlank(varAgeAlt) && Len(Trim(txtBuscarAgeAlt.Text)) >= 1
-                        Width: =lblCifTitAlt.Width
-                        X: =txtBuscarAgeAlt.X
-                        Y: =txtBuscarAgeAlt.Y + txtBuscarAgeAlt.Height + 2
-                      Children:
-                        - lblFila1AgeAlt:
-                            Control: Label@2.5.1
-                            Properties:
-                              Color: =gblC.ink
-                              FocusedBorderColor: =gblC.teal
-                              FocusedBorderThickness: =2
-                              Font: =Font.'Segoe UI'
-                              FontWeight: =FontWeight.Semibold
-                              Height: =20
-                              PaddingLeft: =0
-                              Size: =10
-                              Text: =ThisItem.'[AG] Nombre'
-                              Width: =Parent.TemplateWidth - 2*gblE.PadSm
-                              Wrap: =false
-                              X: =gblE.PadSm
-                              Y: =5
-                        - lblFila2AgeAlt:
-                            Control: Label@2.5.1
-                            Properties:
-                              Color: =gblC.muted
-                              FocusedBorderColor: =gblC.teal
-                              FocusedBorderThickness: =2
-                              Font: =Font.'Segoe UI'
-                              Height: =18
-                              PaddingLeft: =0
-                              Size: =9
-                              Text: =Coalesce(ThisItem.'Email Usuario', "sin usuario (queda en Cartera sin cobrador)")
-                              Width: =lblFila1AgeAlt.Width
-                              Wrap: =false
-                              X: =gblE.PadSm
-                              Y: =lblFila1AgeAlt.Y + lblFila1AgeAlt.Height + 2
-                        - recSepAgeAlt:
-                            Control: GroupContainer@1.5.0
-                            Variant: ManualLayout
-                            Properties:
-                              BorderThickness: =0
-                              DropShadow: =DropShadow.None
-                              Fill: =gblC.hairline
-                              Height: =1
-                              Width: =Parent.TemplateWidth
-                              Y: =Parent.TemplateHeight - 1
-                        - btnFilaAgeAlt:
-                            Control: Classic/Button@2.2.0
-                            Properties:
-                              BorderThickness: =0
-                              Color: =Color.Transparent
-                              Fill: =Color.Transparent
-                              FocusedBorderColor: =gblC.teal
-                              FocusedBorderThickness: =2
-                              Height: =Parent.TemplateHeight
-                              HoverFill: =RGBA(15, 107, 107, 0.06)
-                              OnSelect: =Select(Parent)
-                              PressedFill: =RGBA(15, 107, 107, 0.12)
-                              TabIndex: =0
-                              Text: ="Elegir el localizador " & ThisItem.'[AG] Nombre'
-                              Width: =Parent.TemplateWidth
-                              X: =0
-                              Y: =0
-                  - lblSinAgeAlt:
-                      Control: Label@2.5.1
-                      Properties:
-                        Color: =gblC.muted
-                        Fill: =gblC.card
-                        FocusedBorderColor: =gblC.teal
-                        FocusedBorderThickness: =2
-                        Font: =Font.'Segoe UI'
-                        Height: =galAgeAlt.Height
-                        PaddingLeft: =gblE.PadSm
-                        Size: =9
-                        Text: ="Ningún localizador activo empieza con «" & Trim(txtBuscarAgeAlt.Text) & "»."
-                        Visible: =galAgeAlt.Visible && galAgeAlt.AllItemsCount = 0
-                        Width: =galAgeAlt.Width
-                        Wrap: =false
-                        X: =galAgeAlt.X
-                        Y: =galAgeAlt.Y
             - conAccionAlt:
                 Control: GroupContainer@1.5.0
                 Variant: ManualLayout
@@ -1466,7 +1227,7 @@ Screens:
                           Set(varConfirmaAlt, false);
                           Set(varProdAlt, Blank());
                           Set(varAgeAlt, Blank());
-                          Reset(txtCifAlt); Reset(txtCliAlt); Reset(txtPanAlt); Reset(txtBuscarProdAlt); Reset(txtBuscarAgeAlt); Reset(cmbTipoAlt);
+                          Reset(txtCifAlt); Reset(txtCliAlt); Reset(txtPanAlt); Reset(drpProdAlt); Reset(drpAgeAlt); Set(varVerPanAlt, true); Reset(cmbTipoAlt);
                           Reset(txtSvNioAlt); Reset(txtSvUsdAlt); Reset(txtTotalAlt); Reset(txtDiasAlt); Reset(txtNivelAlt); Reset(txtFPagoAlt);
                           Reset(txtCelAlt); Reset(txtDirCasaAlt); Reset(txtTelCasaAlt); Reset(txtDirTrabAlt); Reset(txtDeptoAlt); Reset(txtDistritoAlt); Reset(txtFiadorAlt); Reset(txtDirFiadorAlt); Reset(txtNotaAlt); Reset(txtRetNioAlt); Reset(txtRetUsdAlt)
                         Size: =10
@@ -1482,30 +1243,39 @@ Screens:
                         FocusedBorderThickness: =2
                         Font: =Font.'Segoe UI'
                         FontWeight: =FontWeight.Semibold
-                        Height: =20
+                        Height: =If(Len(Self.Text) > 110, 36, 20)
                         PaddingLeft: =0
                         Size: =9
                         Text: |-
-                          =With({_d: Substitute(Substitute(Substitute(txtPanAlt.Text, " ", ""), "-", ""), ".", ""),
+                          =With({_d: SoloDigitos(txtPanAlt.Text),
                                  _f: Trim(txtFPagoAlt.Text)},
                               With({_falta:
                                   Concat(
                                       Filter(
                                           Table(
                                               {t: If(IsBlank(Trim(txtCifAlt.Text)), "CIF")},
-                                              {t: If(!IsMatch(_d, "\d{13,19}"), "número de tarjeta (13 a 19 dígitos)")},
+                                              {t: If(!IsMatch(_d, "\d{13,19}"), "número de tarjeta (13 a 19 dígitos)", !LuhnOk(_d), "número de tarjeta que pase el verificador")},
                                               {t: If(IsBlank(varProdAlt), "producto")},
                                               {t: If(IsBlank(varAgeAlt), "localizador")},
                                               {t: If(IsBlank(cmbTipoAlt.Selected.Value), "tipo")},
                                               {t: If(IsBlank(txtSvNioAlt.Text) || IsBlank(txtSvUsdAlt.Text) || IsBlank(txtTotalAlt.Text), "saldos")},
                                               {t: If(IsBlank(txtDiasAlt.Text) || IsBlank(txtNivelAlt.Text), "mora")},
+                                              /* 2026-10-25: el formato numérico deja escribir «-»; el servidor lo rechaza, acá se avisa antes */
+                                              {t: If(Value(txtSvNioAlt.Text) < 0 || Value(txtSvUsdAlt.Text) < 0 || Value(txtTotalAlt.Text) < 0
+                                                     || Value(txtRetNioAlt.Text) < 0 || Value(txtRetUsdAlt.Text) < 0, "montos sin negativos")},
+                                              {t: If(Value(txtSvNioAlt.Text) > 1000000000 || Value(txtSvUsdAlt.Text) > 1000000000 || Value(txtTotalAlt.Text) > 1000000000
+                                                     || Value(txtRetNioAlt.Text) > 1000000000 || Value(txtRetUsdAlt.Text) > 1000000000, "montos hasta 1.000.000.000")},
+                                              {t: If(Value(txtDiasAlt.Text) < 0 || Value(txtNivelAlt.Text) < 0
+                                                     || Value(txtDiasAlt.Text) > 100000 || Value(txtNivelAlt.Text) > 100000
+                                                     || Value(txtDiasAlt.Text) <> RoundDown(Value(txtDiasAlt.Text), 0)
+                                                     || Value(txtNivelAlt.Text) <> RoundDown(Value(txtNivelAlt.Text), 0), "mora en enteros de 0 a 100.000")},
                                               {t: If(!IsBlank(_f) && !IsMatch(_f, "\d{4}-\d{2}-\d{2}"), "fecha de pago como aaaa-mm-dd")}
                                           ),
                                           !IsBlank(t)
                                       ),
                                       t, " · "
                                   )},
-                                  If(IsBlank(_falta), "✓ Datos completos", "Falta: " & _falta)
+                                  If(IsBlank(_falta), "✓ Datos completos", "Falta o corregí: " & _falta)
                               )
                           )
                         Width: =Parent.Width - 2*gblE.Pad
