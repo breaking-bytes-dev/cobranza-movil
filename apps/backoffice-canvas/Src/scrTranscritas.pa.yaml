@@ -152,31 +152,36 @@ Screens:
                   RadiusTopRight: =10
                   Size: =10
                   Width: =If(nfMovil, Parent.Width, 320)
-            - cmbGrabTsc:
-                Control: Classic/ComboBox@2.4.0
+            - drpGrabTsc:
+                Control: Classic/DropDown@2.3.1
                 Properties:
                   AccessibleLabel: ="Quién la grabó"
                   BorderColor: =gblC.borde
-                  DefaultSelectedItems: |-
-                    =[Coalesce(varGrabTsc, gblUsuarioDV.'Full Name', "Todos")]
-                  DisplayFields: =["Value"]
+                  BorderThickness: =1
+                  ChevronBackground: =gblC.card
+                  ChevronFill: =gblC.ink2
+                  ChevronHoverBackground: =gblC.pantalla
+                  ChevronHoverFill: =gblC.teal
+                  Color: =gblC.ink
+                  Default: |-
+                    =// Vacío = YO (gblUsuarioDV puede resolverse después de abrir, B-06).
+                    Coalesce(varGrabTsc, gblUsuarioDV.'Full Name', "Todos")
                   Fill: =gblC.card
                   FillPortions: =0
-                  FocusedBorderColor: =gblC.teal
-                  FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
-                  InputTextPlaceholder: ="Grabó (todos)"
-                  IsSearchable: =true
+                  HoverColor: =gblC.ink
+                  HoverFill: =gblC.pantalla
                   Items: |-
-                    =// "Todos" primero y después los nombres (colGrabTsc la arma btnCargarTsc). Con Ungroup/Distinct en Items el
-                    // combo clásico no resolvía la columna a mostrar y las filas salían en blanco (2026-10-24). La columna se llama
-                    // Value: es la única que este combo, editado por YAML, muestra (con otra, ni el valor por defecto aparecía).
-                    // Ya viene ordenada (Todos, yo, los demás por nombre): un Sort acá con «Value» en la fórmula lo dejaba vacío.
+                    =// Todos, yo y los demás que grabaron ese día (colGrabTsc, de btnCargarTsc). DropDown clásico con Items.Value:
+                    // el ComboBox clásico editado por YAML mostraba las filas en blanco (2026-10-24).
                     colGrabTsc
-                  OnChange: =Set(varGrabTsc, Coalesce(Self.Selected.Value, "Todos"))
-                  SearchFields: =["Value"]
-                  SelectMultiple: =false
+                  Items.Value: =nom
+                  OnChange: =Set(varGrabTsc, Coalesce(Self.Selected.nom, "Todos"))
+                  PressedColor: =gblC.card
+                  PressedFill: =gblC.teal
+                  SelectionColor: =gblC.card
+                  SelectionFill: =gblC.teal
                   Size: =10
                   Width: =If(nfMovil, Parent.Width, 260)
       - conListaTsc:
@@ -445,10 +450,10 @@ Screens:
                   )
               );
               // Opciones del combo «Grabó»: Todos, yo (aunque ese día no haya grabado) y los demás que grabaron ese día.
-              ClearCollect(colGrabTsc, {Value: "Todos"});
-              If(!IsBlank(gblUsuarioDV.'Full Name'), Collect(colGrabTsc, {Value: gblUsuarioDV.'Full Name'}));
+              ClearCollect(colGrabTsc, {nom: "Todos"});
+              If(!IsBlank(gblUsuarioDV.'Full Name'), Collect(colGrabTsc, {nom: gblUsuarioDV.'Full Name'}));
               ForAll(Sort(GroupBy(colTscTmpTsc, grabTsc, filasTsc), grabTsc) As G,
-                  If(G.grabTsc <> Coalesce(gblUsuarioDV.'Full Name', ""), Collect(colGrabTsc, {Value: G.grabTsc})));
+                  If(G.grabTsc <> Coalesce(gblUsuarioDV.'Full Name', ""), Collect(colGrabTsc, {nom: G.grabTsc})));
               Set(varSelTsc, Blank());
               Set(varPanelTsc, false);
               If(!IsBlank(varErrTsc),
