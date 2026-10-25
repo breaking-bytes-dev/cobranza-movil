@@ -158,8 +158,8 @@ Screens:
                   AccessibleLabel: ="Quién la grabó"
                   BorderColor: =gblC.borde
                   DefaultSelectedItems: |-
-                    =Table({nom: Coalesce(varGrabTsc, gblUsuarioDV.'Full Name', "Todos")})
-                  DisplayFields: =["nom"]
+                    =[Coalesce(varGrabTsc, gblUsuarioDV.'Full Name', "Todos")]
+                  DisplayFields: =["Value"]
                   Fill: =gblC.card
                   FillPortions: =0
                   FocusedBorderColor: =gblC.teal
@@ -170,10 +170,11 @@ Screens:
                   IsSearchable: =true
                   Items: |-
                     =// "Todos" primero y después los nombres (colGrabTsc la arma btnCargarTsc). Con Ungroup/Distinct en Items el
-                    // combo clásico no resolvía la columna a mostrar y las filas salían en blanco (2026-10-24).
-                    Sort(colGrabTsc, If(nom = "Todos", "0", "1" & nom))
-                  OnChange: =Set(varGrabTsc, Coalesce(Self.Selected.nom, "Todos"))
-                  SearchFields: =["nom"]
+                    // combo clásico no resolvía la columna a mostrar y las filas salían en blanco (2026-10-24). La columna se llama
+                    // Value: es la única que este combo, editado por YAML, muestra (con otra, ni el valor por defecto aparecía).
+                    Sort(colGrabTsc, If(Value = "Todos", "0", "1" & Value))
+                  OnChange: =Set(varGrabTsc, Coalesce(Self.Selected.Value, "Todos"))
+                  SearchFields: =["Value"]
                   SelectMultiple: =false
                   Size: =10
                   Width: =If(nfMovil, Parent.Width, 260)
@@ -443,10 +444,10 @@ Screens:
                   )
               );
               // Opciones del combo «Grabó»: Todos, yo (aunque ese día no haya grabado) y los demás que grabaron ese día.
-              ClearCollect(colGrabTsc, {nom: "Todos"});
-              ForAll(GroupBy(colTscTmpTsc, grabTsc, filasTsc) As G, Collect(colGrabTsc, {nom: G.grabTsc}));
-              If(!IsBlank(gblUsuarioDV.'Full Name') && IsBlank(LookUp(colGrabTsc, nom = gblUsuarioDV.'Full Name')),
-                  Collect(colGrabTsc, {nom: gblUsuarioDV.'Full Name'}));
+              ClearCollect(colGrabTsc, {Value: "Todos"});
+              ForAll(GroupBy(colTscTmpTsc, grabTsc, filasTsc) As G, Collect(colGrabTsc, {Value: G.grabTsc}));
+              If(!IsBlank(gblUsuarioDV.'Full Name') && IsBlank(LookUp(colGrabTsc, Value = gblUsuarioDV.'Full Name')),
+                  Collect(colGrabTsc, {Value: gblUsuarioDV.'Full Name'}));
               Set(varSelTsc, Blank());
               Set(varPanelTsc, false);
               If(!IsBlank(varErrTsc),
