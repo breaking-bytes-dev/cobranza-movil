@@ -311,7 +311,7 @@ Screens:
                 Control: Gallery@2.15.0
                 Variant: Vertical
                 Properties:
-                  AlignInContainer: =AlignInContainer.Stretch
+                  AlignInContainer: =AlignInContainer.Start
                   FillPortions: =1
                   Items: |-
                     =// APP-34: una fila por pago y galería de alto fijo. La versión anterior (galería de alto variable con otra
@@ -353,7 +353,9 @@ Screens:
                         RadiusBottomRight: =12
                         RadiusTopLeft: =12
                         RadiusTopRight: =12
-                        Width: =Parent.TemplateWidth
+                        Width: |-
+                          =// TemplateWidth llegaba más angosto que la galería (2/3 del ancho, medido en la web): se usa su ancho.
+                          galPagosDia.Width - 2
                       Children:
                         - conPagIzq:
                             Control: GroupContainer@1.5.0
@@ -444,12 +446,14 @@ Screens:
                         Height: =Parent.TemplateHeight - 8
                         OnSelect: =Set(varCliente, ThisItem.cid); Set(varCliTab, "inter"); Navigate(scrCliente, ScreenTransition.Cover)
                         Text: =
-                        Width: =Parent.TemplateWidth
+                        Width: |-
+                          =// TemplateWidth llegaba más angosto que la galería (2/3 del ancho, medido en la web): se usa su ancho.
+                          galPagosDia.Width - 2
             - galInterDia:
                 Control: Gallery@2.15.0
                 Variant: Vertical
                 Properties:
-                  AlignInContainer: =AlignInContainer.Stretch
+                  AlignInContainer: =AlignInContainer.Start
                   FillPortions: =1
                   Items: |-
                     =Sort(Filter(
@@ -489,7 +493,9 @@ Screens:
                         RadiusBottomRight: =12
                         RadiusTopLeft: =12
                         RadiusTopRight: =12
-                        Width: =Parent.TemplateWidth
+                        Width: |-
+                          =// TemplateWidth llegaba más angosto que la galería (2/3 del ancho, medido en la web): se usa su ancho.
+                          galInterDia.Width - 2
                       Children:
                         - lblIHead:
                             Control: Label@2.5.1
@@ -565,7 +571,9 @@ Screens:
                         Height: =Parent.TemplateHeight - 8
                         OnSelect: =Set(varCliente, ThisItem.cid); Set(varCliTab, "inter"); Navigate(scrCliente, ScreenTransition.Cover)
                         Text: =
-                        Width: =Parent.TemplateWidth
+                        Width: |-
+                          =// TemplateWidth llegaba más angosto que la galería (2/3 del ancho, medido en la web): se usa su ancho.
+                          galInterDia.Width - 2
       - btnCargarPag:
           Control: Classic/Button@2.2.0
           Properties:
