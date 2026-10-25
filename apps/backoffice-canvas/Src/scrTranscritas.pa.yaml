@@ -157,7 +157,8 @@ Screens:
                 Properties:
                   AccessibleLabel: ="Quién la grabó"
                   BorderColor: =gblC.borde
-                  DefaultSelectedItems: =Table({nom: Coalesce(varGrabTsc, gblUsuarioDV.'Full Name', "Todos")})
+                  DefaultSelectedItems: |-
+                    =Table({nom: Coalesce(varGrabTsc, gblUsuarioDV.'Full Name', "Todos")})
                   DisplayFields: =["nom"]
                   Fill: =gblC.card
                   FillPortions: =0
