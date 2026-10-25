@@ -119,6 +119,10 @@ Screens:
                 Variant: VariableHeight
                 Properties:
                   AlignInContainer: =AlignInContainer.Center
+                  TemplatePadding: =0
+                  TemplateSize: |-
+                    =// En una galería de alto variable es el alto MÍNIMO de la fila: chico para que cada tarjeta mida lo que su contenido
+                    20
                   Items: |-
                     =GroupBy(AddColumns(AddColumns(AddColumns(colPagHoy,
                                ctaId,  Cuenta.'CM | TBL | Cuenta'),
@@ -171,29 +175,30 @@ Screens:
                               Text: =If(IsBlank(ThisItem.prod), "", ThisItem.prod & " · ") & PanMasc(ThisItem.u4)
                         - galLineas:
                             Control: Gallery@2.15.0
-                            Variant: VariableHeight
+                            Variant: Vertical
                             Properties:
                               FillPortions: =0
-                              Height: =Self.AllItemsCount * If(gblScale = 1, 70,gblScale = 1.2,80,gblScale = 1.45,90,100)
+                              Height: |-
+                                =// Mismo alto que TemplateSize: si no coinciden quedan huecos entre los pagos y al pie de la tarjeta
+                                Self.AllItemsCount * Self.TemplateHeight
                               Items: =ThisItem.Lineas
                               LayoutMinHeight: =16
                               LayoutMinWidth: =16
                               TemplatePadding: =0
-                              TemplateSize: =
+                              TemplateSize: =If(gblScale = 1, 52,gblScale = 1.2,60,gblScale = 1.45,72,84)
                             Children:
                               - conLin:
                                   Control: GroupContainer@1.5.0
                                   Variant: AutoLayout
                                   Properties:
                                     DropShadow: =DropShadow.None
-                                    Height: =lblLV.Height + lblLR.Height + 15
-                                    LayoutDirection: =LayoutDirection.Horizontal
-                                    LayoutJustifyContent: =LayoutJustifyContent.SpaceBetween
-                                    LayoutWrap: =true
-                                    PaddingBottom: =8
+                                    Height: =Parent.TemplateHeight
+                                    LayoutDirection: =LayoutDirection.Vertical
+                                    LayoutJustifyContent: =LayoutJustifyContent.Center
+                                    PaddingBottom: =4
                                     PaddingLeft: =8
                                     PaddingRight: =8
-                                    PaddingTop: =8
+                                    PaddingTop: =4
                                     Width: =Parent.TemplateWidth
                                   Children:
                                     - lblLV:
@@ -202,22 +207,22 @@ Screens:
                                           AlignInContainer: =AlignInContainer.Start
                                           AutoHeight: =true
                                           Color: =gblC.ink
-                                          Height: =40
                                           LayoutMinHeight: =16
                                           LayoutMinWidth: =16
                                           PaddingBottom: =0
+                                          PaddingTop: =0
                                           Size: =gblT.fbase
                                           Text: =If(Text(ThisItem.'[PG] Moneda')="USD","US$ ","C$ ") & Text(ThisItem.'[PG] Monto',"#,##0.00", "en-US")
-                                          VerticalAlign: =VerticalAlign.Bottom
+                                          VerticalAlign: =VerticalAlign.Top
                                           Width: =Parent.Width - 16
                                     - lblLR:
                                         Control: Label@2.5.1
                                         Properties:
                                           AutoHeight: =true
                                           Color: =gblC.muted2
-                                          Height: =If(gblScale = 1, 30,gblScale = 1.2,34,gblScale = 1.45,40,46)
                                           LayoutMinHeight: =16
                                           LayoutMinWidth: =16
+                                          PaddingBottom: =0
                                           PaddingTop: =0
                                           Size: =gblT.f2xs
                                           Text: ="Recibo " & ThisItem.'[PG] Numero recibo' & " · " & Text(ThisItem.'Fecha del pago', "hh:mm")
