@@ -157,8 +157,8 @@ Screens:
                 Properties:
                   AccessibleLabel: ="Quién la grabó"
                   BorderColor: =gblC.borde
-                  DefaultSelectedItems: =[Coalesce(varGrabTsc, gblUsuarioDV.'Full Name', "Todos")]
-                  DisplayFields: =["Value"]
+                  DefaultSelectedItems: =Table({nom: Coalesce(varGrabTsc, gblUsuarioDV.'Full Name', "Todos")})
+                  DisplayFields: =["nom"]
                   Fill: =gblC.card
                   FillPortions: =0
                   FocusedBorderColor: =gblC.teal
@@ -168,14 +168,16 @@ Screens:
                   InputTextPlaceholder: ="Grabó (todos)"
                   IsSearchable: =true
                   Items: |-
-                    =// "Todos", yo (aunque ese día no haya grabado nada) y los demás que grabaron ese día.
-                    Ungroup(Table(
-                        {g: ["Todos"]},
-                        {g: [Coalesce(gblUsuarioDV.'Full Name', "—")]},
-                        {g: Filter(Sort(Distinct(colTscTsc, grabTsc), Value), Value <> Coalesce(gblUsuarioDV.'Full Name', "—"))}
-                    ), g)
-                  OnChange: =Set(varGrabTsc, Coalesce(Self.Selected.Value, "Todos"))
-                  SearchFields: =["Value"]
+                    =// "Todos", yo (aunque ese día no haya grabado nada) y los demás que grabaron ese día. Columna con nombre
+                    // propio (nom) armada con GroupBy: con Distinct y [ ] la columna salía Value o Result según la versión y el
+                    // combo mostraba las filas en blanco (2026-10-24).
+                    With({yo: Coalesce(gblUsuarioDV.'Full Name', "—")},
+                        Ungroup(Table(
+                            {g: Table({nom: "Todos"}, {nom: yo})},
+                            {g: Sort(Filter(ForAll(GroupBy(colTscTsc, grabTsc, filasTsc) As G, {nom: G.grabTsc}), nom <> yo), nom)}
+                        ), g))
+                  OnChange: =Set(varGrabTsc, Coalesce(Self.Selected.nom, "Todos"))
+                  SearchFields: =["nom"]
                   SelectMultiple: =false
                   Size: =10
                   Width: =If(nfMovil, Parent.Width, 260)
