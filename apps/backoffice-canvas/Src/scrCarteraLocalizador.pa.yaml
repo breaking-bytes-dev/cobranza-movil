@@ -79,7 +79,6 @@ Screens:
             - btnInactivosCpl:
                 Control: Classic/Button@2.2.0
                 Properties:
-                  AccessibleLabel: =If(varInactCpl, "Ocultar localizadores inactivos", "Incluir localizadores inactivos")
                   BorderColor: =If(varInactCpl, gblC.teal, gblC.borde)
                   BorderThickness: =1
                   Color: =If(varInactCpl, gblC.teal, gblC.ink2)
