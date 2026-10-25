@@ -136,6 +136,11 @@ Screens:
                           // Cada consulta es delegable (lookup por PK + booleano + tramo constante). Los datos de la cuenta
                           // se hornean navegando '[AS] Cuenta' (lo resuelve el servidor); el orden (tipo, cliente) es en memoria.
                           Set(varAgeCpl, ThisItem);
+                          // El panel se abre ENSEGUIDA con «⏳ Cargando…» (la cartera tarda unos segundos) y los filtros en cero.
+                          Set(varTipoCpl, "Todas"); Set(varBuscaAsigCpl, "");
+                          Reset(drpTipoCpl); Reset(txtBuscaAsigCpl);
+                          Set(varCargandoCpl, true);
+                          Set(varPanelCpl, true);
                           Set(varNAsigCpl, CountIf('CM | TBL | Asignacions',
                               '[AS] Agente'.'CM | TBL | Agente' = varAgeCpl.'CM | TBL | Agente' && '[AS] Estado' = true));
                           Clear(colAsigCpl);
@@ -148,6 +153,7 @@ Screens:
                                       && '[AS] Tramo' = T.Value),
                                   clienteCpl, Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
                                   ult4Cpl, Coalesce(ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
+                                  cifCpl, Coalesce(ThisRecord.'[AS] Cuenta'.'CIF Cliente', ""),
                                   moraCpl, Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
                                   nioCpl, Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO', 0),
                                   usdCpl, Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD', 0),
@@ -165,6 +171,7 @@ Screens:
                                       && '[AS] Tramo' = Blank()),
                                   clienteCpl, Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
                                   ult4Cpl, Coalesce(ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
+                                  cifCpl, Coalesce(ThisRecord.'[AS] Cuenta'.'CIF Cliente', ""),
                                   moraCpl, Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
                                   nioCpl, Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO', 0),
                                   usdCpl, Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD', 0),
@@ -175,7 +182,7 @@ Screens:
                                       4)
                               )
                           );
-                          Set(varPanelCpl, true)
+                          Set(varCargandoCpl, false)
                         ShowScrollbar: =false
                         TemplateFill: =If(ThisItem.IsSelected && varPanelCpl, gblC.tealSuave, gblC.card)
                         TemplatePadding: =0
@@ -489,11 +496,74 @@ Screens:
                     =// Desglose de lo cargado en el panel (mismo origen que la lista de abajo).
                     "Diarias " & CountIf(colAsigCpl, ordCpl = 1) &
                         " · Incobrables " & CountIf(colAsigCpl, ordCpl = 2) &
-                        " · Especiales " & CountIf(colAsigCpl, ordCpl = 3)
+                        " · Especiales " & CountIf(colAsigCpl, ordCpl = 3) &
+                        If(varTipoCpl = "Todas" && IsBlank(varBuscaAsigCpl), "", " · mostrando " & galAsigCpl.AllItemsCount)
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
                   X: =gblE.Pad
                   Y: =lblSubPanCpl.Y + lblSubPanCpl.Height + 2
+            - conFiltrosCpl:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Fill: =Color.Transparent
+                  Height: =gblE.AltoInput
+                  LayoutDirection: =LayoutDirection.Horizontal
+                  LayoutGap: =gblE.PadSm
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =lblNTotalCpl.Y + lblNTotalCpl.Height + gblE.PadSm
+                Children:
+                  - drpTipoCpl:
+                      Control: Classic/DropDown@2.3.1
+                      Properties:
+                        AccessibleLabel: ="Tipo de asignación"
+                        BorderColor: =gblC.borde
+                        BorderThickness: =1
+                        ChevronBackground: =gblC.card
+                        ChevronFill: =gblC.ink2
+                        ChevronHoverBackground: =gblC.pantalla
+                        ChevronHoverFill: =gblC.teal
+                        Color: =gblC.ink
+                        Default: =Coalesce(varTipoCpl, "Todas")
+                        DisplayMode: =If(varCargandoCpl, DisplayMode.Disabled, DisplayMode.Edit)
+                        Fill: =gblC.card
+                        FillPortions: =0
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        HoverColor: =gblC.ink
+                        HoverFill: =gblC.pantalla
+                        Items: =["Todas", "Diarias", "Incobrables", "Especiales"]
+                        Items.Value: =Value
+                        OnChange: =Set(varTipoCpl, Coalesce(Self.Selected.Value, "Todas"))
+                        PressedColor: =gblC.card
+                        PressedFill: =gblC.teal
+                        SelectionColor: =gblC.card
+                        SelectionFill: =gblC.teal
+                        Size: =10
+                        Width: =150
+                  - txtBuscaAsigCpl:
+                      Control: Classic/TextInput@2.3.2
+                      Properties:
+                        AccessibleLabel: ="Buscar por CIF, nombre del cliente o últimos 4 de la cuenta"
+                        BorderColor: =gblC.borde
+                        Default: =""
+                        DelayOutput: =true
+                        DisplayMode: =If(varCargandoCpl, DisplayMode.Disabled, DisplayMode.Edit)
+                        Fill: =gblC.card
+                        FillPortions: =1
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        HintText: ="🔍 CIF, cliente o últimos 4"
+                        OnChange: =Set(varBuscaAsigCpl, Trim(Self.Text))
+                        RadiusBottomLeft: =10
+                        RadiusBottomRight: =10
+                        RadiusTopLeft: =10
+                        RadiusTopRight: =10
+                        Size: =10
             - galAsigCpl:
                 Control: Gallery@2.15.0
                 Variant: Vertical
@@ -505,8 +575,18 @@ Screens:
                   FocusedBorderThickness: =2
                   Height: =btnCerrarPanCpl.Y - gblE.PadSm - Self.Y
                   Items: |-
-                    =// En memoria (colección ya cargada): por tipo (Diaria, Incobrable, Especial) y después cliente.
-                    Sort(colAsigCpl, Text(ordCpl) & "|" & clienteCpl)
+                    =// En memoria (la colección ya trae la cartera COMPLETA por tramos): filtro de tipo y búsqueda por CIF, nombre del
+                    // cliente o últimos 4 (APP-41); orden por tipo (Diaria, Incobrable, Especial) y después cliente.
+                    Sort(
+                        Filter(colAsigCpl,
+                            (varTipoCpl = "Todas"
+                                || (varTipoCpl = "Diarias" && ordCpl = 1)
+                                || (varTipoCpl = "Incobrables" && ordCpl = 2)
+                                || (varTipoCpl = "Especiales" && ordCpl = 3))
+                            && (IsBlank(varBuscaAsigCpl)
+                                || StartsWith(cifCpl, varBuscaAsigCpl) || varBuscaAsigCpl in clienteCpl
+                                || EndsWith(ult4Cpl, varBuscaAsigCpl))),
+                        Text(ordCpl) & "|" & clienteCpl)
                   ShowScrollbar: =false
                   TemplateFill: =gblC.card
                   TemplatePadding: =0
@@ -514,7 +594,7 @@ Screens:
                   Visible: =CountRows(colAsigCpl) > 0
                   Width: =Parent.Width - 2*gblE.Pad
                   X: =gblE.Pad
-                  Y: =lblNTotalCpl.Y + lblNTotalCpl.Height + gblE.PadSm
+                  Y: =conFiltrosCpl.Y + conFiltrosCpl.Height + gblE.PadSm
                 Children:
                   - lblCliFilaCpl:
                       Control: Label@2.5.1
@@ -662,11 +742,28 @@ Screens:
                   Height: =40
                   PaddingLeft: =0
                   Size: =10
-                  Text: ="Este localizador no tiene asignaciones activas."
-                  Visible: =CountRows(colAsigCpl) = 0
+                  Text: |-
+                    =If(CountRows(colAsigCpl) = 0, "Este localizador no tiene asignaciones activas.",
+                        "Ninguna asignación coincide con el filtro.")
+                  Visible: =!varCargandoCpl && galAsigCpl.AllItemsCount = 0
                   Width: =Parent.Width - 2*gblE.Pad
                   X: =gblE.Pad
                   Y: =galAsigCpl.Y
+            - lblCargandoCpl:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Center
+                  Color: =gblC.teal
+                  Fill: =RGBA(255, 255, 255, 0.88)
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =btnCerrarPanCpl.Y - Self.Y - gblE.PadSm
+                  Size: =12
+                  Text: ="⏳ Cargando la cartera de " & varAgeCpl.'[AG] Nombre' & "…"
+                  Visible: =varCargandoCpl
+                  Width: =Parent.Width - 2*gblE.Pad
+                  X: =gblE.Pad
+                  Y: =lblNTotalCpl.Y
             - btnCerrarPanCpl:
                 Control: Classic/Button@2.2.0
                 Properties:
