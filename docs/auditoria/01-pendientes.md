@@ -87,6 +87,7 @@ Cerrados el 2026-10-24 (cobrador, scrPagos; verificados en la web con User5 y en
 - **APP-34**: hueco entre tarjetas en Pagos de hoy → una fila por pago en una galería de alto fijo; la tarjeta toma el ancho de la galería.
 - **APP-35**: «Pagos e interacciones» con pestañas, día elegible (‹ ›, calendario, hasta 90 días) y búsqueda por cliente o últimos dígitos.
 - **APP-36** (backoffice, Por transcribir): se veían 2 pagos (galería de 74 px fijos sin barra) y 4 campos de la actualización (tope de 4) → comentario, pagos y datos en una sola zona con desplazamiento, listas a alto completo y la cuenta de cada pago. Verificado en la web con User1 (IN-1363: 6 pagos y 7 campos), versión 0fb34e5.
+- **APP-37** (backoffice): «Transcritas hoy» pasa a **Transcritas**: día elegible (calendario, por defecto hoy), buscador por CIF, cliente, últimos dígitos de la tarjeta, localizador o N° INT, y combo «Grabó» (por defecto quien entra; «Todos» o cualquier otro BackOffice que haya grabado ese día). KPIs sobre lo que muestra la lista. Verificado en la web con User1 (8379af4); falta elegir otro grabador con datos de dos BackOffice.
 
 Cerrados el 2026-10-19:
 
