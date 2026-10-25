@@ -94,7 +94,7 @@ Screens:
                   - btnDiaAnt:
                       Control: Classic/Button@2.2.0
                       Properties:
-                        AccessibleLabel: ="Día anterior"
+                        Tooltip: ="Día anterior"
                         BorderColor: =gblC.cardBorder
                         BorderThickness: =1
                         Color: =gblC.ink
@@ -121,7 +121,7 @@ Screens:
                   - btnFechaPag:
                       Control: Classic/Button@2.2.0
                       Properties:
-                        AccessibleLabel: ="Elegir el día en el calendario"
+                        Tooltip: ="Elegir el día en el calendario"
                         BorderColor: =gblC.cardBorder
                         BorderThickness: =1
                         Color: =gblC.accent
@@ -144,7 +144,7 @@ Screens:
                   - btnDiaSig:
                       Control: Classic/Button@2.2.0
                       Properties:
-                        AccessibleLabel: ="Día siguiente"
+                        Tooltip: ="Día siguiente"
                         BorderColor: =gblC.cardBorder
                         BorderThickness: =1
                         Color: =gblC.ink
@@ -630,7 +630,7 @@ Screens:
                         - btnMesAnt:
                             Control: Classic/Button@2.2.0
                             Properties:
-                              AccessibleLabel: ="Mes anterior"
+                              Tooltip: ="Mes anterior"
                               BorderStyle: =BorderStyle.None
                               Color: =gblC.ink
                               DisabledColor: =gblC.cardBorder
@@ -661,7 +661,7 @@ Screens:
                         - btnMesSig:
                             Control: Classic/Button@2.2.0
                             Properties:
-                              AccessibleLabel: ="Mes siguiente"
+                              Tooltip: ="Mes siguiente"
                               BorderStyle: =BorderStyle.None
                               Color: =gblC.ink
                               DisabledColor: =gblC.cardBorder
@@ -721,7 +721,7 @@ Screens:
                         - btnCalDia:
                             Control: Classic/Button@2.2.0
                             Properties:
-                              AccessibleLabel: =Text(ThisItem.d, "dddd dd/mm/yyyy", "es-ES")
+                              Tooltip: =Text(ThisItem.d, "dddd dd/mm/yyyy", "es-ES")
                               BorderStyle: =BorderStyle.None
                               Color: =If(ThisItem.d = varPagFecha, gblC.white, Month(ThisItem.d) <> Month(varCalMes), gblC.muted, gblC.ink)
                               DisabledColor: =gblC.cardBorder
