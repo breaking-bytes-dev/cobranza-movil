@@ -173,7 +173,7 @@ Ninguno conoce la clave K ni escribe valores en trazas o mensajes de error.
 | `RepartoAsignacion` (2) | `asignacion`: Create y Update, **asíncrono** | `as_agenteid`, `as_estado`, `as_estadoaprobacion` | Reparto de la asignación al cobrador (o a la cartera sin cobrador): dueño, compartidos y revocación al anterior (C.3) |
 | `RepartoPorAgente` (1) | `agente`: Update, **asíncrono** | `ag_usuarioid` | DAT-08. Al vincular, cambiar o quitar el usuario, vuelve a escribir el mismo agente en sus asignaciones activas mal repartidas: eso dispara `RepartoAsignacion` en cada una (C.3) |
 | `ColumnasAsignacion` (1) | `asignacion`: Update | — (todas) | S-11. Cada rol escribe solo las columnas `as_*` de su pantalla: Localizador `as_orden`; Supervisor aprobación, agente, resolutor, motivo de rechazo, estado, motivo y fecha de cierre; Solicitante las de volver a pedir una Especial. Otro rol de CM: ninguna. El mensaje cita la columna, nunca el valor |
-| `CargaSobreAsignacion` (1) | `asignacion`: Update | `as_ultimacarga` (+ `PreImage`) | DAT-10: la carga **reabre** una Diaria o Incobrable cerrada por el sistema ("fuera de cartera" o "Reclasificada a …"); no reabre cierres de personas ni Especiales. DAT-31: no pisa `as_fechasignacion` si ya tenía valor |
+| `CargaSobreAsignacion` (1) | `asignacion`: Update | `as_ultimacarga` (+ `PreImage`) | DAT-10: la carga **reabre** una Diaria o Incobrable cerrada por el sistema ("fuera de cartera" o "Reclasificada a …"); no reabre cierres de personas ni Especiales. DAT-31: no pisa `as_fechasignacion` ni `as_fechaasignada` si ya tenían valor |
 | `Reclasificacion` (2) | `asignacion`: Create y Update, **PostOperation síncrono** | `as_ultimacarga`, `as_estado`, `as_tipo` (+ `PreImage`) | DAT-15 (DEC-021): una sola activa entre Diaria e Incobrable por cuenta; al llegar el otro tipo cierra la anterior con motivo "Reclasificada a {tipo}". Las Especiales conviven |
 | `InteraccionDelCobrador` (1) | `interaccion`: Create | — | DAT-13 + SEC-08: exige cuenta y agente; si la crea un cobrador, el agente es el **vinculado a su usuario** (lo pone el servidor) y nace Pendiente de grabar |
 | `GrabacionInteraccion` (1) | `interaccion`: Update | — (todas) (+ `PreImage`) | DAT-11: una Grabada no se vuelve a grabar ni cambia su código; Grabado exige código; fecha y usuario de grabación los pone el servidor; el BackOffice escribe solo las columnas de grabación |
@@ -630,7 +630,8 @@ y `cuentapan`, y referencia de `interaccion`, `pago` y `cargadiaria`.
 |--------------|--------|------|---------|
 | Días de mora | `sanic_cm_ct_diasmora` | Whole Number (>= 0) | `DiasMora` |
 | Nivel de mora | `sanic_cm_ct_nivelmora` | Whole Number (>= 0) | `NivelMora` |
-| Fecha último pago | `sanic_cm_ct_fechaultimopago` | DateTime (Date and Time, hora local) | `FechaUltimoPago` |
+| Fecha último pago | `sanic_cm_ct_fechaultimopago` | DateTime (Date and Time, hora local) | `FechaUltimoPago` — **en desuso** desde 2026-10-25 (Dataverse no deja cambiarla a DateOnly); se sigue llenando |
+| **Último pago** | `sanic_cm_ct_ultimopago` | **DateOnly** (sin zona) | `FechaUltimoPago` — la que usan las apps desde 2026-10-25 |
 | Fecha de pago | `sanic_cm_ct_fechapago` | **Text(100)** | `FechaPago` — **es texto, no fecha**; en DEV mezcla `20/07/2026` y `2026-07-17` (DAT-26) |
 | Ciclo | `sanic_cm_ct_ciclo` | Text(10) | `Ciclo` |
 | Tipo de asignación | `sanic_cm_ct_tipoasignacion` | Text(200) | `TipoAsignacion` (`Diaria`/`Incobrable`/`Especial`); texto. La `asignacion` toma el tipo directo del CSV, no de acá. **Solo carga**, nadie la lee (DAT-30, 2026-10-15) |
@@ -920,8 +921,9 @@ aprobación (solo relevante para las Especiales).
 | Tipo | `sanic_cm_as_tipo` | Choice `sanic_choice_cm_tipoasignacion`: **1 Diaria**, **2 Incobrable**, **3 Especial** (def. **3**) | — | Ciclo de vida por tipo. |
 | Estado | `sanic_cm_as_estado` | **Yes/No** (Sí = **Activa**, No = **Cerrada**; def. Sí) | — | Vigencia. (No es un Choice como decía el catálogo anterior.) |
 | Orden | `sanic_cm_as_orden` | Whole Number (-1 a 4000) | — | Prioridad del localizador; el cobrador la cambia desde la app, también sin conexión. **Smelter no la escribe.** |
-| Fecha de asignación | `sanic_cm_as_fechasignacion` | DateTime | — | Smelter la mapea con `FechaCarga` en cada upsert, pero desde el 2026-10-14 el plugin `CargaSobreAsignacion` **no la pisa si ya tenía valor** (DAT-31): queda la fecha de alta, y la fecha de solicitud de una Especial del CSV ya no se pierde. |
-| Última carga | `sanic_cm_as_ultimacarga` | DateTime | — | = `FechaCarga`; la setea el import en cada upsert. Base de la reconciliación (DEC-018). |
+| Fecha de asignación | `sanic_cm_as_fechasignacion` | DateTime — **en desuso** desde 2026-10-25 (Dataverse no deja cambiarla a DateOnly; ver Fecha asignada); se sigue llenando | — | Smelter la mapea con `FechaCarga` en cada upsert, pero desde el 2026-10-14 el plugin `CargaSobreAsignacion` **no la pisa si ya tenía valor** (DAT-31): queda la fecha de alta, y la fecha de solicitud de una Especial del CSV ya no se pierde. |
+| Última carga | `sanic_cm_as_ultimacarga` | **DateOnly** (desde 2026-10-25; antes UserLocal a medianoche UTC) | — | = `FechaCarga`; la setea el import en cada upsert. Base de la reconciliación (DEC-018): se compara día contra día. |
+| **Fecha asignada** | `sanic_cm_as_fechaasignada` | **DateOnly** | — | Reemplaza a «Fecha de asignación» en las apps (2026-10-25). Carga: `FechaCarga` (DAT-31: no se pisa). Especial pedida en la app: el día local de quien pide (`SolicitarEspecial`, zona de su configuración). El momento exacto del pedido es `createdon`. |
 | Motivo | `sanic_cm_as_motivo` | Text(500) | — | Motivo de cierre (Reconciliación o Cierres). |
 | Fecha de cierre | `sanic_cm_as_fechacierre` | DateTime | — | Cuándo se cerró. |
 | Retiro NIO / USD | `sanic_cm_as_retironio` / `sanic_cm_as_retirousd` | Decimal(2), 0 a 1 000 000 000 | — | Retiro **de la solicitud Especial** (Solicitante). No los llena Smelter. |
@@ -946,7 +948,7 @@ aprobación (solo relevante para las Especiales).
 
 ### Import
 - **Table Mapping `Asignacion`**, **orden 5**. Dedup `as_clavepan + as_tipo`.
-- **Mapea:** `TipoAsignacion → as_tipo` (texto → Choice: Diaria 1, Incobrable 2, Especial 3), `FechaCarga → as_fechasignacion` y `→ as_ultimacarga`,
+- **Mapea:** `TipoAsignacion → as_tipo` (texto → Choice: Diaria 1, Incobrable 2, Especial 3), `FechaCarga → as_fechasignacion`, `→ as_fechaasignada` y `→ as_ultimacarga`,
   `HMAC(NumeroCuenta) → as_clavepan`; lookups `Cuenta` (HMAC → `ct_clavepan`) y `Agente` (`ag_nombre`).
 - **NO mapea** `as_estado` (nace Activa por el default), **`as_estadoaprobacion`** (nace **Pendiente aprobación** por el default de la columna: una Especial nueva
   del CSV entra sola en la cola del Supervisor y, como no se manda, **la carga diaria no pisa** una ya aprobada, DEC-022), `as_orden`, `as_motivo`, retiro ni notas.
