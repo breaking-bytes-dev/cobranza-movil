@@ -160,8 +160,16 @@ try:
     for intento in range(10):
         try:
             for l in pac('solution', 'import', '--path', deploy, '--force-overwrite', '--publish-changes')[-3:]: print(' ', l)
-            json.dump({'version': VERSION, 'importado': datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'),
-                       'apps': [n for _, n, _ in APPS]}, open(os.path.join(RAIZ, 'local', 'version-desplegada.json'), 'w'), indent=1)
+            # Versión por app (cobrador / backoffice): con --parche solo cambia la que va en el parche; la otra conserva la suya.
+            arch = os.path.join(RAIZ, 'local', 'version-desplegada.json')
+            try: previo = json.load(open(arch))
+            except (OSError, ValueError): previo = {}
+            ahora = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
+            por_app = previo.get('por_app') or {c: {'version': previo['version'], 'importado': previo['importado']}
+                                                 for c in ('cobrador', 'backoffice') if previo.get('version')}
+            for carpeta, n, _ in APPS:
+                if n in msapps: por_app['cobrador' if 'localizador' in carpeta else 'backoffice'] = {'version': VERSION, 'importado': ahora}
+            json.dump({'version': VERSION, 'importado': ahora, 'apps': list(msapps), 'por_app': por_app}, open(arch, 'w'), indent=1)
             print('  versión desplegada:', VERSION, '(local/version-desplegada.json)')
             break
         except SystemExit as e:

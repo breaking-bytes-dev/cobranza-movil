@@ -27,7 +27,9 @@ function sello(texto) {
 // abrir(): abre la app y la devuelve. leer(app): texto del sello; `undefined` = este diseño no lo muestra (no se verifica),
 // null o un texto distinto = no coincide. cerrar(app): cierra lo que abrió abrir().
 async function abrirVerificada(nombre, { abrir, leer, cerrar }) {
-  const esp = esperada();
+  // Con el despliegue por parche (paso7 --parche) cada app tiene su versión: por_app[nombre] manda si está.
+  const todo = esperada();
+  const esp = todo && ((todo.por_app && todo.por_app[nombre]) || todo);
   if (!esp || process.env.CM_SIN_VERSION) return abrir();
   const t0 = Date.now();
   for (let intento = 1; ; intento++) {

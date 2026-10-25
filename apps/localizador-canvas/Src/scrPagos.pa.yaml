@@ -333,6 +333,7 @@ Screens:
                   TemplatePadding: =0
                   TemplateSize: =If(gblScale = 1, 70,gblScale = 1.2,80,gblScale = 1.45,94,110)
                   Visible: =varPagTab = "pagos"
+                  Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
                 Children:
                   - conPagRow:
                       Control: GroupContainer@1.5.0
@@ -466,6 +467,7 @@ Screens:
                   TemplatePadding: =0
                   TemplateSize: =If(gblScale = 1, 132,gblScale = 1.2,154,gblScale = 1.45,184,216)
                   Visible: =varPagTab = "inter"
+                  Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
                 Children:
                   - conIntRow:
                       Control: GroupContainer@1.5.0
@@ -600,7 +602,7 @@ Screens:
                 Properties:
                   DropShadow: =DropShadow.None
                   Fill: =gblC.surface
-                  Height: =conCalNav.Height + galSemana.Height + galCal.Height + lblCalNota.Height + conCalPie.Height + 32 + 4 * 8
+                  Height: =conCalNav.Height + galSemana.Height + galCal.Height + lblCalNota.Height + conCalPie.Height + 32 + 4 * 8 + 12
                   LayoutDirection: =LayoutDirection.Vertical
                   LayoutGap: =8
                   PaddingBottom: =16
