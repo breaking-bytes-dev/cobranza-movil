@@ -23,6 +23,23 @@ Screens:
         Set(varVigHes, "todas");
         Set(varVigAHes, true);
         Set(varVigBHes, false);
+        // APP-42: localizador, solicitante y buscador (CIF, cliente o últimos 4). Localizador y solicitante entran al Filter
+        // DIRECTO de la galería (delegable, sin tope de 2000); la búsqueda trae las Especiales resueltas de las cuentas que
+        // coinciden (btnBuscarHes) y sobre ellas aplica el resto de los filtros en memoria.
+        Set(varAgHes, "Todos los localizadores"); Set(varAgRecHes, Blank());
+        Set(varPideHes, "Todos los solicitantes"); Set(varPideRecHes, Blank());
+        Set(varBuscaHes, ""); Clear(colBuscaHes);
+        ClearCollect(colAgHes, {nom: "Todos los localizadores"});
+        Collect(colAgHes, ForAll(Sort('CM | TBL | Agentes', '[AG] Nombre'), {nom: ThisRecord.'[AG] Nombre'}));
+        // Solicitantes: el Filter delega; el Distinct sobre el lookup corre en memoria (hasta 2000 resueltas).
+        ClearCollect(colPideHes, {nom: "Todos los solicitantes"});
+        Collect(colPideHes, ForAll(Sort(Filter(Distinct(
+            Filter('CM | TBL | Asignacions',
+                '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                && ('[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado
+                    || '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Rechazada)),
+            '[AS] Solicitado por'.'Full Name') As D, !IsBlank(D.Value)), Value), {nom: Value}));
+        Reset(drpAgHes); Reset(drpPideHes); Reset(txtBuscaHes);
         Set(varPanelHes, false)
     Children:
       - cmpEncHes:
@@ -288,6 +305,127 @@ Screens:
                   Width: =92
                   X: =chpVigActHes.X + chpVigActHes.Width + 6
                   Y: =chpVigTodasHes.Y
+            - conFiltrosHes:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Fill: =Color.Transparent
+                  Height: =If(nfMovil, 4 * gblE.AltoInput + 3 * gblE.PadSm, gblE.AltoInput)
+                  LayoutDirection: =LayoutDirection.Horizontal
+                  LayoutGap: =gblE.PadSm
+                  LayoutWrap: =nfMovil
+                  Width: =Parent.Width
+                  Y: =chpVigTodasHes.Y + chpVigTodasHes.Height + gblE.PadSm
+                Children:
+                  - drpAgHes:
+                      Control: Classic/DropDown@2.3.1
+                      Properties:
+                        AccessibleLabel: ="Localizador"
+                        BorderColor: =gblC.borde
+                        BorderThickness: =1
+                        ChevronBackground: =gblC.card
+                        ChevronFill: =gblC.ink2
+                        ChevronHoverBackground: =gblC.pantalla
+                        ChevronHoverFill: =gblC.teal
+                        Color: =gblC.ink
+                        Default: =Coalesce(varAgHes, "Todos los localizadores")
+                        DisplayMode: =If(varCargandoHes, DisplayMode.Disabled, DisplayMode.Edit)
+                        Fill: =gblC.card
+                        FillPortions: =0
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        HoverColor: =gblC.ink
+                        HoverFill: =gblC.pantalla
+                        Items: =colAgHes
+                        Items.Value: =nom
+                        OnChange: |-
+                          =Set(varAgHes, Coalesce(Self.Selected.nom, "Todos los localizadores"));
+                          Set(varAgRecHes, If(varAgHes = "Todos los localizadores", Blank(), LookUp('CM | TBL | Agentes', '[AG] Nombre' = varAgHes)));
+                          Set(varPanelHes, false)
+                        PressedColor: =gblC.card
+                        PressedFill: =gblC.teal
+                        SelectionColor: =gblC.card
+                        SelectionFill: =gblC.teal
+                        Size: =10
+                        Width: =If(nfMovil, Parent.Width, 250)
+                  - drpPideHes:
+                      Control: Classic/DropDown@2.3.1
+                      Properties:
+                        AccessibleLabel: ="Solicitante"
+                        BorderColor: =gblC.borde
+                        BorderThickness: =1
+                        ChevronBackground: =gblC.card
+                        ChevronFill: =gblC.ink2
+                        ChevronHoverBackground: =gblC.pantalla
+                        ChevronHoverFill: =gblC.teal
+                        Color: =gblC.ink
+                        Default: =Coalesce(varPideHes, "Todos los solicitantes")
+                        DisplayMode: =If(varCargandoHes, DisplayMode.Disabled, DisplayMode.Edit)
+                        Fill: =gblC.card
+                        FillPortions: =0
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        HoverColor: =gblC.ink
+                        HoverFill: =gblC.pantalla
+                        Items: =colPideHes
+                        Items.Value: =nom
+                        OnChange: |-
+                          =Set(varPideHes, Coalesce(Self.Selected.nom, "Todos los solicitantes"));
+                          Set(varPideRecHes, If(varPideHes = "Todos los solicitantes", Blank(), LookUp(Users, 'Full Name' = varPideHes)));
+                          Set(varPanelHes, false)
+                        PressedColor: =gblC.card
+                        PressedFill: =gblC.teal
+                        SelectionColor: =gblC.card
+                        SelectionFill: =gblC.teal
+                        Size: =10
+                        Width: =If(nfMovil, Parent.Width, 230)
+                  - txtBuscaHes:
+                      Control: Classic/TextInput@2.3.2
+                      Properties:
+                        AccessibleLabel: ="Buscar por CIF, nombre del cliente o últimos 4 de la cuenta"
+                        BorderColor: =gblC.borde
+                        Default: =""
+                        DelayOutput: =true
+                        DisplayMode: =If(varCargandoHes, DisplayMode.Disabled, DisplayMode.Edit)
+                        Fill: =gblC.card
+                        FillPortions: =1
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        HintText: ="🔍 CIF, nombre del cliente o últimos 4 de la cuenta"
+                        LayoutMinWidth: =220
+                        OnChange: =Set(varBuscaHes, Trim(Self.Text)); Select(btnBuscarHes)
+                        RadiusBottomLeft: =10
+                        RadiusBottomRight: =10
+                        RadiusTopLeft: =10
+                        RadiusTopRight: =10
+                        Size: =10
+                        Width: =If(nfMovil, Parent.Width, 300)
+                  - btnLimpiarHes:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderColor: =gblC.borde
+                        BorderThickness: =1
+                        Color: =gblC.teal
+                        DisplayMode: =If(varCargandoHes, DisplayMode.Disabled, DisplayMode.Edit)
+                        Fill: =gblC.card
+                        FillPortions: =0
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        OnSelect: |-
+                          =Set(varAgHes, "Todos los localizadores"); Set(varAgRecHes, Blank());
+                          Set(varPideHes, "Todos los solicitantes"); Set(varPideRecHes, Blank());
+                          Set(varBuscaHes, ""); Clear(colBuscaHes);
+                          Reset(drpAgHes); Reset(drpPideHes); Reset(txtBuscaHes);
+                          Set(varPanelHes, false)
+                        Size: =10
+                        Text: ="Limpiar"
+                        Tooltip: ="Todos los localizadores y solicitantes, sin búsqueda"
+                        Width: =If(nfMovil, Parent.Width, 90)
             - lblTotalHes:
                 Control: Label@2.5.1
                 Properties:
@@ -300,16 +438,20 @@ Screens:
                   PaddingLeft: =0
                   Size: =10
                   Text: |-
-                    =// Conteo EXACTO directo al datasource (CountIf delega): mismo predicado que la galería.
-                    CountIf('CM | TBL | Asignacions',
-                        '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
-                        && ('[AS] Estado de aprobacion' = varAprAHes || '[AS] Estado de aprobacion' = varAprBHes)
-                        && ('[AS] Estado' = varVigAHes || '[AS] Estado' = varVigBHes)
-                        && 'Modified On' >= varDesdeHes)
+                    =// Conteo EXACTO directo al datasource (CountIf delega): mismo predicado que la galería. Con búsqueda, lo que muestra.
+                    If(IsBlank(varBuscaHes),
+                        CountIf('CM | TBL | Asignacions',
+                            '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                            && ('[AS] Estado de aprobacion' = varAprAHes || '[AS] Estado de aprobacion' = varAprBHes)
+                            && ('[AS] Estado' = varVigAHes || '[AS] Estado' = varVigBHes)
+                            && 'Modified On' >= varDesdeHes
+                            && (IsBlank(varAgRecHes) || '[AS] Agente'.'CM | TBL | Agente' = varAgRecHes.'CM | TBL | Agente')
+                            && (IsBlank(varPideRecHes) || '[AS] Solicitado por'.User = varPideRecHes.User)),
+                        galHes.AllItemsCount)
                     & " especiales resueltas · últimos " & varDiasHes & " días"
                   Width: =Parent.Width
                   Wrap: =false
-                  Y: =chpVigTodasHes.Y + chpVigTodasHes.Height + gblE.PadSm
+                  Y: =conFiltrosHes.Y + conFiltrosHes.Height + gblE.PadSm
             - conListaHes:
                 Control: GroupContainer@1.5.0
                 Variant: ManualLayout
@@ -339,13 +481,27 @@ Screens:
                           // constante y Sort por columna. El rango va sobre 'Modified On' (siempre presente: en una
                           // Especial resuelta el último cambio es la resolución o el cierre); '[AS] Fecha de
                           // Asignacion' puede venir vacía y la pisa la carga diaria (DAT-31).
-                          Sort(
-                              Filter('CM | TBL | Asignacions',
-                                  '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
-                                  && ('[AS] Estado de aprobacion' = varAprAHes || '[AS] Estado de aprobacion' = varAprBHes)
-                                  && ('[AS] Estado' = varVigAHes || '[AS] Estado' = varVigBHes)
-                                  && 'Modified On' >= varDesdeHes),
-                              'Modified On', SortOrder.Descending)
+                          // APP-42: sin búsqueda, consulta DIRECTA con localizador y solicitante (pagina sola, sin tope); con búsqueda,
+                          // las Especiales de las cuentas que coinciden (colBuscaHes) con los mismos filtros en memoria.
+                          If(IsBlank(varBuscaHes),
+                              Sort(
+                                  Filter('CM | TBL | Asignacions',
+                                      '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                                      && ('[AS] Estado de aprobacion' = varAprAHes || '[AS] Estado de aprobacion' = varAprBHes)
+                                      && ('[AS] Estado' = varVigAHes || '[AS] Estado' = varVigBHes)
+                                      && 'Modified On' >= varDesdeHes
+                                      && (IsBlank(varAgRecHes) || '[AS] Agente'.'CM | TBL | Agente' = varAgRecHes.'CM | TBL | Agente')
+                                      && (IsBlank(varPideRecHes) || '[AS] Solicitado por'.User = varPideRecHes.User)),
+                                  'Modified On', SortOrder.Descending),
+                              Sort(
+                                  Filter(colBuscaHes,
+                                      '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                                      && ('[AS] Estado de aprobacion' = varAprAHes || '[AS] Estado de aprobacion' = varAprBHes)
+                                      && ('[AS] Estado' = varVigAHes || '[AS] Estado' = varVigBHes)
+                                      && 'Modified On' >= varDesdeHes
+                                      && (IsBlank(varAgRecHes) || '[AS] Agente'.'CM | TBL | Agente' = varAgRecHes.'CM | TBL | Agente')
+                                      && (IsBlank(varPideRecHes) || '[AS] Solicitado por'.User = varPideRecHes.User)),
+                                  'Modified On', SortOrder.Descending))
                         OnSelect: =Set(varPanelHes, true)
                         ShowScrollbar: =false
                         TemplateFill: =If(ThisItem.IsSelected && varPanelHes, gblC.tealSuave, gblC.card)
@@ -557,6 +713,19 @@ Screens:
                               Width: =Parent.TemplateWidth
                               X: =0
                               Y: =0
+                  - lblCargandoHes:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =Align.Center
+                        Color: =gblC.teal
+                        Fill: =RGBA(255, 255, 255, 0.88)
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =Parent.Height
+                        Size: =12
+                        Text: ="⏳ Buscando las especiales de «" & varBuscaHes & "»…"
+                        Visible: =varCargandoHes
+                        Width: =Parent.Width
                   - cmpVacioHes:
                       Control: CanvasComponent
                       ComponentName: cmpVacio
@@ -566,10 +735,38 @@ Screens:
                           ="📜"
                         Mensaje: ="Probá con otro rango de fechas u otro filtro."
                         Titulo: ="Sin especiales resueltas"
-                        Visible: =galHes.AllItemsCount = 0
+                        Visible: =galHes.AllItemsCount = 0 && !varCargandoHes
                         Width: =Min(420, Parent.Width - 2*gblE.Pad)
                         X: =(Parent.Width - Self.Width) / 2
                         Y: =(Parent.Height - Self.Height) / 2
+      - btnBuscarHes:
+          Control: Classic/Button@2.2.0
+          Properties:
+            OnSelect: |-
+              =// Búsqueda por CIF (empieza con), nombre del cliente (contiene) o últimos 4: primero las cuentas (una consulta a
+              // Cuentas, hasta 50) y después sus Especiales resueltas, una consulta por cuenta (delegables). El resto de los filtros
+              // (estado, vigencia, días, localizador, solicitante) los aplica la galería en memoria sobre colBuscaHes.
+              Set(varPanelHes, false);
+              Clear(colBuscaHes);
+              If(!IsBlank(varBuscaHes),
+                  Set(varCargandoHes, true);
+                  ClearCollect(colCtaHes,
+                      FirstN(Filter('CM | TBL | Cuentas',
+                          StartsWith('CIF Cliente', varBuscaHes) || varBuscaHes in 'Nombre Cliente' || 'Últimos 4' = varBuscaHes), 51));
+                  ForAll(FirstN(colCtaHes, 50) As C,
+                      Collect(colBuscaHes,
+                          Filter('CM | TBL | Asignacions',
+                              '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
+                              && ('[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado
+                                  || '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Rechazada)
+                              && '[AS] Cuenta'.'CM | TBL | Cuenta' = C.'CM | TBL | Cuenta')));
+                  If(CountRows(colCtaHes) > 50,
+                      Notify("Más de 50 cuentas coinciden con la búsqueda: se buscó en las primeras 50. Escribí más del CIF o del nombre.", NotificationType.Warning));
+                  Set(varCargandoHes, false)
+              )
+            Height: =1
+            Visible: =false
+            Width: =1
       - recScrimHes:
           Control: Rectangle@2.3.0
           Properties:
