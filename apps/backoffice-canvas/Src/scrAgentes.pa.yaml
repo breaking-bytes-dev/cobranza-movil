@@ -422,10 +422,10 @@ Screens:
                   FocusedBorderColor: =gblC.teal
                   FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
-                  Height: =28
+                  Height: =If(nfMovil, 44, 28)
                   PaddingLeft: =0
                   Size: =9
-                  Text: ="Desactivar un agente NO cierra sus asignaciones — eso se hace en Cierres/Reconciliación."
+                  Text: ="Desactivar un agente bloquea al cobrador en la app (no puede registrar visitas ni pagos), pero NO cierra ni mueve sus asignaciones: reasignalas en Reasignar."
                   Width: =Parent.Width
                   Y: =conListaAge.Y + conListaAge.Height + gblE.PadSm
       - recScrimAge:
