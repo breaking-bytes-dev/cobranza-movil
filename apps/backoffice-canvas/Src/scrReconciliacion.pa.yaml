@@ -315,7 +315,10 @@ Screens:
                         Height: =22
                         PaddingLeft: =0
                         Size: =9
-                        Text: ="Mostrando las primeras " & CountRows(colDesapRec) & " — el cierre en lote procesa lo listado; repetí hasta vaciar"
+                        Text: |-
+                          =If(nfCierreServidor,
+                              "Mostrando las primeras " & CountRows(colDesapRec) & " de " & varNDesapRec & " — el cierre en lote cierra las " & varNDesapRec,
+                              "Mostrando las primeras " & CountRows(colDesapRec) & " — el cierre en lote procesa lo listado; repetí hasta vaciar")
                         Visible: =varNDesapRec > CountRows(colDesapRec)
                         Width: =Parent.Width - 2*gblE.Pad
                         Wrap: =false
@@ -541,7 +544,7 @@ Screens:
                       Properties:
                         BorderThickness: =0
                         Color: =If(varRojoRec, Color.White, gblC.redInk)
-                        DisabledColor: =Color.White
+                        DisabledColor: =ColorFade(gblC.redInk, 25%)
                         DisabledFill: =ColorFade(gblC.redBg, 60%)
                         DisplayMode: |-
                           =// Con la alerta roja (más del 30%) hay que escribir la cantidad: un clic suelto ya no cierra (APP-48).
