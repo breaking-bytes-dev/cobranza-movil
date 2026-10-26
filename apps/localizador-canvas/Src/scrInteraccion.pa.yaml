@@ -39,7 +39,17 @@ Screens:
                     FirstN(Filter('CM | TBL | Asignacions', '[AS] Estado' = true && ('[AS] Tipo' <> 'Choice | CM | Tipo asignacion'.Especial || '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado) && '[AS] Cuenta'.'CM | TBL | Cuenta' = C.'CM | TBL | Cuenta'), 1),
                     cta,      C,
                     esActual, C.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta',
-                    sel,      C.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta')))
+                    sel,      C.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta')));
+        // APP-49: mensajes rápidos desde 'CM | TBL | Opciones de lista' (los edita el Admin; la tabla está en el perfil sin
+        // conexión, llega en la próxima sincronización). Sin filas (todavía no sincronizó o falló), los de siempre.
+        // En la pantalla van los 6 primeros; todos, con buscador, en la hoja «Ver los N» (escala a muchos y a 100 caracteres).
+        ClearCollect(colMsjInt,
+            IfError(ForAll(Sort(Filter('CM | TBL | Opciones de lista',
+                '[OL] Lista' = '[OL] Lista (CM | TBL | Opciones de lista)'.'Mensaje rápido' && '[OL] Activa' = true), '[OL] Orden'),
+                {Value: ThisRecord.'[OL] Texto'}), Blank()));
+        If(CountRows(colMsjInt) = 0,
+            ClearCollect(colMsjInt, ["Promesa de pago","No localizado","Cliente pagó","No tiene dinero hoy","Negocio cerrado","Pidió arreglo"]));
+        Set(varVerMsj, false)
     Children:
       - conMaster_4:
           Control: GroupContainer@1.5.0
@@ -293,49 +303,81 @@ Screens:
                 Control: Gallery@2.15.0
                 Variant: Vertical
                 Properties:
-                  Width: =conMaster_4.Width - conMaster_4.PaddingLeft - conMaster_4.PaddingRight
                   FillPortions: =0
-                  Height: |-
-                    =// APP-49: grilla de 2 columnas que crece con la cantidad de mensajes (antes: horizontal de 3 filas fijas y el
-                    // 7.º quedaba fuera de la pantalla). El alto del chip escala con el tamaño de letra («Aa»).
-                    RoundUp(Self.AllItemsCount / 2, 0) * Self.TemplateHeight
-                  Items: |-
-                    =// APP-49: mensajes rápidos desde 'CM | TBL | Opciones de lista' (los edita el Admin; la tabla está en el perfil
-                    // sin conexión, llega en la próxima sincronización). Sin filas (todavía no sincronizó o falló), los de siempre.
-                    With({o: IfError(Sort(Filter('CM | TBL | Opciones de lista',
-                            '[OL] Lista' = '[OL] Lista (CM | TBL | Opciones de lista)'.'Mensaje rápido' && '[OL] Activa' = true), '[OL] Orden'), Blank())},
-                        If(CountRows(o) = 0,
-                            ["Promesa de pago","No localizado","Cliente pagó","No tiene dinero hoy","Negocio cerrado","Pidió arreglo"],
-                            ForAll(o, {Value: ThisRecord.'[OL] Texto'})))
+                  Height: =Self.AllItemsCount * Self.TemplateHeight
+                  Items: =FirstN(colMsjInt, 6)
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
                   ShowScrollbar: =false
-                  TemplatePadding: =5
-                  TemplateSize: =Max(44, Round(gblT.fsm * 3.6, 0))
-                  WrapCount: =2
+                  TemplatePadding: =0
+                  TemplateSize: |-
+                    =// Un mensaje por fila, a lo ancho, hasta 2 líneas (100 caracteres); el alto escala con «Aa».
+                    Round(gblT.fsm * 3.4 + 14, 0) + 8
+                  Width: =conMaster_4.Width - conMaster_4.PaddingLeft - conMaster_4.PaddingRight
                 Children:
-                  - Button11:
-                      Control: Classic/Button@2.2.0
+                  - conChip:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
                       Properties:
                         BorderColor: =gblC.borderSoft
                         BorderThickness: =1
-                        Color: =gblC.accent
+                        DropShadow: =DropShadow.None
                         Fill: =gblC.chipBg
-                        FontWeight: =FontWeight.Semibold
-                        Height: =Parent.TemplateHeight - 10
-                        HoverFill: =ColorFade(gblC.chipBg, -8%)
-                        OnSelect: |-
-                          =Set(varCom, With({ t: Trim(txtComentario.Text) }, If(IsBlank(t), ThisItem.Value, t & ". " & ThisItem.Value)))
-                        PaddingLeft: =10
-                        PaddingRight: =10
-                        PressedFill: =ColorFade(gblC.chipBg, -15%)
-                        RadiusBottomLeft: =20
-                        RadiusBottomRight: =20
-                        RadiusTopLeft: =20
-                        RadiusTopRight: =20
-                        Size: =gblT.fsm
-                        Text: =ThisItem.Value
-                        Width: =Parent.TemplateWidth - 10
+                        Height: =Round(gblT.fsm * 3.4 + 14, 0)
+                        RadiusBottomLeft: =14
+                        RadiusBottomRight: =14
+                        RadiusTopLeft: =14
+                        RadiusTopRight: =14
+                        Width: =Parent.TemplateWidth
+                      Children:
+                        - lblChip:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.accent
+                              FontWeight: =FontWeight.Semibold
+                              Height: =Parent.Height
+                              PaddingLeft: =14
+                              PaddingRight: =14
+                              Size: =gblT.fsm
+                              Text: =ThisItem.Value
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =Parent.Width
+                        - Button11:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderThickness: =0
+                              Color: =Color.Transparent
+                              Fill: =Color.Transparent
+                              Height: =Parent.Height
+                              HoverFill: =RGBA(0, 0, 0, 0.04)
+                              OnSelect: |-
+                                =Set(varCom, With({ t: Trim(txtComentario.Text) }, If(IsBlank(t), ThisItem.Value, t & ". " & ThisItem.Value)))
+                              PressedFill: =RGBA(0, 0, 0, 0.08)
+                              Text: =""
+                              Tooltip: =ThisItem.Value
+                              Width: =Parent.Width
+            - btnVerMsj:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  AlignInContainer: =AlignInContainer.Stretch
+                  BorderColor: =gblC.accent
+                  BorderThickness: =1
+                  Color: =gblC.accent
+                  Fill: =gblC.surface
+                  FontWeight: =FontWeight.Semibold
+                  Height: =Max(42, Round(gblT.fbase * 3, 0))
+                  HoverFill: =gblC.chipBg
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  OnSelect: =Reset(txtBuscaMsj); Set(varVerMsj, true)
+                  PressedFill: =gblC.chipBg
+                  RadiusBottomLeft: =14
+                  RadiusBottomRight: =14
+                  RadiusTopLeft: =14
+                  RadiusTopRight: =14
+                  Size: =gblT.fsm
+                  Text: ="💬 Ver los " & CountRows(colMsjInt) & " mensajes rápidos"
+                  Visible: =CountRows(colMsjInt) > 6
             - cardSelProd:
                 Control: GroupContainer@1.5.0
                 Variant: AutoLayout
@@ -1416,3 +1458,160 @@ Screens:
             Height: =Parent.Height
             Visible: =varSheetEscala
             Width: =Parent.Width
+      - conMsjSheet:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            DropShadow: =DropShadow.None
+            Fill: =RGBA(16, 24, 40, 0.45)
+            Height: =Parent.Height
+            Visible: =varVerMsj
+            Width: =Parent.Width
+          Children:
+            - btnFondoMsj:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderThickness: =0
+                  Color: =Color.Transparent
+                  Fill: =Color.Transparent
+                  Height: =conMsjCard.Y
+                  HoverFill: =Color.Transparent
+                  OnSelect: =Set(varVerMsj, false)
+                  PressedFill: =Color.Transparent
+                  Text: =""
+                  Width: =Parent.Width
+            - conMsjCard:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.surface
+                  Height: =Parent.Height - Self.Y
+                  RadiusTopLeft: =22
+                  RadiusTopRight: =22
+                  Width: =Parent.Width
+                  Y: =Round(Parent.Height * 0.1, 0)
+                Children:
+                  - lblMsjTit:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink
+                        FontWeight: =FontWeight.Bold
+                        Height: =48
+                        Size: =gblT.fmd
+                        Text: ="Mensajes rápidos"
+                        Width: =Parent.Width - 80
+                        X: =16
+                        Y: =8
+                  - btnCerrarMsj:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderColor: =gblC.borderSoft
+                        BorderThickness: =1
+                        Color: =gblC.ink
+                        Fill: =gblC.surface
+                        Height: =44
+                        HoverFill: =gblC.chipBg
+                        OnSelect: =Set(varVerMsj, false)
+                        PaddingBottom: =0
+                        PaddingLeft: =0
+                        PaddingRight: =0
+                        PaddingTop: =0
+                        PressedFill: =gblC.chipBg
+                        RadiusBottomLeft: =22
+                        RadiusBottomRight: =22
+                        RadiusTopLeft: =22
+                        RadiusTopRight: =22
+                        Size: =gblT.fmd
+                        Text: ="✕"
+                        Tooltip: ="Cerrar"
+                        Width: =44
+                        X: =Parent.Width - Self.Width - 12
+                        Y: =10
+                  - txtBuscaMsj:
+                      Control: Classic/TextInput@2.3.2
+                      Properties:
+                        AccessibleLabel: ="Buscar mensaje rápido"
+                        BorderColor: =gblC.borderSoft
+                        BorderThickness: =1
+                        Color: =gblC.ink
+                        Default: =""
+                        DelayOutput: =true
+                        Fill: =gblC.surface
+                        FocusedBorderColor: =gblC.accent
+                        FocusedBorderThickness: =2
+                        Height: =Max(42, Round(gblT.fbase * 3, 0))
+                        HintText: ="🔍 Buscar…"
+                        RadiusBottomLeft: =10
+                        RadiusBottomRight: =10
+                        RadiusTopLeft: =10
+                        RadiusTopRight: =10
+                        Size: =gblT.fbase
+                        Width: =Parent.Width - 32
+                        X: =16
+                        Y: =lblMsjTit.Y + lblMsjTit.Height + 6
+                  - galMsj:
+                      Control: Gallery@2.15.0
+                      Variant: Vertical
+                      Properties:
+                        Height: =Parent.Height - Self.Y - 12
+                        Items: |-
+                          =With({b: Lower(Trim(txtBuscaMsj.Text))}, Filter(colMsjInt, IsBlank(b) || b in Lower(Value)))
+                        ShowScrollbar: =true
+                        TemplatePadding: =0
+                        TemplateSize: |-
+                          =// Un mensaje por fila, hasta 3 líneas (100 caracteres con la letra grande de «Aa»).
+                          Round(gblT.fsm * 4.6 + 18, 0)
+                        Width: =Parent.Width - 16
+                        X: =8
+                        Y: =txtBuscaMsj.Y + txtBuscaMsj.Height + 8
+                      Children:
+                        - lblMsjFila:
+                            Control: Label@2.5.1
+                            Properties:
+                              Color: =gblC.ink
+                              Height: =Parent.TemplateHeight - 1
+                              PaddingLeft: =12
+                              PaddingRight: =12
+                              Size: =gblT.fbase
+                              Text: =ThisItem.Value
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =Parent.TemplateWidth
+                        - recSepMsj:
+                            Control: GroupContainer@1.5.0
+                            Variant: ManualLayout
+                            Properties:
+                              BorderThickness: =0
+                              DropShadow: =DropShadow.None
+                              Fill: =gblC.cardBorder
+                              Height: =1
+                              Width: =Parent.TemplateWidth - 24
+                              X: =12
+                              Y: =Parent.TemplateHeight - 1
+                        - btnMsjFila:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderThickness: =0
+                              Color: =Color.Transparent
+                              Fill: =Color.Transparent
+                              Height: =Parent.TemplateHeight
+                              HoverFill: =RGBA(0, 0, 0, 0.04)
+                              OnSelect: |-
+                                =Set(varCom, With({ t: Trim(txtComentario.Text) }, If(IsBlank(t), ThisItem.Value, t & ". " & ThisItem.Value)));
+                                Set(varVerMsj, false)
+                              PressedFill: =RGBA(0, 0, 0, 0.08)
+                              Text: =""
+                              Tooltip: =ThisItem.Value
+                              Width: =Parent.TemplateWidth
+                  - lblSinMsj:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =Align.Center
+                        Color: =gblC.muted
+                        Height: =60
+                        Size: =gblT.fsm
+                        Text: ="No hay mensajes con «" & Trim(txtBuscaMsj.Text) & "»."
+                        Visible: =galMsj.AllItemsCount = 0
+                        Width: =Parent.Width - 32
+                        X: =16
+                        Y: =galMsj.Y + 12
