@@ -302,7 +302,7 @@ flowchart LR
 | Tabla | Crea | Cambia | Fin | Teléfono | Notas |
 |---|---|---|---|---|---|
 | **Carga diaria** | Smelter (una foto por día, idempotente) | Nadie | Un trabajo diario borra lo de más de 7 días (sección 9) | No | Monitoreo cuenta las de hoy; Reconciliación compara contra la última |
-| **Cliente** | Smelter; Admin en Maestros (anti-duplicado de CIF) | Smelter en cada carga; Admin (nombre y datos) | No se borra | Sí, lo compartido | Lo que edita el Admin lo pisa la carga siguiente; las apps leen el nombre de la cuenta (DAT-26) |
+| **Cliente** | Smelter; Admin en Maestros (anti-duplicado de CIF) | Smelter en cada carga; Admin (nombre y datos) | Se borra 2 días después de quedarse sin cuentas (sección 9) | Sí, lo compartido | Lo que edita el Admin lo pisa la carga siguiente; las apps leen el nombre de la cuenta (DAT-26) |
 | **Cuenta** | Solo Smelter | Smelter (saldos, mora, datos del cliente) | Se borra 14 días después de salir de cartera (sección 9) | Sí, lo compartido | Número enmascarado `****1234` |
 | **PAN de cuentas** (bóveda) | Solo Smelter | Nadie | Se borra con la cuenta (cascada) | Sí, lo compartido (por cascada) | Lee **BackOffice** (todo) y el cobrador (lo suyo, "Ver número", 30 s) |
 | **Dirección / Teléfono** | Smelter; Admin agrega | Smelter (clave CIF + tipo) | Se borra con el cliente (cascada) | Sí (por cascada del cliente) | No hay editar ni borrar en las apps |
