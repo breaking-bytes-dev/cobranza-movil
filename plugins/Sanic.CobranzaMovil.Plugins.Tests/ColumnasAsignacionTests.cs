@@ -5,9 +5,8 @@ using Xunit;
 namespace Sanic.CobranzaMovil.Plugins.Tests
 {
     /// <summary>
-    /// S-11: cada rol de CM escribe solo las columnas de la asignacion que usa su pantalla. Antes el Supervisor (Write
-    /// Global) podia cambiar cualquier columna de cualquier asignacion: cuenta, tipo, retiro, orden.
-    /// Sin roles de CM (la carga de Smelter, los plugins con el servicio del sistema) y Admin/Servicio no se frenan.
+    /// Cada rol de CM escribe solo las columnas de la asignacion que usa su pantalla, aunque el rol tenga Write global.
+    /// Sin roles de CM (la carga, los plugins con el servicio del sistema) y Admin/Servicio no se frenan.
     /// </summary>
     public class ColumnasAsignacionTests
     {
@@ -108,9 +107,8 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         [Fact]
         public void H1_el_Solicitante_no_edita_ninguna_columna_de_la_asignacion()
         {
-            // Matriz de roles H1 (dueno, 2026-10-19): volver a pedir una Especial cerrada lo hace SolicitarEspecial con el
-            // servicio del sistema (DAT-14); el Solicitante solo pide y lee. Antes editaba retiro y notas, y hasta cerraba
-            // la Especial que S-7 le compartia ya aprobada.
+            // Volver a pedir una Especial cerrada lo hace SolicitarEspecial con el servicio del sistema; el Solicitante
+            // solo pide y lee, no edita ni cierra la Especial que se le comparte.
             foreach (var columna in new[] { "sanic_cm_as_estado", "sanic_cm_as_estadoaprobacion", "sanic_cm_as_retironio",
                 "sanic_cm_as_retirousd", "sanic_cm_as_notas", "sanic_cm_as_solicitadopor", "sanic_cm_as_fechaasignada",
                 "sanic_cm_as_agenteid", "sanic_cm_as_resolutorid", "sanic_cm_as_motivo", "sanic_cm_as_motivorechazo",
@@ -162,7 +160,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         }
     
 
-        // ------------------------------------------------------------------ S-7: "Solicitado por"
+        // ------------------------------------------------------------------ "Solicitado por"
 
         private static Entity ConSolicitadoPor(Guid usuario)
         {

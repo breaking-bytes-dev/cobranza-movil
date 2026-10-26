@@ -9,8 +9,8 @@ namespace Sanic.CobranzaMovil.Plugins
     ///  - as_cuentaid informado y el Target sin as_clavepan  -> la copia de ct_clavepan de la cuenta.
     ///  - as_cuentaid informado y as_clavepan distinto        -> rechaza (nombra columnas, no valores).
     ///  - as_cuentaid borrado (null)                           -> no toca nada.
-    /// Asi el backoffice no tiene que escribir la clave desde el cliente (S-9). No conoce la clave K:
-    /// solo copia un HMAC que ya esta en la cuenta.
+    /// Asi el backoffice no tiene que escribir la clave desde el cliente. No conoce la clave del HMAC:
+    /// solo copia el HMAC que ya esta en la cuenta.
     ///
     /// Registro: PreOperation sincrono. Create, y Update filtrado por as_cuentaid y as_clavepan con una
     /// imagen previa "PreImage" que lleve as_cuentaid (para validar un Update que solo cambia as_clavepan).
@@ -66,16 +66,10 @@ namespace Sanic.CobranzaMovil.Plugins
             local.Trace("{0} ya coincide con la cuenta.", Esquema.AsignacionClavePan);
         }
 
-        /// <summary>
-        /// Cuenta contra la que validar. Prioriza la del Target; en un Update que solo toca as_clavepan usa
-        /// la de la imagen previa. Devuelve null si no hay cuenta o si el Target la esta borrando.
-        /// </summary>
-        // El upsert de Smelter referencia la cuenta por su clave alternativa (ct_clavepan). La doc no garantiza que en
-        // PreOperation la referencia ya traiga el Id: si no lo trae, la clave de la cuenta ES el valor de la referencia.
-        // Si la plataforma ya resolvio el Id POR esa clave, la clave de la cuenta sigue siendo el valor de la referencia (la
-        // clave alternativa es unica): se usa sin leer la cuenta, pero solo cuando escribe SYSTEM (la carga arma la
-        // referencia en codigo de confianza). A cualquier otro llamador con Id se le lee la cuenta como siempre: con un Id
-        // explicito la plataforma no tiene por que mirar la clave que acompana a la referencia (1.0.9.6).
+        // El upsert de Smelter referencia la cuenta por su clave alternativa (ct_clavepan) y en PreOperation la referencia
+        // puede no traer el Id: entonces la clave de la cuenta es el valor de la referencia. Con Id, ese valor solo se
+        // usa sin leer la cuenta cuando escribe SYSTEM (la carga arma la referencia en codigo de confianza); con un Id
+        // explicito de otro llamador la plataforma no valida la clave que lo acompana, asi que se lee la cuenta.
         private static string ClaveDeLaCuenta(LocalContext local, EntityReference cuenta)
         {
             object valor;
@@ -99,6 +93,10 @@ namespace Sanic.CobranzaMovil.Plugins
             return fila == null ? null : fila.GetAttributeValue<string>(Esquema.CuentaClavePan);
         }
 
+        /// <summary>
+        /// Cuenta contra la que validar. Prioriza la del Target; en un Update que solo toca as_clavepan usa
+        /// la de la imagen previa. Devuelve null si no hay cuenta o si el Target la esta borrando.
+        /// </summary>
         private static EntityReference ResolverCuenta(LocalContext local, Entity target)
         {
             if (target.Contains(Esquema.AsignacionCuentaId))

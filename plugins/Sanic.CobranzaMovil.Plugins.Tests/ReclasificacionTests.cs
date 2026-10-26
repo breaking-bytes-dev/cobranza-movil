@@ -8,7 +8,7 @@ using Xunit;
 namespace Sanic.CobranzaMovil.Plugins.Tests
 {
     /// <summary>
-    /// DAT-15 (DEC-021): una cuenta tiene una sola asignacion activa entre Diaria e Incobrable. Cuando la carga trae
+    /// Una cuenta tiene una sola asignacion activa entre Diaria e Incobrable. Cuando la carga trae
     /// la cuenta con el otro tipo, la anterior se cierra con motivo "Reclasificada a {tipo}". Las Especiales no se tocan.
     /// </summary>
     public class ReclasificacionTests

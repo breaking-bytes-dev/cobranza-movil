@@ -1,7 +1,6 @@
-// DAT-20 en vivo: Custom API sanic_cm_AltaCuenta llamada como User4 (Admin) y User2 (Solicitante), con datos QA y PAN
-// FICTICIOS (BIN 9999) que viven solo en memoria. El job se encola como lo hará la pantalla: estado En cola (0) tras la
-// espera, y el orquestador de Smelter lo procesa. Al final, limpieza con el prefijo QA de la suite.
-// Nunca imprime un PAN: toda salida pasa por sinPAN.
+// Custom API sanic_cm_AltaCuenta en vivo, llamada como User4 (Admin) y User2 (Solicitante), con datos QA y PAN FICTICIOS
+// (BIN 9999) que viven solo en memoria. El job queda En cola (0) como con la pantalla y lo procesa el orquestador de Smelter.
+// Al final limpia con el prefijo QA de la suite. Nunca imprime un PAN: toda salida pasa por sinPAN.
 const path = require('path');
 process.chdir(path.join(__dirname, '..'));
 const dv = require('../../backoffice-canvas/lib/dataverse');

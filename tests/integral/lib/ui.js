@@ -1,5 +1,5 @@
 // Helpers de UI de la suite integral: abrir/cerrar la app (UN solo Chromium a la vez), capturas seguras y filas de galería.
-// Reutiliza el arnés del backoffice (player.js, comun.js) y el del cobrador (localizador-canvas/lib/app.js).
+// Reutiliza el arnés del backoffice (player.js, comun.js) y el de la app del localizador (localizador-canvas/lib/app.js).
 const fs = require('fs');
 const path = require('path');
 const pl = require('../../backoffice-canvas/lib/player');
@@ -17,10 +17,10 @@ async function abrirBackoffice(usuario, etiqueta) {
   } catch (e) { await browser.close().catch(() => {}); throw e; }
 }
 
-// Abre la app del cobrador (web player) como User5 en un Chromium NUEVO.
-// Si la app no carga (F7 del 2026-10-19: no apareció cmpNav_1), se REINTENTA UNA vez: se cierra el contexto/página (el Chromium
-// de ese intento) y se vuelve a abrir. El reintento queda en el log (y como nota en el informe si se pasa `ctx`). Un sello de
-// versión distinto del desplegado NO se reintenta acá: version.js ya espera hasta 10 min y su error es real (`versionDistinta`).
+// Abre la app del localizador (web player) como User5 en un Chromium NUEVO.
+// Si la app no carga (no aparece cmpNav_1), se REINTENTA UNA vez cerrando y reabriendo el contexto. El reintento queda en el
+// log (y como nota en el informe si se pasa `ctx`). Un sello de versión distinto del desplegado NO se reintenta: version.js
+// ya espera hasta 10 min y su error es real (`versionDistinta`).
 async function abrirCobrador(ctx) {
   for (let intento = 1; ; intento++) {
     console.log(`  ··· abriendo la app del cobrador como user5 (carga en frío, 1 a 2 min)${intento > 1 ? ' — reintento' : ''}`);

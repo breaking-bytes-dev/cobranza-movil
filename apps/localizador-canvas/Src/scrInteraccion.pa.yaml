@@ -27,11 +27,10 @@ Screens:
         =UpdateContext({locPan: Blank(), locGuardando: false, locIntCreada: Blank(), locFechaCaptura: Blank(), locADGuardada: false, locConfirmaExceso: false, locConfirmaSinGps: false});
         Clear(colPagosGuardados);
         Clear(colIntGuardadas);
-        // APP-02: los productos salen del origen y no de colAsig (que solo existe si antes se pasó por la Cartera).
+        // Los productos salen del origen y no de colAsig (que solo existe si antes se pasó por la Cartera).
         // Una consulta por cuenta del cliente, con igualdad sobre el lookup: delegable (sin tope de filas).
-        // F7-07: UNA fila por cuenta (FirstN 1). La interacción y el pago son de la cuenta, no de la asignación: una cuenta
-        // con Diaria + Especial aprobada daba 2 filas "actual" bloqueadas → no se podía aplicar pago y se grababan 2
-        // interacciones iguales.
+        // UNA fila por cuenta (FirstN 1): la interacción y el pago son de la cuenta, no de la asignación. Una cuenta
+        // con Diaria + Especial aprobada daría 2 filas bloqueadas y se grabarían 2 interacciones iguales.
         Clear(colProdInt);
         ForAll(Filter('CM | TBL | Cuentas', 'CIF Cliente' = varCuenta.'CIF Cliente') As C,
             Collect(colProdInt,
@@ -40,8 +39,8 @@ Screens:
                     cta,      C,
                     esActual, C.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta',
                     sel,      C.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta')));
-        // APP-49: mensajes rápidos desde 'CM | TBL | Opciones de lista' (los edita el Admin; la tabla está en el perfil sin
-        // conexión, llega en la próxima sincronización). Sin filas (todavía no sincronizó o falló), los de siempre.
+        // Mensajes rápidos desde 'CM | TBL | Opciones de lista' (los edita el Admin; la tabla está en el perfil sin
+        // conexión, llega en la próxima sincronización). Sin filas (todavía no sincronizó o falló), los predeterminados.
         // En la pantalla van los 6 primeros; todos, con buscador, en la hoja «Ver los N» (escala a muchos y a 100 caracteres).
         ClearCollect(colMsjInt,
             IfError(ForAll(Sort(Filter('CM | TBL | Opciones de lista',
@@ -259,7 +258,7 @@ Screens:
                         PaddingLeft: =8
                         PaddingRight: =8
                         Size: =gblT.fxs
-                        # F5: lo pedido en la Especial va aparte y marcado; no reemplaza al saldo vencido
+                        # Lo pedido en la Especial va aparte y marcado; no reemplaza al saldo vencido
                         Text: |-
                           =With({e: LookUp('CM | TBL | Asignacions', '[AS] Cuenta'.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta' && '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial && '[AS] Estado' = true && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado)},
                               "⭐ Especial · retiro pedido: " & Moneda(e.'Retiro NIO', e.'Retiro USD'))
@@ -627,7 +626,7 @@ Screens:
                               TemplatePadding: =0
                               TemplateSize: |-
                                 =// Una tarjeta por pago: monto + moneda, y recibo + quitar. Controles clásicos con la letra de la
-                                // app (gblT): escalan con «Aa» (los modernos traían su propio tamaño y no escalaban).
+                                // app (gblT): escalan con «Aa» (los modernos traen su propio tamaño y no escalan).
                                 Max(42, Round(gblT.fbase * 3, 0)) * 2 + 8 + 24 + 10
                               Width: |-
                                 =// Relativo a la app: los contenedores automáticos estirados no informan su ancho real a las fórmulas.
@@ -1271,7 +1270,7 @@ Screens:
                   BorderStyle: =BorderStyle.None
                   Color: =gblC.white
                   DisplayMode: |-
-                    =// APP-02/09/10: todo pago con monto y recibo válido, recibos sin repetir, al menos un producto, y no mientras se guarda.
+                    =// Todo pago con monto y recibo válido, recibos sin repetir, al menos un producto, y no mientras se guarda.
                     With({
                         faltaComent:   IsBlank(Trim(txtComentario.Text)),
                         sinLineas:     tpPago.Value && CountRows(colLineasPago) = 0,
@@ -1295,33 +1294,33 @@ Screens:
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
                   OnSelect: |-
-                    =// APP-04/09: guardado con manejo de errores, una sola ejecución a la vez, y reintento idempotente:
-                    // el rol del cobrador no puede borrar, así que lo ya guardado (interacción, pagos, datos) no se vuelve a crear al reintentar.
+                    =// Guardado con manejo de errores, una sola ejecución a la vez, y reintento idempotente:
+                    // el rol del localizador no puede borrar, así que lo ya guardado (interacción, pagos, datos) no se vuelve a crear al reintentar.
                     If(!locGuardando,
                     UpdateContext({locGuardando: true});
                     With({
                         excesoNio:   tpPago.Value && Sum(Filter(colLineasPago, moneda = "NIO"), monto) > Coalesce(varCuenta.'[CT] Saldo Vencido NIO', 0),
                         excesoUsd:   tpPago.Value && Sum(Filter(colLineasPago, moneda = "USD"), monto) > Coalesce(varCuenta.'[CT] Saldo Vencido USD', 0),
-                        /* F6: el recibo es único GLOBAL (talonario físico), sin importar cuenta ni moneda. Offline el teléfono solo ve
+                        /* El recibo es único GLOBAL (talonario físico), sin importar cuenta ni moneda. Offline el teléfono solo ve
                            sus pagos (perfil: 90 días); el servidor completa el control contra todos */
                         reciboUsado: tpPago.Value && CountRows(Filter(colLineasPago As Lx, !(Lx.id in colPagosGuardados.id) &&
                                         With({ rec: Trim(Lx.recibo) },
                                             !IsBlank(LookUp('CM | TBL | Pagos', '[PG] Numero recibo' = rec))))) > 0
                       },
                       If(
-                        /* APP-43: localizador desactivado por el Admin → no se registra (el servidor también lo rechaza) */
+                        /* Localizador desactivado por el Admin → no se registra (el servidor también lo rechaza) */
                         gblAgenteInactivo,
                             UpdateContext({locGuardando: false});
                             Notify("Tu localizador está desactivado: no podés registrar visitas ni pagos. Hablá con tu supervisor.", NotificationType.Error),
-                        /* APP-11: sin coordenadas del GPS → se avisa y hay que confirmarlo con un segundo toque */
+                        /* Sin coordenadas del GPS → se avisa y hay que confirmarlo con un segundo toque */
                         IsBlank(Location.Latitude) && !locConfirmaSinGps,
                             UpdateContext({locGuardando: false, locConfirmaSinGps: true});
                             Notify("No hay ubicación del GPS. Activalo y esperá unos segundos; si igual querés guardar, tocá «Guardar sin ubicación».", NotificationType.Warning),
-                        /* APP-10: monto mayor que el saldo vencido → hay que confirmarlo con un segundo toque */
+                        /* Monto mayor que el saldo vencido → hay que confirmarlo con un segundo toque */
                         (excesoNio || excesoUsd) && !locConfirmaExceso,
                             UpdateContext({locGuardando: false, locConfirmaExceso: true});
                             Notify("El pago es mayor que el saldo vencido de la cuenta. Revisá el monto; si está bien, tocá «Confirmar pago».", NotificationType.Warning),
-                        /* APP-10 + F6: el mismo recibo ya está registrado (en cualquier cuenta) */
+                        /* El mismo recibo ya está registrado (en cualquier cuenta) */
                         reciboUsado,
                             UpdateContext({locGuardando: false});
                             Notify("Ese número de recibo ya está registrado. Revisalo antes de guardar.", NotificationType.Error),
@@ -1330,8 +1329,8 @@ Screens:
                             ClearCollect(colPagosPend, Filter(colLineasPago, !(id in colPagosGuardados.id)));
                             IfError(
                                 If(IsBlank(locIntCreada),
-                                    /* F7: la misma fecha de captura viaja en la actualización de datos; offline el lookup a esta
-                                       interacción llega vacío y el servidor la vincula por cuenta + captura (plugin 1.0.8.6) */
+                                    /* La misma fecha de captura viaja en la actualización de datos; offline el lookup a esta
+                                       interacción llega vacío y el servidor la vincula por cuenta + captura */
                                     UpdateContext({locFechaCaptura: Now()});
                                     With({ r: Patch('CM | TBL | Interaccions', Defaults('CM | TBL | Interaccions'), {
                                         '[IN] Cuenta': varCuenta,

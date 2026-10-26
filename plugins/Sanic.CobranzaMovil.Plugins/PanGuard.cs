@@ -12,8 +12,6 @@ namespace Sanic.CobranzaMovil.Plugins
     /// El mensaje de error nombra la COLUMNA, nunca el valor. No usa la clave K ni el servicio de organizacion.
     ///
     /// Registro: PreOperation sincrono, Create y Update (Update filtrado por la columna regulada).
-    /// IMPORTANTE: los pasos de este plugin se registran DESACTIVADOS y se activan en el paso 8 de la
-    /// migracion, porque hasta entonces la carga de Smelter todavia escribe el PAN en esas columnas.
     /// </summary>
     public sealed class PanGuard : PluginBase
     {

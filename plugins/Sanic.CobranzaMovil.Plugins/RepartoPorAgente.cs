@@ -6,13 +6,13 @@ using Microsoft.Xrm.Sdk.Query;
 namespace Sanic.CobranzaMovil.Plugins
 {
     /// <summary>
-    /// DAT-08: vincular, cambiar o quitar el usuario de un agente no movia sus asignaciones; el reparto solo corria al
-    /// tocar la asignacion (las Diarias se curaban con la carga del dia siguiente, las Incobrables y Especiales nunca).
+    /// Al vincular, cambiar o quitar el usuario de un agente, mueve sus asignaciones: el reparto solo corre al tocar
+    /// la asignacion, y sin esto las Incobrables y Especiales nunca cambiarian de dueno.
     ///
-    /// Que hace: lee el usuario ACTUAL del agente y busca sus asignaciones activas cuyo dueno no es el que corresponde
-    /// (el usuario o, sin usuario, el equipo "Cartera sin cobrador"), sin las Especiales por aprobar (S-6). A cada una
-    /// le vuelve a escribir el MISMO agente: eso dispara RepartoAsignacion (su Update esta filtrado por el agente), que
-    /// mueve el dueno, comparte y revoca. Asi la logica del reparto vive en un solo lugar.
+    /// Lee el usuario ACTUAL del agente y busca sus asignaciones activas cuyo dueno no es el que corresponde (el
+    /// usuario o, sin usuario, el equipo de cartera sin localizador), sin las Especiales por aprobar. A cada una le
+    /// vuelve a escribir el MISMO agente: eso dispara RepartoAsignacion, que mueve el dueno, comparte y revoca.
+    /// Asi la logica del reparto vive en un solo lugar.
     ///
     /// Hasta <see cref="MaximoPorEjecucion"/> por ejecucion (2 minutos): si quedan mas, o si alguna escritura falla,
     /// termina pidiendo reintento al servicio asincrono; la consulta del reintento ya no trae las que se movieron.

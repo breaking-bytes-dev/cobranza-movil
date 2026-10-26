@@ -5,8 +5,8 @@ using Xunit;
 namespace Sanic.CobranzaMovil.Plugins.Tests
 {
     /// <summary>
-    /// O3: la carga resuelve el producto de la cuenta por CodigoProducto (lookup ct_productoid) pero no llena
-    /// ct_tipoproducto, que es lo que muestra la app ("Tarjeta Oro · •••• 1234"). La cuenta toma el tipo de su producto.
+    /// La carga resuelve el producto de la cuenta (lookup ct_productoid) pero no llena ct_tipoproducto, que es lo que
+    /// muestra la app. La cuenta toma el tipo de su producto.
     /// </summary>
     public class TipoDesdeProductoTests
     {

@@ -1,4 +1,4 @@
-"""Fase 2 · Paso 10 (D7): borra el CSV fuente (sanic_smlt_ij_sourcefile) de los jobs de Smelter de la plantilla
+"""Borra el CSV fuente (sanic_smlt_ij_sourcefile) de los jobs de Smelter de la plantilla
 "Cobranza movil": esos archivos traen los números de tarjeta completos. Los jobs (contadores y logs) se conservan.
 Solo toca jobs de ESA plantilla (Smelter es un producto compartido). Irreversible: correr después del backup.
 En PROD esto tiene que ser automático al terminar cada carga (pendiente: flow o paso al final del orquestador).

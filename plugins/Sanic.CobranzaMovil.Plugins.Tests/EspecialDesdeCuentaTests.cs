@@ -5,7 +5,7 @@ using Xunit;
 namespace Sanic.CobranzaMovil.Plugins.Tests
 {
     /// <summary>
-    /// F3: la Especial de la carga toma el tipo, la nota y el retiro de la cuenta (la carga los escribe ahi y la app los
+    /// La Especial de la carga toma el tipo, la nota y el retiro de la cuenta (la carga los escribe ahi y la app los
     /// lee de la asignacion). Solo lo vacio y solo sin solicitante: nunca pisa lo que escribio una persona.
     /// </summary>
     public class EspecialDesdeCuentaTests

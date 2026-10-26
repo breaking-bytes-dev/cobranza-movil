@@ -1,13 +1,13 @@
-// FASE H — PCI (fase 2): el número de cuenta completo NO se ve en ninguna pantalla salvo el detalle de
+// FASE H — PCI: el número de cuenta completo NO se ve en ninguna pantalla salvo el detalle de
 // Transcripción / Transcritas del rol BackOffice, que lo lee de la bóveda (sanic_cm_tbl_cuentapan).
-//  · H-01 (API, con MSCRMCallerID): solo BackOffice lee la bóveda; Solicitante, Supervisor y Admin → 403 o vacío.
-//  · H-02 (UI): Solicitante, Supervisor y Admin recorren sus pantallas y NINGUNA muestra 13+ dígitos seguidos
+//  · API (con MSCRMCallerID): solo BackOffice lee la bóveda; Solicitante, Supervisor y Admin → 403 o vacío.
+//  · UI de los demás roles: recorren sus pantallas y NINGUNA muestra 13+ dígitos seguidos
 //    (ni con separadores), ni consulta la bóveda, ni pide las columnas viejas *_numerocuenta.
-//  · H-03 (UI): BackOffice ve en Transcritas hoy el detalle con el número completo de la bóveda (el "PAN" QA es
+//  · UI de BackOffice: ve en Transcritas hoy el detalle con el número completo de la bóveda (el "PAN" QA es
 //    `QA-E2E-CTA-0001`) y la lista enmascarada.
 // SEGURIDAD: solo datos QA-E2E; la fase no toma capturas (un fallo podría dejar un PAN real en el PNG) y nunca
 // imprime el texto de pantalla: ante un hallazgo informa la pantalla y la LONGITUD de la secuencia, no sus dígitos.
-// Depende de la siembra (bóveda QA) y, para H-03, de que F-01 haya transcrito las 2 interacciones QA (fase D).
+// Depende de la siembra (bóveda QA) y, para la UI de BackOffice, de que la fase D haya transcrito las 2 interacciones QA.
 const pl = require('../lib/player');
 const inf = require('../lib/informe');
 const dv = require('../lib/dataverse');
@@ -68,7 +68,7 @@ function revisarRed(e, app, rol) {
   e.check(boveda.length === 0, `${rol}: ninguna request a la bóveda (sanic_cm_tbl_cuentapans)`, 'ninguna', boveda.slice(0, 2).map(r => r.slice(0, 120)));
   const e403 = c.erroresRed(app).filter(x => /^403/.test(x));
   e.check(e403.length === 0, `${rol}: sin respuestas 403 en la sesión`, 0, e403.slice(0, 3));
-  // Hasta el paso 8 el nombre principal de la cuenta aún guarda el PAN: es un dato a vigilar, no un fallo de la app.
+  // El nombre principal de la cuenta puede guardar el PAN: pedirlo es un dato a vigilar, no un fallo de la app.
   e.nota(`${rol}: ¿alguna request pide el nombre principal sanic_cm_ct_numerodecuenta? ${rutas.some(r => /\$select=[^&]*sanic_cm_ct_numerodecuenta/.test(r))} (debería ser inocuo tras el paso 8)`);
 }
 
@@ -84,7 +84,7 @@ async function leerBovedaComo(userId) {
 module.exports = async function faseH(suite) {
   const U = cfg.usuarios;
 
-  // ── H-01 · API por rol ───────────────────────────────────────────────────────────────
+  // ── API por rol ───────────────────────────────────────────────────────────────
   await inf.correr('H-01', 'Bóveda de PAN (API, suplantando al usuario): BackOffice la lee; Solicitante, Supervisor y Admin → 403 o vacío', 'todos', async (e) => {
     const bo = await leerBovedaComo(U.user1.id);
     e.check(bo.status === 200 && bo.filas > 0, 'BackOffice (User1) lee la bóveda', '200 con filas', `${bo.status} · ${bo.filas} fila(s)`);
@@ -94,12 +94,12 @@ module.exports = async function faseH(suite) {
       const r = await leerBovedaComo(U[k].id);
       e.check(r.status === 403 || (r.status === 200 && r.filas === 0), `${U[k].rol} (${U[k].alias}) NO lee la bóveda`, '403 o vacío', `${r.status} · ${r.filas} fila(s)`);
     }
-    // El nombre principal de la bóveda y de la carga diaria nunca tiene 5+ dígitos (solo QA acá; el barrido real es del paso 8).
+    // El nombre principal de la bóveda y de la carga diaria nunca tiene 5+ dígitos (aquí solo se revisan los datos QA).
     const nombres = await dv.getAll("sanic_cm_tbl_cuentapans?$select=sanic_cm_cp_name&$filter=startswith(sanic_cm_cp_clavepan,'QA-E2E')");
     e.check(nombres.length > 0 && nombres.every(x => !/\d{5,}/.test(x.sanic_cm_cp_name || '')), 'el nombre principal de la bóveda QA va enmascarado (sin 5+ dígitos)', 'sin 5+ dígitos', nombres.length);
   });
 
-  // ── H-02 · UI de los roles SIN acceso a la bóveda ──────────────────────────────────────
+  // ── UI de los roles SIN acceso a la bóveda ──────────────────────────────────────
   const roles = [
     { user: 'user2', rol: 'Solicitante', pantallas: [['Nueva solicitud', 'scrNuevaSolicitud'], ['Mis solicitudes', 'scrMisSolicitudes']],
       acciones: {
@@ -121,7 +121,7 @@ module.exports = async function faseH(suite) {
     } finally { await pl.cerrar(app); }
   }
 
-  // ── H-03 · BackOffice ──────────────────────────────────────────────────────────────────
+  // ── UI de BackOffice ──────────────────────────────────────────────────────────────────
   const app = await c.abrir(suite, 'user1', 'H', 'BackOffice');
   try {
     await inf.correr('H-03', 'BackOffice (Transcritas hoy): lista enmascarada y detalle con el número completo leído de la bóveda (QA)', 'BackOffice', async (e) => {

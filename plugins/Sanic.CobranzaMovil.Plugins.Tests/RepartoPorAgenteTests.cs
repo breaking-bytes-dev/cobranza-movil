@@ -10,10 +10,9 @@ using Xunit;
 namespace Sanic.CobranzaMovil.Plugins.Tests
 {
     /// <summary>
-    /// DAT-08: vincular, cambiar o quitar el usuario de un agente no movia sus asignaciones (el reparto solo corria al
-    /// tocar la asignacion). RepartoPorAgente vuelve a escribir el MISMO agente en cada asignacion activa del agente
-    /// cuyo dueno no es el que corresponde: eso dispara RepartoAsignacion (filtrado por el agente) en cada una, y la
-    /// logica del reparto queda en un solo lugar. Corre ASINCRONO.
+    /// Al vincular, cambiar o quitar el usuario de un agente, RepartoPorAgente reescribe el mismo agente en cada asignacion
+    /// activa cuyo dueno no corresponde: eso dispara RepartoAsignacion en cada una y la logica del reparto queda en un solo
+    /// lugar. Corre asincrono.
     /// </summary>
     public class RepartoPorAgenteTests
     {

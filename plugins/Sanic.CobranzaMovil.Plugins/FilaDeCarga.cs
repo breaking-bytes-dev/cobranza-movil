@@ -5,11 +5,10 @@ using System.Text;
 namespace Sanic.CobranzaMovil.Plugins
 {
     /// <summary>
-    /// DAT-20: arma el CSV de UNA fila con el formato del archivo del banco (el de test-data/cobranza-mock-1000.csv y
-    /// tests/integral/lib/csv.js), para que el alta del Admin entre por la plantilla "Cobranza movil" de Smelter igual que
-    /// la carga diaria. Logica pura, sin SDK: se prueba aparte.
-    /// Smelter lee el archivo con CsvHelper (RFC 4180, src/Smelter.Core/Services/CsvParserService.cs): un valor con coma,
-    /// comillas o salto de linea va entre comillas y las comillas internas se duplican.
+    /// Arma el CSV de UNA fila con el formato del archivo del banco, para que el alta del Admin entre por la plantilla
+    /// de Smelter igual que la carga diaria. Logica pura, sin SDK.
+    /// Smelter lee el archivo con CsvHelper (RFC 4180): un valor con coma, comillas o salto de linea va entre comillas
+    /// y las comillas internas se duplican.
     /// </summary>
     public static class FilaDeCarga
     {
@@ -24,7 +23,7 @@ namespace Sanic.CobranzaMovil.Plugins
         };
 
         /// <summary>
-        /// Encabezado + una fila, separados y terminados en CRLF, en UTF-8 sin BOM (como el CSV de la suite).
+        /// Encabezado + una fila, separados y terminados en CRLF, en UTF-8 sin BOM.
         /// Una columna que no esta en <paramref name="fila"/> va vacia; una clave que no es del encabezado es un error.
         /// </summary>
         public static byte[] Armar(IDictionary<string, string> fila)

@@ -1,4 +1,4 @@
-// Acceso a datos de la corrida: inventario por prefijo, conteos, lectura suplantando a User5 y LIMPIEZA (F11).
+// Acceso a datos de la corrida: inventario por prefijo, conteos, lectura suplantando a User5 y LIMPIEZA final.
 // REGLA de borrado: solo se borra lo que (a) cuelga del cliente/cuentas con prefijo QA-E2E-INT, (b) lleva el prefijo en su
 // propio texto (comentario, recibo, nombre del job, código de producto, nombre de fiador) o (c) quedó en el registro de
 // la corrida. Nunca por otro criterio: así no hay forma de rozar QA-R1 / IN-1065, AS-2077, AS-2134 ni el agente.
@@ -59,7 +59,7 @@ async function limpiar(extraReg) {
   for (const [k, l] of Object.entries(extraReg || {})) reg[k] = [...(reg[k] || []), ...l];
   const inv = await inventario(reg);
   const borrados = {}, errores = [];
-  // Pagos y actualizaciones antes que su interacción (DAT-18: interacción→pago/actualización es Delete = Restrict), luego lo que
+  // Pagos y actualizaciones antes que su interacción (interacción→pago/actualización es Delete = Restrict), luego lo que
   // cuelga de cuenta/cliente (la carga diaria antes que el cliente, también Restrict), el cliente y los maestros.
   const orden = ['pago', 'actualizacion', 'interaccion', 'asignacion', 'carga', 'boveda', 'cuenta', 'direccion', 'telefono', 'cliente', 'producto', 'fiador'];
   for (const tipo of orden) {

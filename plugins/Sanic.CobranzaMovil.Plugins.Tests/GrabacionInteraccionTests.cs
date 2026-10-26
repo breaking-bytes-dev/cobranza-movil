@@ -5,9 +5,9 @@ using Xunit;
 namespace Sanic.CobranzaMovil.Plugins.Tests
 {
     /// <summary>
-    /// DAT-11: la grabacion en el CORE la controla el servidor. Una interaccion Grabada no se vuelve a grabar (dos
-    /// personas del BackOffice ya no pisan el codigo de la otra), pasar a Grabado exige el codigo, y la fecha y el
-    /// usuario de grabacion los pone el servidor. El BackOffice escribe solo las columnas de grabacion.
+    /// La grabacion en el CORE la controla el servidor: una interaccion Grabada no se vuelve a grabar (dos personas no
+    /// pisan el codigo de la otra), pasar a Grabado exige el codigo, y la fecha y el usuario los pone el servidor.
+    /// El BackOffice escribe solo las columnas de grabacion.
     /// </summary>
     public class GrabacionInteraccionTests
     {
@@ -76,7 +76,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         [Fact]
         public void La_clave_primaria_en_el_Target_no_cuenta_como_columna()
         {
-            // Dataverse agrega sanic_cm_tbl_interaccionid al Target de un Update (verificado en vivo, 2026-10-14).
+            // Dataverse agrega sanic_cm_tbl_interaccionid al Target de un Update.
             var previa = Previa(Pendiente, null);
             var t = Grabar(previa, "TRX-1");
             t["sanic_cm_tbl_interaccionid"] = previa.Id;

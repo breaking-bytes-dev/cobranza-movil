@@ -1,10 +1,10 @@
-// DAT-20 y DAT-14 por la UI del backoffice, con datos QA y PAN FICTICIO (BIN 9999, solo en memoria):
+// Alta de cuenta y solicitud de Especial por la UI del backoffice, con datos QA y PAN FICTICIO (BIN 9999, solo en memoria):
 //   1) User4 (Admin): pantalla "Alta de cuenta" → prueba en seco → carga real de una Especial (Custom API AltaCuenta + Smelter).
-//   2) User2 (Solicitante): Nueva solicitud sobre esa cuenta → "ya existe" (la Especial de la carga) sin crear otra; se cierra por
-//      API y la vuelve a pedir → "reactivada" a su nombre (Custom API SolicitarEspecial).
-//   3) User1 (BackOffice) y User3 (Supervisor): la nav no muestra "Alta de cuenta".
+//   2) User2 (Solicitante): Nueva solicitud sobre esa cuenta → "ya existe" (la Especial de la carga) sin crear otra; se
+//      cierra por API y la vuelve a pedir → queda "reactivada" a su nombre (Custom API SolicitarEspecial).
+//   3) User1 (BackOffice) y User3 (Supervisor): la navegación no muestra "Alta de cuenta".
 // Un solo Chromium a la vez (cada app se cierra antes de abrir la siguiente). Nunca imprime un PAN: toda salida pasa por sinPAN.
-// Al final, limpieza con el prefijo QA de la suite (cliente, cuenta, asignación, bóveda, jobs, producto, fiador).
+// Al final limpia todo lo creado con el prefijo QA de la suite.
 // Uso (desde tests/integral): NODE_PATH=../backoffice-canvas/node_modules node pantallas/alta-cuenta.js
 const path = require('path');
 process.chdir(path.join(__dirname, '..'));
@@ -22,7 +22,7 @@ const chk = (id, cond, txt) => { cond ? ok++ : mal++; console.log(`${cond ? '✓
 
 const runid = 'ALU' + Date.now().toString(36).slice(-4).toUpperCase();
 const CIF = `${PREFIJO}-${runid}`, NOMBRE = `${PREFIJO} ${runid}`;
-// Campos opcionales de la opción (b) (2026-10-19): ubican al cliente en la calle. El teléfono tiene 8 dígitos (nunca 13 o más).
+// Campos opcionales que ubican al cliente en la calle. El teléfono tiene 8 dígitos: 13 o más parecería un PAN.
 const EXTRA = { dirTrab: `${PREFIJO} ${runid} oficina`, depto: `${PREFIJO} Managua`, distrito: `${PREFIJO} D-1`, telCasa: '22501234', dirFiador: `${PREFIJO} ${runid} casa del fiador` };
 const ESTADO_FINAL = /Prueba en seco limpia|Alta hecha|marcó la fila con error|Falló/;
 

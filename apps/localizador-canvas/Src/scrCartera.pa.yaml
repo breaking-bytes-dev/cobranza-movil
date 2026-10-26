@@ -11,11 +11,9 @@ Screens:
     Properties:
       Fill: =gblC.screen
       OnHidden: |-
-        =// ESCALA: el orden 1..n vive en memoria; solo se guarda cuando el cobrador movió un cliente (dirty), y solo el tramo de
-        // arriba hasta la posición más baja que movió (p). Lo de abajo ya tiene un orden guardado mayor o va al final alfabético,
-        // así que la lista se ve igual en la próxima carga. Antes se reescribía toda la cartera (2.336 escrituras, más de 10 min).
-        // Cada escritura se verifica aparte (ver scrCargaArchivo): ForAll devuelve el error de cada UpdateIf (texto vacío = salió bien)
-        // y el orden NO se marca como guardado si alguna falló (antes se marcaba igual y se perdía sin aviso).
+        =// El orden 1..n vive en memoria; solo se guarda si el localizador movió un cliente (dirty), y solo el tramo de
+        // arriba hasta la posición más baja movida (p). Lo de abajo ya tiene un orden mayor o va al final alfabético.
+        // ForAll devuelve el error de cada UpdateIf (texto vacío = salió bien); si alguna falla, el orden no se marca como guardado.
         If(!IfError(
             With({ p: Max(Filter(colClientes, dirty), orden) },
                 If(IsBlank(p), true,
@@ -38,7 +36,7 @@ Screens:
             Notify("No se pudo guardar el orden de la cartera. Se reintenta al salir de nuevo.", NotificationType.Warning))
       OnVisible: |-
         =// La cartera se arma en btnCargarCartera (también la usan ↻ y Sincronización): al entrar la primera vez o si se pidió recargar.
-        // O5: la lista es una foto; si la base del teléfono ya tiene otra cantidad de asignaciones (el delta sync trajo una
+        // La lista es una foto: si la base del teléfono tiene otra cantidad de asignaciones (la sincronización trajo una
         // aprobada o quitó una cerrada), se rearma. Con la cartera truncada (varCarteraIncompleta) nunca coincidiría: no se compara.
         If(!varCarteraLista || varRecargarCartera
             || (!varCarteraIncompleta && varNAsigCartera <> CountRows(Filter('CM | TBL | Asignacions', '[AS] Estado' = true && ('[AS] Tipo' <> 'Choice | CM | Tipo asignacion'.Especial || '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado)))),
@@ -57,9 +55,9 @@ Screens:
             AutoStart: =true
             Duration: =5000
             OnTimerEnd: |-
-              =// O5: ninguna función de Power Fx baja datos; los trae el reproductor (al abrir, cada ~5 min o con «Actualizar»
+              =// Ninguna función de Power Fx baja datos; los trae el reproductor (al abrir, cada ~5 min o con «Actualizar»
               // del Estado del dispositivo). Cuando una sincronización termina (gblSync deja "sync"), la cartera y el cliente
-              // se rearman con lo que llegó. AutoPause false: sigue mirando aunque el cobrador esté en otra pantalla.
+              // se rearman con lo que llegó. AutoPause false: sigue mirando aunque el localizador esté en otra pantalla.
               // Con cambios de orden sin guardar no se rearma acá (se perderían): queda marcado y se rearma al volver.
               If(varSyncPrev = "sync" && gblSync <> "sync",
                   Set(varCliCargado, Blank());
@@ -157,8 +155,8 @@ Screens:
                               FontWeight: =FontWeight.Normal
                               Height: =If(gblScale = 1, 30,gblScale = 1.2,34,gblScale = 1.45,40,46)
                               OnSelect: |-
-                                =// APP-13: primero el orden; si no se pudo guardar, no se recarga (se perdería) y se avisa.
-                                // Cada escritura se verifica aparte (ver scrCargaArchivo): okOrden es true solo si NINGÚN UpdateIf falló.
+                                =// Primero el orden; si no se pudo guardar, no se recarga (se perdería) y se avisa.
+                                // okOrden es true solo si NINGÚN UpdateIf falló.
                                 UpdateContext({okOrden: IfError(
                                     With({ p: Max(Filter(colClientes, dirty), orden) },
                                         If(IsBlank(p), true,
@@ -376,8 +374,8 @@ Screens:
                               LayoutMinWidth: =16
                               Size: =gblT.fxs
                               Text: |-
-                                =// El cobrador confirma que tiene la carga de hoy: la fecha más reciente de sus Diarias.
-                                // 'Última carga' es DateOnly (2026-10-25): llega como Date, sin zona; Sort en vez de Max (Max es numérico).
+                                =// El localizador confirma que tiene la carga de hoy: la fecha más reciente de sus Diarias.
+                                // 'Última carga' es DateOnly: llega como Date, sin zona; Sort en vez de Max (Max es numérico).
                                 With({ d: First(Sort(Filter(colAsig, '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria && !IsBlank(ultCarga)), ultCarga, SortOrder.Descending)).ultCarga },
                                     If(IsBlank(d), "⚠ No hay carga diaria en el teléfono. Sincronizá.",
                                         d = Today(), "✓ Carga diaria de hoy · " & Text(d, "dd/mm/yyyy"),
@@ -672,19 +670,6 @@ Screens:
                                && (IsBlank(Trim(txtBuscar.Text)) || Trim(txtBuscar.Text) in cliNom
                                                   || CountRows(Filter(Asigs, Trim(txtBuscar.Text) in ult4)) > 0)),
                             "orden", SortOrder.Ascending)
-
-                      /*If(varModo = "cuenta",
-                         SortByColumns(
-                            Filter(colAsig,
-                               (varFiltro = "Todos" || Text('[AS] Tipo') = varFiltro)
-                               && (IsBlank(Trim(txtBuscar.Text)) || Trim(txtBuscar.Text) in cliNom || Trim(txtBuscar.Text) in ult4)),
-                            "ord", SortOrder.Ascending, "cliNom", SortOrder.Ascending),
-                         SortByColumns(
-                            Filter(colClientes,
-                               (varFiltro = "Todos" || CountRows(Filter(Asigs, Text('[AS] Tipo')  = varFiltro)) > 0)
-                               && (IsBlank(Trim(txtBuscar.Text)) || Trim(txtBuscar.Text) in cliNom
-                                                  || CountRows(Filter(Asigs, Trim(txtBuscar.Text) in ult4)) > 0)),
-                            "orden", SortOrder.Ascending))*/
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
                   ShowScrollbar: =false
@@ -947,7 +932,7 @@ Screens:
                                           LayoutMinHeight: =16
                                           LayoutMinWidth: =16
                                           OnSelect: |-
-                                            =// APP-23: intercambia con el vecino VISIBLE inmediato (lista filtrada y ordenada), por cliente y no por valor de orden.
+                                            =// Intercambia con el vecino VISIBLE inmediato (lista filtrada y ordenada), por cliente y no por valor de orden.
                                             With({ vec: Last(Filter(galCartera_clientes.AllItems, orden < ThisItem.orden)) },
                                                 If(!IsBlank(vec),
                                                    With({ mio: ThisItem.orden, suyo: vec.orden, miCid: ThisItem.cid, suCid: vec.cid },
@@ -975,7 +960,7 @@ Screens:
                                           LayoutMinHeight: =16
                                           LayoutMinWidth: =16
                                           OnSelect: |-
-                                            =// APP-23: intercambia con el vecino VISIBLE inmediato (lista filtrada y ordenada), por cliente y no por valor de orden.
+                                            =// Intercambia con el vecino VISIBLE inmediato (lista filtrada y ordenada), por cliente y no por valor de orden.
                                             With({ vec: First(Filter(galCartera_clientes.AllItems, orden > ThisItem.orden)) },
                                                 If(!IsBlank(vec),
                                                    With({ mio: ThisItem.orden, suyo: vec.orden, miCid: ThisItem.cid, suCid: vec.cid },
@@ -1039,20 +1024,19 @@ Screens:
           Control: Classic/Button@2.2.0
           Properties:
             OnSelect: |-
-              =// ESCALA: la cartera se trae por TRAMOS (el servidor reparte asignaciones y cuentas en 20, TramoCartera). Una sola
-              // consulta se cortaba en el límite de filas de la app (2000): con 2.340 asignaciones faltaban clientes y cada carga
-              // mostraba un trozo distinto. Cada tramo queda muy por debajo del límite (hasta 40.000 por cobrador). Las
-              // direcciones y los teléfonos ya no se copian: se leen de la base del teléfono al mostrarlos.
+              =// La cartera se trae por TRAMOS (el servidor reparte asignaciones y cuentas en 20, TramoCartera): una sola
+              // consulta se cortaría en el límite de 2000 filas de la app. Direcciones y teléfonos no se copian: se leen
+              // de la base del teléfono al mostrarlos.
               UpdateContext({varshowLoader: true});
               Clear(colAsigRaw);
               Clear(colCuentas);
               ForAll(Sequence(20, 0) As T,
                   Collect(colAsigRaw, Filter('CM | TBL | Asignacions', '[AS] Tramo' = T.Value && '[AS] Estado' = true && ('[AS] Tipo' <> 'Choice | CM | Tipo asignacion'.Especial || '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado)));
                   Collect(colCuentas, Filter('CM | TBL | Cuentas', '[CT] Tramo' = T.Value)));
-              // Lo que todavía no tiene tramo (anterior al plugin, o la cuenta recién creada: su tramo se pone en segundo plano).
+              // Lo que todavía no tiene tramo (p. ej. una cuenta recién creada: el servidor lo asigna en segundo plano).
               Collect(colAsigRaw, Filter('CM | TBL | Asignacions', '[AS] Tramo' = Blank() && '[AS] Estado' = true && ('[AS] Tipo' <> 'Choice | CM | Tipo asignacion'.Especial || '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado)));
               Collect(colCuentas, Filter('CM | TBL | Cuentas', '[CT] Tramo' = Blank()));
-              // APP-01: si una consulta llegó al límite, falta cartera: se avisa la verdad (sincronizar no lo arregla).
+              // Si una consulta llegó al límite, falta cartera: se avisa (sincronizar no lo arregla).
               Set(varCarteraIncompleta,
                   Max(ForAll(Sequence(21, 0) As T,
                       CountRows(Filter(colAsigRaw, If(T.Value = 20, IsBlank('[AS] Tramo'), '[AS] Tramo' = T.Value)))), Value) >= 2000
@@ -1060,7 +1044,7 @@ Screens:
                       CountRows(Filter(colCuentas, If(T.Value = 20, IsBlank('[CT] Tramo'), '[CT] Tramo' = T.Value)))), Value) >= 2000);
               If(varCarteraIncompleta,
                   Notify("Tu cartera es más grande de lo que la app puede mostrar y faltan clientes. Avisá a soporte.", NotificationType.Error));
-              // APP-08: las Especiales solo se gestionan aprobadas (el servidor tampoco deja asignar agente antes).
+              // Las Especiales solo se gestionan aprobadas (el servidor tampoco deja asignar agente antes).
               ClearCollect(colAsig,
                   AddColumns(
                      AddColumns(colAsigRaw,
@@ -1075,8 +1059,8 @@ Screens:
                      ctaId,    cta.'CM | TBL | Cuenta',
                      ord,      '[AS] Orden',
                      ultCarga, 'Última carga'));
-              // DAT-15: el saldo se suma por CUENTA distinta (una cuenta con Diaria y Especial aprobada tiene 2 asignaciones con el
-              // mismo saldo). F4: nCuentas también cuenta CUENTAS distintas, igual que la pestaña Cuentas del Cliente.
+              // El saldo y nCuentas cuentan CUENTAS distintas: una cuenta con Diaria y Especial aprobada tiene 2 asignaciones con el
+              // mismo saldo (igual que la pestaña Cuentas del Cliente).
               ClearCollect(colClientes,
                   AddColumns(
                      GroupBy(Filter(colAsig, !IsBlank(cid)), cid, cliNom, Asigs),
@@ -1087,10 +1071,10 @@ Screens:
                      nCuentas, CountRows(Distinct(Asigs, ctaId)),
                      ordGuardado, Min(Asigs, ord),
                      dirty,   false));
-              // APP-15: una asignación cuya cuenta no llegó al teléfono no se agrupa con otras; se avisa.
+              // Una asignación cuya cuenta no llegó al teléfono no se agrupa con otras; se avisa.
               If(CountRows(Filter(colAsig, IsBlank(cid))) > 0,
                  Notify(CountRows(Filter(colAsig, IsBlank(cid))) & " asignación(es) sin datos de la cuenta. Sincronizá para completarlas.", NotificationType.Warning));
-              // Orden 1..n sin empates ni vacíos (APP-23). Los que no tienen orden (asignaciones nuevas; Min() de vacíos da 0)
+              // Orden 1..n sin empates ni vacíos. Los que no tienen orden (asignaciones nuevas; Min() de vacíos da 0)
               // van al final, alfabéticos. La numeración NO marca dirty: solo ▲▼ marcan, y al guardar se escribe el tramo de arriba.
               With({ lista: SortByColumns(AddColumns(colClientes, sinOrden, Coalesce(orden, 0) <= 0),
                                           "sinOrden", SortOrder.Ascending, "orden", SortOrder.Ascending, "cliNom", SortOrder.Ascending) },

@@ -4,14 +4,11 @@ using Microsoft.Xrm.Sdk.Query;
 namespace Sanic.CobranzaMovil.Plugins
 {
     /// <summary>
-    /// El correo del agente (sanic_cm_ag_emailusuario) se deriva SIEMPRE del usuario vinculado: su UPN en minusculas.
-    /// La app del cobrador identifica a su agente con Lower(User().Email), y User().Email devuelve el UPN, no el SMTP
-    /// (documentado por Microsoft). El backoffice guardaba Lower('Primary Email'): si el UPN y el correo difieren, el
-    /// cobrador quedaba sin agente ("Sin nombre") en todo lo que registra.
+    /// El correo del agente (sanic_cm_ag_emailusuario) se deriva siempre del UPN en minusculas del usuario vinculado,
+    /// porque la app del localizador identifica a su agente con Lower(User().Email) y User().Email devuelve el UPN.
     /// - Se vincula un usuario: correo = UPN en minusculas (pisa lo que venga en el Target).
     /// - Se desvincula: correo vacio.
-    /// - Un Create sin usuario (la carga de Smelter) o un Update que no toca el usuario: no hace nada.
-    ///
+    /// - Un Create sin usuario (la carga) o un Update que no toca el usuario: no hace nada.
     /// Lee el UPN con el servicio del sistema (dato de configuracion del usuario, no de negocio).
     /// Registro: PreOperation sincrono. Create y Update de sanic_cm_tbl_agente; el Update filtrado por sanic_cm_ag_usuarioid.
     /// </summary>

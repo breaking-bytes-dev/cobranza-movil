@@ -1,6 +1,6 @@
-// S-7 (b1) en vivo (1.0.8.3): al reactivar una Especial pedida por otra persona, SolicitarEspecial le quita a esa persona el
-// compartido de la asignación. Hay un solo Solicitante QA (User2), así que "el anterior" es el Admin (User4):
-// el Admin la pide → el Supervisor (User3) la aprueba → el reparto se la comparte al Admin y pasa el dueño al cobrador →
+// En vivo: al reactivar una Especial pedida por otra persona, SolicitarEspecial le quita a esa persona el compartido
+// de la asignación. Hay un solo Solicitante QA (User2), así que "el anterior" es el Admin (User4):
+// el Admin la pide → el Supervisor (User3) la aprueba → el reparto se la comparte al Admin y pasa el dueño al localizador →
 // se cierra → User2 la reactiva → el Admin ya no tiene el compartido → se aprueba de nuevo → User2 la lee y el Admin sigue
 // sin compartido. El Admin lee todo por su rol, así que se mira el compartido (RetrieveSharedPrincipalsAndAccess), no la
 // lectura. Limpieza con el prefijo QA. Sin PAN impreso.

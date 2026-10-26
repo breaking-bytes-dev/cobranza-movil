@@ -1,8 +1,8 @@
-"""Fase 2 · Paso 6: plantilla Smelter "Cobranza movil" con claves HMAC (D1 + D1.1). Ver docs/auditoria/fase2-pan-diseno.md §4.
+"""Plantilla Smelter "Cobranza movil" con claves HMAC.
 - Dedup y lookups pasan de la columna con el PAN a *_clavepan = HMAC(NumeroCuenta, "cm-pan").
-- Tabla de bóveda nueva (orden 4); asignación y carga diaria pasan al orden 5 para que la bóveda exista antes que
-  el flow de owner comparta la cuenta (igual, una fila creada después hereda los compartidos del padre).
-- NO enmascara: las claves únicas viejas siguen vivas y ****1234 choca (81 de 1.008 cuentas). Eso es el paso 8.
+- Tabla de bóveda nueva (orden 4); asignación y carga diaria pasan al orden 5 para que la bóveda exista antes de que se
+  comparta la cuenta (igual, una fila creada después hereda los compartidos del padre).
+- NO enmascara: mientras sigan las claves únicas viejas, ****1234 choca entre cuentas. Eso es el paso 8.
 Requiere Smelter con la transformación HMAC() y K cargada en su tabla protegida; sin eso, la carga falla con TransformError.
 Respaldo previo: local/_backups/smelter-plantilla-cobranza_*.json (sanic_capi_smelter_exporttemplate).
 Uso: python3 scripts/pan/paso6_plantilla.py [--aplicar --smelter-con-hmac]"""

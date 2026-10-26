@@ -5,16 +5,12 @@ using Microsoft.Xrm.Sdk.Query;
 namespace Sanic.CobranzaMovil.Plugins
 {
     /// <summary>
-    /// F3: la carga diaria (Smelter, sin tocar su codigo ni su plantilla) escribe el tipo, la nota y el retiro de la
-    /// Especial en la CUENTA, pero la app, Cierres y Aprobaciones los leen de la ASIGNACION (donde los deja la Especial
-    /// pedida). Resultado: la Especial de la carga se veia "Tipo —, Retiro C$ 0.00". Esto los copia de la cuenta a la
-    /// asignacion para que haya un solo lugar donde leerlos.
-    ///
-    /// Solo una Especial sin solicitante (la de la carga o el alta) y solo lo que esta VACIO: nunca pisa lo que escribio
-    /// una persona. Las notas quedan "Tipo — nota", el formato de la Especial pedida.
-    /// Lee la cuenta con el servicio del SISTEMA (la carga corre sin roles de CM, pero el alta no). Nunca traza valores.
-    /// Registro: PreOperation sincrono. Create de sanic_cm_tbl_asignacion, y Update filtrado por ultima carga con imagen
-    /// previa "PreImage" de tipo, cuenta, solicitante, notas y retiros.
+    /// La carga escribe el tipo, la nota y el retiro de la Especial en la cuenta, pero las apps los leen de la
+    /// asignacion; esto los copia de la cuenta a la asignacion para que haya un solo lugar donde leerlos.
+    /// Solo en una Especial sin solicitante (carga o alta) y solo lo vacio: nunca pisa lo que escribio una persona.
+    /// Las notas quedan "Tipo — nota", como en la Especial pedida. Lee con el servicio del sistema; nunca traza valores.
+    /// Registro: PreOperation sincrono, Create de sanic_cm_tbl_asignacion y Update filtrado por ultima carga con
+    /// imagen previa "PreImage" de tipo, cuenta, solicitante, notas y retiros.
     /// </summary>
     public sealed class EspecialDesdeCuenta : PluginBase
     {

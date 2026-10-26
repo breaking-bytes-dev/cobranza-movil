@@ -1,6 +1,6 @@
-"""Fase 2 · Paso 7: las columnas viejas con el número de cuenta que las apps dejaron de escribir pasan a opcionales.
+"""Las columnas viejas con el número de cuenta que las apps ya no escriben pasan a opcionales.
 as_numerocuenta e in_numerocuenta eran ApplicationRequired: Power Apps lo valida en el Patch del cliente (también offline),
-así que la Especial del backoffice y la interacción del cobrador fallaban ("Field ... is required"). Se borran en el paso 8.
+así que la Especial del backoffice y la interacción del localizador fallaban ("Field ... is required"). Se borran en el paso 8.
 Después hay que refrescar asignación e interacción en los .msapr (paso7_fuentes.py): la obligatoriedad viaja en la metadata.
 Uso: python3 scripts/pan/paso7_opcionales.py [--aplicar]"""
 import os, sys

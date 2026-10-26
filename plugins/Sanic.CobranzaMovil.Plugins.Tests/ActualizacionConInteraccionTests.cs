@@ -8,10 +8,9 @@ using Xunit;
 namespace Sanic.CobranzaMovil.Plugins.Tests
 {
     /// <summary>
-    /// APP-24: una Actualizacion de datos tiene que colgar de una interaccion que tenga cuenta; por ese camino
-    /// (actualizacion -> interaccion -> cuenta -> CIF) el backoffice sabe de que cliente es.
-    /// F7: en el telefono (offline) la actualizacion llega sin la interaccion; trae su cuenta y la fecha de captura,
-    /// y el servidor la cuelga de la interaccion del mismo cobrador, cuenta y captura.
+    /// Una Actualizacion de datos cuelga de una interaccion con cuenta: por ese camino (actualizacion -&gt; interaccion
+    /// -&gt; cuenta -&gt; CIF) el backoffice sabe de que cliente es. Offline llega sin interaccion pero con cuenta y fecha
+    /// de captura, y el servidor la cuelga de la interaccion del mismo localizador, cuenta y captura.
     /// </summary>
     public class ActualizacionConInteraccionTests
     {
@@ -36,7 +35,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
 
         private const string AdSinVincular = "sanic_cm_ad_sinvincular";
 
-        // F8: lo que crea el telefono nunca se rechaza por falta de interaccion (el runtime lo descartaria en silencio)
+        // Lo que crea el telefono nunca se rechaza por falta de interaccion: el runtime offline lo descartaria en silencio.
         [Fact]
         public void F8_crear_sin_interaccion_ni_cuenta_entra_marcada_sin_vincular_y_sin_consultar()
         {
@@ -114,7 +113,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             Assert.Equal(0, h.RetrievesAlServicio());
         }
 
-        // ------------------------------------------------------------------ F7: llega sin interaccion (offline)
+        // ------------------------------------------------------------------ llega sin interaccion (offline)
 
         private static Entity SinInteraccion(Guid cuenta)
         {
@@ -200,7 +199,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             Assert.False(h.Target.GetAttributeValue<bool>(AdSinVincular));
         }
 
-        // 1.0.8.8: en el telefono el runtime tambien descarta la fecha de captura (traza del 20/10, 21:02); llega la cuenta
+        // El runtime offline a veces descarta tambien la fecha de captura: llega solo la cuenta.
         private static Entity SinInteraccionNiFecha(Guid cuenta)
         {
             var t = SinInteraccion(cuenta);

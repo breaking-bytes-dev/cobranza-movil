@@ -56,7 +56,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         }
 
         // ---------------------------------------------------------------------------------------------------------------
-        // Plantilla principal (como la de DEV, reducida) y sus copias
+        // Plantilla principal (reducida) y sus copias
 
         private sealed class Tm
         {
@@ -646,8 +646,8 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         }
 
         // ---------------------------------------------------------------------------------------------------------------
-        // Largo de los valores (la prueba en seco de Smelter no lo detecta: 2026-10-22 un codigo de 27 caracteres en una
-        // columna de 20 rompio los padres de la carga real)
+        // Largo de los valores: la prueba en seco de la carga no lo detecta y un valor mas largo que la columna
+        // rompe los padres de la carga real
 
         private static byte[] ArchivoDe(params string[] filas)
         {
@@ -714,7 +714,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         }
 
         // ---------------------------------------------------------------------------------------------------------------
-        // Solo validar (1.0.9.9): la prueba en seco y la carga en serie no pasan por la particion, pero el largo se mide igual
+        // Solo validar: la prueba en seco y la carga en serie no pasan por la particion, pero el largo se mide igual
 
         private static void SoloValidar(Escenario e)
         {

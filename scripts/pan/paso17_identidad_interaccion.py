@@ -1,14 +1,14 @@
-"""Borrado por salida de cartera · identidad en la interacción (aditivo e idempotente).
+"""Identidad de la cuenta en la interacción, para cuando la cuenta se borra por salida de cartera (aditivo e idempotente).
 La cuenta y el cliente se borran 14 días después de dejar de venir en la carga (scripts/seguridad/paso10_borrado_programado.py)
 y lo que crea la app vive 2 años. Al borrarse la cuenta, la interacción pierde el vínculo: por eso guarda con qué identificar
-la cuenta en el core (decisión del dueño, 2026-10-21): los últimos 4, el ID del cliente (CIF) y la clave HMAC del número.
+la cuenta en el core: los últimos 4, el ID del cliente (CIF) y la clave HMAC del número.
 Nunca el número completo. Los pagos y las actualizaciones la heredan por su interacción.
 
 Crea en sanic_cm_tbl_interaccion (mismo largo que la columna de la cuenta):
   sanic_cm_in_ultimos4   "[IN] Últimos 4"   ← sanic_cm_ct_ultimos4
   sanic_cm_in_cifcliente "[IN] CIF cliente" ← sanic_cm_ct_cifcliente
   sanic_cm_in_clavepan   "[IN] Clave PAN"   ← sanic_cm_ct_clavepan (HMAC)
-Va ANTES de paso5 (1.0.9.2: IdentidadEnInteraccion las completa al crear). Con --rellenar completa las interacciones que ya
+Va ANTES de paso5 (IdentidadEnInteraccion las completa al crear). Con --rellenar completa las interacciones que ya
 existen (solo lo vacío). Imprime solo conteos, nunca valores.
 Uso: python3 scripts/pan/paso17_identidad_interaccion.py [--aplicar] [--rellenar]"""
 import os, sys

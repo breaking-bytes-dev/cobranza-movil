@@ -13,8 +13,8 @@ Screens:
       OnVisible: |-
         =Set(varPend, CountRows(Filter('CM | TBL | Interaccions', IsBlank('[IN] Numero de Interaccion')))
                       + CountRows(Filter('CM | TBL | Pagos', IsBlank('[PG] Numero'))));
-           // APP-20: capturas de hoy por la fecha de CAPTURA (la pone el teléfono; 'Created On' de un registro offline
-           // lo pone el servidor al sincronizar, y comparar fecha y hora contra Today() solo matcheaba las 00:00).
+           // Capturas de hoy por la fecha de CAPTURA (la pone el teléfono); 'Created On' de un registro offline
+           // lo pone el servidor al sincronizar.
            Set(varCapHoy, Sort(Filter('CM | TBL | Interaccions', 'Fecha de captura' >= Today() && 'Fecha de captura' < DateAdd(Today(), 1)), 'Fecha de captura', SortOrder.Descending))
     Children:
       - conMaster_6:
@@ -295,7 +295,7 @@ Screens:
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
                   OnSelect: |-
-                    =// O5: Refresh relee la base del TELÉFONO (no baja nada del servidor): rearma las pantallas con lo que ya llegó.
+                    =// Refresh relee la base del TELÉFONO (no baja nada del servidor): rearma las pantallas con lo que ya llegó.
                     // Funciona sin señal. Lo que baja del servidor es «Actualizar todo desde el servidor».
                     Refresh('CM | TBL | Interaccions'); Refresh('CM | TBL | Pagos'); Refresh('CM | TBL | Actualizacion de datos'); Refresh('CM | TBL | Asignacions'); Refresh('CM | TBL | Cuentas'); Refresh('CM | TBL | PAN de cuentas'); Set(varRecargarCartera, true); Set(varCliCargado, Blank()); Set(varPend, CountRows(Filter('CM | TBL | Interaccions', IsBlank('[IN] Numero de Interaccion')))); Notify("Lista recargada con los datos del teléfono.", NotificationType.Information)
                   RadiusBottomLeft: =14
@@ -315,7 +315,7 @@ Screens:
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
                   OnSelect: |-
-                    =// O5: Power Fx no tiene una función que baje datos. Esto abre el Estado del dispositivo, cuyo botón de actualizar
+                    =// Power Fx no tiene una función que baje datos. Esto abre el Estado del dispositivo, cuyo botón de actualizar
                     // hace la sincronización completa (revisa cada registro del teléfono). Al terminar, tmrSync_Cart rearma la cartera.
                     ShowHostInfo(HostInfo.OfflineSync)
                   RadiusBottomLeft: =14
@@ -416,7 +416,7 @@ Screens:
                                     LayoutMinWidth: =16
                                     Size: =gblT.fbase
                                     Text: |-
-                                      =// APP-50: sin la cuenta (borrada o ya no compartida) se muestran los últimos 4 que guardó la interacción
+                                      =// Sin la cuenta (borrada o ya no compartida) se muestran los últimos 4 que guardó la interacción
                                       With({ c: LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = ThisItem.'[IN] Cuenta'.'CM | TBL | Cuenta') },
                                           If(IsBlank(c), "(cuenta ya no asignada) · " & PanMasc(ThisItem.'[IN] Últimos 4'),
                                               c.'Nombre Cliente' & If(IsBlank(c.'Tipo Producto'), "", " · " & c.'Tipo Producto')))
@@ -460,7 +460,7 @@ Screens:
                                     LayoutMinHeight: =16
                                     LayoutMinWidth: =16
                                     Size: =gblT.fxs
-                                    # F8: «subida» exige que también hayan llegado el pago y la actualización de datos; el teléfono
+                                    # «subida» exige que también hayan llegado el pago y la actualización de datos: el teléfono
                                     # descarta en silencio lo que el servidor rechaza, así que la interacción sola no alcanza
                                     Text: =If(IsBlank(ThisItem.'[IN] Numero de Interaccion'), "pendiente de subir", ((ThisItem.'[IN] Aplica pago' && IsBlank(LookUp('CM | TBL | Pagos', '[PG] Interaccion'.'CM | TBL | Interaccion' = ThisItem.'CM | TBL | Interaccion'))) || (ThisItem.'[IN] Actualiza info' && IsBlank(LookUp('CM | TBL | Actualizacion de datos', '[AD] Interaccion'.'CM | TBL | Interaccion' = ThisItem.'CM | TBL | Interaccion')))), "⚠ incompleta", "subida")
             - cardNota:

@@ -1,11 +1,9 @@
-"""Fase 1 · Paso 1: cortar cascadas de compartido peligrosas + auditoría en tablas transaccionales.
-2026-10-06: además se corta Reparent en las mismas relaciones. Con Reparent = Cascade, cada vez que la carga de Smelter
-vuelve a escribir la cuenta (cambia o reescribe su cliente), Dataverse le da lectura HEREDADA de la cuenta, su bóveda y sus
-asignaciones a quien tenga acceso al cliente: el cobrador terminaba leyendo todas las cuentas de sus clientes, con el
-número completo, aunque no estuvieran asignadas a él (defecto 2 de la prueba integral).
-2026-10-14 (DAT-18): borrar una interacción ya no borra sus pagos ni sus actualizaciones de datos, y borrar un cliente ya no
-borra su historial de carga diaria (Delete = Restrict: hay que borrar los hijos antes). Reasignar una cuenta ya no reasigna
-sus asignaciones (Assign = NoCascade): la asignación tiene su propio dueño, el que pone RepartoAsignacion.
+"""Corta cascadas peligrosas en las relaciones de CM y enciende la auditoría en las tablas transaccionales.
+- Share, Unshare y Reparent dejan de propagarse del padre al hijo: con Reparent = Cascade, cada vez que la carga reescribe
+  la cuenta, Dataverse da lectura heredada de la cuenta, su bóveda y sus asignaciones a quien tenga acceso al cliente.
+- Delete = Restrict: borrar una interacción no borra sus pagos ni sus actualizaciones de datos, y borrar un cliente no
+  borra su historial de carga diaria (hay que borrar los hijos antes).
+- Assign = NoCascade en cuenta → asignación: la asignación tiene su propio dueño, el que pone RepartoAsignacion.
 Uso: python3 paso1_cascadas_auditoria.py [--aplicar]   (sin --aplicar solo muestra el plan)"""
 import sys
 from dvlib import rq, get
@@ -15,11 +13,10 @@ P = 'sanic_cm_tbl_'
 # (padre, hijo): compartir el padre NO debe compartir el hijo, ni darle acceso heredado al re-escribirlo (Reparent)
 CORTAR = [('cliente', 'cuenta'), ('cliente', 'cargadiaria'), ('cuenta', 'asignacion')]
 AUDITAR = ['asignacion', 'interaccion', 'pago', 'agente', 'actualizaciondatos']
-# 2026-10-22 (velocidad de la carga, propuesta C aprobada por el dueño): la carga diaria NO se audita. Es la foto histórica
-# que escribe Smelter (~6.000 altas por carga); la auditoría duplicaba cada alta. Contra aceptado: un borrado de historia
-# (solo lo puede hacer Admin) deja de quedar registrado en la auditoría.
+# La carga diaria no se audita: es la foto histórica que escribe Smelter (~6.000 altas por carga) y la auditoría
+# duplicaría cada alta. Contra: un borrado de historia (solo Admin) no queda registrado en la auditoría.
 SIN_AUDITAR = ['cargadiaria']
-# (padre, hijo, {acción: valor}) — DAT-18
+# (padre, hijo, {acción: valor})
 OTRAS = [('interaccion', 'pago', {'Delete': 'Restrict'}),
          ('interaccion', 'actualizaciondatos', {'Delete': 'Restrict'}),
          ('cliente', 'cargadiaria', {'Delete': 'Restrict'}),

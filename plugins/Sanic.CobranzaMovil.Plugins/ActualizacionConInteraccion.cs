@@ -5,17 +5,15 @@ using Microsoft.Xrm.Sdk.Query;
 namespace Sanic.CobranzaMovil.Plugins
 {
     /// <summary>
-    /// APP-24: una Actualizacion de datos debe colgar de una interaccion que tenga cuenta. Por ese camino
-    /// (actualizacion -> interaccion -> cuenta -> CIF) el backoffice sabe de que cliente es y arma el "antes".
-    /// La app ya la crea despues de la interaccion; esto lo garantiza tambien fuera de la app.
+    /// Una Actualizacion de datos debe colgar de una interaccion con cuenta: por ese camino
+    /// (actualizacion -&gt; interaccion -&gt; cuenta -&gt; CIF) el backoffice sabe de que cliente es y arma el "antes".
     ///
-    /// F7: en el telefono (runtime offline) el lookup a la interaccion recien creada llega vacio. La app manda ademas
-    /// la cuenta (que ya existe en el servidor) y la MISMA fecha de captura que puso en la interaccion; con eso el
-    /// servidor busca la interaccion del mismo cobrador, cuenta y captura (con actualiza info) y la vincula. Si no la
-    /// encuentra todavia, rechaza: la sincronizacion la reintenta. Con la interaccion, completa la cuenta si falta y
-    /// rechaza si no coincide.
+    /// Offline, el lookup a la interaccion recien creada llega vacio: la app manda la cuenta y la misma fecha de
+    /// captura de la interaccion, y el servidor busca la del mismo localizador para vincularla. Si no la encuentra,
+    /// la acepta marcada como sin vincular (rechazar perderia el dato). Con la interaccion, completa la cuenta si
+    /// falta y rechaza si no coincide.
     ///
-    /// Lee la interaccion con los permisos del llamador (el cobrador lee las suyas). Nunca cita valores.
+    /// Lee la interaccion con los permisos del llamador. Nunca cita valores.
     /// Registro: PreOperation sincrono. Create y Update de sanic_cm_tbl_actualizaciondatos; el Update filtrado
     /// por sanic_cm_ad_interaccionid.
     /// </summary>
@@ -32,7 +30,7 @@ namespace Sanic.CobranzaMovil.Plugins
 
             var target = local.ObtenerTarget();
             var esCreate = local.EsMensaje(Esquema.MensajeCreate);
-            // F7: que columnas manda el telefono (solo NOMBRES, nunca valores). Offline el runtime descarta columnas en silencio.
+            // Traza los NOMBRES de columnas recibidas (nunca valores): offline el runtime descarta columnas en silencio.
             local.Trace("columnas recibidas: {0}", string.Join(",", new System.Collections.Generic.List<string>(target.Attributes.Keys).ToArray()));
             if (!esCreate && !target.Contains(Esquema.ActualizacionInteraccion))
             {
@@ -51,8 +49,8 @@ namespace Sanic.CobranzaMovil.Plugins
                     target[Esquema.ActualizacionSinVincular] = false;
                     return;
                 }
-                // F8: un rechazo aca es un dato perdido (el telefono descarta lo rechazado y no reintenta). Se acepta
-                // marcada: VincularActualizacionPendiente la cuelga cuando llegue la interaccion; si no, la ve BackOffice.
+                // Rechazar aca perderia el dato (el telefono descarta lo rechazado). Se acepta marcada:
+                // VincularActualizacionPendiente la vincula cuando llegue la interaccion; si no, la ve el backoffice.
                 target[Esquema.ActualizacionSinVincular] = true;
                 local.Trace("sin interaccion: se acepta marcada como sin vincular.");
                 return;
@@ -87,10 +85,10 @@ namespace Sanic.CobranzaMovil.Plugins
         }
 
         /// <summary>
-        /// F7: la interaccion del mismo cobrador y cuenta, marcada con actualiza info. Con fecha de captura: la de esa
-        /// captura (tolerancia de unos segundos), exactamente una. Sin fecha (el runtime offline la descarta, 1.0.8.8):
-        /// la mas vieja de las ultimas horas que todavia no tiene actualizacion de datos (la sincronizacion sube en orden).
-        /// Si no hay, o es ambigua, devuelve null (la actualizacion entra marcada como sin vincular, F8).
+        /// La interaccion del mismo localizador y cuenta, marcada con actualiza info. Con fecha de captura: exactamente
+        /// una de esa captura (tolerancia de unos segundos). Sin fecha (el runtime offline puede descartarla): la mas
+        /// vieja de las ultimas horas sin actualizacion de datos, porque la sincronizacion sube en orden.
+        /// Si no hay, o es ambigua, devuelve null.
         /// </summary>
         private static EntityReference BuscarInteraccion(LocalContext local, Entity target)
         {

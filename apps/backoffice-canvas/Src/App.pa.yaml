@@ -9,7 +9,7 @@
 App:
   Properties:
     Formulas: |-
-      =// ===== App.Formulas (fórmulas con nombre — guía 01 §3) =====
+      =// ===== App.Formulas (fórmulas con nombre) =====
       // Bimoneda: "C$ X · US$ Y", omite la moneda en cero. Igual que la app del localizador.
       Moneda(nio:Number, usd:Number): Text =
           Coalesce(
@@ -28,7 +28,7 @@ App:
               "C$ 0.00"
           );
 
-      // Cuenta enmascarada (PCI, fase 2): ninguna pantalla muestra el número completo; se muestra
+      // Cuenta enmascarada (PCI): ninguna pantalla muestra el número completo; se muestra
       // "•••• " + 'Últimos 4' (columna de la cuenta). Solo el rol BackOffice lee el PAN completo (bóveda, scrTranscripcion/Transcritas).
       CuentaMasc(ult4:Text): Text =
           If(IsBlank(ult4), "••••", "•••• " & ult4);
@@ -42,7 +42,7 @@ App:
               If(IsBlank(m), e, Trim(Substitute(m.t, "PartirCarga:", "")))
           );
 
-      // APP-49: monto de retiro de una Especial: obligatorio, número, 0 o más (vacío, texto o negativo no).
+      // Monto de retiro de una Especial: obligatorio, número, 0 o más (vacío, texto o negativo no).
       RetiroOk(t:Text): Boolean = IfError(With({v: Value(Trim(t))}, !IsBlank(Trim(t)) && !IsBlank(v) && v >= 0), false);
 
       // Alta de cuenta: dígitos de la tarjeta (sin espacios, guiones ni puntos) y dígito verificador (Luhn), en vivo.
@@ -53,12 +53,12 @@ App:
                   With({x: Value(Mid(d, Len(d) - i.Value + 1, 1))},
                       {v: If(Mod(i.Value, 2) = 0, If(x * 2 > 9, x * 2 - 9, x * 2), x)})), v), 10) = 0;
 
-      // F7: versión desplegada. paso7_desplegar reemplaza "dev" por "<commit> <aaaa-mm-dd HH:MM UTC>" al empaquetar;
-      // las suites la leen en la app servida para no probar una versión vieja.
+      // Versión desplegada. El despliegue reemplaza "dev" por "<commit> <aaaa-mm-dd HH:MM UTC>" al empaquetar;
+      // las pruebas la leen en la app servida para no probar una versión vieja.
       nfVersion = "dev";
 
-      // Alerta de carga: Cartera por localizador marca en rojo al cobrador con más asignaciones activas que esto.
-      // Es un criterio de operación (no un límite técnico: el teléfono trae la cartera por tramos). Cambiarlo acá.
+      // Alerta de carga: Cartera por localizador marca en rojo al localizador con más asignaciones activas que esto.
+      // Es un criterio de operación (no un límite técnico: el teléfono trae la cartera por tramos). Cambiarlo aquí.
       nfUmbralCarga = 500;
 
       // Carga paralela (Cargar archivo, carga real): la Custom API sanic_cm_PartirCarga deja un job de padres (producto,
@@ -67,23 +67,23 @@ App:
       // con 4 se queda al borde. La API acepta de 1 a 4 y con menos de 300 filas hace una sola.
       nfPartesCarga = 3;
 
-      // Interruptor de la carga paralela. false = la carga real va en UN job, en serie, como antes. Pasar a true SOLO
+      // Interruptor de la carga paralela. false = la carga real va en UN job, en serie. Pasar a true SOLO
       // después de refrescar la fuente "Environment" en Studio (la foto de las Custom APIs del .msapr no conoce
       // sanic_cm_PartirCarga hasta entonces, y la fórmula de btnPartirCar queda inerte).
       nfCargaParalela = true;
-      // APP-48: interruptor del cierre en lote de Reconciliación en el servidor (Custom API sanic_cm_CerrarFueraDeCartera, por
-      // lotes y sin el tope de 2000). false = el Patch de antes. Pasar a true SOLO después de refrescar la fuente "Environment"
+      // Interruptor del cierre en lote de Reconciliación en el servidor (Custom API sanic_cm_CerrarFueraDeCartera, por
+      // lotes y sin el tope de 2000 filas). false = Patch masivo desde la app. Pasar a true SOLO después de refrescar "Environment"
       // en Studio (hasta entonces la foto de las Custom APIs no conoce la API y tmrCierreRec queda inerte).
       nfCierreServidor = true;
 
       // Interruptor de la validación de largo en la prueba en seco y la carga en serie (btnValidarCar llama a
       // sanic_cm_PartirCarga con SoloValidar = true antes de poner el job en cola). Pasar a true SOLO después de refrescar
-      // "Environment" en Studio: la foto del .msapr no conoce el parámetro SoloValidar (1.0.9.9) y la fórmula de
+      // "Environment" en Studio: la foto del .msapr no conoce el parámetro SoloValidar y la fórmula de
       // btnValidarCar queda inerte; con true y la fórmula inerte, la carga quedaría sin lanzar.
       nfValidarLargo = true;
 
-      // Breakpoint responsive único del proyecto (00 §7).
-      // Si Studio rechaza App.ActiveScreen acá, mover nfMovil a cada pantalla como Parent.Width < 920.
+      // Breakpoint responsive único del proyecto.
+      // Si Studio rechaza App.ActiveScreen aquí, mover nfMovil a cada pantalla como Parent.Width < 920.
       nfMovil = App.ActiveScreen.Width < 920;
 
       // Última carga registrada (delegable: Sort + First). La usan Monitoreo y Reconciliación.
@@ -91,10 +91,10 @@ App:
           Sort('CM | TBL | Carga diarias', '[CD] FechaCarga', SortOrder.Descending)
       ).'[CD] FechaCarga';
 
-      // Identidad (B-01, ronda 6): fórmulas con nombre y NO Set en OnStart — el OnVisible de
-      // scrInicio corría antes de que OnStart terminara y los KPIs salían vacíos la 1ª vez.
-      // Se evalúan a demanda y siempre están disponibles. Nombres gbl* conservados (referencias).
-      // gblRol derivado de la seguridad REAL (00 §3.1 — sin tabla extra).
+      // Identidad: fórmulas con nombre y NO Set en OnStart, porque el OnVisible de
+      // scrInicio puede correr antes de que OnStart termine y los KPIs saldrían vacíos.
+      // Se evalúan a demanda y siempre están disponibles.
+      // gblRol derivado de la seguridad REAL (sin tabla extra).
       // a) Roles DIRECTOS del usuario: "SR | CM | Admin" -> "Admin".
       // b) Roles por TEAM: en este proyecto el rol se asigna por membresía al team
       //    "CM · <perfil> · <ENV>". Canvas no deja navegar Team -> Security Roles dentro de un
@@ -102,16 +102,16 @@ App:
       //    sale del segmento del medio del nombre del team (el sufijo DEV/PRD se ignora).
       //    ⚠ Renombrar un team CM rompe este mapeo (mismo acople que el prefijo "SR | CM | ").
       // Por el id de Entra y no por correo: User().Email devuelve el UPN, que puede no coincidir con el correo
-      // principal (en la app del cobrador ya se corrigió; ver plugin EmailDesdeUsuario). El id no cambia nunca.
+      // principal (ver plugin EmailDesdeUsuario). El id no cambia nunca.
       gblUsuarioDV = LookUp(
           Users,
           'Azure AD Object ID' = User().EntraObjectId
       );
 
       // Expresión pura (Concat/Split/Distinct, sin Collect/Set): válida en fórmula con nombre.
-      // B-06: guarda de Blank. Si el LookUp de gblUsuarioDV todavía no resolvió (carrera al abrir) o el
-      // usuario no existe en Users, sus relaciones son Blank y Filter/Concat fallaban con
-      // "expected a table" (banner en Inicio). Sin usuario => "" => estado "sin acceso".
+      // Guarda de Blank: si el LookUp de gblUsuarioDV todavía no resolvió (carrera al abrir) o el
+      // usuario no existe en Users, sus relaciones son Blank y Filter/Concat fallarían con
+      // "expected a table". Sin usuario => "" => estado "sin acceso".
       gblRol = If(IsBlank(gblUsuarioDV), "", With(
           {
               // a) roles directos "SR | CM | Admin" -> "Admin"
@@ -131,7 +131,7 @@ App:
                   "|"
               ),
               // b) roles por team "CM · <perfil> · <ENV>" -> perfil (segmento del medio)
-              //    (mismo recorrido que el ForAll original: If por fila, sin Filter sobre la relación)
+              //    (If por fila, sin Filter sobre la relación)
               rolesTeam: Concat(
                   gblUsuarioDV.'Teams (teammembership_association)',
                   If(
@@ -180,7 +180,7 @@ App:
       ));
     OnStart: |-
       =// ===== App.OnStart =====
-      // F7: la nav (componente) no ve las fórmulas con nombre que solo usa ella (nfVersion llegaba vacía): va por variable.
+      // La nav (componente) no ve las fórmulas con nombre que solo usa ella: la versión va por variable.
       Set(gblVersion, nfVersion);
       // 1) Tokens de color (identidad de la familia, modo día)
       Set(
@@ -239,7 +239,7 @@ App:
               AnchoMax: 1600
           }
       );
-      // 4) La navegación por rol vive en cmpNavLateral (galNavCmp.Items, catálogo local — B-06).
+      // 4) La navegación por rol vive en cmpNavLateral (galNavCmp.Items, catálogo local).
       Set(
           gblNavMovilAbierta,
           false

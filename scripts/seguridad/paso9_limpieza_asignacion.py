@@ -1,12 +1,9 @@
-"""Fase 4 · Paso 9: arrastres de diseño de la asignación (DAT-28 y DAT-16).
-
-- DAT-28: el estado de aprobación es solo de las Especiales. Las Diarias e Incobrables que quedaron en "Pendiente aprobacion"
-  (el valor por defecto de la columna) pasan a Borrador, como las demás. Desde 1.0.6.0 el plugin AprobacionEspecial hace que
-  nazcan en Borrador. El valor por defecto NO se cambia: lo necesitan las Especiales del CSV para entrar a la cola del
-  Supervisor.
-- DAT-16: se borra la regla de negocio "Bussiness Rule | CM | AS | Orden inicial", que quedó en borrador. Si alguien la
-  activara pondría todas las asignaciones en orden 1 (empate masivo); el orden 1..n lo arma la app del cobrador (APP-23).
-  Solo se borra si sigue en borrador. También hay que sacarla de solutions/unpacked (ya hecho en el repo).
+"""Limpieza de la asignación:
+- El estado de aprobación es solo de las Especiales. Las Diarias e Incobrables que quedaron en "Pendiente aprobacion"
+  (el valor por defecto de la columna) pasan a Borrador; el plugin AprobacionEspecial hace que las nuevas nazcan así.
+  El valor por defecto NO se cambia: lo necesitan las Especiales del CSV para entrar a la cola del Supervisor.
+- Borra la regla de negocio "Bussiness Rule | CM | AS | Orden inicial" solo si sigue en borrador. Activada pondría todas
+  las asignaciones en orden 1 (empate masivo); el orden 1..n lo arma la app del localizador.
 
 Idempotente. Por defecto solo muestra el plan. Aplica con --aplicar.
 Uso: python3 paso9_limpieza_asignacion.py [--aplicar]"""

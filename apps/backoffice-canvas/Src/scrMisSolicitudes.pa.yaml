@@ -11,13 +11,13 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =// Filtros (APP-39): por defecto el último mes (de hace un mes a hoy), todos los estados, sin cobrador, CIF ni cuenta.
+        =// Filtros: por defecto el último mes (de hace un mes a hoy), todos los estados, sin localizador, CIF ni cuenta.
         // Se conservan entre visitas de la misma sesión; «Limpiar» vuelve a los valores por defecto.
         If(IsBlank(varDesdeSol), Set(varDesdeSol, DateAdd(Today(), -1, TimeUnit.Months)));
         If(IsBlank(varHastaSol), Set(varHastaSol, Today()));
         If(IsBlank(varEstSol), Set(varEstSol, "Todos los estados"));
         If(IsBlank(varAgSol), Set(varAgSol, "Todos los localizadores"));
-        // Cobradores del filtro (todos, por nombre). El DropDown aplica Default una sola vez: Reset después de cargar.
+        // Localizadores del filtro (todos, por nombre). El DropDown aplica Default una sola vez: Reset después de cargar.
         ClearCollect(colAgSol, {nom: "Todos los localizadores"});
         Collect(colAgSol, ForAll(Sort('CM | TBL | Agentes', '[AG] Nombre'), {nom: ThisRecord.'[AG] Nombre'}));
         Reset(drpAgSol);
@@ -401,7 +401,7 @@ Screens:
                             Properties:
                               BorderThickness: =0
                               Color: |-
-                                =// DAT-14: una Rechazada ahora queda cerrada; se sigue mostrando como Rechazada.
+                                =// Una Rechazada queda cerrada, pero se sigue mostrando como Rechazada.
                                 If(ThisItem.'[AS] Estado' = false && ThisItem.'[AS] Estado de aprobacion' <> 'Choice | CM | Estado aprobacion especial'.Rechazada, gblC.ink2,
                                     Switch(ThisItem.'[AS] Estado de aprobacion',
                                         'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion', gblC.pendInk,
@@ -517,7 +517,7 @@ Screens:
           Control: Classic/Button@2.2.0
           Properties:
             OnSelect: |-
-              =// Mis Especiales con TODOS los filtros en el servidor (APP-39): cada cambio de filtro vuelve a consultar Dataverse, así el
+              =// Mis Especiales con TODOS los filtros en el servidor: cada cambio de filtro vuelve a consultar Dataverse, así el
               // límite de 2000 filas aplica a lo que coincide con los filtros y no a todo el historial. Delegable: choice y booleano por
               // valor, fechas y lookups contra variables; las partes «IsBlank(var) ||» y «var = "x" &&» no tocan columnas.
               // CIF y cuenta viven en la CUENTA, no en la asignación: primero las cuentas que coinciden (Cuentas, delegable; hasta 50)
@@ -923,11 +923,11 @@ Screens:
                   RadiusBottomRight: =gblE.RadioSm
                   RadiusTopLeft: =gblE.RadioSm
                   RadiusTopRight: =gblE.RadioSm
-                  # F12: también la cerrada dice cuándo y por qué (el motivo de Cierres ya trae el detalle: "Motivo — detalle")
+                  # También la cerrada dice cuándo y por qué (el motivo de Cierres ya trae el detalle: "Motivo — detalle")
                   Visible: =galSolSol.Selected.'[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Rechazada || galSolSol.Selected.'[AS] Estado' = false
                   Width: =Parent.Width - 2*gblE.Pad
                   X: =gblE.Pad
-                  # debajo del localizador si la Especial llegó a aprobarse
+                  # Debajo del localizador si la Especial llegó a aprobarse
                   Y: =If(galSolSol.Selected.'[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado, 410, 374)
                 Children:
                   - lblRechSol:

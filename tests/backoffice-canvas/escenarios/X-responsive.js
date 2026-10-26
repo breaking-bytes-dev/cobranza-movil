@@ -1,4 +1,4 @@
-// FASE X — X-01 responsive: viewport 800x900 (< 920 px) con User4 (Admin).
+// FASE X — Diseño responsive: viewport 800x900 (< 920 px) con User4 (Admin).
 const pl = require('../lib/player');
 const inf = require('../lib/informe');
 const c = require('./comun');

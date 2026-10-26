@@ -21,16 +21,16 @@ App:
       EspNota(notas:Text): Text =
          With({ i: Find(" — ", Coalesce(notas, "")) },
             If(IsBlank(i), Coalesce(notas, ""), Trim(Mid(notas, i + 3))));
-      // F7: versión desplegada. paso7_desplegar reemplaza "dev" por "<commit> <aaaa-mm-dd HH:MM UTC>" al empaquetar;
-      // las suites la leen en la app servida para no probar una versión vieja.
+      // Versión desplegada: el script de despliegue reemplaza "dev" por el commit y la fecha al empaquetar;
+      // las pruebas la leen en la app servida para no probar una versión vieja.
       nfVersion = "dev";
-      // APP-27: el agente es una fórmula con nombre: se recalcula sola cuando llegan los datos (el OnStart no bloquea).
-      // User().Email es el UPN; el correo del agente lo deriva el servidor del usuario vinculado, en minúsculas
-      // (plugin EmailDesdeUsuario). Comparar en minúsculas: offline la comparación la hace la base local del teléfono.
+      // Fórmula con nombre: se recalcula sola cuando llegan los datos, sin bloquear el arranque.
+      // El servidor guarda el correo del agente en minúsculas y offline la comparación la hace la base local
+      // del teléfono: por eso se compara contra Lower(User().Email).
       gblAgente = LookUp('CM | TBL | Agentes', 'Email Usuario' = Lower(User().Email));
-      // APP-43: el Admin desactivó el localizador → la app bloquea el registro (el servidor también lo rechaza, 1.0.10.1).
+      // Localizador desactivado por el Admin: la app bloquea el registro (el servidor también lo rechaza).
       gblAgenteInactivo = !IsBlank(gblAgente) && !gblAgente.'[AG] Activo';
-      // APP-14: estado de sincronización del dispositivo. Es una señal: se recalcula sola. En el navegador no hay
+      // Estado de sincronización del dispositivo; es una señal y se recalcula sola. En el navegador no hay
       // sincronización (Connection.Sync vacío): ahí solo se distingue con o sin conexión.
       gblSync = If(IsBlank(Connection.Sync), If(Connection.Connected, "ok", "off"),
           Switch(Connection.Sync,
@@ -46,7 +46,7 @@ App:
     OnStart: |-
       =// ===================== PREFERENCIAS PERSISTIDAS (accesibilidad, offline-safe) =====================
       Set(gblFont, Font.'Segoe UI');
-      Set(gblDark, false);     // modo noche — arranca en Día (decisión usuario 2026-07-26)
+      Set(gblDark, false);     // modo noche; arranca en Día
       Set(gblScale, 1);        // 1 = Normal · 1.2 = Grande · 1.45 = Muy grande · 1.7 = Máximo
       // Sembrar esquema para que Studio conozca las columnas dark/scale (evita error de columna).
       ClearCollect(colPrefs, {dark: false, scale: 1});
@@ -110,8 +110,8 @@ App:
       });
 
       // ===================== COLECCIONES BASE =====================
-      // ESCALA: el arranque ya no copia tablas enteras (cada copia se cortaba en el límite de 2000 filas). La Cartera se arma
-      // por tramos (scrCartera, btnCargarCartera) y las demás pantallas leen cada cuenta, dirección o teléfono de la base
+      // El arranque no copia tablas enteras (cada copia se cortaría en el límite de 2000 filas): la Cartera se arma
+      // por tramos (btnCargarCartera) y las demás pantallas leen cada cuenta, dirección o teléfono de la base
       // del teléfono cuando lo muestran.
 
       // ===================== ESTADO DE NAVEGACIÓN =====================

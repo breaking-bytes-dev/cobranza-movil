@@ -1,5 +1,5 @@
 // FASE D — User1 en su rol REAL (team "CM · Backoffice · DEV"; rol BackOffice con Write+Append en
-// interacción desde la corrección de B-02). Transcripción E2E con el rol Backoffice SOLO.
+// interacción). Transcripción E2E con el rol Backoffice SOLO.
 const pl = require('../lib/player');
 const inf = require('../lib/informe');
 const v = require('../lib/verdad');
@@ -12,7 +12,7 @@ const LOC_QA = 'QA-E2E Localizador';
 const RE_LOC_QA = /QA-E2E Localizador(?! User)/i;
 
 
-// Flujo de transcripción de las 2 interacciones QA (lo usan F-01 y F-01m).
+// Flujo de transcripción de las 2 interacciones QA (compartido por los escenarios de transcripción).
 async function flujoTranscripcion(e, app, suite, yo) {
   const { int1, int2 } = suite.datos;
   await c.ir(app, 'Por transcribir', 'scrTranscripcion');
@@ -21,7 +21,7 @@ async function flujoTranscripcion(e, app, suite, yo) {
       await pl.esperar(app, 3000);
       let pos = await pl.texto(app, 'lblPosTrx');
       e.check(pos.includes(int1.sanic_cm_in_numerointeraccion) && pos.startsWith('1 DE 2'), 'selección inicial = la QA más vieja (FIFO)', `1 DE 2 … ${int1.sanic_cm_in_numerointeraccion}`, pos);
-      // PCI (fase 2): el detalle muestra el número COMPLETO leído de la bóveda (el "PAN" QA es la cuenta QA).
+      // El detalle muestra el número COMPLETO leído de la bóveda (el "PAN" QA es la cuenta QA).
       // Si la bóveda no se pudo leer, la app cae a "•••• E2E1" y este check lo delata.
       e.check((await pl.texto(app, 'lblCuentaGrandeTrx')) === 'QA-E2E-CTA-0001', 'detalle: número completo de la cuenta QA leído de la bóveda (BackOffice)', 'QA-E2E-CTA-0001', await pl.texto(app, 'lblCuentaGrandeTrx'));
       const colaMeta = (await pl.ctl(app, 'lblColaMetaTrx').locator('visible=true').allInnerTexts()).join(' | ');
@@ -34,7 +34,7 @@ async function flujoTranscripcion(e, app, suite, yo) {
       e.evid(await pl.foto(app, 'F-01-detalle-pago'));
       // SEGURIDAD: solo se marca si la seleccionada es la interacción QA esperada
       if (!pos.includes(int1.sanic_cm_in_numerointeraccion)) throw new Error('Seguridad: la interacción seleccionada no es la QA');
-      // Tab NO graba (2026-10-09: Power Apps no distingue Enter de Tab; el campo solo lleva el foco a "Grabar")
+      // Tab NO graba (Power Apps no distingue Enter de Tab; el campo solo lleva el foco a "Grabar")
       await pl.escribir(app, 'txtCodigoTrx', 'qae2e1', { enter: false, tab: true });
       const n0 = await c.esperarNotif(app, /grabada|error/i, 5000);
       const r0 = await dv.get(`sanic_cm_tbl_interaccions(${int1.sanic_cm_tbl_interaccionid})?$select=sanic_cm_in_estadograbacion`);
@@ -84,7 +84,7 @@ async function flujoTranscripcion(e, app, suite, yo) {
   return ok;
 }
 
-// Arqueo "Transcritas hoy" (F-01b).
+// Arqueo "Transcritas hoy".
 async function arqueo(e, app, yo) {
       await c.ir(app, 'Transcritas', 'scrTranscritas');
       const k = await pl.kpis(app);

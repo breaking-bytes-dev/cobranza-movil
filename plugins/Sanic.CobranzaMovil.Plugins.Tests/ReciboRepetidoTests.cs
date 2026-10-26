@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Sanic.CobranzaMovil.Plugins.Tests
 {
-    /// <summary>F6: el recibo repetido no se rechaza (F8): el pago entra marcado para que BackOffice lo revise.</summary>
+    /// <summary>El recibo repetido no se rechaza: el pago entra marcado para que BackOffice lo revise.</summary>
     public class ReciboRepetidoTests
     {
         private const string Pago = "sanic_cm_tbl_pago";

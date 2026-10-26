@@ -4,7 +4,7 @@ using Microsoft.Xrm.Sdk;
 namespace Sanic.CobranzaMovil.Plugins
 {
     /// <summary>
-    /// S-7: "Solicitado por" decide con quien se comparte la Especial aprobada (<see cref="RepartoAsignacion"/>). Una
+    /// "Solicitado por" decide con quien se comparte la Especial aprobada (<see cref="RepartoAsignacion"/>). Una
     /// persona de CM solo puede ponerse a si misma: poniendo a otro le regalaria lectura y escritura de la Especial a
     /// un tercero. Vaciarlo no comparte con nadie y se permite.
     /// Admin, Servicio y quien no tiene roles de CM (SYSTEM: la carga, SolicitarEspecial al reactivar) no se frenan.

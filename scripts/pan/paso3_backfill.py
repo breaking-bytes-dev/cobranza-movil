@@ -1,4 +1,4 @@
-"""Fase 2 · Paso 3 (MIGRAR, aditivo): bóveda + claves HMAC desde los datos existentes.
+"""Migración (aditiva): bóveda + claves HMAC desde los datos existentes.
 - cuenta: crea su fila en sanic_cm_tbl_cuentapan (PAN completo, ****1234, HMAC) y completa ct_clavepan / ct_ultimos4.
 - asignación: as_clavepan = clave de su cuenta.  carga diaria: cd_clavepan.  pago: pg_cuentaid (vía interacción o número).
 La clave K se lee de PAN_HMAC_KEY_FILE (por defecto ~/.config/cobranza-movil/pan_hmac_dev.key) y NUNCA se imprime.

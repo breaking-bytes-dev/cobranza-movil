@@ -5,12 +5,11 @@ using Microsoft.Xrm.Sdk.Query;
 namespace Sanic.CobranzaMovil.Plugins
 {
     /// <summary>
-    /// DAT-15 (DEC-021): una cuenta tiene UNA sola asignacion activa entre Diaria e Incobrable. Cuando la carga trae la
-    /// cuenta con el otro tipo (crea la asignacion nueva, o reabre una que estaba cerrada), la del tipo anterior se
-    /// cierra con motivo "Reclasificada a {tipo}". Antes quedaban las dos activas en el telefono. Las Especiales no se
-    /// tocan: una Diaria y una Especial de la misma cuenta conviven.
-    /// El cierre dispara RepartoAsignacion (filtra por estado), que le revoca la cuenta al cobrador si ya no la tiene
-    /// por otra asignacion. Si la cuenta vuelve con el tipo anterior, CargaSobreAsignacion la reabre (DAT-10).
+    /// Una cuenta tiene una sola asignacion activa entre Diaria e Incobrable. Cuando la carga trae la cuenta con el
+    /// otro tipo (crea la asignacion nueva o reabre una cerrada), la del tipo anterior se cierra con motivo
+    /// "Reclasificada a {tipo}". Las Especiales no se tocan: una Diaria y una Especial de la misma cuenta conviven.
+    /// El cierre dispara RepartoAsignacion, que le revoca la cuenta al localizador si ya no la tiene por otra
+    /// asignacion. Si la cuenta vuelve con el tipo anterior, CargaSobreAsignacion la reabre.
     ///
     /// Valores resultantes sin leer la fila: el Target pisa a la imagen previa; en un Create sin estado, la asignacion
     /// nace activa (valor por defecto). Escribe con el servicio del sistema (la carga ya corre como SYSTEM).

@@ -4,25 +4,22 @@ using Microsoft.Xrm.Sdk;
 namespace Sanic.CobranzaMovil.Plugins
 {
     /// <summary>
-    /// S-6: segregacion de funciones en la asignacion Especial. Solo un Supervisor (o Admin, o la identidad de
-    /// servicio de CM) puede, sobre una Especial:
+    /// Segregacion de funciones en la asignacion Especial. Solo un Supervisor (o Admin, o la identidad de servicio de CM)
+    /// puede, sobre una Especial:
     /// - pasarla a Aprobado o Rechazada;
     /// - ponerle o cambiarle el agente;
     /// - convertir en Especial una asignacion que ya tiene agente.
-    /// Antes la unica traba era una business rule de formulario: no corre ni en canvas ni en la API.
+    /// Se hace en el servidor porque una business rule de formulario no corre ni en canvas ni en la API.
     ///
-    /// A quien frena: a las PERSONAS con algun rol de CM (prefijo "SR | CM | ") que no sea Supervisor/Admin/Servicio.
-    /// Quien no tiene roles de CM no se frena: SYSTEM (identidad de la carga de Smelter, sin roles) y los
-    /// administradores del entorno. Las Especiales del CSV no llegan al cobrador hasta que se aprueban: eso lo
-    /// cuidan el flow (no comparte) y la app (no muestra), sin romper la carga.
+    /// Frena a las PERSONAS con algun rol de CM (prefijo "SR | CM | ") que no sea Supervisor/Admin/Servicio. No frena a
+    /// quien no tiene roles de CM: SYSTEM (identidad de la carga de Smelter) y los administradores del entorno. Las
+    /// Especiales del CSV no llegan al localizador hasta que se aprueban: eso lo cuidan el reparto y la app.
     ///
-    /// H2: las Diarias e Incobrables solo las trae la carga (<see cref="SoloLaCargaTraeDiariasEIncobrables"/>).
+    /// Ademas: las Diarias e Incobrables solo las trae la carga (<see cref="SoloLaCargaTraeDiariasEIncobrables"/>) y, en
+    /// el alta, una persona de CM solo puede ponerse a si misma en "Solicitado por" (<see cref="SolicitadoPor"/>).
     ///
-    /// S-7: en el alta, una persona de CM solo puede poner "Solicitado por" a si misma (<see cref="SolicitadoPor"/>).
-    ///
-    /// Solo consulta roles si el cambio es de los controlados (o es una Diaria o Incobrable, H2), y nunca a SYSTEM (la carga:
-    /// cada Diaria nueva pedia dos consultas que siempre daban "sin roles de CM"; ver UsuarioSistema, 1.0.9.6).
-    /// Nunca traza ni cita valores del registro.
+    /// Solo consulta roles si el cambio es de los controlados, y nunca a SYSTEM (ver UsuarioSistema), para no sumar
+    /// consultas a cada fila de la carga. Nunca traza ni cita valores del registro.
     /// Registro: PreOperation sincrono. Create y Update de sanic_cm_tbl_asignacion; el Update filtrado por
     /// agente, estado de aprobacion y tipo, con imagen previa "PreImage" de esas tres columnas.
     /// </summary>
@@ -75,9 +72,9 @@ namespace Sanic.CobranzaMovil.Plugins
         }
 
         /// <summary>
-        /// DAT-28: el estado de aprobacion es solo de las Especiales, pero su valor por defecto es Pendiente (lo necesitan
-        /// las Especiales del CSV para entrar a la cola del Supervisor). Una Diaria o Incobrable nace en Borrador, como
-        /// las que ya existen, y no aparece como "pendiente de aprobacion" en una consulta que no filtre por tipo.
+        /// El estado de aprobacion es solo de las Especiales, pero su valor por defecto es Pendiente (lo necesitan las
+        /// Especiales del CSV para entrar a la cola del Supervisor). Una Diaria o Incobrable nace en Borrador para no
+        /// aparecer como "pendiente de aprobacion" en una consulta que no filtre por tipo.
         /// </summary>
         private static void SinAprobacionSiNoEsEspecial(LocalContext local, Entity target)
         {
@@ -90,10 +87,8 @@ namespace Sanic.CobranzaMovil.Plugins
         }
 
         /// <summary>
-        /// H2 (matriz de roles; dueno, 2026-10-19: "las diarias solo deberian venir por carga"). Crear una Diaria o
-        /// Incobrable, o convertir una asignacion en una, es cosa de la carga: Smelter crea como SYSTEM (sin roles de CM),
-        /// tambien el alta del Admin con AltaCuenta (pasa por un job de Smelter). Ninguna pantalla las crea. Antes un
-        /// Solicitante creaba una Diaria activa con agente y el reparto se la mandaba al cobrador sin aprobacion.
+        /// Crear una Diaria o Incobrable, o convertir una asignacion en una, es cosa de la carga: Smelter crea como SYSTEM
+        /// (sin roles de CM), tambien en el alta del Admin con AltaCuenta. Asi nadie se salta la aprobacion de la Especial.
         /// Frena a toda persona con roles de CM, Admin incluido; no frena al Servicio ni a quien no tiene roles de CM.
         /// </summary>
         private static void SoloLaCargaTraeDiariasEIncobrables(LocalContext local, Entity target, Entity previa, Func<RolesCm> roles)

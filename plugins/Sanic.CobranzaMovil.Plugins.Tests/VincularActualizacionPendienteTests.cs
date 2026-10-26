@@ -8,8 +8,8 @@ using Xunit;
 namespace Sanic.CobranzaMovil.Plugins.Tests
 {
     /// <summary>
-    /// F8: la actualizacion de datos que llego antes que su interaccion entra sin vincular; al llegar la interaccion
-    /// (con actualiza info) se cuelga la sin vincular mas vieja de esa cuenta y de ese cobrador.
+    /// La actualizacion de datos que llego antes que su interaccion entra sin vincular; al llegar la interaccion
+    /// (con actualiza info) se cuelga la sin vincular mas vieja de esa cuenta y de ese localizador.
     /// </summary>
     public class VincularActualizacionPendienteTests
     {

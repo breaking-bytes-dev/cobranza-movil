@@ -5,10 +5,9 @@ using Xunit;
 namespace Sanic.CobranzaMovil.Plugins.Tests
 {
     /// <summary>
-    /// S-6: solo un Supervisor (o Admin) aprueba, rechaza o pone agente a una asignacion Especial.
-    /// Frena a las PERSONAS con roles de CM (Solicitante, BackOffice, Localizador). Quien no tiene roles de CM
-    /// (SYSTEM, que es la identidad de la carga de Smelter; administradores del entorno) no se frena: las Especiales
-    /// del CSV no llegan al cobrador hasta que se aprueban, pero la carga no se rompe.
+    /// Solo un Supervisor (o Admin) aprueba, rechaza o pone agente a una asignacion Especial. Frena a las personas con
+    /// roles de CM; quien no los tiene (SYSTEM en la carga, administradores del entorno) no se frena: las Especiales del
+    /// CSV no llegan al localizador hasta que se aprueban, pero la carga no se rompe.
     /// </summary>
     public class AprobacionEspecialTests
     {
@@ -125,7 +124,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             Rechaza(Crear(Nueva(null, Pendiente, conAgente: true), Solicitante));
         }
 
-        // ------------------------------------------------------------------ H2: Diarias e Incobrables solo por carga
+        // ------------------------------------------------------------------ Diarias e Incobrables solo por carga
 
         private static void RechazaH2(Harness h)
         {
@@ -144,8 +143,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         [InlineData(2, Admin)]
         public void H2_ninguna_persona_de_CM_crea_una_Diaria_o_Incobrable(int tipo, string rol)
         {
-            // Dueno, 2026-10-19: "las diarias solo deberian venir por carga". La carga (Smelter, tambien el alta del
-            // Admin con AltaCuenta, que pasa por un job de Smelter) crea como SYSTEM, sin roles de CM.
+            // Las Diarias solo vienen por carga; la carga (tambien el alta con AltaCuenta) crea como SYSTEM, sin roles de CM.
             RechazaH2(Crear(Nueva(tipo, null, conAgente: true), rol));
             RechazaH2(Crear(Nueva(tipo, Borrador, conAgente: false), rol));
         }
@@ -347,7 +345,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         }
     
 
-        // ------------------------------------------------------------------ S-7: "Solicitado por" en el alta
+        // ------------------------------------------------------------------ "Solicitado por" en el alta
 
         private static Entity EspecialPedidaPor(Guid usuario)
         {
@@ -371,8 +369,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         [InlineData(Supervisor)]
         public void S7_una_persona_de_CM_no_crea_la_Especial_a_nombre_de_otro(string rol)
         {
-            // RepartoAsignacion comparte la Especial aprobada con "Solicitado por": a nombre de otro, le regalaria
-            // lectura y escritura a un tercero.
+            // RepartoAsignacion comparte la Especial aprobada con "Solicitado por": a nombre de otro, daria acceso a un tercero.
             var otro = Guid.NewGuid();
             var h = Crear(EspecialPedidaPor(otro), rol);
             var ex = Assert.Throws<InvalidPluginExecutionException>(() => h.Ejecutar(new AprobacionEspecial()));

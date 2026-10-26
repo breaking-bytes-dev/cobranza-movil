@@ -1,12 +1,13 @@
-// F7 (plugins 1.0.8.6, opcion B del dueno): la actualizacion de datos que el telefono sube SIN la interaccion se vincula en
-// el servidor por cuenta + fecha de captura, en vivo y como User5 (MSCRMCallerID), igual que la sincronizacion offline:
-//   sin interaccion, con cuenta y la captura de una interaccion suya con actualiza info -> entra y queda vinculada
-//   sin interaccion y captura sin interaccion (todavia no llego)                        -> rechazada (se reintenta)
-//   sin interaccion ni cuenta/fecha                                                     -> rechazada
-//   la captura es de una interaccion SIN actualiza info                                 -> rechazada
-//   dos interacciones de la misma cuenta y captura                                      -> rechazada (ambigua)
-//   con interaccion y sin cuenta (camino web)                                           -> entra y completa la cuenta
-// Limpieza con el prefijo QA. Sin PAN impreso.
+// La actualización de datos que el teléfono sube SIN la interacción se vincula en el servidor por cuenta + fecha de
+// captura. En vivo y como User5 (MSCRMCallerID), igual que la sincronización offline. Nunca se rechaza:
+//   con cuenta y la captura de una interacción suya con actualiza info -> entra y queda vinculada
+//   llega antes que su interacción                                     -> entra marcada y se vincula cuando llega
+//   sin interacción para esa captura / sin cuenta ni fecha             -> entra marcada sin vincular
+//   la captura es de una interacción SIN actualiza info                -> entra marcada sin vincular
+//   dos interacciones de la misma cuenta y captura                     -> entra marcada sin vincular (ambigua)
+//   con interacción y sin cuenta (camino web)                          -> entra y completa la cuenta
+//   solo con cuenta (sin fecha)                                        -> se vincula a la interacción pendiente más vieja
+// También: un recibo repetido entra marcado en vez de rechazarse. Limpieza con el prefijo QA. Sin PAN impreso.
 const path = require('path');
 process.chdir(path.join(__dirname, '..'));
 const dv = require('../../backoffice-canvas/lib/dataverse');
@@ -59,8 +60,8 @@ const iso = (ms) => new Date(ms).toISOString().replace(/\.\d{3}Z$/, 'Z');
     const base = Date.now() - 10 * 60000;
     const marcada = (a) => a.ok && a.json.sanic_cm_ad_sinvincular === true && !a.json._sanic_cm_ad_interaccionid_value;
 
-    // 0) F8: la actualización llega ANTES que su interacción → entra marcada y VincularActualizacionPendiente (asíncrono) la cuelga
-    // Va primero, con la cuenta sin interacciones: el plugin asíncrono de las interacciones de los demás casos se llevaría
+    // 0) La actualización llega ANTES que su interacción → entra marcada y el plugin asíncrono VincularActualizacionPendiente
+    // la vincula. Va primero, con la cuenta sin interacciones: si no, las interacciones de los demás casos se llevarían
     // las actualizaciones marcadas de esta misma cuenta.
     const a11 = await actualizacion(conCuenta(null));
     const i11 = await interaccion('llega después', iso(Date.now()), true);
@@ -72,9 +73,9 @@ const iso = (ms) => new Date(ms).toISOString().replace(/\.\d{3}Z$/, 'Z');
     chk('ADO-13', marcada(a11) && i11.ok && v11 && v11._sanic_cm_ad_interaccionid_value === i11.json.sanic_cm_tbl_interaccionid && v11.sanic_cm_ad_sinvincular === false,
       `llega antes que la interacción → marcada, y al llegar la interacción queda vinculada y sin marca: ${v11 && v11._sanic_cm_ad_interaccionid_value ? 'sí' : 'no se vinculó'}`);
 
-    // 0b) F6: recibo repetido → el pago entra marcado, no se rechaza
+    // 0b) Recibo repetido → el pago entra marcado, no se rechaza
     const recibo = `QA${runid}`;
-    // misma cuenta y moneda: el caso que la clave alternativa de APP-10 rechazaba (y offline se perdía); paso15 la quitó
+    // misma cuenta y moneda: si el servidor lo rechazara, offline el pago se perdería
     const pago = (n) => como('POST', 'sanic_cm_tbl_pagos', { sanic_cm_pg_monto: 10 + n, sanic_cm_pg_numerorecibo: recibo, sanic_cm_pg_moneda: 1,
       'sanic_cm_pg_interaccion@odata.bind': `/sanic_cm_tbl_interaccions(${i11.json.sanic_cm_tbl_interaccionid})` }, U.cob);
     const p1 = await pago(1), p2 = await pago(2);
@@ -92,7 +93,7 @@ const iso = (ms) => new Date(ms).toISOString().replace(/\.\d{3}Z$/, 'Z');
 
     // 2) Todavia no llego la interaccion
     const a2 = await actualizacion(conCuenta(iso(base - 60 * 60000)));
-    // F8 (1.0.9.0): ya no se rechaza (el teléfono lo descartaría en silencio): entra marcada sin vincular
+    // no se rechaza (el teléfono lo descartaría en silencio): entra marcada sin vincular
     chk('ADO-04', marcada(a2), `captura sin interacción → entra marcada sin vincular: ${a2.ok ? (marcada(a2) ? 'sí' : 'sin marca') : a2.msg}`);
     chk('ADO-05', a1.ok && a1.json.sanic_cm_ad_sinvincular === false, 'la vinculada queda sin marca');
 
@@ -118,7 +119,7 @@ const iso = (ms) => new Date(ms).toISOString().replace(/\.\d{3}Z$/, 'Z');
     const a6 = await actualizacion({ 'sanic_cm_ad_interaccionid@odata.bind': `/sanic_cm_tbl_interaccions(${i6.json && i6.json.sanic_cm_tbl_interaccionid})` });
     chk('ADO-09', a6.ok && a6.json._sanic_cm_ad_cuentaid_value === ctaId, `con interacción y sin cuenta → entra y completa la cuenta: ${a6.ok ? (a6.json._sanic_cm_ad_cuentaid_value === ctaId ? 'sí' : 'sin cuenta') : a6.msg}`);
 
-    // 7) 1.0.8.8: el telefono descarta tambien la fecha; solo llega la cuenta → la interaccion pendiente mas vieja
+    // 7) El teléfono puede descartar también la fecha; solo con la cuenta → la interacción pendiente más vieja
     const i7 = await interaccion('sin fecha', iso(base + 240000), true);
     const a7 = await actualizacion(conCuenta(null));
     const pendientes = [i1, i5a, i5b, i6, i7].filter((x) => x.ok).map((x) => x.json.sanic_cm_tbl_interaccionid);

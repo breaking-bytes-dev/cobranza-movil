@@ -11,13 +11,13 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =// Localizador: buscador + galería (galAgeAprb, Filter directo delegado, B-04) — sin catálogo.
-        // Filtros (APP-40): fecha de solicitud (por defecto SIN límite: es una cola FIFO y las más viejas van primero),
+        =// Localizador: buscador + galería (galAgeAprb, Filter directo delegado), sin catálogo.
+        // Filtros: fecha de solicitud (por defecto SIN límite: es una cola FIFO y las más viejas van primero),
         // solicitante y un buscador de CIF, nombre del cliente o últimos 4 de la cuenta. Se conservan en la sesión.
         If(IsBlank(varPideAprb), Set(varPideAprb, "Todos los solicitantes"));
         // Solicitantes con Especiales pendientes: el Filter delega (tipo, estado y aprobación) y el Distinct sobre el lookup
         // corre en memoria sobre esas filas (hasta 2000 pendientes). Nada de «IsBlank(lookup)» en un Filter: rompe la
-        // delegación de TODA la consulta (APP-40, visto en la red).
+        // delegación de TODA la consulta.
         ClearCollect(colPideAprb, {nom: "Todos los solicitantes"});
         Collect(colPideAprb, ForAll(Sort(Filter(Distinct(
             Filter('CM | TBL | Asignacions',
@@ -405,9 +405,9 @@ Screens:
           Control: Classic/Button@2.2.0
           Properties:
             OnSelect: |-
-              =// Cola de aprobación con TODOS los filtros en el servidor (APP-40, mismo patrón que Mis solicitudes): cada cambio vuelve
+              =// Cola de aprobación con TODOS los filtros en el servidor (mismo patrón que Mis solicitudes): cada cambio vuelve
               // a consultar Dataverse y el límite de 2000 filas aplica a lo que coincide. Las partes «IsBlank(var) ||» y «var = "x" &&»
-              // no tocan columnas y Power Apps las resuelve antes de enviar (verificado en la red, APP-39).
+              // no tocan columnas y Power Apps las resuelve antes de enviar.
               // CIF, cliente y cuenta viven en la CUENTA: primero las cuentas que coinciden (una consulta a Cuentas, hasta 50) y
               // después sus Especiales pendientes, una consulta por cuenta.
               Set(varCargandoAprb, true);
@@ -422,7 +422,7 @@ Screens:
                           AddColumns(
                               Filter('CM | TBL | Asignacions',
                                   '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial &&
-                                  '[AS] Estado' = true &&  // B-18: una Especial cerrada estando pendiente no se aprueba
+                                  '[AS] Estado' = true &&  // una Especial cerrada estando pendiente no se aprueba
                                   '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion'
                                   && (IsBlank(varDesdeAprb) || 'Created On' >= varDesdeAprb)
                                   && (IsBlank(varFinAprb) || 'Created On' < varFinAprb)
@@ -444,7 +444,7 @@ Screens:
                               AddColumns(
                                   Filter('CM | TBL | Asignacions',
                                       '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial &&
-                                      '[AS] Estado' = true &&  // B-18: una Especial cerrada estando pendiente no se aprueba
+                                      '[AS] Estado' = true &&  // una Especial cerrada estando pendiente no se aprueba
                                       '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion'
                                       && (IsBlank(varDesdeAprb) || 'Created On' >= varDesdeAprb)
                                       && (IsBlank(varFinAprb) || 'Created On' < varFinAprb)
@@ -851,12 +851,12 @@ Screens:
                     =// Alto acotado: hasta 3 filas (mín. 1 para el aviso "sin coincidencias").
                     Min(Max(Self.AllItemsCount, 1), 3) * Self.TemplateHeight
                   Items: |-
-                    =// B-04: el ComboBox clásico no pinta registros de Dataverse en esta app → buscador +
+                    =// El ComboBox clásico no muestra registros de Dataverse en esta app: buscador +
                     // galería (ver galCtaNva). Filter directo, todo delegable: igualdad booleana,
                     // <> Blank() y StartsWith. Solo agentes activos con usuario vinculado (sin usuario
                     // el reparto no tiene a quién pasarle el owner). Con menos de 2 caracteres, centinela "§§":
-                    // no se consulta la tabla entera (B-19) y siempre hay tabla (B-06).
-                    // SIN With (cortaba la delegación — ver scrNuevaSolicitud.galCtaNva). En línea sí delega.
+                    // no se consulta la tabla entera y siempre hay tabla.
+                    // SIN With (corta la delegación, ver scrNuevaSolicitud.galCtaNva). En línea sí delega.
                     Filter('CM | TBL | Agentes',
                         '[AG] Activo' = true
                         && 'Email Usuario' <> Blank()
@@ -1056,8 +1056,8 @@ Screens:
                   Height: =gblE.AltoBoton
                   HoverFill: =ColorFade(gblC.redBg, 10%)
                   OnSelect: |-
-                    =// IfError (B-03): si el Patch falla se muestra el detalle y NO se saca de la cola.
-                    // DAT-31: se busca por el id, no por el número autonumérico.
+                    =// IfError: si el Patch falla se muestra el detalle y NO se saca de la cola.
+                    // Se busca por el id, no por el número autonumérico.
                     IfError(
                         Patch('CM | TBL | Asignacions',
                             LookUp('CM | TBL | Asignacions', 'CM | TBL | Asignacion' = varSelAprb.'CM | TBL | Asignacion'),
@@ -1065,7 +1065,7 @@ Screens:
                                 '[AS] Estado de aprobacion': 'Choice | CM | Estado aprobacion especial'.Rechazada,
                                 'Motivo de rechazo': Trim(txtMotRechAprb.Text),
                                 '[AS] Resolutor': gblUsuarioDV,
-                                // DAT-14: la rechazada se cierra; si no, quedaba activa y bloqueaba volver a pedirla.
+                                // La rechazada se cierra; si no, quedaría activa y bloquearía volver a pedirla.
                                 '[AS] Estado': false,
                                 '[AS] Motivo': "Rechazada",
                                 'Fecha de cierre': Now()
@@ -1105,8 +1105,8 @@ Screens:
                     // usuario del agente → eso dispara el aislamiento por propietario y la sincronización
                     // offline: la asignación aparece en el celular del localizador sin que esta app haga
                     // nada más. Por eso la notificación lo anuncia — la app solo aprueba; el reparto es
-                    // del backend. DAT-31: se busca por el id, no por el número autonumérico.
-                    // IfError (B-03): si el Patch falla se muestra el detalle y NO se saca de la cola.
+                    // del backend. Se busca por el id, no por el número autonumérico.
+                    // IfError: si el Patch falla se muestra el detalle y NO se saca de la cola.
                     IfError(
                         Patch('CM | TBL | Asignacions',
                             LookUp('CM | TBL | Asignacions', 'CM | TBL | Asignacion' = varSelAprb.'CM | TBL | Asignacion'),

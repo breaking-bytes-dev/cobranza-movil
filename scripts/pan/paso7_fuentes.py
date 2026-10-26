@@ -1,4 +1,4 @@
-"""Fase 2 · Paso 7: agrega o refresca fuentes de datos de Dataverse dentro de un .msapr (formato SourceCode de pac canvas),
+"""Agrega o refresca fuentes de datos de Dataverse dentro de un .msapr (formato SourceCode de pac canvas),
 como hace Studio con "Agregar datos" / "Actualizar". Hace falta porque las fuentes NO están en los .pa.yaml: viven en
 msapp/References/DataSources.json, msapp/Properties.json (LocalDatabaseReferences) y msapp/References/QualifiedValues.json.
 
@@ -124,7 +124,7 @@ def main():
         for o in opciones: poner(o, 'OptionSetInfo')
         poner(vistas, 'ViewInfo')
         # MaxGetRowsCount es el límite de filas de la app (Configuración → Límite de filas): se CONSERVA al refrescar; una tabla
-        # nueva toma el mayor de la app. Fijarlo en 500 rompió B-12 en el backoffice (que usa 2000) el 2026-10-04.
+        # nueva toma el mayor de la app. Fijarlo en un valor menor rompe pantallas que dependen de un límite mayor.
         i = next((k for k, d in enumerate(ds) if d.get('LogicalName') == t and d['Type'] == 'NativeCDSDataSourceInfo'), None)
         tabla['MaxGetRowsCount'] = ds[i].get('MaxGetRowsCount', 500) if i is not None else \
             max((d.get('MaxGetRowsCount', 500) for d in ds if d['Type'] == 'NativeCDSDataSourceInfo'), default=500)

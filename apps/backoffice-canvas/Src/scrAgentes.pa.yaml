@@ -11,7 +11,7 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =// Tabla chica y organizacional: la cota no delegable de 2000 filas es trivial acá.
+        =// Tabla chica y organizacional: la cota no delegable de 2000 filas es trivial aquí.
         // Sort sobre columna escalar delega — una sola llamada a Dataverse por visita.
         ClearCollect(colAgentesAge, Sort('CM | TBL | Agentes', '[AG] Nombre'));
         // Panel de vínculo cerrado y sin agente objetivo (se elige al tocar Vincular/Cambiar).
@@ -59,7 +59,7 @@ Screens:
                   Height: =gblE.AltoBoton
                   HoverFill: =ColorFade(gblC.card, 10%)
                   OnSelect: |-
-                    =// La lectura se verifica (ver scrCargaArchivo): sin esto, el aviso salía aunque fallara.
+                    =// La lectura se verifica (ver scrCargaArchivo): sin esto, el aviso saldría aunque fallara.
                     IfError(
                         CountRows(ClearCollect(colAgentesAge, Sort('CM | TBL | Agentes', '[AG] Nombre'))) >= 0,
                         Notify("No se pudo actualizar la lista: " & TextoError(Coalesce(FirstError.Message, "sin detalle")), NotificationType.Error),
@@ -239,7 +239,7 @@ Screens:
                               PaddingLeft: =0
                               Size: =10
                               Text: |-
-                                =// Vínculo actual en texto (el selector vive en el panel conPanelAge, B-04).
+                                =// Vínculo actual en texto (el selector vive en el panel conPanelAge).
                                 // Nombre del usuario por el lookup; si no resuelve, el email (texto plano).
                                 If(IsBlank(ThisItem.'Email Usuario'),
                                     "— Sin usuario —",
@@ -292,10 +292,9 @@ Screens:
                               Height: =28
                               HoverFill: =ColorFade(gblC.card, 10%)
                               OnSelect: |-
-                                =// B-08: la desvinculación salió del OnChange del combo (se disparaba al abrir la
-                                // pantalla). Solo el lookup: el correo lo vacía el plugin EmailDesdeUsuario (DAT-17).
-                                // Al desvincular, RepartoPorAgente pasa sus asignaciones a la cartera sin cobrador.
-                                // IfError (B-03).
+                                =// Desvincula con un botón y no en el OnChange del combo, que se dispara al abrir la pantalla.
+                                // Solo el lookup: el correo lo vacía el plugin EmailDesdeUsuario.
+                                // Al desvincular, RepartoPorAgente pasa sus asignaciones a «Cartera sin cobrador» (sin localizador).
                                 IfError(
                                     Patch('CM | TBL | Agentes',
                                         LookUp('CM | TBL | Agentes', '[AG] Nombre' = ThisItem.'[AG] Nombre'),
@@ -375,7 +374,7 @@ Screens:
                                 =// El If del Notify lee el valor VIEJO de ThisItem (el Patch ya lo invirtió
                                 // en Dataverse pero la colección aún no se refrescó) — "activo → desactivado"
                                 // queda correcto tal cual.
-                                // IfError (B-03): si el Patch falla, detalle y sin aviso de éxito.
+                                // IfError: si el Patch falla, detalle y sin aviso de éxito.
                                 IfError(
                                     Patch('CM | TBL | Agentes',
                                         LookUp('CM | TBL | Agentes', '[AG] Nombre' = ThisItem.'[AG] Nombre'),
@@ -576,23 +575,23 @@ Screens:
                         Max(Self.AllItemsCount, 1) * Self.TemplateHeight,
                         btnCancelarPanelAge.Y - gblE.PadSm - Self.Y)
                   Items: |-
-                    =// B-04: el ComboBox clásico no pinta registros de Dataverse en esta app (Users incluido)
+                    =// El ComboBox clásico no muestra registros de Dataverse en esta app (Users incluido)
                     // → buscador + galería. Filter directo sobre Users, delegable (StartsWith en ambas
                     // columnas). Con menos de 2 caracteres, centinela "§§": no se consulta la tabla entera
-                    // (B-19) y siempre hay tabla (B-06).
-                    // SIN With (cortaba la delegación — ver scrNuevaSolicitud.galCtaNva). En línea sí delega.
+                    // y siempre hay tabla.
+                    // SIN With (corta la delegación, ver scrNuevaSolicitud.galCtaNva). En línea sí delega.
                     Filter(Users,
                         StartsWith('Full Name', If(Len(Trim(txtBuscarUsrAge.Text)) < 2, "§§", Trim(txtBuscarUsrAge.Text)))
                         || StartsWith('Primary Email', If(Len(Trim(txtBuscarUsrAge.Text)) < 2, "§§", Trim(txtBuscarUsrAge.Text))))
                   OnSelect: |-
                     =// Tocar un usuario CONFIRMA el vínculo del agente objetivo (varAgenteAge).
-                    // Solo se escribe '[AG] Usuario' (lookup). 'Email Usuario', que usa la app del cobrador para
-                    // el login, lo pone el plugin EmailDesdeUsuario con el UPN del usuario (DAT-17: una sola
+                    // Solo se escribe '[AG] Usuario' (lookup). 'Email Usuario', que usa la app del localizador para
+                    // el login, lo pone el plugin EmailDesdeUsuario con el UPN del usuario (una sola
                     // fuente). Al vincular, RepartoPorAgente le pasa al usuario las asignaciones del agente.
-                    // Igual que el viejo OnChange (B-08): SOLO vincula y SOLO si el usuario elegido es
+                    // SOLO vincula y SOLO si el usuario elegido es
                     // distinto del vínculo actual. Desvincular sigue siendo btnDesvincularAge.
                     // Sin correo principal no hay login en el celular → no se vincula.
-                    // IfError (B-03): si falla, detalle y el panel queda abierto (sin éxito).
+                    // IfError: si falla, detalle y el panel queda abierto (sin éxito).
                     If(
                         IsBlank(ThisItem.'Primary Email'),
                         Notify("El usuario " & ThisItem.'Full Name' & " no tiene correo principal: no podría entrar a la app del celular. Elegí otro.",
@@ -916,9 +915,9 @@ Screens:
                     =// Alto acotado: hasta 3 filas (mín. 1 para el aviso "sin coincidencias").
                     Min(Max(Self.AllItemsCount, 1), 3) * Self.TemplateHeight
                   Items: |-
-                    =// Mismo patrón que galUsrAge (B-04/B-19): Filter directo sobre Users, delegable
+                    =// Mismo patrón que galUsrAge: Filter directo sobre Users, delegable
                     // (StartsWith en ambas columnas); con menos de 2 caracteres, centinela "§§".
-                    // SIN With (cortaba la delegación — ver scrNuevaSolicitud.galCtaNva).
+                    // SIN With (corta la delegación, ver scrNuevaSolicitud.galCtaNva).
                     Filter(Users,
                         StartsWith('Full Name', If(Len(Trim(txtBuscarUsrNueAge.Text)) < 2, "§§", Trim(txtBuscarUsrNueAge.Text)))
                         || StartsWith('Primary Email', If(Len(Trim(txtBuscarUsrNueAge.Text)) < 2, "§§", Trim(txtBuscarUsrNueAge.Text))))
@@ -1132,7 +1131,7 @@ Screens:
                     //    mayúsculas, igual que la alt key del nombre, que además lo rechaza en el servidor).
                     // 2) Patch con Defaults: Activo = true y el usuario elegido (o Blank). 'Email Usuario' NO se
                     //    escribe: lo deriva el plugin EmailDesdeUsuario desde el usuario vinculado.
-                    // IfError (B-03): si el Patch falla, detalle y el panel queda abierto (sin éxito).
+                    // IfError: si el Patch falla, detalle y el panel queda abierto (sin éxito).
                     If(
                         Len(Trim(txtNombreNueAge.Text)) = 0,
                         Notify("Escribí el nombre del agente.", NotificationType.Warning),

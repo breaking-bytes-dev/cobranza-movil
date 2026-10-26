@@ -11,11 +11,11 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =// Transcritas (2026-10-24): lo grabado el día elegido por cualquier BackOffice; por defecto HOY y YO (el arqueo
-        // de siempre). La fecha, el que grabó y la búsqueda se conservan al volver a la pantalla.
+        =// Transcritas: lo grabado el día elegido por cualquier BackOffice; por defecto hoy y el usuario actual (el arqueo
+        // habitual). La fecha, quién grabó y la búsqueda se conservan al volver a la pantalla.
         If(IsBlank(varFechaTsc), Set(varFechaTsc, Today()));
-        // Quién grabó: varGrabTsc vacío = YO. No se fija acá: gblUsuarioDV puede no estar resuelto al abrir (B-06, App) y
-        // quedaba "Todos"; las fórmulas usan Coalesce(varGrabTsc, gblUsuarioDV.'Full Name', "Todos").
+        // Quién grabó: varGrabTsc vacío = el usuario actual. No se fija aquí porque gblUsuarioDV puede no estar resuelto
+        // al abrir y quedaría "Todos"; las fórmulas usan Coalesce(varGrabTsc, gblUsuarioDV.'Full Name', "Todos").
         Set(varAvisoTsc, false);
         Select(btnCargarTsc)
     Children:
@@ -167,7 +167,7 @@ Screens:
                   ChevronHoverFill: =gblC.teal
                   Color: =gblC.ink
                   Default: |-
-                    =// Vacío = YO (gblUsuarioDV puede resolverse después de abrir, B-06).
+                    =// Vacío = el usuario actual (gblUsuarioDV puede resolverse después de abrir).
                     Coalesce(varGrabTsc, gblUsuarioDV.'Full Name', "Todos")
                   Fill: =gblC.card
                   FillPortions: =0
@@ -176,8 +176,8 @@ Screens:
                   HoverColor: =gblC.ink
                   HoverFill: =gblC.pantalla
                   Items: |-
-                    =// Todos, yo y los demás que grabaron ese día (colGrabTsc, de btnCargarTsc). DropDown clásico con Items.Value:
-                    // el ComboBox clásico editado por YAML mostraba las filas en blanco (2026-10-24).
+                    =// Todos, el usuario actual y los demás que grabaron ese día (colGrabTsc, de btnCargarTsc). DropDown clásico con
+                    // Items.Value: el ComboBox clásico editado por YAML muestra las filas en blanco.
                     colGrabTsc
                   Items.Value: =nom
                   OnChange: =Set(varGrabTsc, Coalesce(Self.Selected.nom, "Todos"))
@@ -416,11 +416,11 @@ Screens:
           Properties:
             OnSelect: |-
               =// Transcritas del día varFechaTsc, de TODOS los que graban: el filtro por quién grabó y la búsqueda son en memoria
-              // (galTscTsc.Items). Comparaciones de fecha con variables y choice por valor = delegable (00 §4.2).
-              // Aviso «Cargando…» sobre la lista mientras se leen los datos (tarda unos segundos; 2026-10-24).
+              // (galTscTsc.Items). Comparaciones de fecha con variables y choice por valor: delegable.
+              // Aviso «Cargando…» sobre la lista mientras se leen los datos (tarda unos segundos).
               Set(varCargandoTsc, true);
               Set(varFinTsc, DateAdd(varFechaTsc, 1));
-              // ESCALA: los pagos del día (de todos los cobradores) se traen por tramos (TramoCartera, de su interacción), cada
+              // ESCALA: los pagos del día (de todos los localizadores) se traen por tramos (TramoCartera, de su interacción), cada
               // consulta bajo el límite de 2000 filas: hasta unos 30.000 pagos por día. El tramo va CONSTANTE (T.Value): un If,
               // DateAdd o un campo de colección en el Filter no delega y trae la tabla entera. El último Collect: pagos sin tramo.
               Clear(colPagosHoyTsc);
@@ -429,7 +429,7 @@ Screens:
               Collect(colPagosHoyTsc, Filter('CM | TBL | Pagos', 'Fecha del pago' >= varFechaTsc && 'Fecha del pago' < varFinTsc && '[PG] Tramo' = Blank()));
               If(CountRows(colPagosHoyTsc) >= 30000,
                   Notify("Ese día hay más de 30.000 pagos: el arqueo de esta pantalla puede estar incompleto. Avisá a soporte.", NotificationType.Warning));
-              // La lectura principal se verifica aparte (ver scrCargaArchivo): sin esto, el ✓ salía aunque la lectura fallara.
+              // La lectura principal se verifica aparte (ver scrCargaArchivo): si falla, no se muestra el ✓.
               // Datos de la cuenta navegando el lookup '[IN] Cuenta' (lo resuelve el servidor). IntTsc y no ThisRecord: adentro
               // del LookUp, ThisRecord es la ACTUALIZACIÓN.
               Set(varErrTsc, IfError(Left(Text(CountRows(ClearCollect(colTscTmpTsc,
@@ -437,13 +437,13 @@ Screens:
                       Filter('CM | TBL | Interaccions',
                           '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Grabado
                           && '[IN] Fecha grabacion' >= varFechaTsc && '[IN] Fecha grabacion' < varFinTsc) As IntTsc,
-                      clienteTsc, Upper(Coalesce(IntTsc.'[IN] Cuenta'.'Nombre Cliente', If(IsBlank(IntTsc.'[IN] Cuenta'), "(cuenta fuera de cartera)", "—"))),   // LED-01
-                      cifTsc, Coalesce(IntTsc.'[IN] Cuenta'.'CIF Cliente', IntTsc.'[IN] CIF cliente', "—"),   // APP-50: respaldo de la interacción
+                      clienteTsc, Upper(Coalesce(IntTsc.'[IN] Cuenta'.'Nombre Cliente', If(IsBlank(IntTsc.'[IN] Cuenta'), "(cuenta fuera de cartera)", "—"))),
+                      cifTsc, Coalesce(IntTsc.'[IN] Cuenta'.'CIF Cliente', IntTsc.'[IN] CIF cliente', "—"),   // respaldo de la interacción
                       prodTsc, Coalesce(IntTsc.'[IN] Cuenta'.'Tipo Producto', "—"),
                       ult4Tsc, Coalesce(IntTsc.'[IN] Cuenta'.'Últimos 4', IntTsc.'[IN] Últimos 4', ""),
                       cuentaIdTsc, IntTsc.'[IN] Cuenta'.'CM | TBL | Cuenta',
                       grabTsc, Coalesce(IntTsc.'[IN] Grabado por'.'Full Name', "—"),
-                      // F10: "ok" la actualización vinculada existe; "sinv" entró sin vincular (F8); "falta" no llegó.
+                      // "ok" la actualización vinculada existe; "sinv" entró sin vincular; "falta" no llegó.
                       datosTsc, If(!IntTsc.'[IN] Actualiza info', "",
                           !IsBlank(LookUp('CM | TBL | Actualizacion de datos', '[AD] Interaccion'.'CM | TBL | Interaccion' = IntTsc.'CM | TBL | Interaccion')), "ok",
                           !IsBlank(IntTsc.'[IN] Cuenta') && !IsBlank(LookUp('CM | TBL | Actualizacion de datos', '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = IntTsc.'[IN] Cuenta'.'CM | TBL | Cuenta')), "sinv",
@@ -452,11 +452,11 @@ Screens:
               ))), 0), Coalesce(FirstError.Message, "sin detalle")));
               If(CountRows(colTscTmpTsc) >= 2000,
                   Notify("Ese día hay 2.000 o más transcritas: la lista puede estar incompleta. Avisá a soporte.", NotificationType.Warning));
-              // Pagos del arqueo = pagos del día (ya en memoria) ∩ las transcritas del día. Todo sobre colecciones (00 §4.1).
+              // Pagos del arqueo = pagos del día (ya en memoria) ∩ las transcritas del día. Todo sobre colecciones.
               ClearCollect(colPagosTsc,
                   Filter(colPagosHoyTsc,
                       !IsBlank(LookUp(colTscTmpTsc, '[IN] Numero de Interaccion' = '[PG] Numero Interaccion'))));
-              // Montos por interacción HORNEADOS una vez (R1-02). La base es colTscTmpTsc (SIN pagos*): si AddColumns leyera
+              // Montos por interacción calculados una sola vez. La base es colTscTmpTsc (SIN pagos*): si AddColumns leyera
               // colTscTsc, su esquema ya trae pagosNioTsc → "A column named 'pagosNioTsc' already exists".
               ClearCollect(colTscTsc,
                   AddColumns(colTscTmpTsc,
@@ -468,12 +468,12 @@ Screens:
                           && '[PG] Moneda' = 'Choice | CM | Monedas en Pago'.USD), '[PG] Monto')
                   )
               );
-              // Opciones del combo «Grabó»: Todos, yo (aunque ese día no haya grabado) y los demás que grabaron ese día.
+              // Opciones del combo «Grabó»: Todos, el usuario actual (aunque ese día no haya grabado) y los demás que grabaron ese día.
               ClearCollect(colGrabTsc, {nom: "Todos"});
               If(!IsBlank(gblUsuarioDV.'Full Name'), Collect(colGrabTsc, {nom: gblUsuarioDV.'Full Name'}));
               ForAll(Sort(GroupBy(colTscTmpTsc, grabTsc, filasTsc), grabTsc) As G,
                   If(G.grabTsc <> Coalesce(gblUsuarioDV.'Full Name', ""), Collect(colGrabTsc, {nom: G.grabTsc})));
-              // El DropDown aplica Default una sola vez (antes de tener opciones y usuario): se fija YO y se reinicia.
+              // El DropDown aplica Default una sola vez (antes de tener opciones y usuario): se fija el usuario actual y se reinicia.
               If(IsBlank(varGrabTsc) && !IsBlank(gblUsuarioDV.'Full Name'), Set(varGrabTsc, gblUsuarioDV.'Full Name'));
               Reset(drpGrabTsc);
               Set(varSelTsc, Blank());
@@ -481,7 +481,7 @@ Screens:
               If(!IsBlank(varErrTsc),
                   Notify("No se pudo leer las transcritas: " & TextoError(varErrTsc), NotificationType.Error),
                  varAvisoTsc,
-                  Notify("✓ Arqueo actualizado", NotificationType.Success, 2500));   // LED-05
+                  Notify("✓ Arqueo actualizado", NotificationType.Success, 2500));
               Set(varAvisoTsc, false);
               Set(varCargandoTsc, false)
             Visible: =false
@@ -666,13 +666,13 @@ Screens:
                   PaddingLeft: =0
                   Size: =10
                   Text: |-
-                    =// PCI (fase 2): número completo desde la bóveda, solo rol BackOffice (ver scrTranscripcion).
+                    =// PCI: número completo desde la bóveda, solo rol BackOffice (ver scrTranscripcion).
                     // Sin rol, sin permiso o sin fila → "•••• 1234". Un LookUp por registro seleccionado.
                     If(IsBlank(varSelTsc), "",
                         "Backoffice" in gblRol,
                         Coalesce(
                             IfError(
-                                // APP-50: sin cuenta no se consulta la bóveda (clave vacía)
+                                // Sin cuenta no se consulta la bóveda (clave vacía).
                                 If(IsBlank(varSelTsc.cuentaIdTsc), Blank(),
                                     LookUp('CM | TBL | PAN de cuentas',
                                         Cuenta.'CM | TBL | Cuenta' = varSelTsc.cuentaIdTsc).PAN),

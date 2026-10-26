@@ -5,15 +5,12 @@ using Microsoft.Xrm.Sdk.Query;
 namespace Sanic.CobranzaMovil.Plugins
 {
     /// <summary>
-    /// F8: una actualizacion de datos que llego ANTES que su interaccion entra marcada como sin vincular
-    /// (ActualizacionConInteraccion ya no la rechaza: el telefono descarta lo rechazado y no lo reintenta).
-    /// Cuando llega una interaccion con actualiza info, esta la cuelga: la actualizacion sin vincular mas vieja de las
-    /// ultimas horas, de la misma cuenta y del mismo cobrador. Le pone la interaccion y le quita la marca; el Update
-    /// pasa por ActualizacionConInteraccion, que valida la cuenta.
-    ///
-    /// Corre con el servicio del SISTEMA: el rol del cobrador no tiene por que poder modificar actualizaciones.
-    /// Registro: PostOperation ASINCRONO, Create de sanic_cm_tbl_interaccion. Asincrono a proposito: si fallara
-    /// sincrono, se perderia la interaccion del telefono con ella. Nunca traza valores.
+    /// Una actualizacion de datos que llega offline antes que su interaccion entra marcada como sin vincular. Al crearse
+    /// una interaccion con actualiza info, le cuelga la actualizacion sin vincular mas vieja de las ultimas horas de la
+    /// misma cuenta y localizador; el Update pasa por ActualizacionConInteraccion, que valida la cuenta.
+    /// Usa el servicio del sistema: el rol del localizador no tiene por que poder modificar actualizaciones.
+    /// Registro: PostOperation asincrono, Create de sanic_cm_tbl_interaccion; si fallara sincrono se perderia la
+    /// interaccion del telefono. Nunca traza valores.
     /// </summary>
     public sealed class VincularActualizacionPendiente : PluginBase
     {

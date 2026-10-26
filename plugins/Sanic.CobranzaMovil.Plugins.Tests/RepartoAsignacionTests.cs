@@ -11,10 +11,10 @@ using Xunit;
 namespace Sanic.CobranzaMovil.Plugins.Tests
 {
     /// <summary>
-    /// Reparto de la asignacion (reemplaza al flow "Cambio de Owner en Asignaciones"): pasa el dueno al usuario del
-    /// agente, le comparte en lectura cuenta, cliente y fiador, y le revoca esos compartidos al dueno anterior si ya no
-    /// tiene otra asignacion activa que los justifique. Corre ASINCRONO (PostOperation): nunca dentro de los 2 minutos
-    /// del trozo de Smelter. Lee el estado ACTUAL de la asignacion (converge, no repite el evento).
+    /// Reparto de la asignacion: pasa el dueno al usuario del agente, le comparte en lectura cuenta, cliente y fiador,
+    /// y le revoca esos compartidos al dueno anterior si ya no tiene otra asignacion activa que los justifique.
+    /// Corre asincrono (PostOperation), fuera del limite de 2 minutos de cada trozo de la carga, y lee el estado
+    /// actual de la asignacion (converge, no repite el evento).
     /// </summary>
     public class RepartoAsignacionTests
     {
@@ -48,10 +48,10 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             public readonly Guid ClienteId = Guid.NewGuid();
             public readonly Guid FiadorId = Guid.NewGuid();
             public readonly Guid Cobrador = Guid.NewGuid();     // usuario del agente
-            public readonly Guid Anterior = Guid.NewGuid();     // dueno anterior (otro cobrador)
+            public readonly Guid Anterior = Guid.NewGuid();     // dueno anterior (otro localizador)
             public readonly Guid Sistema = Guid.NewGuid();      // SYSTEM, dueno de lo que crea la carga
             public readonly Guid Solicitante = Guid.NewGuid();
-            public readonly Guid EquipoSinCobrador = Guid.NewGuid(); // dueno de la cartera sin cobrador (DAT-07)
+            public readonly Guid EquipoSinCobrador = Guid.NewGuid(); // dueno de la cartera sin localizador
 
             /// <summary>Equipos que devuelve la busqueda de "Cartera sin cobrador" (por defecto, uno).</summary>
             public readonly List<Entity> Equipos = new List<Entity>();
@@ -205,7 +205,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         [Fact]
         public void Falla_cerrado_si_el_paso_se_registra_sincrono()
         {
-            // Sincrono correria DENTRO del trozo de Smelter (100 filas, 2 minutos por mensaje): prohibido.
+            // Sincrono correria dentro del trozo de la carga (100 filas, 2 minutos por mensaje).
             var m = new Mundo(modo: 0);
             var ex = Assert.Throws<InvalidPluginExecutionException>(() => m.Ejecutar());
             Assert.Contains("asincrono", ex.Message);
@@ -249,7 +249,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         [Fact]
         public void No_le_revoca_la_cuenta_a_SYSTEM_cuando_SYSTEM_es_su_dueno()
         {
-            // Causa (a) de las fallas del flow: "Only owner can revoke access to the owner".
+            // Revocar al dueno actual falla con "Only owner can revoke access to the owner".
             var m = new Mundo();
             m.Ejecutar();
             Assert.False(m.Revoco(Cuenta, m.CuentaId, m.Sistema));
@@ -372,7 +372,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         [Fact]
         public void Especial_pendiente_no_se_reparte()
         {
-            // S-6: una Especial sin aprobar no cambia de dueno ni se comparte, venga de donde venga.
+            // Una Especial sin aprobar no cambia de dueno ni se comparte, venga de donde venga.
             var m = new Mundo();
             var a = m.Fila(Asignacion, m.AsignacionId);
             a["sanic_cm_as_tipo"] = new OptionSetValue(Especial);
@@ -405,17 +405,15 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             Assert.Single(m.Updates);
             Assert.True(m.Compartio(Asignacion, m.AsignacionId, m.Solicitante,
                 AccessRights.ReadAccess));
-            // H1: el compartido es solo lectura y se baja a lectura si ya existia con mas permisos (ModifyAccess reemplaza).
+            // El compartido es solo lectura y se baja a lectura si ya existia con mas permisos (ModifyAccess reemplaza).
             Assert.True(m.Modifico(Asignacion, m.AsignacionId, m.Solicitante, AccessRights.ReadAccess));
         }
 
         [Fact]
         public void S7_la_Especial_reactivada_por_otro_se_comparte_con_quien_la_pidio_aunque_no_la_haya_creado()
         {
-            // SolicitarEspecial (DAT-14) reactiva una Especial cerrada que creo otra persona y pone "Solicitado por" =
-            // quien la pide. Antes S-7 exigia "Solicitado por" = createdby y el que la reactivaba la perdia de vista al
-            // aprobarse. "Solicitado por" ya no lo elige el cliente: una persona de CM solo puede ponerse a si misma
-            // (AprobacionEspecial en el alta, ColumnasAsignacion en la edicion).
+            // SolicitarEspecial reactiva una Especial cerrada que creo otra persona y pone "Solicitado por" = quien la
+            // pide; al aprobarse se comparte con el, no con quien la creo.
             var m = new Mundo("Update");
             var a = m.Fila(Asignacion, m.AsignacionId);
             a["sanic_cm_as_tipo"] = new OptionSetValue(Especial);
@@ -426,7 +424,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
 
             Assert.True(m.Compartio(Asignacion, m.AsignacionId, m.Solicitante,
                 AccessRights.ReadAccess));
-            // H1: el compartido es solo lectura y se baja a lectura si ya existia con mas permisos (ModifyAccess reemplaza).
+            // El compartido es solo lectura y se baja a lectura si ya existia con mas permisos (ModifyAccess reemplaza).
             Assert.True(m.Modifico(Asignacion, m.AsignacionId, m.Solicitante, AccessRights.ReadAccess));
             Assert.DoesNotContain(m.Grants, g => g.Target.LogicalName == Asignacion
                 && g.PrincipalAccess.Principal.Id == m.Anterior);
@@ -455,7 +453,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             Assert.Contains("sanic_cm_as_solicitadopor", leidas.Columns);
         }
 
-        // ------------------------------------------------------------------ sin cobrador (DAT-07)
+        // ------------------------------------------------------------------ sin localizador
 
         [Fact]
         public void Agente_sin_usuario_pasa_la_asignacion_al_equipo_sin_cobrador_sin_compartir_nada()
@@ -473,7 +471,6 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         [Fact]
         public void Reasignada_a_un_agente_sin_usuario_le_revoca_al_cobrador_anterior()
         {
-            // Antes el reparto no hacia nada y el cobrador anterior seguia con la asignacion en el telefono.
             var m = new Mundo("Update");
             Reasignada(m);
             m.Fila(Agente, m.AgenteId).Attributes.Remove("sanic_cm_ag_usuarioid");
@@ -536,7 +533,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         [Fact]
         public void El_equipo_sin_cobrador_se_busca_por_prefijo_entre_los_equipos_duenos()
         {
-            // El nombre lleva el entorno al final ("... · DEV"), como los demas equipos de CM.
+            // El nombre lleva el entorno al final, como los demas equipos de CM.
             var m = new Mundo();
             m.Fila(Agente, m.AgenteId).Attributes.Remove("sanic_cm_ag_usuarioid");
             m.Ejecutar();
@@ -600,7 +597,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         [Fact]
         public void Share_concurrente_reintenta_con_espera_y_termina_bien()
         {
-            // Causa (b) de las fallas del flow: "More than one concurrent Share requests detected".
+            // Dataverse rechaza Shares concurrentes: "More than one concurrent Share requests detected".
             var m = new Mundo();
             var fallas = 2;
             m.Falla = r =>
@@ -618,7 +615,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         [Fact]
         public void Si_un_compartido_sigue_fallando_igual_revoca_al_anterior_y_pide_reintento()
         {
-            // En el flow, un Grant fallido salteaba el fiador y la revocacion: el cobrador anterior seguia viendo la cuenta.
+            // Un Grant fallido no debe saltear el fiador ni la revocacion al localizador anterior.
             var m = new Mundo("Update");
             Reasignada(m);
             m.Falla = r =>

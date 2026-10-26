@@ -1,5 +1,4 @@
-"""Fase 2 · Paso 1 (EXPANDIR, aditivo y reversible): esquema de la bóveda del PAN y claves sustitutas.
-Ver docs/auditoria/fase2-pan-diseno.md §2.2. Idempotente: lo que ya existe se saltea.
+"""Esquema de la bóveda del PAN y claves sustitutas (aditivo y reversible). Idempotente: lo que ya existe se saltea.
 Uso: python3 scripts/pan/paso1_esquema.py [--aplicar]"""
 import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'seguridad'))
@@ -58,7 +57,7 @@ for e, a, args in [(P + 'cuenta', 'sanic_cm_ct_clavepan', ('Clave PAN (HMAC)', 6
                    (P + 'cargadiaria', 'sanic_cm_cd_clavepan', ('Clave PAN (HMAC)', 64, 'HMAC-SHA256 del PAN de la cuenta.'))]:
     if not existe_attr(e, a): hacer(f'columna {e}.{a}', 'POST', f"EntityDefinitions(LogicalName='{e}')/Attributes", texto(a, *args))
     else: print('YA EXISTE', a)
-# 5) Lookup pago → cuenta (offline solo admite un nivel de lookup: R12)
+# 5) Lookup pago → cuenta (offline solo admite un nivel de lookup)
 relacion('sanic_cm_tbl_pago_pg_cuentaid_sanic_cm_tbl_cuenta', P + 'cuenta', P + 'pago', 'sanic_cm_pg_cuentaid', 'Cuenta', REFERENCIAL, 'None')
 # 6) Claves alternativas NUEVAS de la bóveda (tabla vacía). Las de cuenta/asignación/carga se crean en el paso 3b,
 #    DESPUÉS del backfill: una clave única sobre una columna vacía en todas las filas puede hacer fallar el índice.
@@ -78,7 +77,7 @@ if existe_entidad(BOVEDA):
         m['IsRetrieveAuditEnabled'] = True; m['IsRetrieveMultipleAuditEnabled'] = True
         hacer('auditoría de lectura (Retrieve y RetrieveMultiple) en la bóveda', 'PUT', f"EntityDefinitions({m['MetadataId']})", m)
     else: print('YA ACTIVA auditoría de lectura en la bóveda')
-# 8) Offline móvil ("Can be taken offline"): sin esto el perfil autogenerado de la app del cobrador no baja la bóveda
+# 8) Offline móvil ("Can be taken offline"): sin esto el perfil autogenerado de la app del localizador no baja la bóveda
 if existe_entidad(BOVEDA):
     m = get(f"EntityDefinitions(LogicalName='{BOVEDA}')")
     if not m['IsOfflineInMobileClient']['Value']:

@@ -9,33 +9,22 @@ using Microsoft.Xrm.Sdk.Query;
 namespace Sanic.CobranzaMovil.Plugins
 {
     /// <summary>
-    /// Reparto de la asignacion. Reemplaza al flow "Cloud Flow | CM | Cambio de Owner en Asignaciones", que fallaba
-    /// en ~40% de las corridas (2026-10-12) por dos causas:
-    ///  a) intentaba revocarle la cuenta a SYSTEM siendo SYSTEM su dueno ("Only owner can revoke access to the owner");
-    ///  b) varias asignaciones del mismo cliente compartian el cliente a la vez ("More than one concurrent Share
-    ///     requests detected") y, como las acciones iban encadenadas, se salteaban el fiador y la REVOCACION al
-    ///     cobrador anterior.
-    ///
-    /// Que hace, sobre el estado ACTUAL de la asignacion (lo lee al correr: converge, no repite el evento):
-    ///  - Activa, y no es una Especial sin aprobar (S-6):
-    ///    1) pasa el dueno al usuario del agente o, si el agente no tiene usuario o no hay agente, al equipo
-    ///       "Cartera sin cobrador" (DAT-07; antes no hacia nada y el cobrador anterior la conservaba). Va antes de
-    ///       mirar otras asignaciones: ver RevocarSiNoQuedaOtra;
-    ///    2) si es Especial, se la comparte (solo lectura, H1) a "Solicitado por" (S-7: una persona de CM
-    ///       solo puede ponerse a si misma, ver SolicitadoPor);
-    ///    3) si hay cobrador, le comparte en lectura la cuenta, el cliente y el fiador;
-    ///    4) si cambio el dueno, al dueno anterior le revoca cuenta, cliente y fiador que ya no justifique otra
-    ///       asignacion activa suya.
+    /// Reparte la asignacion sobre su estado ACTUAL (lo lee al correr: converge, no repite el evento):
+    ///  - Activa, y no es una Especial sin aprobar:
+    ///    1) pasa el dueno al usuario del agente o, si no hay agente o no tiene usuario, al equipo "Cartera sin
+    ///       cobrador". Va antes de mirar otras asignaciones: ver RevocarSiNoQuedaOtra;
+    ///    2) si es Especial, se la comparte en solo lectura a "Solicitado por" (ver SolicitadoPor);
+    ///    3) si hay localizador, le comparte en lectura la cuenta, el cliente y el fiador;
+    ///    4) si cambio el dueno, al anterior le revoca cuenta, cliente y fiador que no justifique otra asignacion activa suya.
     ///  - Cerrada: al dueno actual le revoca lo que ya no justifique otra asignacion activa suya.
-    /// Cada paso corre aunque falle otro (un compartido fallido ya no deja sin revocar al anterior). Un compartido
-    /// concurrente se reintenta aca mismo con espera; si algo queda sin hacer, la ejecucion termina en error: con
-    /// reintento del servicio asincrono si la falla es transitoria (4 intentos mas) y, si no, como trabajo del sistema
-    /// fallido, visible con el Service Principal. scripts/seguridad/paso3_reconciliar.py queda como red de seguridad.
+    /// Cada paso corre aunque falle otro, para que un compartido fallido no deje sin revocar al anterior. Un compartido
+    /// concurrente se reintenta con espera; si algo queda sin hacer, la ejecucion termina en error: con reintento del
+    /// servicio asincrono si la falla es transitoria y, si no, como trabajo del sistema fallido.
     ///
-    /// Corre con el servicio del SISTEMA: dar y quitar acceso no es algo que ningun rol de persona tenga.
+    /// Corre con el servicio del SISTEMA: dar y quitar acceso no es algo que tenga ningun rol de persona.
     /// Registro: PostOperation ASINCRONO, Create y Update de sanic_cm_tbl_asignacion; el Update filtrado por agente,
-    /// estado y estado de aprobacion. NUNCA sincrono: correria dentro del trozo de Smelter (100 filas por mensaje,
-    /// 2 minutos por mensaje, y si se pasa se deshace el trozo entero).
+    /// estado y estado de aprobacion. Nunca sincrono: correria dentro del lote de Smelter (2 minutos por mensaje, y si
+    /// se pasa se deshace el lote entero).
     /// Nunca traza ni cita identificadores ni valores de registros: solo nombres de tablas y pasos.
     /// </summary>
     public sealed class RepartoAsignacion : PluginBase
@@ -120,8 +109,8 @@ namespace Sanic.CobranzaMovil.Plugins
             var usuarioRef = agente == null ? null : agente.GetAttributeValue<EntityReference>(Esquema.AgenteUsuario);
             var cobrador = usuarioRef == null ? null : new EntityReference(Esquema.Usuario, usuarioRef.Id);
 
-            // Sin cobrador, la asignacion pasa a la cartera sin cobrador (DAT-07). Si ese equipo no existe, falla sin
-            // tocar nada: mejor un trabajo fallido visible que revocarle al dueno algo que sigue siendo suyo.
+            // Sin localizador, la asignacion pasa a la cartera sin cobrador. Si ese equipo no existe, falla sin tocar
+            // nada: mejor un trabajo fallido visible que revocarle al dueno algo que sigue siendo suyo.
             EntityReference nuevoDueno = cobrador;
             if (nuevoDueno == null)
             {
@@ -146,15 +135,13 @@ namespace Sanic.CobranzaMovil.Plugins
                 });
             }
 
-            // 2) La Especial aprobada se le comparte a quien la pidio (S-7). "Solicitado por" no lo elige el cliente: una
-            //    persona de CM solo puede ponerse a si misma (SolicitadoPor). Antes se exigia ademas que fuera quien la
-            //    creo, y quien reactivaba con SolicitarEspecial una Especial creada por otro la perdia al aprobarse.
+            // 2) La Especial aprobada se le comparte a quien la pidio. Una persona de CM solo puede ponerse a si misma
+            //    en "Solicitado por" (ver SolicitadoPor).
             var solicitante = asignacion.GetAttributeValue<EntityReference>(Esquema.AsignacionSolicitadoPor);
             if (esEspecial && solicitante != null)
             {
-                // H1 (matriz de roles, 2026-10-19): solo lectura; "Mis solicitudes" no edita. GrantAccess no le quita
-                // permisos a un compartido que ya existia (los de antes eran lectura, escritura y anexar): ModifyAccess
-                // los reemplaza por lectura.
+                // Solo lectura. GrantAccess no le quita permisos a un compartido que ya existia: ModifyAccess los
+                // reemplaza por lectura.
                 pasos.Correr("compartir la asignacion con el solicitante", () =>
                 {
                     var quien = new EntityReference(Esquema.Usuario, solicitante.Id);
@@ -167,7 +154,7 @@ namespace Sanic.CobranzaMovil.Plugins
                 });
             }
 
-            // 3) Lectura de cuenta, cliente y fiador para el cobrador (la cartera sin cobrador no comparte nada).
+            // 3) Lectura de cuenta, cliente y fiador para el localizador (la cartera sin cobrador no comparte nada).
             if (cobrador != null && cuentaRef != null)
             {
                 pasos.Correr("compartir la cuenta", () => Compartir(svc, Ref(Esquema.Cuenta, cuentaRef), cobrador, AccessRights.ReadAccess));
@@ -192,8 +179,8 @@ namespace Sanic.CobranzaMovil.Plugins
 
         /// <summary>
         /// Revoca a <paramref name="principal"/> la cuenta, el cliente y el fiador si no tiene OTRA asignacion activa
-        /// (de la que es dueno) que los justifique. A la cuenta no se le revoca a su propio dueno (SYSTEM, para lo que
-        /// crea la carga); para cliente y fiador ese caso lo resuelve <see cref="Revocar"/>.
+        /// (de la que es dueno) que los justifique. A la cuenta no se le revoca a su propio dueno (SYSTEM en lo que crea
+        /// la carga); para cliente y fiador ese caso lo resuelve <see cref="Revocar"/>.
         /// </summary>
         private static void RevocarSiNoQuedaOtra(IOrganizationService svc, Guid asignacionId, EntityReference principal,
             EntityReference cuentaRef, Entity cuenta, Pasos pasos)

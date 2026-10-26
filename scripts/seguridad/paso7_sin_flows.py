@@ -1,4 +1,4 @@
-"""Fase 4 · Paso 7 (S-4): los roles CM operativos ya no pueden crear ni editar flows.
+"""Los roles CM operativos no pueden crear ni editar flows.
 
 Un flow propio corre con la identidad de su autor: "Dataverse → listar filas → OneDrive/correo/HTTP" saca todo lo que esa
 persona lee sin que se note. Las apps de CM no llaman a ningún flow (el orquestador de Smelter corre con su propia conexión).
@@ -11,7 +11,7 @@ import sys
 from roles_cm import aplicar, modo
 
 ROLES = ['SR | CM | Localizador', 'SR | CM | Solicitante', 'SR | CM | Supervisor', 'SR | CM | BackOffice']
-# (privilegio, profundidad original en DEV el 2026-10-14: igual en los cuatro roles)
+# (privilegio, profundidad original en DEV: igual en los cuatro roles)
 PRIVILEGIOS = [('prvCreateWorkflow', 'Basic'), ('prvWriteWorkflow', 'Basic'), ('prvDeleteWorkflow', 'Basic'),
                ('prvAssignWorkflow', 'Basic'), ('prvShareWorkflow', 'Basic'), ('prvAppendWorkflow', 'Basic'),
                ('prvAppendToWorkflow', 'Global'), ('prvActivateSynchronousWorkflow', 'Basic'), ('prvFlow', 'Global')]

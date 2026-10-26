@@ -1,7 +1,7 @@
-"""F7 · Actualización de datos offline (opción B del dueño, aditivo e idempotente).
-En el teléfono el lookup de la actualización a la interacción recién creada llega vacío y el plugin
-ActualizacionConInteraccion la rechazaba. La app manda además la cuenta (ya existe en el servidor) y la misma
-fecha de captura de la interacción; el plugin (1.0.8.6) la vincula a la interacción del mismo cobrador, cuenta y captura.
+"""Actualización de datos offline (aditivo e idempotente).
+En el teléfono, el lookup de la actualización a la interacción recién creada llega vacío. Por eso la app manda además la
+cuenta (ya existe en el servidor) y la misma fecha de captura de la interacción, y el plugin ActualizacionConInteraccion
+la vincula a la interacción del mismo localizador, cuenta y captura.
 Crea: lookup sanic_cm_ad_cuentaid (→ cuenta, referencial) y sanic_cm_ad_fechacaptura (fecha y hora, como sanic_cm_in_fechacaptura).
 Uso: python3 scripts/pan/paso14_actualizacion_offline.py [--aplicar]"""
 import os, sys
@@ -22,7 +22,7 @@ def hacer(desc, metodo, ruta, cuerpo):
         print('   ✓', st)
 
 REFERENCIAL = {'Assign': 'NoCascade', 'Delete': 'RemoveLink', 'Merge': 'NoCascade', 'Reparent': 'NoCascade', 'Share': 'NoCascade', 'Unshare': 'NoCascade'}
-# 1) Lookup actualización → cuenta (un solo nivel de lookup, soportado offline: R12)
+# 1) Lookup actualización → cuenta (un solo nivel de lookup, soportado offline)
 if existe_attr(AD, 'sanic_cm_ad_cuentaid'): print('YA EXISTE lookup sanic_cm_ad_cuentaid')
 else:
     hacer(f'relación {P}cuenta → {AD} (sanic_cm_ad_cuentaid, referencial)', 'POST', 'RelationshipDefinitions', {

@@ -7,22 +7,16 @@ using Microsoft.Xrm.Sdk.Query;
 namespace Sanic.CobranzaMovil.Plugins
 {
     /// <summary>
-    /// APP-48 (decision del dueno, 2026-10-25): Custom API global "sanic_cm_CerrarFueraDeCartera", que reemplaza el Patch
-    /// masivo de scrReconciliacion. El Patch de la app tomaba solo las primeras 2000 Diarias (tope de filas de la lista),
-    /// tardaba minutos sin aviso y dejaba un error de fecha en pantalla. Aca el servidor cierra por lotes:
-    ///  - Corte: el DIA de la ultima carga diaria (maximo de [CD] FechaCarga). La app manda el corte que vio; si no coincide
-    ///    (llego otra carga mientras la pantalla estaba abierta), no cierra nada.
-    ///  - Fuera de la carga: Diaria activa con "Ultima carga" (DateOnly) anterior al corte. Mismo criterio que la pantalla.
-    ///  - Esperadas: cuantas confirmo el Admin (en las vueltas siguientes, las que quedaban). Si hay MAS, no cierra: la
-    ///    pantalla estaba vieja y el Admin no confirmo esas.
-    ///  - Lote: cierra hasta Lote filas por llamado (0 o sin valor = 250, maximo 500) para no pasar el limite de 2 minutos de un
-    ///    plugin; la app llama de nuevo mientras Restantes sea mayor que cero.
-    ///  - SoloContar: true = no escribe; devuelve cuantas cerraria (pruebas y verificacion).
-    /// Cierra con los permisos del LLAMADOR (la auditoria muestra al Admin, como el Patch de antes): estado = false, motivo
-    /// "fuera de cartera", fecha de cierre = ahora. Los demas plugins de la asignacion corren igual (RepartoAsignacion le
-    /// revoca la cuenta al cobrador). Solo Admin, Servicio o sin roles de CM. La carga en curso la sigue verificando la app
-    /// (lee los Import Jobs de Smelter). Nunca traza valores: solo cantidades.
-    /// Registro: Custom API global (sin entidad), no es funcion, sin pasos personalizados; este tipo es su plugin.
+    /// Custom API global sanic_cm_CerrarFueraDeCartera: cierra por lotes las Diarias activas que quedaron fuera de la
+    /// ultima carga (su "Ultima carga" es anterior al corte). Una lista de la app no puede pasar de 2000 filas.
+    ///  - Corte: el dia de la ultima carga diaria. Si no coincide con el que vio la app (llego otra carga), no cierra nada.
+    ///  - Esperadas: cuantas confirmo el Admin. Si hay mas, no cierra: la pantalla estaba desactualizada.
+    ///  - Lote: hasta Lote filas por llamado (0 = 250, maximo 500) para no pasar el limite de 2 minutos de un plugin;
+    ///    la app vuelve a llamar mientras Restantes sea mayor que cero.
+    ///  - SoloContar: no escribe; devuelve cuantas cerraria.
+    /// Cierra con los permisos del llamador para que la auditoria muestre al Admin; los demas plugins de la asignacion
+    /// corren igual (RepartoAsignacion revoca la cuenta al localizador). Solo Admin, Servicio o sin roles de CM.
+    /// Nunca traza valores: solo cantidades.
     /// </summary>
     public sealed class CerrarFueraDeCartera : PluginBase
     {
@@ -59,7 +53,7 @@ namespace Sanic.CobranzaMovil.Plugins
             }
             var esperadas = Entrada<int?>(ctx, Esquema.ParamEsperadas);
             if (!esperadas.HasValue || esperadas.Value < 0) throw local.Error("falta la cantidad confirmada.");
-            // Opcional: Dataverse manda 0 cuando la app no lo pasa (verificado en DEV), asi que 0 = el de por defecto.
+            // Opcional: Dataverse manda 0 cuando la app no lo pasa, asi que 0 = el lote por defecto.
             var lote = Entrada<int?>(ctx, Esquema.ParamLote) ?? 0;
             if (lote == 0) lote = LotePorDefecto;
             if (lote < 1 || lote > LoteMaximo) throw local.Error("el lote debe ser de 1 a " + LoteMaximo + ".");

@@ -1,8 +1,9 @@
-// Pruebas web (Playwright, User5, DEV) de los hallazgos del cobrador que NO necesitan el teléfono:
-// APP-07, 08, 15, 16, 17, 18, 19, 24, 25, 27, 30 (parcial), 32, formato numérico y la vista de pagos de APP-05.
+// Pruebas web (Playwright, User5, DEV) de la app del localizador que NO necesitan el teléfono: KPIs y formato
+// numérico de Inicio, Cliente abierto desde Inicio, Cartera sin Especiales sin aprobar, rótulo de tipo al cambiar
+// de cuenta, formulario de Interacción, accesibilidad y resolución del agente al guardar.
 // El web player corre la app EN LÍNEA: lo offline (sincronización, N° de interacción vacío) se verifica en el teléfono.
-// Datos: solo las carteras QA-E2E-LOC de User5. Crea 3 interacciones QA (2 datos del día y la de APP-27) y las borra al final. Datos fijos: el pago
-// QA-R1 (IN-1065, APP-05 vista), la Especial aprobada AS-2077 (APP-07) y la Especial en Borrador AS-2134 (APP-08).
+// Datos: solo las carteras QA-E2E-LOC de User5. Crea 3 interacciones QA (2 datos del día y 1 al guardar) y las borra
+// al final. Datos fijos: el pago QA-R1 (IN-1065), la Especial aprobada AS-2077 y la Especial en Borrador AS-2134.
 // Nunca imprime números de tarjeta.
 // Uso: NODE_PATH=../backoffice-canvas/node_modules node grupo2.js
 const a = require('./lib/app');
@@ -48,8 +49,7 @@ async function limpiar() {
   const b = await a.lanzar(); const app = await a.abrir(b);
   const t0 = new Date().toISOString();
 
-  // ---- formato numérico (es-NI mostraba "160,00") ----
-  // ---- APP-21 + formato: "Cobrado hoy" por fecha del pago = suma en Dataverse (se espera a que cargue) ----
+  // ---- "Cobrado hoy" por fecha del pago = suma en Dataverse, con punto decimal aunque el navegador esté en es-NI ----
   const desde0 = await hoyManagua();
   const pagosHoy = await dv.getAll(`sanic_cm_tbl_pagos?$select=sanic_cm_pg_monto&$filter=_createdby_value eq ${USER5} and sanic_cm_pg_moneda eq 1 and sanic_cm_pg_fecha ge ${desde0}`);
   const esperado = pagosHoy.reduce((t, p) => t + Number(p.sanic_cm_pg_monto), 0).toFixed(2);
@@ -58,7 +58,7 @@ async function limpiar() {
   ok('FORMATO', /\d\.\d{2}\s*$/.test(cob), `Cobrado hoy = "${cob}" (punto decimal con el navegador en es-NI)`);
   ok('APP-21 web', cob.endsWith(esperado), `Cobrado hoy (por fecha del pago) = "${cob}"; suma en Dataverse = ${esperado}`);
 
-  // ---- APP-15: "Clientes" de hoy por CIF ----
+  // ---- KPI "Clientes" de hoy: clientes distintos por CIF ----
   const desde = await hoyManagua();
   const ints = await dv.getAll(`sanic_cm_tbl_interaccions?$select=_sanic_cm_in_cuentaid_value&$filter=_createdby_value eq ${USER5} and createdon ge ${desde}`);
   const cifs = new Set();
@@ -66,7 +66,7 @@ async function limpiar() {
   const kpi = await txt(app, 'lblSv_2');
   ok('APP-15', Number(kpi) === cifs.size, `KPI Clientes = ${kpi}; clientes distintos (CIF) con interacción hoy en Dataverse = ${cifs.size}`);
 
-  // ---- APP-19 / 17 / 16 / 05(vista): Cliente desde Inicio sin pasar por Cartera ----
+  // ---- Cliente abierto desde Inicio sin pasar por Cartera: título, pestañas, conteo y pagos ----
   app.red.marcar('cliente');
   await clicTexto(app, 'QA-E2E-LOC CLIENTE TRES');
   ok('APP-19', (await a.pantalla(app)) === 'scrCliente' && /CLIENTE TRES/.test(await txt(app, 'cmpHeaderBack_1')), `título: "${(await txt(app, 'cmpHeaderBack_1')).split('\n')[0]}"`);
@@ -80,7 +80,7 @@ async function limpiar() {
   ok('APP-16/28', sinFiltro.length === 0, `consultas a interacciones/asignaciones sin $filter al abrir Cliente: ${sinFiltro.length}`);
   ok('APP-05 vista', (await app.frame.getByText('rec. QA-R1').count()) > 0, 'el pago QA-R1 aparece en la tarjeta de su interacción (búsqueda por la relación)');
 
-  // ---- APP-25: nombres y rol de botón en el Inicio (íconos de la barra, "Aa", píldora) ----
+  // ---- Accesibilidad: nombres y rol de botón en el Inicio (íconos de la barra, "Aa", píldora) ----
   await a.tocar(app, 'Icon1');                                  // ← a Inicio
   const botones = ['Inicio', 'Cartera', 'Ajustes de tema y tamaño de letra'];
   const hayB = []; for (const n of botones) if (await app.frame.getByRole('button', { name: n, exact: true }).count()) hayB.push(n);
@@ -88,7 +88,7 @@ async function limpiar() {
   ok('APP-25 rol', hayB.length === botones.length && pildora > 0,
      `botones con nombre: ${hayB.join(', ')}; píldora con nombre: ${pildora > 0 ? 'sí' : 'NO'} (antes: íconos como imagen, "Aa" y píldora sin nombre)`);
 
-  // ---- APP-08: la Cartera no muestra Especiales sin aprobar (dato QA: Especial en Borrador cuyo dueño es User5) ----
+  // ---- La Cartera no muestra Especiales sin aprobar (dato QA: Especial en Borrador cuyo dueño es User5) ----
   await a.tocar(app, 'icoLedger');                              // barra: Cartera
   const asigs = await dv.getAll(`sanic_cm_tbl_asignacions?$select=sanic_cm_as_tipo,sanic_cm_as_estadoaprobacion&$filter=_ownerid_value eq ${USER5} and sanic_cm_as_estado eq true`);
   const visibles = asigs.filter(x => x.sanic_cm_as_tipo !== 3 || x.sanic_cm_as_estadoaprobacion === 3).length;
@@ -99,7 +99,7 @@ async function limpiar() {
   ok('APP-25 filtros', filtros.length === 4 && await app.frame.getByRole('button', { name: 'Actualizar la cartera' }).count() > 0,
      `filtros como botones: ${filtros.join(', ')}; "↻" con nombre "Actualizar la cartera"`);
 
-  // ---- APP-07: varAsig sucio. Cartera → MOVIL → cuenta Especial (desde Cliente) → Inicio → cuenta Diaria (desde Inicio) ----
+  // ---- varAsig no debe arrastrar la cuenta anterior. Cartera → MOVIL → cuenta Especial (desde Cliente) → Inicio → cuenta Diaria (desde Inicio) ----
   await clicTexto(app, 'QA-E2E-LOC CLIENTE MOVIL');
   await clicTexto(app, '5498');                                 // cuenta Especial (por sus últimos 4)
   const tipoEsp = await txt(app, 'Text1_1');
@@ -108,7 +108,7 @@ async function limpiar() {
   ok('APP-30', (await a.pantalla(app)) === 'scrInicio', 'Cartera → barra "Inicio" vuelve al Inicio (ahora con Back(), sin apilar)');
   await a.tocar(app, 'btnModoCta');
   await clicTexto(app, '7113');
-  // Mientras carga la asignación el rótulo dice "…" (antes mostraba unos segundos el tipo de la cuenta anterior).
+  // Mientras carga la asignación el rótulo dice "…"; nunca debe mostrar el tipo de la cuenta anterior.
   let tipoDia = '', vioViejo = false;
   for (let i = 0; i < 30; i++) { tipoDia = await txt(app, 'Text1_1'); if (tipoDia === 'Especial') vioViejo = true; if (tipoDia && tipoDia !== '…' && tipoDia !== 'Especial') break; await a.esperar(app, 500); }
   ok('APP-07', tipoEsp === 'Especial' && tipoDia === 'Diaria' && !vioViejo,
@@ -116,7 +116,7 @@ async function limpiar() {
   const cDet = await color(app, 'Button6_3');
   ok('APP-17 det', cDet === 'rgb(255, 255, 255)', `Detalle abierto desde Inicio arranca en "Interacciones" (texto ${cDet})`);
 
-  // ---- APP-18 / 24 / 32 en Interacción (sin guardar) ----
+  // ---- Interacción sin guardar: chips de comentario, validación de teléfono y moneda del pago ----
   await a.tocar(app, 'btnRegistrar');
   await a.escribir(app, 'txtComentario', 'Hola QA', { tab: true });
   await porTexto(app, 'Promesa de pago').click({ force: true }); await a.esperar(app, 1500);
@@ -144,7 +144,7 @@ async function limpiar() {
   ok('APP-25 quitar', await app.frame.getByRole('button', { name: 'Quitar este pago' }).count() > 0, 'el "✕" de la línea de pago se anuncia "Quitar este pago"');
   await a.tocar(app, 'tpPago');
 
-  // ---- APP-25 (parcial): etiquetas y contraste ----
+  // ---- Accesibilidad: etiquetas y contraste ----
   // Los botones clásicos no admiten AccessibleLabel (se anuncian por su texto): se miran íconos y campos.
   const etq = ['Volver', 'Comentario de la interacción', 'Aplica pago', 'Actualizar datos del cliente'];
   const hay = []; for (const e of etq) if (await app.frame.locator(`[aria-label="${e}"]`).count()) hay.push(e);
@@ -152,14 +152,14 @@ async function limpiar() {
   const cMuted = await app.frame.getByText('APLICAR A ESTOS PRODUCTOS').first().evaluate(e => getComputedStyle(e).color);
   ok('APP-25 contr', cMuted === 'rgb(95, 107, 126)', `texto secundario ${cMuted} (5,4:1; antes #98A2B3 2,6:1)`);
 
-  // ---- APP-27: el agente se resuelve con la fórmula con nombre (crea 1 interacción QA) ----
+  // ---- El agente se resuelve con la fórmula con nombre (crea 1 interacción QA) ----
   await a.escribir(app, 'txtComentario', 'QA web APP-27 agente', { tab: true });
   await a.tocar(app, 'btnRegistrar_1', { esperaMs: 6000 });
   const nueva = (await dv.getAll(`sanic_cm_tbl_interaccions?$select=sanic_cm_tbl_interaccionid,_sanic_cm_in_agente_value,sanic_cm_in_nombreagente&$filter=_createdby_value eq ${USER5} and createdon ge ${t0} and sanic_cm_in_comentario eq 'QA web APP-27 agente'`));
   ok('APP-27', nueva.length === 1 && nueva[0]._sanic_cm_in_agente_value && nueva[0].sanic_cm_in_nombreagente !== 'Sin nombre',
      `interacciones creadas: ${nueva.length}; agente ${nueva[0]?._sanic_cm_in_agente_value ? 'vinculado' : 'VACÍO'}; nombre "${nueva[0]?.sanic_cm_in_nombreagente}"`);
 
-  // Limpieza: el dato del día y la interacción de APP-27 (sin pagos ni actualización de datos) no se acumulan.
+  // Limpieza: los datos del día y la interacción guardada (sin pagos ni actualización de datos) no se acumulan.
   creadas.push(...nueva.map(n => n.sanic_cm_tbl_interaccionid));
   await limpiar();
 

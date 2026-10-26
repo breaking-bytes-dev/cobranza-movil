@@ -12,7 +12,7 @@ Screens:
       Fill: =gblC.pantalla
       OnVisible: |-
         =// Carga del archivo del banco por Smelter (sin la app model-driven de Smelter).
-        // Smelter es de OTRO equipo: acá solo se LEE la plantilla y se crean/actualizan Import Jobs
+        // Smelter es de OTRO equipo: aquí solo se LEE la plantilla y se crean/actualizan Import Jobs
         // (lo mismo que le permite el rol "Smelter Operador" a quien está en el team "CM · Admin y Carga").
         // Orden obligatorio: 1) crear el job SIN estado, 2) subir el archivo a '[IJ] Source File',
         // 3) recién ahí estado = En cola (0): el flow orquestador de Smelter dispara con estado = 0 al crear o
@@ -32,7 +32,7 @@ Screens:
         Set(varNombreCar, "");
         Set(varNuevoCar, Blank());
         // Carga paralela (nfCargaParalela): fase del envío ("" | "validar" | "partir" | "padres" | "partes" | "unico" | "fin"), jobs de
-        // las partes y conteos que devuelve sanic_cm_PartirCarga. Los esquemas se definen acá, en fórmulas válidas: la de
+        // las partes y conteos que devuelve sanic_cm_PartirCarga. Los esquemas se definen aquí, en fórmulas válidas: la de
         // btnPartirCar queda inerte mientras la foto de "Environment" no conozca la API, y no puede ser la única que los define.
         Set(varFaseCar, "");
         Set(varMsgCar, "");
@@ -60,7 +60,7 @@ Screens:
                 20
             )
         );
-        // Partes sin lanzar (opción b, 2026-10-22): las partes de una carga paralela las pone en cola ESTA pantalla cuando
+        // Partes sin lanzar: las partes de una carga paralela las pone en cola ESTA pantalla cuando
         // terminan los padres. Si el usuario salió antes, quedan sin estado y Reconciliación las ve «en curso» (12 h).
         // Por cada job de padres del historial con partes sin estado: «relanzar» si los padres terminaron bien, «descartar»
         // si fallaron, terminaron con errores o nunca se pusieron en cola (más de 10 min sin estado). El vínculo es el
@@ -311,11 +311,11 @@ Screens:
                     // 3) recién ahí estado = En cola (0), y NO en el mismo instante: lo hace tmrAvanceCar 20 s después.
                     // Por qué la espera: el disparador del orquestador de Smelter evalúa «estado = 0» sobre el registro
                     // como está CUANDO ARRANCA la corrida, no sobre el evento. Con los 3 Patch seguidos, el Create y el
-                    // Update del archivo también veían estado 0 y el job se procesaba 3 veces EN PARALELO (2026-10-12:
-                    // fila con «CIF duplicado»). Con la espera, esos eventos ya se evaluaron con el estado vacío.
-                    // Si algo falla (B-03): detalle y pantalla liberada. Un job sin estado NO dispara nada en Smelter.
-                    // Errores: en una cadena con «;» Power Fx sigue después de un error y IfError solo ve el ÚLTIMO paso
-                    // (2026-10-23: la Custom API rechazaba y la pantalla seguía por el camino de éxito). Por eso cada acción
+                    // Update del archivo también verían estado 0 y el job se procesaría 3 veces EN PARALELO.
+                    // Con la espera, esos eventos ya se evaluaron con el estado vacío.
+                    // Si algo falla: detalle y pantalla liberada. Un job sin estado NO dispara nada en Smelter.
+                    // Errores: en una cadena con «;» Power Fx sigue después de un error e IfError solo ve el ÚLTIMO paso.
+                    // Por eso cada acción
                     // que puede fallar se guarda en una variable y su error se lee como texto con
                     // IfError(Left(Text(<campo>), 0), <mensaje>): "" = salió bien. Recién ahí se sigue.
                     Set(varJobCar, Blank());
@@ -384,7 +384,7 @@ Screens:
                     // archivo entero (btnEnviarCar). La Custom API sanic_cm_PartirCarga, en el servidor y con los permisos del
                     // usuario: convierte ESE job en el de PADRES (producto, fiador y agente: la última fila de cada uno; plantilla
                     // «Cobranza movil · padres», nombre «… · padres») y crea N jobs de PARTES por CIF, sin estado (plantilla
-                    // «Cobranza movil · partes»). Nada queda en cola acá: el timer pone en cola los padres 20 s después
+                    // «Cobranza movil · partes»). Nada queda en cola aquí: el timer pone en cola los padres 20 s después
                     // (sus Create/Update ya se evaluaron con estado vacío; ver btnEnviarCar) y las partes SOLO si los padres
                     // terminan Completed. Es la ÚNICA fórmula que llama la API: si la foto de "Environment" no la conoce,
                     // queda inerte sola (las variables y colecciones se definen en OnVisible).
@@ -449,8 +449,8 @@ Screens:
                     // contra su columna (la prueba en seco de Smelter no lo detecta) y NO escribe nada. Si pasa, sigue como
                     // siempre: el timer pone el job en cola 20 s después. Es la ÚNICA fórmula con SoloValidar: si la foto de
                     // "Environment" no conoce el parámetro, queda inerte sola (por eso el interruptor nfValidarLargo).
-                    // El rechazo de la API se lee aparte (ver btnEnviarCar): dentro de una cadena, IfError no lo veía y el
-                    // job se ponía en cola igual (2026-10-23, prueba LAR: el servidor rechazó y la prueba en seco siguió).
+                    // El rechazo de la API se lee aparte (ver btnEnviarCar): dentro de una cadena, IfError no lo ve y el
+                    // job se pondría en cola igual.
                     Set(varRespValCar,
                         Environment.sanic_cm_PartirCarga({
                             JobId: Text(varJobCar.'TBL | SMLT | Import Job'),
@@ -536,7 +536,7 @@ Screens:
                         HoverFill: =ColorFade(gblC.okInk, 10%)
                         OnSelect: |-
                           =// Paso 3 · CARGA REAL. Mismo camino que la prueba, con '[IJ] Is Dry Run' = No.
-                          // Solo llega acá si «Cargar» estaba habilitado: el archivo elegido es el validado.
+                          // Solo llega aquí si «Cargar» estaba habilitado: el archivo elegido es el validado.
                           Set(varConfirmaCar, false);
                           Set(varOcupadoCar, true);
                           Set(varEsPruebaCar, false);
@@ -928,7 +928,7 @@ Screens:
                               FontWeight: =FontWeight.Semibold
                               Height: =30
                               OnSelect: |-
-                                =// Partes sin lanzar de una carga paralela (opción b, 2026-10-22). Se relee TODO del servidor antes de
+                                =// Partes sin lanzar de una carga paralela. Se relee TODO del servidor antes de
                                 // escribir: el job de padres y sus partes SIN estado (mismo creador, nombre «<nombre> · parte …»).
                                 //  - Padres Terminada → partes En cola, igual que tmrAvanceCar (el orquestador de Smelter dispara con
                                 //    estado = En cola; su archivo lo subió PartirCarga hace rato).
@@ -940,8 +940,8 @@ Screens:
                                 Set(varOcupadoCar, true);
                                 Refresh('TBL | SMLT | Import Jobs');
                                 Set(varAccSelCar, LookUp(colAccionCar, Id = ThisItem.'TBL | SMLT | Import Job'));
-                                // Cada lectura y cada Patch se verifica aparte (ver btnEnviarCar): en una cadena, IfError solo veía
-                                // el último paso y avisaba «se pusieron en cola» aunque los Patch hubieran fallado.
+                                // Cada lectura y cada Patch se verifica aparte (ver btnEnviarCar): en una cadena, IfError solo ve
+                                // el último paso y avisaría «se pusieron en cola» aunque los Patch hubieran fallado.
                                 Set(varPadSelCar, LookUp('TBL | SMLT | Import Jobs', 'TBL | SMLT | Import Job' = varAccSelCar.Id));
                                 Set(varErrHistCar, IfError(Left(Text(varPadSelCar.'TBL | SMLT | Import Job'), 0), Coalesce(FirstError.Message, "sin detalle")));
                                 If(IsBlank(varErrHistCar),
@@ -1209,8 +1209,6 @@ Screens:
               );
               Set(varVueltasCar, varVueltasCar + 1);
               // Tope: 400 vueltas de 3 s (20 min) + 140 de 30 s (70 min) ≈ 1 h 30 min para TODA la carga (padres y partes).
-              // Era 3 h 20 min con la carga en serie (6.000 filas ~100 min); con la paralela 1.000 filas tardaron ~5 min.
-              // Antes se cortaba a los 20 min y la pantalla quedaba en "Procesando" sin avisar aunque Smelter seguía cargando.
               If(varEstCar < 2 && varVueltasCar > 540, Set(varSigueCar, true));
               If(varFaseCar = "fin" || (varFaseCar <> "padres" && varEstCar >= 2) || varVueltasCar > 540,
                   Set(varPollCar, false);

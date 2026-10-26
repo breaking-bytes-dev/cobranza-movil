@@ -10,8 +10,8 @@ using Xunit;
 namespace Sanic.CobranzaMovil.Plugins.Tests
 {
     /// <summary>
-    /// DAT-13 + SEC-08: toda interaccion nace con cuenta y agente; si la crea un cobrador, el agente es el vinculado a
-    /// su usuario (lo pone el servidor, no la app) y la interaccion nace Pendiente de grabar en el CORE.
+    /// Toda interaccion nace con cuenta y agente; si la crea un localizador, el agente es el vinculado a su usuario
+    /// (lo pone el servidor, no la app) y la interaccion nace Pendiente de grabar en el CORE.
     /// </summary>
     public class InteraccionDelCobradorTests
     {
@@ -88,7 +88,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             return Assert.Throws<InvalidPluginExecutionException>(() => h.Ejecutar(new InteraccionDelCobrador()));
         }
 
-        // ------------------------------------------------------------------ H3: solo cuentas de su cartera
+        // ------------------------------------------------------------------ solo cuentas de su cartera
 
         private static void FueraDeCartera(Harness h)
         {
@@ -133,15 +133,14 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             Assert.Contains(c, x => x.AttributeName == "sanic_cm_as_cuentaid" && x.Operator == ConditionOperator.Equal
                 && (Guid)x.Values[0] == t.GetAttributeValue<EntityReference>(InCuenta).Id);
             Assert.Contains(c, x => x.AttributeName == "sanic_cm_as_estado" && (bool)x.Values[0]);
-            // Dueno = el usuario: una cuenta de la "Cartera sin cobrador" (dueno el equipo) no es de nadie.
+            // Dueno = el usuario: una cuenta cuyo dueno es el equipo de cartera sin asignar no es de nadie.
             Assert.Contains(c, x => x.AttributeName == "ownerid" && (Guid)x.Values[0] == Harness.UsuarioLlamador);
             Assert.Equal(1, q.TopCount);
         }
 
-        // ------------------------------------------------------------------ H3 con tolerancia por fecha (1.0.8.5)
-        // El cobrador captura sin senal en una cuenta que era suya; mientras tanto el supervisor se la reasigno a otro. Si la
-        // fecha de captura (la pone el telefono) es de hasta 48 h atras (y no futura mas alla de 5 min de reloj) y a esa fecha
-        // la cuenta tenia una asignacion ACTIVA suya segun la auditoria del dueno y del estado, la interaccion entra.
+        // ------------------------------------------------------------------ cartera con tolerancia por fecha
+        // El localizador captura sin senal en una cuenta suya que luego se reasigno. Si la captura es de hasta 48 h atras
+        // (y no futura mas de 5 min) y a esa fecha tenia una asignacion activa suya segun la auditoria, entra.
 
         private static readonly DateTime Ahora = new DateTime(2026, 10, 19, 12, 0, 0, DateTimeKind.Utc);
         private const string InFechaCaptura = "sanic_cm_in_fechacaptura";
@@ -198,8 +197,8 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         }
 
         /// <summary>
-        /// El cobrador (UsuarioLlamador) ya no es el dueno actual de ninguna asignacion activa (la consulta con el filtro de
-        /// dueno vuelve vacia) y la consulta historica (sin filtro de dueno) devuelve estas asignaciones con su auditoria.
+        /// El localizador (UsuarioLlamador) ya no es dueno de ninguna asignacion activa y la consulta historica (sin filtro
+        /// de dueno) devuelve estas asignaciones con su auditoria.
         /// </summary>
         private static Harness Capturada(DateTime? captura, params HistoriaAsignacion[] asignaciones)
         {
@@ -525,7 +524,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
                 AgenteDe(Guid.NewGuid(), "B"), AgenteDe(Guid.NewGuid(), "A"))).Message);
         }
 
-        // ------------------------------------------------------------------ APP-43: agente desactivado
+        // ------------------------------------------------------------------ agente desactivado
 
         [Fact]
         public void Un_cobrador_con_el_agente_desactivado_se_rechaza()

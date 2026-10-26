@@ -1,12 +1,12 @@
-// Visita offline de una cuenta reasignada (1.0.8.5, opcion 2 del dueno: tolerancia por fecha de captura), en vivo.
-// El Admin da de alta una cuenta QA (AltaCuenta) con el agente del cobrador (User5): el reparto le pasa la asignacion.
-// Despues se la reasigna DOS veces (User5 -> User2 -> User3, con el servicio, sin tocar el reparto) y User5 sincroniza
-// capturas con distintas fechas, como lo haria el telefono al volver la senal:
+// Visita offline de una cuenta reasignada, en vivo: el servidor la acepta o rechaza según la fecha de captura.
+// El Admin da de alta una cuenta QA (AltaCuenta) con el agente del localizador (User5): el reparto le pasa la asignación.
+// Después se la reasigna DOS veces (User5 -> User2 -> User3, con el servicio, sin tocar el reparto) y User5 sincroniza
+// capturas con distintas fechas, como lo haría el teléfono al recuperar la señal:
 //   captura anterior a las dos reasignaciones      -> entra (y su pago tambien)
 //   captura entre la primera y la segunda          -> rechazada (ya era de User2)
 //   captura posterior a las dos                    -> rechazada
 //   captura de hace mas de 48 h / futura / sin fecha -> rechazada (regla estricta)
-// Ademas: lo aceptado queda de User5 (creador) y el Supervisor lo lee. Limpieza con el prefijo QA. Sin PAN impreso.
+// Además: lo aceptado queda a nombre de User5 (creador) y el Supervisor lo lee. Limpieza con el prefijo QA. Sin PAN impreso.
 const path = require('path');
 process.chdir(path.join(__dirname, '..'));
 const dv = require('../../backoffice-canvas/lib/dataverse');
@@ -68,8 +68,8 @@ const iso = (ms) => new Date(ms).toISOString();
     await reasignar(U.sup);                       // User2 -> User3
     await dormir(15000);
     const tDespues = Date.now();
-    // La auditoria de Dataverse se escribe con demora (de segundos a algunos minutos): en el telefono la visita se sincroniza
-    // horas despues de la reasignacion, asi que aca se espera a que ambos cambios esten auditados antes de sincronizar.
+    // La auditoría de Dataverse se escribe con demora (segundos a minutos): se espera a que ambas reasignaciones estén
+    // auditadas antes de sincronizar, como pasaría en el teléfono, que sincroniza horas después.
     const rotulo = (id) => (id === U.cob ? 'User5' : id === U.sol ? 'User2' : id === U.sup ? 'User3' : String(id || '').slice(0, 8));
     const historia = async () => {
       const h = await dv.get(`RetrieveAttributeChangeHistory(Target=@t,AttributeLogicalName='ownerid',PagingInfo=@p)?@t=${encodeURIComponent(JSON.stringify({ '@odata.id': `sanic_cm_tbl_asignacions(${asgId})` }))}&@p=${encodeURIComponent(JSON.stringify({ Count: 50, PageNumber: 1 }))}`);

@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-// Prueba integral "0 a 100" de Cobranza Móvil en DEV: un CSV real por Smelter → reparto → todos los roles en las dos apps
-// canvas → cierre → limpieza. Ver README.md.
-// Uso:  cd tests/integral && NODE_PATH=../backoffice-canvas/node_modules node run.js [--hasta F5] [--solo-limpieza]
-//       --carga-ui: la 1.ª importación (F1) se hace desde la pantalla "Cargar archivo" del backoffice como User4, en vez de la API
-//       (depuración) --conservar (no limpia al final) · --desde F5 (reanuda sobre los datos de la última corrida conservada)
+// Prueba integral de punta a punta de Cobranza Móvil en DEV: carga de un CSV QA por Smelter → reparto → todos los roles
+// en las dos apps canvas → cierre → limpieza. Ver README.md.
+// Uso:  cd tests/integral && NODE_PATH=../backoffice-canvas/node_modules node run.js [--hasta <fase>] [--solo-limpieza]
+//       --carga-ui: la primera importación se hace desde la pantalla "Cargar archivo" del backoffice (User4), no por la API
+//       Depuración: --conservar (no limpia al final) · --desde <fase> (reanuda sobre los datos de la última corrida conservada)
+//       <fase> es el id de la tabla FASES.
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -38,7 +39,7 @@ const nuevoRunid = () => `${String(new Date().getDate()).padStart(2, '0')}${Arra
 // Agente fijo: se fotografía al inicio y se compara al final (la suite no lo toca; esto lo demuestra).
 const SEL_AG = 'sanic_cm_tbl_agentes?$select=sanic_cm_ag_nombre,sanic_cm_ag_emailusuario,_sanic_cm_ag_usuarioid_value,sanic_cm_ag_activo&$filter=startswith(sanic_cm_ag_nombre,\'QA-E2E Localizador User\')&$orderby=sanic_cm_ag_nombre';
 const fotoAgentes = async () => (await dv.get(SEL_AG)).value.map((a) => [a.sanic_cm_ag_nombre, a.sanic_cm_ag_emailusuario, a._sanic_cm_ag_usuarioid_value, a.sanic_cm_ag_activo]);
-// Intocables: tienen que seguir existiendo tal cual.
+// Registros reales que la suite nunca toca: tienen que seguir existiendo tal cual.
 async function intocables() {
   const as = (await dv.get("sanic_cm_tbl_asignacions?$select=sanic_cm_as_numero,sanic_cm_as_estado&$filter=sanic_cm_as_numero eq 'AS-2077' or sanic_cm_as_numero eq 'AS-2134'")).value.map((x) => `${x.sanic_cm_as_numero}:${x.sanic_cm_as_estado}`).sort();
   const pg = (await dv.get("sanic_cm_tbl_pagos?$select=sanic_cm_pg_numerorecibo&$filter=sanic_cm_pg_numerorecibo eq 'QA-R1'")).value.length;
@@ -77,7 +78,7 @@ async function main() {
   if (soloLimpieza) {
     const ctx = new Corrida({ runid: 'limpieza', dir: path.join(RAIZ, `limpieza-${ahoraCorta()}`) });
     ctx.fases.push({ id: 'F11', titulo: 'Limpieza', seg: 0 });
-    await limpiezaFinal(ctx, null); // sin foto previa: solo F11-01..03
+    await limpiezaFinal(ctx, null); // sin foto previa: solo se verifican el borrado y los CSV
     ctx.volcar(); console.log(`\n${ctx.dir}/resumen.md`);
     process.exit(ctx.fallas.length ? 1 : 0);
   }

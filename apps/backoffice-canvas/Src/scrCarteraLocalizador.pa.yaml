@@ -89,7 +89,7 @@ Screens:
                   Height: =gblE.AltoBoton
                   HoverFill: =ColorFade(Self.Fill, 10%)
                   OnSelect: |-
-                    =// APP-43: un localizador desactivado puede quedar con cartera abierta (desactivar no la cierra ni la
+                    =// Un localizador desactivado puede quedar con cartera abierta (desactivar no la cierra ni la
                     // mueve). Con este chip el supervisor lo ve y la reasigna.
                     Set(varInactCpl, !varInactCpl)
                   RadiusBottomLeft: =10
@@ -152,8 +152,8 @@ Screens:
                         Height: =Parent.Height - 2*gblE.PadSm
                         Items: |-
                           =// Directo a Dataverse, todo delegable: igualdad booleana + StartsWith + Sort por
-                          // columna. Sin With (cortaba la delegación — ver scrNuevaSolicitud.galCtaNva).
-                          // APP-43: «Incluir inactivos» se resuelve antes de enviar (cláusula plegada).
+                          // columna. Sin With (corta la delegación, ver scrNuevaSolicitud.galCtaNva).
+                          // «Incluir inactivos» se resuelve antes de enviar (cláusula plegada).
                           Sort(
                               Filter('CM | TBL | Agentes',
                                   (varInactCpl || '[AG] Activo' = true)
@@ -161,7 +161,7 @@ Screens:
                               '[AG] Nombre')
                         OnSelect: |-
                           =// Cartera ACTIVA del agente elegido, por TRAMOS (TramoCartera, 0..19; el 20 = sin tramo todavía):
-                          // una sola consulta se cortaba en el límite de filas (2000) y el panel mostraba "2000" con 3.499.
+                          // una sola consulta se cortaría en el límite de filas (2000).
                           // Cada consulta es delegable (lookup por PK + booleano + tramo constante). Los datos de la cuenta
                           // se hornean navegando '[AS] Cuenta' (lo resuelve el servidor); el orden (tipo, cliente) es en memoria.
                           Set(varAgeCpl, ThisItem);
@@ -343,7 +343,7 @@ Screens:
                             Properties:
                               Height: =0
                               Text: |-
-                                =// Alerta de carga: total ACTIVO del cobrador (CountIf delegable, exacto). Oculto: lo leen chpCargaCpl.
+                                =// Alerta de carga: total ACTIVO del localizador (CountIf delegable, exacto). Oculto: lo leen chpCargaCpl.
                                 CountIf('CM | TBL | Asignacions',
                                     '[AS] Agente'.'CM | TBL | Agente' = ThisItem.'CM | TBL | Agente'
                                     && '[AS] Estado' = true)
@@ -606,7 +606,7 @@ Screens:
                   Height: =btnCerrarPanCpl.Y - gblE.PadSm - Self.Y
                   Items: |-
                     =// En memoria (la colección ya trae la cartera COMPLETA por tramos): filtro de tipo y búsqueda por CIF, nombre del
-                    // cliente o últimos 4 (APP-41); orden por tipo (Diaria, Incobrable, Especial) y después cliente.
+                    // cliente o últimos 4; orden por tipo (Diaria, Incobrable, Especial) y después cliente.
                     Sort(
                         Filter(colAsigCpl,
                             (varTipoCpl = "Todas"

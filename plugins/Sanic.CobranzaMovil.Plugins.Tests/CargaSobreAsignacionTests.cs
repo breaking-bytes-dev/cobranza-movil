@@ -6,9 +6,9 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
 {
     /// <summary>
     /// Lo que hace la carga diaria al volver a traer una asignacion que ya existe:
-    /// - DAT-10: una Diaria o Incobrable que cerro el sistema (reconciliacion "fuera de cartera" o reclasificacion) y
-    ///   vuelve en el CSV se reabre. Los cierres de una persona y las Especiales no se tocan.
-    /// - DAT-31: no pisa la fecha de asignacion (antes la reemplazaba por la fecha de carga cada dia).
+    /// - una Diaria o Incobrable que cerro el sistema (fuera de cartera o reclasificacion) y vuelve en el CSV se reabre;
+    ///   los cierres de una persona y las Especiales no se tocan.
+    /// - no pisa la fecha de asignacion con la fecha de carga.
     /// </summary>
     public class CargaSobreAsignacionTests
     {

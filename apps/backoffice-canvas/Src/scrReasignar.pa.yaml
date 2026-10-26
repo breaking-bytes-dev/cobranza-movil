@@ -11,7 +11,7 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =// DAT-29: reasignación manual del localizador. Supervisor: Especiales activas y Aprobadas.
+        =// Reasignación manual del localizador. Supervisor: Especiales activas y Aprobadas.
         // Admin: esas mismas + Incobrables activas. Las Diarias NO (manda el archivo diario).
         // Rol en variables antes del Filter: así el Filter queda delegable (constantes + choice + booleano).
         Set(varSupRea, "Supervisor" in gblRol);
@@ -61,7 +61,7 @@ Screens:
                 ageIdRea, ThisRecord.'[AS] Agente'.'CM | TBL | Agente'
             )
         );
-        // Estado de pantalla (resetea tab/panel/búsqueda entre visitas — gotcha de persistencia)
+        // Estado de pantalla (resetea pestaña, panel y búsqueda: las variables persisten entre visitas).
         Set(varTabRea, "esp");
         Set(varSelRea, Blank());
         Set(varAgeRea, Blank());
@@ -784,11 +784,11 @@ Screens:
                     =// Alto acotado: hasta 3 filas (mín. 1 para el aviso "sin coincidencias").
                     Min(Max(Self.AllItemsCount, 1), 3) * Self.TemplateHeight
                   Items: |-
-                    =// Mismo buscador que scrAprobaciones.galAgeAprb (B-04): Filter directo, todo delegable
+                    =// Mismo buscador que scrAprobaciones.galAgeAprb: Filter directo, todo delegable
                     // (igualdad booleana, <> Blank(), <> por id y StartsWith). Solo agentes activos con usuario
                     // vinculado (sin usuario el reparto no tiene a quién pasarle el owner). Se excluye el
                     // localizador actual. Con menos de 2 caracteres, centinela "§§": no se consulta la tabla
-                    // entera (B-19) y siempre hay tabla (B-06). SIN With (cortaba la delegación).
+                    // entera y siempre hay tabla. SIN With (corta la delegación).
                     Filter('CM | TBL | Agentes',
                         '[AG] Activo' = true
                         && 'Email Usuario' <> Blank()
@@ -995,8 +995,8 @@ Screens:
                     =// Se escribe SOLO '[AS] Agente': ColumnasAsignacion le rechaza al Supervisor cualquier
                     // otra columna y AprobacionEspecial solo deja a Supervisor/Admin cambiar el agente de una
                     // Especial. RepartoAsignacion (async) mueve owner y sharing al usuario del nuevo agente.
-                    // DAT-31: se busca por el id, no por el número autonumérico.
-                    // IfError (B-03): si el Patch falla se muestra el detalle y el panel queda abierto.
+                    // Se busca por el id, no por el número autonumérico.
+                    // IfError: si el Patch falla se muestra el detalle y el panel queda abierto.
                     IfError(
                         Patch('CM | TBL | Asignacions',
                             LookUp('CM | TBL | Asignacions', 'CM | TBL | Asignacion' = varSelRea.'CM | TBL | Asignacion'),

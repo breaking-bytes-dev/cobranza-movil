@@ -6,7 +6,7 @@
 //           'd' = dudosa (ninguna pantalla la usa pero el rol podría necesitarla: decide el dueño) · '-' = no se prueba.
 // Operaciones:
 //   C  crear una fila QA                 Ra leer una fila QA ajena (dueño: el servicio, sin compartir)
-//   Rc leer una fila de SU cartera (solo el cobrador: lo que el reparto le comparte)
+//   Rc leer una fila de SU cartera (solo el localizador: lo que el reparto le comparte)
 //   Ua editar una fila ajena             Up editar la fila que creó él mismo (solo si C funcionó)
 //   D  borrar una fila ajena             A  reasignarse una fila ajena (Assign a sí mismo)
 //   S  compartir una fila ajena con otro usuario (GrantAccess)
@@ -14,7 +14,7 @@
 //   BackOffice: Inicio, Transcripción, Transcritas · Solicitante: Inicio, Nueva solicitud, Mis solicitudes ·
 //   Supervisor: Inicio, Aprobaciones, Reasignar, Cartera por localizador, Historial de Especiales ·
 //   Admin: Inicio, Reasignar, Monitoreo, Cargar archivo, Alta de cuenta, Reconciliación, Cierres, Agentes, Datos maestros ·
-//   Localizador: la app del cobrador (cartera, detalle, interacción con pago y actualización de datos, sincronización).
+//   Localizador: la app del localizador (cartera, detalle, interacción con pago y actualización de datos, sincronización).
 
 const ROLES = { adm: 'Admin (User4)', bo: 'BackOffice (User1)', sol: 'Solicitante (User2)', sup: 'Supervisor (User3)', cob: 'Localizador (User5)' };
 const TABLAS = ['cuenta', 'cliente', 'asignacion', 'interaccion', 'pago', 'actualizacion', 'agente', 'producto', 'fiador', 'direccion', 'telefono', 'carga', 'boveda'];

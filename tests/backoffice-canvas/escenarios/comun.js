@@ -54,9 +54,8 @@ async function esperarNotif(app, re, ms = 12000) {
 // ComboBox clásico: abre, (opcional) escribe la búsqueda, elige la opción por texto.
 async function elegirCombo(app, nombre, { buscar, opcion }) {
   const c = await pl.visible(app, nombre);
-  // Corrida 4: un ComboBox clásico de selección única DESELECCIONA la opción ya elegida si se vuelve a
-  // pulsar (cmbTipoNva nace con "Retiro urgente" por defecto → quedaba vacío, B-20). Si ya está
-  // elegida, no se pulsa.
+  // Un ComboBox clásico de selección única DESELECCIONA la opción ya elegida si se vuelve a pulsar
+  // (p. ej. cmbTipoNva nace con "Retiro urgente" y quedaría vacío). Si ya está elegida, no se pulsa.
   if (!buscar && ((await c.innerText().catch(() => '')) || '').trim() === opcion) return { ok: true, textos: [opcion], iniciales: [opcion], sinResultados: false, yaElegida: true };
   await c.locator('[role="button"]').first().click();
   await pl.esperar(app, 1200);
@@ -77,8 +76,8 @@ async function elegirCombo(app, nombre, { buscar, opcion }) {
   return { ok: true, textos, iniciales, sinResultados };
 }
 
-// Buscador (Classic/TextInput) + galería de resultados — el patrón que reemplazó a los ComboBox
-// clásicos sobre Dataverse (B-04: el combo no pintaba el texto de los registros).
+// Buscador (Classic/TextInput) + galería de resultados: el patrón que usa la app en lugar de ComboBox
+// clásicos sobre Dataverse (el combo no pintaba el texto de los registros).
 // Tipea `buscar` en el TextInput `buscador` (DelayOutput: la consulta sale al terminar de tipear),
 // espera la red quieta y devuelve las filas visibles de `galeria`. Si el buscador está oculto porque ya
 // hay una selección (tarjeta con botón "Cambiar"), primero pulsa `cambiar`.
@@ -104,7 +103,7 @@ async function buscarEnBuscador(app, { buscador, galeria, buscar, cambiar }) {
 
 // Busca y ELIGE: toma la fila que contiene `opcion` y la pulsa vía su overlay (btnFila*).
 // Devuelve { ok, textos, sinResultados } como elegirCombo (sin `iniciales`: con < 2 caracteres la
-// galería no consulta ni se muestra — B-19).
+// galería no consulta ni se muestra).
 async function elegirEnBuscador(app, { buscador, galeria, buscar, opcion, cambiar }) {
   const r = await buscarEnBuscador(app, { buscador, galeria, buscar, cambiar });
   if (!r.filas) return { ok: false, textos: r.textos, sinResultados: true };
@@ -170,8 +169,8 @@ function erroresRed(app, etiqueta) {
   return out;
 }
 
-// E-01: la app abre SIN banners de error de runtime para ese rol (permisos, tipos) y SIN respuestas 4xx/5xx
-// de Dataverse en la carga en frío (B-05: mínimo privilegio, B-06: "expected a table").
+// La app abre SIN banners de error de runtime para ese rol (permisos, tipos) y SIN respuestas 4xx/5xx
+// de Dataverse en la carga en frío (detecta privilegios faltantes y errores de tipo como "expected a table").
 async function errorAlAbrir(id, app, rol) {
   return inf.correr(id, `Al abrir como ${rol}: sin banners de error de runtime ni respuestas de error (403) de Dataverse`, rol, async (e) => {
     const err = await c_err(app);

@@ -10,10 +10,9 @@ using Xunit;
 namespace Sanic.CobranzaMovil.Plugins.Tests
 {
     /// <summary>
-    /// DAT-14 (a): la Custom API SolicitarEspecial crea, reactiva o avisa que ya existe la Especial de una cuenta. Ve las
-    /// Especiales de otras personas con el servicio del sistema (el Solicitante lee solo las suyas), pero valida al
-    /// llamador: su rol y que pueda leer la cuenta. El alta va con los permisos del llamador (dueno y "creado por" son
-    /// el Solicitante); la reactivacion, con el servicio del sistema (la cerrada puede ser de otra persona).
+    /// La Custom API SolicitarEspecial crea, reactiva o avisa que ya existe la Especial de una cuenta. Busca con el
+    /// servicio del sistema (el Solicitante lee solo las suyas) pero valida el rol del llamador y que pueda leer la cuenta.
+    /// El alta va con los permisos del llamador; la reactivacion, con el servicio del sistema (la cerrada puede ser de otro).
     /// </summary>
     public class SolicitarEspecialTests
     {
@@ -155,7 +154,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             Assert.Equal(40m, c.GetAttributeValue<decimal>("sanic_cm_as_retirousd"));
             Assert.Equal("Retiro — el cliente viaja", c.GetAttributeValue<string>("sanic_cm_as_notas"));
             Assert.Equal(Harness.UsuarioLlamador, c.GetAttributeValue<EntityReference>(SolicitadoPor).Id);
-            Assert.False(c.Contains("sanic_cm_as_fechasignacion"));   // columna retirada el 2026-10-25
+            Assert.False(c.Contains("sanic_cm_as_fechasignacion"));   // columna retirada
             Assert.Equal(HoyEnManagua(), c.GetAttributeValue<DateTime>("sanic_cm_as_fechaasignada"));
             // Sin agente a proposito: lo pone el Supervisor al aprobar. Sin dueno: queda el llamador.
             Assert.False(c.Contains("sanic_cm_as_agenteid"));
@@ -255,7 +254,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         [Fact]
         public void Al_reactivar_la_de_otra_persona_le_quita_el_compartido_con_el_servicio_del_sistema()
         {
-            // S-7 (b1): el reparto le compartio la Especial a quien la pidio antes; al pasar a otro solicitante, la pierde.
+            // El reparto le compartio la Especial a quien la pidio antes; al pasar a otro solicitante, la pierde.
             var cerrada = EspecialExistente(false, Aprobado, "Ana Solicitante");
             var anterior = cerrada.GetAttributeValue<EntityReference>(SolicitadoPor).Id;
             var e = new Escenario(new[] { Solicitante }, cerrada);
@@ -264,7 +263,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             Assert.Equal("reactivada", e.H.Outputs["Resultado"]);
             e.Sistema.Verify(s => s.Execute(It.Is<OrganizationRequest>(r => EsRevocacion(r, cerrada.Id, anterior))), Times.Once());
             e.H.Service.Verify(s => s.Execute(It.IsAny<OrganizationRequest>()), Times.Never());
-            // Solo la asignacion: los compartidos de cuenta, cliente y fiador los maneja el reparto (y paso3).
+            // Solo la asignacion: los compartidos de cuenta, cliente y fiador los maneja el reparto.
             e.Sistema.Verify(s => s.Execute(It.Is<OrganizationRequest>(r => r is Microsoft.Crm.Sdk.Messages.RevokeAccessRequest
                 && ((Microsoft.Crm.Sdk.Messages.RevokeAccessRequest)r).Target.LogicalName != Asignacion)), Times.Never());
         }

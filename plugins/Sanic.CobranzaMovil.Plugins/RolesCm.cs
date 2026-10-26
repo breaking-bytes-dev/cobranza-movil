@@ -6,8 +6,8 @@ using Microsoft.Xrm.Sdk.Query;
 namespace Sanic.CobranzaMovil.Plugins
 {
     /// <summary>
-    /// Roles de CM (prefijo "SR | CM | ") del usuario que llama, directos y por equipo: en DEV llegan por equipo
-    /// ("CM · Localizadores · DEV"); si solo se miraran los directos, nadie tendria rol de CM.
+    /// Roles de CM (prefijo "SR | CM | ") del usuario que llama, directos y por equipo: los roles suelen asignarse
+    /// por equipo, asi que mirar solo los directos dejaria a todos sin rol de CM.
     /// Se leen con el servicio del sistema: una persona no tiene por que poder leer la tabla de roles.
     ///
     /// Sin roles de CM no es una persona de la operacion: SYSTEM (la carga de Smelter, los plugins que escriben con el
@@ -48,8 +48,7 @@ namespace Sanic.CobranzaMovil.Plugins
         /// <summary>
         /// Igual que <see cref="DelLlamador"/>, pero si quien escribe es SYSTEM (la carga de Smelter, los plugins con el
         /// servicio del sistema) devuelve "sin roles de CM" sin consultar: es lo que la consulta devolveria siempre.
-        /// Lo usan los pasos que corren en cada fila de la carga (AprobacionEspecial, ColumnasAsignacion). A una persona
-        /// se le consultan los roles como siempre. Ver <see cref="UsuarioSistema"/>.
+        /// Lo usan los pasos que corren en cada fila de la carga, para ahorrar consultas. Ver <see cref="UsuarioSistema"/>.
         /// </summary>
         public static RolesCm DelLlamadorSalvoSistema(LocalContext local)
         {

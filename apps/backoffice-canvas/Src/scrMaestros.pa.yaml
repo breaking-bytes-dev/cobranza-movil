@@ -11,8 +11,8 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =// Estado limpio de la pantalla. NO se colecciona nada acá: la búsqueda va directa
-        // al datasource (receta 01 §7.9) y las colecciones del cliente nacen al clic en la fila.
+        =// Estado limpio de la pantalla. NO se colecciona nada aquí: la búsqueda va directa
+        // al origen y las colecciones del cliente nacen al clic en la fila.
         Set(varPanelMae, false);
         Set(varModoMae, "ver");
         Reset(txtBuscarMae)
@@ -105,7 +105,7 @@ Screens:
             FocusedBorderThickness: =2
             Height: =Parent.Height - Self.Y - gblE.Pad
             Items: |-
-              =// Ambas ramas delegables: Sort por columna escalar y StartsWith (00 §4.2).
+              =// Ambas ramas delegables: Sort por columna escalar y StartsWith.
               // La galería pagina sola contra Dataverse; por eso NO hay colección de clientes.
               If(
                   IsBlank(Trim(txtBuscarMae.Text)),
@@ -116,7 +116,7 @@ Screens:
               )
             OnSelect: |-
               =// Carga las colecciones del cliente elegido (los filtros delegables: texto exacto
-              // por CIF y lookup por registro — 00 §4.2) y abre el panel en modo ver.
+              // por CIF y lookup por registro) y abre el panel en modo ver.
               Set(varCliMae, ThisItem);
               Set(varModoMae, "ver");
               Concurrent(
@@ -176,7 +176,7 @@ Screens:
                   PaddingLeft: =0
                   Size: =10
                   Text: |-
-                    =// Una línea; si excede el ancho, se trunca (divergencia aceptada, guía 12 §3).
+                    =// Una línea; si excede el ancho, se trunca.
                     If(IsBlank(ThisItem.'[CL] Trabajo'), "sin trabajo registrado", ThisItem.'[CL] Trabajo')
                   Width: =Parent.TemplateWidth * 0.5 - 2*gblE.Pad
                   Wrap: =false
@@ -577,7 +577,7 @@ Screens:
                         PaddingLeft: =0
                         Size: =9
                         Text: |-
-                          =// Si IntelliSense marca 'Tipo Producto' como choice, envolvelo en
+                          =// Si IntelliSense marca 'Tipo Producto' como choice, hay que envolverlo en
                           // Text(ThisItem.'Tipo Producto') dentro del concatenado.
                           CuentaMasc(ThisItem.'Últimos 4') & " · " & ThisItem.'Tipo Producto' & " · " &
                               Moneda(ThisItem.'[CT] Saldo Vencido NIO', ThisItem.'[CT] Saldo Vencido USD')
@@ -666,8 +666,8 @@ Screens:
                   BorderColor: =gblC.borde
                   Default: =varCliMae.'[CL] Nombre'
                   DisplayMode: |-
-                    =// DAT-26: el nombre lo escribe la carga diaria (y las apps leen el de la cuenta). Editarlo acá no
-                    // se veía en ningún lado y la carga siguiente lo pisaba: queda de solo lectura.
+                    =// El nombre lo escribe la carga diaria (y las apps leen el de la cuenta): editarlo aquí no
+                    // se vería en ningún lado y la carga siguiente lo pisaría. Queda de solo lectura.
                     DisplayMode.View
                   Fill: =gblC.card
                   FocusedBorderColor: =gblC.teal
@@ -806,8 +806,8 @@ Screens:
                   Height: =gblE.AltoBoton
                   HoverFill: =ColorFade(gblC.teal, 10%)
                   OnSelect: |-
-                    =// LookUp delegable por texto exacto (00 §4.2).
-                    // IfError (B-03): si el Patch falla, detalle y se queda en modo editar.
+                    =// LookUp delegable por texto exacto.
+                    // IfError: si el Patch falla, detalle y se queda en modo editar.
                     IfError(
                         Patch('CM | TBL | Clientes',
                             LookUp('CM | TBL | Clientes', '[CL] CIF' = varCliMae.'[CL] CIF'),
@@ -906,7 +906,7 @@ Screens:
                     =// '[TL] Tipo' es TEXTO libre en el esquema; los valores "Celular"/"Casa" calcan lo
                     // que escribe el import. El lookup '[TL] Cliente' se resuelve con el registro fresco
                     // del datasource (LookUp por CIF), no con la copia en memoria.
-                    // IfError (B-03): si el Patch falla, detalle y el input conserva lo tipeado.
+                    // IfError: si el Patch falla, detalle y el input conserva lo tipeado.
                     IfError(
                         Patch('CM | TBL | Telefonos', Defaults('CM | TBL | Telefonos'),
                             {
@@ -1002,7 +1002,7 @@ Screens:
                   HoverFill: =ColorFade(gblC.tealSuave, 10%)
                   OnSelect: |-
                     =// '[DR] Tipo' TEXTO: "Casa" / "EC" / "Trabajo" (esquema verificado).
-                    // IfError (B-03): si el Patch falla, detalle y el input conserva lo tipeado.
+                    // IfError: si el Patch falla, detalle y el input conserva lo tipeado.
                     IfError(
                         Patch('CM | TBL | Direccions', Defaults('CM | TBL | Direccions'),
                             {
@@ -1418,14 +1418,14 @@ Screens:
                   HoverFill: =ColorFade(gblC.teal, 10%)
                   OnSelect: |-
                     =// Anti-duplicado primero (LookUp delegable por CIF; el Trim va sobre el argumento
-                    // local, no sobre la columna — 00 §4.2). Si el CIF ya existe, el CSV lo fusionaría
-                    // por upsert (DEC-013): acá NO se crea y se manda al Admin a buscarlo.
+                    // local, no sobre la columna). Si el CIF ya existe, la carga lo fusionaría
+                    // por upsert: aquí NO se crea y se manda al Admin a buscarlo.
                     If(
                         !IsBlank(LookUp('CM | TBL | Clientes', '[CL] CIF' = Trim(txtCifNvoMae.Text))),
                         Notify("Ya existe un cliente con CIF " & Trim(txtCifNvoMae.Text) &
                                " — buscalo y editalo, no lo dupliques.", NotificationType.Warning),
 
-                        // IfError (B-03): si el cliente no se crea, detalle y el formulario NO se limpia.
+                        // IfError: si el cliente no se crea, detalle y el formulario NO se limpia.
                         IfError(
                             Patch('CM | TBL | Clientes', Defaults('CM | TBL | Clientes'),
                                 {

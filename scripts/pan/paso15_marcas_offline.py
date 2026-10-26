@@ -1,14 +1,14 @@
-"""F8 y F6 · Marcas en lugar de rechazos (aditivo e idempotente).
+"""Marcas en lugar de rechazos (aditivo e idempotente).
 El runtime offline del teléfono DESCARTA en silencio lo que el servidor rechaza y no lo reintenta. Por eso el servidor
-ya no rechaza lo que viene del teléfono: lo acepta marcado.
+no rechaza lo que viene del teléfono: lo acepta marcado.
 Crea:
   sanic_cm_ad_sinvincular   "[AD] Sin vincular" (Sí/No, por defecto No): la actualización entró sin interacción
-                            (plugin ActualizacionConInteraccion 1.0.9.0); VincularActualizacionPendiente la cuelga después.
+                            (plugin ActualizacionConInteraccion); VincularActualizacionPendiente la cuelga después.
   sanic_cm_pg_reciborepetido "[PG] Recibo repetido" (Sí/No, por defecto No): el número de recibo ya existía (plugin
                             ReciboRepetido); BackOffice lo revisa al transcribir.
-Quita la clave alternativa sanic_cm_ak_pg_recibo_cuenta_moneda (APP-10, scripts/localizador/clave_recibo_pago.py): la
-plataforma la aplica ANTES de los plugins, y offline un pago con el mismo recibo, cuenta y moneda se rechazaba y se
-perdía en silencio. El repetido ahora entra marcado (ReciboRepetido).
+Quita la clave alternativa sanic_cm_ak_pg_recibo_cuenta_moneda (scripts/localizador/clave_recibo_pago.py): la plataforma
+la aplica ANTES de los plugins, y offline un pago con el mismo recibo, cuenta y moneda se rechazaría y se perdería en
+silencio. El repetido entra marcado (ReciboRepetido).
 Va ANTES de paso5 (paso5 exige que las columnas de cada paso existan).
 Uso: python3 scripts/pan/paso15_marcas_offline.py [--aplicar]"""
 import os, sys

@@ -138,7 +138,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
 
         // ---------- rechazos ----------
 
-        // ---------- cuenta referenciada por clave alternativa (upsert de Smelter) ----------
+        // ---------- cuenta referenciada por clave alternativa (upsert de la carga) ----------
         // La doc no garantiza que la referencia ya traiga el Id en PreOperation: con Id vacío se usa la clave de la referencia.
 
         private static EntityReference CuentaPorClave(string clave) =>

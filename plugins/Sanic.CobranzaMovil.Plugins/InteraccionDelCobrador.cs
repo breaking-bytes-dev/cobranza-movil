@@ -9,18 +9,16 @@ using Microsoft.Xrm.Sdk.Query;
 namespace Sanic.CobranzaMovil.Plugins
 {
     /// <summary>
-    /// DAT-13 + SEC-08: el alta de una interaccion.
-    /// - Toda interaccion tiene cuenta y agente (eran ApplicationRequired, que el servidor no exige: habia interacciones
-    ///   "Sin nombre" que el backoffice no podia atribuir).
-    /// - Si la crea un cobrador (rol Localizador, sin Admin/Servicio), el agente es el vinculado a SU usuario: lo pone el
-    ///   servidor y no la app, asi nadie registra visitas a nombre de otro. Con dos agentes vinculados vale el enviado
-    ///   si es uno de ellos.
-    /// - APP-43 (1.0.10.1): si el Admin desactivo ese agente, el cobrador ya no registra (la app tambien lo bloquea).
-    /// - El cobrador solo registra en cuentas de su cartera (H3, <see cref="ExigirCuentaDeSuCartera"/>); con tolerancia por
-    ///   fecha de captura si se la reasignaron mientras estaba sin senal (1.0.8.5, <see cref="EraSuyaALaFecha"/>).
-    /// - La interaccion del cobrador nace Pendiente de grabar en el CORE: el estado, el codigo, la fecha y el usuario
-    ///   de grabacion no los pone el telefono (DAT-11).
-    /// Las capturas offline se suben con el usuario del cobrador, asi que la regla aplica igual al sincronizar.
+    /// Alta de una interaccion.
+    /// - Toda interaccion tiene cuenta y agente (ApplicationRequired solo lo exige el formulario, no el servidor).
+    /// - Si la crea un localizador (rol Localizador, sin Admin/Servicio), el agente es el vinculado a SU usuario: lo pone
+    ///   el servidor y no la app, asi nadie registra visitas a nombre de otro. Con dos agentes vinculados vale el enviado
+    ///   si es uno de ellos. Si ese agente esta desactivado, no puede registrar.
+    /// - El localizador solo registra en cuentas de su cartera (<see cref="ExigirCuentaDeSuCartera"/>), con tolerancia
+    ///   por fecha de captura si se la reasignaron mientras estaba sin senal (<see cref="EraSuyaALaFecha"/>).
+    /// - Su interaccion nace Pendiente de grabar en el CORE: estado, codigo, fecha y usuario de grabacion no los pone el
+    ///   telefono.
+    /// Las capturas offline se suben con el usuario del localizador, asi que la regla aplica igual al sincronizar.
     ///
     /// Registro: PreOperation sincrono, Create de sanic_cm_tbl_interaccion. Nunca traza ni cita valores.
     /// </summary>
@@ -79,15 +77,13 @@ namespace Sanic.CobranzaMovil.Plugins
         }
 
         /// <summary>
-        /// H3 (matriz de roles, 2026-10-19): el cobrador registra visitas (y, por la interaccion, pagos) solo en cuentas de
-        /// SU cartera: una asignacion activa de esa cuenta cuyo dueno es su usuario (el reparto se la pasa al aprobarla o
-        /// al cargarla). Antes le alcanzaba con ver la cuenta: el rol tiene AppendTo Global en cuenta porque lo exige el
-        /// lookup. Una cuenta de la "Cartera sin cobrador" (dueno el equipo, sin miembros) no es de ningun cobrador.
+        /// El localizador registra visitas (y, por la interaccion, pagos) solo en cuentas de SU cartera: una asignacion
+        /// activa de esa cuenta cuyo dueno es su usuario. Ver la cuenta no alcanza: el rol tiene AppendTo Global en cuenta
+        /// porque lo exige el lookup. Una cuenta de la "Cartera sin cobrador" no es de ningun localizador.
         ///
-        /// Tolerancia por fecha (1.0.8.5): una captura offline se sincroniza despues, y entre medio el supervisor pudo
-        /// reasignar la cuenta. Si la fecha de captura (la pone el telefono, asi que se acota: no mas de 5 min adelantada ni
-        /// mas de 48 h atras) es de un momento en que la cuenta ERA del cobrador, la interaccion entra. Fuera de ese rango, o
-        /// si no trae fecha, rige la regla estricta de siempre. Los pagos cuelgan de la interaccion: entran con ella.
+        /// Tolerancia por fecha: una captura offline se sincroniza despues y entre medio pudieron reasignar la cuenta. Si
+        /// la fecha de captura (la pone el telefono, por eso se acota: no mas de 5 min adelantada ni mas de 48 h atras) es
+        /// de un momento en que la cuenta ERA del localizador, la interaccion entra; si no, rige la regla estricta.
         /// </summary>
         private void ExigirCuentaDeSuCartera(LocalContext local, EntityReference cuenta, DateTime? captura)
         {
@@ -123,7 +119,7 @@ namespace Sanic.CobranzaMovil.Plugins
 
         /// <summary>
         /// ¿Alguna asignacion de la cuenta, a la fecha dada, existia, estaba activa y era del llamador? Se responde con la
-        /// auditoria de dueno y estado de la asignacion (la org audita 365 dias), con el servicio del sistema. Solo se llega
+        /// auditoria de dueno y estado de la asignacion, con el servicio del sistema. Solo se llega
         /// aca cuando la regla estricta fallo y la fecha esta en el rango, asi que el costo es de la minoria. Si la
         /// auditoria no se puede leer, falla cerrado.
         /// </summary>

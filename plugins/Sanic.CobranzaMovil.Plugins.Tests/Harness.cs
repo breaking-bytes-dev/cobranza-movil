@@ -6,10 +6,9 @@ using Moq;
 namespace Sanic.CobranzaMovil.Plugins.Tests
 {
     /// <summary>
-    /// Arma el IServiceProvider de un plugin con dobles de Moq: contexto de ejecucion, trazas capturadas,
-    /// fabrica de servicios y servicio de organizacion.
-    /// Se usa Moq y no FakeXrmEasy: ver README (licencia de FakeXrmEasy v3) y porque aqui hace falta
-    /// afirmar con precision QUE se consulta (una sola columna) y CUANTAS veces.
+    /// Arma el IServiceProvider de un plugin con dobles de Moq: contexto, trazas, fabrica de servicios y servicio
+    /// de organizacion. Se usa Moq y no FakeXrmEasy por la licencia de FakeXrmEasy v3 y porque hace falta afirmar
+    /// con precision que se consulta (que columnas) y cuantas veces.
     /// </summary>
     internal sealed class Harness
     {

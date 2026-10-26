@@ -4,10 +4,9 @@ using Microsoft.Xrm.Sdk.Query;
 namespace Sanic.CobranzaMovil.Plugins
 {
     /// <summary>
-    /// DAT-07/08: una asignacion activa cuyo agente no tiene usuario (o que no tiene agente) pasa a ser del equipo
-    /// "CM · Cartera sin cobrador · &lt;entorno&gt;": un equipo dueno SIN miembros, con un rol minimo (solo lectura de la
-    /// asignacion, para poder ser su dueno), que crea scripts/seguridad/paso5_cartera_sin_cobrador.py. Asi nadie la ve
-    /// en el telefono y el cobrador anterior la pierde. Antes el reparto no hacia nada y se la dejaba al anterior.
+    /// Una asignacion activa sin agente, o cuyo agente no tiene usuario, pasa al equipo "Cartera sin cobrador": un
+    /// equipo dueno sin miembros, con un rol minimo de solo lectura para poder ser dueno. Asi nadie la ve en el
+    /// telefono y el localizador anterior la pierde.
     /// </summary>
     public static class CarteraSinCobrador
     {

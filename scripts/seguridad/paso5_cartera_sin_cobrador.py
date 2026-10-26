@@ -1,13 +1,13 @@
-"""Fase 1 · Paso 5: equipo "CM · Cartera sin cobrador · <entorno>" y su rol mínimo (DAT-07/08).
+"""Crea el equipo "CM · Cartera sin cobrador · <entorno>" y su rol mínimo.
 
 Los plugins RepartoAsignacion y RepartoPorAgente le pasan a este equipo las asignaciones activas cuyo agente no tiene
-usuario (o que no tienen agente): así nadie las ve en el teléfono y el cobrador anterior las pierde.
+usuario (o que no tienen agente): así nadie las ve en el teléfono y el localizador anterior las pierde.
 
 - Rol "SR | CM | Cartera sin cobrador" (unidad raíz): SOLO Read Basic de la asignación (más los 4 de SharePoint que
-  Dataverse le pone a todo rol). Dataverse no deja pasarle un
-  registro a un dueño sin permiso de lectura sobre la tabla; nada más hace falta. Se agrega a la solución.
+  Dataverse le pone a todo rol). Dataverse no deja pasar un registro a un dueño sin permiso de lectura sobre la tabla;
+  nada más hace falta. Se agrega a la solución.
 - Equipo dueño en la unidad raíz, con ese único rol y SIN miembros. Si alguien le agrega un miembro, el script lo
-  reporta y termina con error (no lo saca solo: que lo decida una persona).
+  reporta y termina con error (no lo quita solo: lo decide una persona).
 
 Idempotente. Por defecto solo muestra el plan (solo hace GET). Aplica con --aplicar.
 Uso: python3 paso5_cartera_sin_cobrador.py --entorno DEV [--aplicar]"""

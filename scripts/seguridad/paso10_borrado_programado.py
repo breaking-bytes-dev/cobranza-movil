@@ -1,22 +1,22 @@
-"""Borrado programado (Bulk Deletion) de Cobranza Móvil, diario. Política del dueño (2026-10-21):
-  - Los datos del CLIENTE viven mientras tenga una cuenta en la app, más 14 días de gracia (7 de la carga diaria + 7).
-  - Lo que crea la APP (interacciones, pagos, actualizaciones) vive 2 años. La interacción guarda últimos 4, CIF y clave
-    HMAC de su cuenta (IdentidadEnInteraccion, scripts/pan/paso17_identidad_interaccion.py): sigue identificable en el core.
+"""Configura los trabajos diarios de borrado en masa (Bulk Deletion) de Cobranza Móvil.
+Retención:
+  - Los datos del cliente viven mientras tenga una cuenta en la app, más 14 días de gracia (7 de la carga diaria + 7).
+  - Lo que crea la app (interacciones, pagos, actualizaciones) vive 2 años. La interacción guarda últimos 4, CIF y clave
+    HMAC de su cuenta (plugin IdentidadEnInteraccion), así sigue identificable en el core.
 
-Trabajos (se ven en el centro de administración → Borrado de registros en masa):
+Trabajos (centro de administración → Borrado de registros en masa):
   1. Carga diaria de más de 7 días.
-  2. Cuentas fuera de cartera hace más de 14 días: la cuenta no se tocó en 14 días y no tiene ninguna asignación viva
-     (activa, o que vino en la carga o se cerró en los últimos 14 días) ni interacciones sin grabar. Por cascada se borran
-     su bóveda (número completo) y sus asignaciones; sus interacciones y pagos quedan sin el vínculo.
+  2. Cuentas fuera de cartera hace más de 14 días: sin cambios en 14 días, sin asignación viva (activa, o que vino en la
+     carga o se cerró en los últimos 14 días) y sin interacciones sin grabar. Por cascada se borran su bóveda (número
+     completo) y sus asignaciones; sus interacciones y pagos quedan sin el vínculo.
   3. Clientes sin cuentas: por cascada, sus direcciones y teléfonos. Mientras tenga carga diaria (≤ 7 días) Dataverse no
-     deja borrarlo (Restrict): ese freno queda a favor.
-  4. Fiadores sin cuentas (reemplaza a "Fiadores sin nombre"). Un fiador con cuentas no se borra (Restrict).
-  5. Pagos y actualizaciones de más de 2 años (730 días) y, después, interacciones de más de 735 días: la interacción
-     no se puede borrar mientras tenga pagos o actualizaciones (Restrict), por eso va unos días después.
-Los "sin registros relacionados" son uniones externas con la condición "nulo"; Dataverse las respeta en el borrado en masa
-(probado en DEV el 2026-10-21 con un fiador con 3 cuentas: 0 borrados, 0 fallos).
+     deja borrarlo (Restrict).
+  4. Fiadores sin cuentas. Un fiador con cuentas no se borra (Restrict).
+  5. Pagos y actualizaciones de más de 730 días y, después, interacciones de más de 735 días: la interacción no se puede
+     borrar mientras tenga pagos o actualizaciones (Restrict), por eso va unos días después.
+Los "sin registros relacionados" son uniones externas con la condición "nulo"; Dataverse las respeta en el borrado en masa.
 
-Retira los trabajos viejos "CM - Carga diaria de mas de 60 dias" y "CM - Fiadores sin nombre".
+Retira los trabajos obsoletos "CM - Carga diaria de mas de 60 dias" y "CM - Fiadores sin nombre".
 El primer ciclo corre al aplicar; después, uno por día. Idempotente por nombre. Imprime solo conteos.
 Uso: python3 paso10_borrado_programado.py [--aplicar]"""
 import sys, datetime

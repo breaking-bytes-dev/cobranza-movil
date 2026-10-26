@@ -1,4 +1,4 @@
-// FASE C — User3 en su rol REAL (Supervisor): roles, KPI, aprobar la Especial QA de F-02 asignando
+// FASE C — User3 en su rol REAL (Supervisor): roles, KPI, aprobar la Especial QA de la fase B asignando
 // agente (+ verificación del reparto del plugin RepartoAsignacion) y rechazar otra Especial QA creada por API.
 const pl = require('../lib/player');
 const inf = require('../lib/informe');
@@ -53,7 +53,7 @@ module.exports = async function faseC(suite) {
       if (!esp || !tit.includes(esp.sanic_cm_as_numero)) throw new Error(`Seguridad: el panel (${tit}) no es la Especial QA ${esp && esp.sanic_cm_as_numero}`);
       e.check(!(await pl.botonHabilitado(app, 'btnAprobarAprb')), 'Aprobar deshabilitado sin localizador', 'Disabled', 'Edit');
       const ag = suite.datos.agente;
-      // Prefijo de búsqueda: primera palabra del nombre (mín. 2 caracteres: con menos la galería no consulta, B-19).
+      // Prefijo de búsqueda: primera palabra del nombre (mín. 2 caracteres: con menos la galería no consulta).
       let prefijo = ag.sanic_cm_ag_nombre.split(' ')[0];
       if (prefijo.length < 2) prefijo = ag.sanic_cm_ag_nombre.slice(0, 2);
       const r = await c.elegirEnBuscador(app, { buscador: 'txtBuscarAgeAprb', galeria: 'galAgeAprb', cambiar: 'btnCambiarAgeAprb', buscar: prefijo, opcion: ag.sanic_cm_ag_nombre });
@@ -87,11 +87,11 @@ module.exports = async function faseC(suite) {
 
     await inf.correr('F-03c', 'Al aprobar con agente, el owner pasa al usuario del agente (plugin asíncrono RepartoAsignacion)', 'Supervisor', async (e) => {
       const esp = suite.datos.especialF02; const ag = suite.datos.agente;
-      // Desde el 2026-10-13 el reparto lo hace el plugin asíncrono RepartoAsignacion (el flow de owner quedó apagado).
+      // El reparto (cambio de owner) lo hace el plugin asíncrono RepartoAsignacion.
       const paso = (await dv.get("sdkmessageprocessingsteps?$select=name,statecode,mode&$filter=startswith(name,'Sanic.CobranzaMovil.Plugins.RepartoAsignacion')")).value;
       e.check(paso.length > 0 && paso.every(x => x.statecode === 0 && x.mode === 1), 'los pasos de RepartoAsignacion están activos y son asíncronos', 'statecode 0, mode 1', paso.map(x => `${x.name}: statecode ${x.statecode}, mode ${x.mode}`));
       if (suite.datos.aprobacionUiImposible) {
-        // La UI no deja elegir localizador (F-03): se hace la MISMA escritura que el Patch de btnAprobarAprb
+        // La UI no deja elegir localizador: se hace la MISMA escritura que el Patch de btnAprobarAprb
         // (estado Aprobado + agente + resolutor) por Web API sobre la Especial QA, para verificar el reparto igual.
         if (!/^QA-E2E-CLAVE-/.test(esp.sanic_cm_as_clavepan || '')) throw new Error('Seguridad: Especial no QA');
         suite.datos.ownerAntesAprob = (await dv.get(`sanic_cm_tbl_asignacions(${esp.sanic_cm_tbl_asignacionid})?$select=_ownerid_value`))._ownerid_value;

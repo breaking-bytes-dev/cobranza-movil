@@ -1,6 +1,6 @@
-// F7 Cobrador (User5, web player de la app del cobrador): Cartera = lo que User5 puede ver (API suplantando),
+// Fase 7, Localizador (User5, web player de la app del localizador): Cartera = lo que User5 puede ver (API suplantando),
 // el cliente QA con sus cuentas, y un cobro real (interacción + pago) sobre la cuenta A desde la app.
-// El web player corre en LÍNEA: lo offline (sin señal, sincronización, "Ver número") se prueba en el teléfono (guía 17, 📱).
+// El web player corre en LÍNEA: lo offline (sin señal, sincronización, "Ver número") se prueba en el teléfono.
 const dv = require('../../backoffice-canvas/lib/dataverse');
 const { AGENTE, U, esperar, dormir } = require('../lib/ctx');
 const ui = require('../lib/ui');
@@ -8,7 +8,7 @@ const datos = require('../lib/datos');
 const { pl, c, lo } = ui;
 
 // Espera a que la pantalla visible sea `scr`: tras un toque, la navegación del player puede tardar más que la espera de red
-// quieta y leer la pantalla UNA vez devuelve la anterior (F7-07, corrida de 2026-10-14). Devuelve la última pantalla vista.
+// quieta y leer la pantalla UNA vez devuelve la anterior. Devuelve la última pantalla vista.
 const esperarPantalla = (app, scr) => ui.esperarEstable(() => lo.pantalla(app), { timeout: 20000, listo: (p) => p === scr });
 
 // Espera a que no quede ningún aviso (Notify) en pantalla: si no, el aviso del intento anterior se lee como el del siguiente.
@@ -32,7 +32,7 @@ async function guardarInteraccion(ctx, app) {
   return n;
 }
 
-// APP-04: hace que el SERVIDOR rechace la próxima creación de una interacción, sin tocar datos ni agentes. Se le saca a
+// Hace que el SERVIDOR rechace la próxima creación de una interacción, sin tocar datos ni agentes. Se le saca a
 // esa única request el vínculo a la cuenta y el plugin InteraccionDelCobrador la rechaza ("la interaccion tiene que tener
 // la cuenta"): el rechazo es real (Dataverse, PreOperation) y no se crea nada. Si no encuentra el vínculo, corta la
 // request (la app ve un error de red). Devuelve { estado, quitar() }.
@@ -146,7 +146,7 @@ async function f7(ctx) {
       await abrirCuenta(ctx, app, A, 'Diaria');
       const tipo = await lo.texto(app, 'Text1_1');
       ctx.chk('F7-06', tipo === 'Diaria', `Detalle de la cuenta A (${mask(A)}): tipo "${tipo}"`);
-      // DAT-26: el CSV QA trae FechaPago "2026-10-20" (aaaa-mm-dd); la app la muestra dd/mm/aaaa sin depender del idioma.
+      // El CSV QA trae FechaPago "2026-10-20" (aaaa-mm-dd); la app la muestra dd/mm/aaaa sin depender del idioma.
       const fechaPago = await lo.texto(app, 'lblTelVal_3').catch(() => '');
       ctx.chk('F7-06b', fechaPago === '20/10/2026', `Detalle de la cuenta A: fecha de pago "${fechaPago}" (esperado "20/10/2026")`);
     });
@@ -155,7 +155,7 @@ async function f7(ctx) {
       let cobro = A;
       await ui.tocar(app, 'btnRegistrar');
       ctx.requiere((await esperarPantalla(app, 'scrInteraccion')) === 'scrInteraccion', 'no se abrió la pantalla de interacción');
-      // Una fila por CUENTA (fix de F7-07): la A tiene Diaria + Especial aprobada y tiene que contar como 1 producto.
+      // Una fila por CUENTA: la A tiene Diaria + Especial aprobada y tiene que contar como 1 producto.
       // El texto del botón se calcula con colProdInt (una fila por cuenta): justo al entrar puede verse vacío o con un conteo
       // intermedio. Se espera a que muestre el valor esperado y se mantenga; si nunca llega, el chequeo falla con el texto real.
       const guardar = await ui.esperarEstable(() => lo.texto(app, 'btnRegistrar_1').catch(() => ''), { timeout: 30000, listo: (t) => /Guardar en 1 producto\b/.test(t) });
@@ -188,7 +188,7 @@ async function f7(ctx) {
       await pl.esperar(app, 1500);
       const hint = await lo.texto(app, 'lblHint').catch(() => '');
       ctx.chk('F7-08', hint === '' && (await lo.botonHabilitado(app, 'btnRegistrar_1')), `Interacción sobre ${cobro.clave} (${mask(cobro)}): formulario completo (comentario, pago C$ 25, recibo ${recibo}); hint "${hint}"`);
-      // APP-04: primer intento rechazado por el servidor → la app avisa, no dice "✓ Guardado" y no deja pagos huérfanos.
+      // Primer intento rechazado por el servidor → la app avisa, no dice "✓ Guardado" y no deja pagos huérfanos.
       const rechazo = await rechazarProximaInteraccion(app);
       let n0;
       try { n0 = await guardarInteraccion(ctx, app); } finally { await rechazo.quitar(); }
@@ -200,7 +200,7 @@ async function f7(ctx) {
       const huerfP = (await dv.get(`sanic_cm_tbl_pagos?$select=sanic_cm_tbl_pagoid&$filter=sanic_cm_pg_numerorecibo eq '${recibo}'`)).value.length;
       ctx.chk('F7-08c', huerfI === 0 && huerfP === 0, `APP-04: tras el rechazo, Dataverse no tiene la interacción (${huerfI}) ni pagos huérfanos con el recibo ${recibo} (${huerfP})`);
       ctx.chk('F7-08d', await pl.existeVisible(app, 'btnRegistrar_1'), 'APP-04: la app se queda en la interacción con lo cargado, lista para reintentar');
-      // Reintento sin rechazo: se guarda UNA vez (F7-10 y F7-12 cuentan exactamente 1 interacción y 1 pago).
+      // Reintento sin rechazo: se guarda UNA vez (los chequeos en Dataverse cuentan exactamente 1 interacción y 1 pago).
       const n = await guardarInteraccion(ctx, app);
       ctx.chk('F7-09', /✓ Guardado/.test(n || ''), `Interacción guardada en el reintento: aviso "${n}"`);
       await app.red.quieta(app.page, { quietoMs: 4000, maxMs: 30000 });

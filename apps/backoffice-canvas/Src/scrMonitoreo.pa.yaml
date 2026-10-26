@@ -11,14 +11,14 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =// F1: nfUltimaCarga lee la tabla guardada en memoria; sin Refresh, si la app se abrió antes de la carga,
-        // seguía diciendo "Sin cargas registradas".
+        =// nfUltimaCarga lee la tabla guardada en memoria: sin Refresh, si la app se abrió antes de la carga,
+        // seguiría diciendo "Sin cargas registradas".
         Refresh('CM | TBL | Carga diarias');
         // Conteos EXACTOS directo al datasource: CountIf delega en Dataverse (exacto hasta 50.000).
         // NO colección + CountRows: la colección se trunca al Data row limit.
         // CountIf(tabla, true) en lugar de CountRows(tabla): CountRows sin filtro usa un valor cacheado.
-        // [CD] FechaCarga es DateOnly: comparar contra Today() viajaba como ge <hoy>T06:00Z y daba 0 el día
-        // de la carga (B-07). Lado derecho constante = 00:00 UTC de hoy → sigue delegable.
+        // [CD] FechaCarga es DateOnly: comparar contra Today() viaja como ge <hoy>T06:00Z y da 0 el día
+        // de la carga. Lado derecho constante = 00:00 UTC de hoy, sigue delegable.
         Concurrent(
             Set(varNCargaHoyMon, CountIf('CM | TBL | Carga diarias', '[CD] FechaCarga' >= DateAdd(Today(), -TimeZoneOffset(Today()), TimeUnit.Minutes))),
             Set(varNCtasMon, CountIf('CM | TBL | Cuentas', true)),
@@ -268,7 +268,7 @@ Screens:
                         Set(varNCtasMon, CountIf('CM | TBL | Cuentas', true)),
                         Set(varNCliMon, CountIf('CM | TBL | Clientes', true))
                     );
-                    // nfUltimaCarga es fórmula con nombre (01 §3): se reevalúa tras el Refresh de arriba (F1);
+                    // nfUltimaCarga es fórmula con nombre: se reevalúa tras el Refresh de arriba;
                     // varHayCargaMon es variable normal, por eso el Set sigue siendo necesario.
                     Set(varHayCargaMon, nfUltimaCarga >= Today());
                     // Cada Set guardó el error de su lectura (si la hubo): se lee aparte (ver scrCargaArchivo).

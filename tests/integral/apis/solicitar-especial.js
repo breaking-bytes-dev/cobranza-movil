@@ -1,4 +1,4 @@
-// DAT-14 en vivo: Custom API sanic_cm_SolicitarEspecial. La cuenta QA se da de alta con AltaCuenta (Admin, Diaria) y
+// Custom API sanic_cm_SolicitarEspecial en vivo. La cuenta QA se da de alta con AltaCuenta (Admin, Diaria) y
 // después: Admin pide la Especial (creada) → Solicitante la pide (ya existe, pedida por el Admin) → se cierra → el
 // Solicitante la pide (reactivada, dueño = Solicitante) → Localizador rechazado. Limpieza con el prefijo QA. Sin PAN impreso.
 const path = require('path');

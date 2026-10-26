@@ -1,4 +1,4 @@
-// F4 Solicitante (User2): pide Especiales · F10 Solicitante (User2): seguimiento (Mis solicitudes e Inicio).
+// Fase 4, Solicitante (User2): pide Especiales · Fase 10, Solicitante (User2): seguimiento (Mis solicitudes e Inicio).
 // La cuenta se elige por sus ÚLTIMOS 4 y se confirma por el NOMBRE del cliente QA: una búsqueda por últimos 4 también
 // devuelve cuentas reales de otros clientes, así que jamás se toma "la primera fila".
 const dv = require('../../backoffice-canvas/lib/dataverse');
@@ -15,8 +15,8 @@ const especialesDe = async (e) => (await dv.get(`sanic_cm_tbl_asignacions?$selec
 async function pedirEspecial(ctx, app, e, { nio, motivo, etiqueta }) {
   await ui.ir(app, 'Nueva solicitud', etiqueta);
   const mask = `•••• ${e.ult4}`;
-  // La galería del buscador a veces sigue mostrando la lista anterior cuando se lee (la consulta de la búsqueda tarda más que
-  // la espera fija de buscarEnBuscador; corrida 14ASY, 2026-10-14): se repite la búsqueda hasta 3 veces antes de dar la precondición por rota.
+  // La galería del buscador a veces sigue mostrando la lista anterior (la consulta tarda más que la espera fija de
+  // buscarEnBuscador): se repite la búsqueda hasta 3 veces antes de dar la precondición por rota.
   let r;
   for (let i = 0; i < 3; i++) {
     r = await c.elegirEnBuscador(app, { ...BUSCA_CTA, buscar: e.ult4, opcion: ctx.nombreCliente });
@@ -36,7 +36,7 @@ async function pedirEspecial(ctx, app, e, { nio, motivo, etiqueta }) {
   return n;
 }
 
-// ── F4 ─────────────────────────────────────────────────────────────────────────────────────────
+// ── Fase 4 ─────────────────────────────────────────────────────────────────────────────────────────
 async function f4(ctx) {
   const D = ctx.datos; ctx.requiere(D.cuentas?.every((e) => e.id), 'F1 no dejó las cuentas');
   const [A, B] = ['A', 'B'].map((k) => D.cuentas.find((e) => e.clave === k));
@@ -93,7 +93,7 @@ async function f4(ctx) {
   } finally { await ui.cerrar(app); }
 }
 
-// ── F10 ────────────────────────────────────────────────────────────────────────────────────────
+// ── Fase 10 ────────────────────────────────────────────────────────────────────────────────────────
 async function f10(ctx) {
   const D = ctx.datos; const [A, B] = ['A', 'B'].map((k) => D.cuentas.find((e) => e.clave === k));
   ctx.requiere(A?.espNum && B?.espNum, 'faltan las Especiales de F4');

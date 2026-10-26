@@ -5,12 +5,11 @@ using Microsoft.Xrm.Sdk.Query;
 namespace Sanic.CobranzaMovil.Plugins
 {
     /// <summary>
-    /// En el Create de un pago exige pg_interaccion (DAT-13) y completa lo que falte de la interaccion:
-    /// - pg_cuentaid con in_cuentaid: el modo offline solo admite un nivel de lookup (pago -> interaccion -> cuenta no funciona).
-    /// - pg_numerointeraccion con in_numerointeraccion (APP-05): es un autonumerico que asigna el servidor; offline la app
-    ///   no lo conoce, y el backoffice busca los pagos de una interaccion por ese numero.
+    /// En el Create de un pago exige pg_interaccion y completa lo que falte de la interaccion:
+    /// - pg_cuentaid con in_cuentaid: offline solo se admite un nivel de lookup (pago -&gt; interaccion -&gt; cuenta no funciona).
+    /// - pg_numerointeraccion con in_numerointeraccion: lo asigna el servidor, offline la app no lo conoce, y el
+    ///   backoffice busca los pagos de una interaccion por ese numero.
     /// Una sola lectura de la interaccion, solo de las columnas que faltan; si no falta nada, no lee.
-    ///
     /// Registro: PreOperation sincrono, solo Create de sanic_cm_tbl_pago.
     /// </summary>
     public sealed class CuentaDesdeInteraccion : PluginBase
@@ -26,7 +25,7 @@ namespace Sanic.CobranzaMovil.Plugins
 
             var target = local.ObtenerTarget();
 
-            // DAT-13: todo pago cuelga de una interaccion (pg_interaccion era ApplicationRequired, que el servidor no exige).
+            // Todo pago cuelga de una interaccion; el requerido de la columna no lo exige el servidor.
             var interaccion = target.GetAttributeValue<EntityReference>(Esquema.PagoInteraccion);
             if (interaccion == null)
             {

@@ -11,7 +11,7 @@ namespace Sanic.CobranzaMovil.Plugins
     /// Cada registro se copia tal cual (mismos bytes, misma codificacion, comillas y saltos internos) a los archivos de
     /// padres y partes, asi Smelter lee cada fila exactamente como la leeria en el archivo entero.
     ///
-    /// Reglas (las de Smelter: CsvHelper RFC 4180, src/Smelter.Core/Services/CsvParserService.cs):
+    /// Reglas (las mismas de Smelter, que usa CsvHelper con RFC 4180):
     ///  - Un registro termina en CRLF, LF o CR fuera de comillas; las comillas dobles abren y cierran un valor ("" es una
     ///    comilla literal). Las comillas, el delimitador y los saltos de linea son bytes ASCII, que en UTF-8 nunca forman
     ///    parte de un caracter multibyte: por eso se puede partir sin decodificar.

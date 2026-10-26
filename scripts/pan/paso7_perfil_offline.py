@@ -1,14 +1,14 @@
-"""Fase 2 · Paso 7: perfil offline PERSONALIZADO para la app del cobrador (reemplaza al autogenerado).
-Por qué: el autogenerado lo rearma el servicio con cada publicación de la app y el 2026-10-04 quedó trabado
-("The auto-generated offline profile ... failed to publish. Error: 0x80071151"), la app no abría en el teléfono.
-Además no soporta ALM (Microsoft lo documenta) y no viaja en la solución: para PROD hace falta uno propio.
+"""Perfil offline PERSONALIZADO para la app del localizador (reemplaza al autogenerado).
+Por qué: el autogenerado lo rearma el servicio con cada publicación de la app y puede quedar trabado ("The auto-generated
+offline profile ... failed to publish"), con lo que la app no abre en el teléfono. Además no soporta ALM (Microsoft lo
+documenta) y no viaja en la solución: para PROD hace falta uno propio.
 
 Qué hace (idempotente; por defecto solo muestra el plan, aplica con --aplicar):
-  1) crea el perfil PERFIL (si no existe) con las 10 tablas que la app consulta (las mismas del autogenerado)
-     y la regla "Todas las filas" (1): el dispositivo baja lo que el usuario puede leer; la seguridad por fila
-     (dueño + compartidos en cascada a la bóveda) es la que recorta. Las tablas de FILTROS usan además un filtro
-     propio (S-1): asignaciones activas e historial de los últimos 90 días.
-  2) lo publica (PublishXml <mobileofflineprofiles>) y verifica publishedon
+  1) crea el perfil PERFIL (si no existe) con las tablas que la app consulta y la regla "Todas las filas" (1): el
+     dispositivo baja lo que el usuario puede leer; la seguridad por fila (dueño + compartidos en cascada a la bóveda)
+     es la que recorta. Las tablas de FILTROS usan además un filtro propio: asignaciones activas e historial de los
+     últimos 90 días.
+  2) lo publica (PublishXml <mobileofflineprofiles>) y verifica que se regeneren sus consultas de sincronización
   3) lo agrega a la solución cm_core_cobranzamovil (componente 161)
   4) escribe su id en ManualOfflineProfileId del .msapr de la app (paso7_desplegar lo lleva a CdsDependencies)
 Después: paso7_desplegar.py --aplicar y paso3_reconciliar.py --aplicar.
@@ -22,10 +22,10 @@ RAIZ = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..')
 MSAPR = os.path.join(RAIZ, 'apps/localizador-canvas/sanic_appcobranzamovil_c4e67_DocumentUri.msapr')
 PERFIL = 'Cobranza Movil - Cobrador'
 TABLAS = ['cliente', 'actualizaciondatos', 'agente', 'asignacion', 'cuenta', 'pago', 'direccion', 'interaccion', 'telefono', 'cuentapan',
-          'opcionlista']  # APP-49: opciones de lista (mensajes rápidos); tabla chica, baja completa
-# S-1: además de la seguridad por fila, se acota lo que baja al teléfono ("Custom data filter", criterio 3, en FetchXML).
+          'opcionlista']  # opciones de lista (mensajes rápidos): tabla chica, baja completa
+# Además de la seguridad por fila, se acota lo que baja al teléfono ("Custom data filter", criterio 3, en FetchXML).
 # Asignaciones: solo activas. Historial (interacciones, pagos, actualizaciones de datos): modificado en los últimos 90 días;
-# lo más viejo se ve en la app solo con señal. Decisión del dueño del producto (2026-10-05).
+# lo más viejo se ve en la app solo con señal.
 ULTIMOS_90 = '<fetch version="1.0" mapping="logical"><entity name="{t}"><filter type="and"><condition attribute="modifiedon" operator="last-x-days" value="90" /></filter></entity></fetch>'
 FILTROS = {
     'asignacion': '<fetch version="1.0" mapping="logical"><entity name="{t}"><filter type="and"><condition attribute="sanic_cm_as_estado" operator="eq" value="1" /></filter></entity></fetch>',

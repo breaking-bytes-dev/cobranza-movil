@@ -1,9 +1,8 @@
-// S-7 tras reactivar, en vivo (1.0.8.2). El Admin crea la Especial con SolicitarEspecial, se cierra, el Solicitante (User2)
-// la reactiva y el Supervisor (User3) la aprueba como lo hace la pantalla Aprobaciones. RepartoAsignacion pasa el dueño al
-// cobrador (User5) y le comparte la Especial a "Solicitado por" aunque no sea quien la creó: User2 la sigue leyendo.
-// Negativos: una persona de CM no puede poner a otro en "Solicitado por" al crear; desde 1.0.8.4 (H1) el Solicitante no
-// edita ninguna columna de la asignación.
-// Limpieza con el prefijo QA. Sin PAN impreso.
+// Compartido de una Especial reactivada, en vivo. El Admin crea la Especial con SolicitarEspecial, se cierra, el Solicitante
+// (User2) la reactiva y el Supervisor (User3) la aprueba como lo hace la pantalla Aprobaciones. RepartoAsignacion pasa el
+// dueño al localizador (User5) y le comparte la Especial a "Solicitado por" aunque no la haya creado: User2 la sigue leyendo.
+// Negativos: nadie de CM puede poner a otro en "Solicitado por" al crear, y el Solicitante no edita ninguna columna de la
+// asignación. Limpieza con el prefijo QA. Sin PAN impreso.
 const path = require('path');
 process.chdir(path.join(__dirname, '..'));
 const dv = require('../../backoffice-canvas/lib/dataverse');

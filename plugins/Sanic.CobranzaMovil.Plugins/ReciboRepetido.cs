@@ -4,11 +4,10 @@ using Microsoft.Xrm.Sdk.Query;
 namespace Sanic.CobranzaMovil.Plugins
 {
     /// <summary>
-    /// F6: el numero de recibo es unico en toda la cartera. La app ya lo valida, pero offline el telefono solo ve sus
-    /// propios pagos (y dos telefonos pueden usar el mismo talonario). El servidor NO rechaza (F8: el telefono descarta
-    /// lo rechazado y el pago se perderia): marca el pago nuevo como recibo repetido y BackOffice lo revisa al transcribir.
-    ///
-    /// Busca con el servicio del SISTEMA: el cobrador no ve los pagos de los demas. Nunca traza el numero.
+    /// El numero de recibo es unico en toda la cartera, pero offline el telefono solo ve sus propios pagos. No rechaza
+    /// (el telefono descarta lo rechazado y el pago se perderia): marca el pago nuevo como recibo repetido para que
+    /// el backoffice lo revise. Busca con el servicio del sistema porque el localizador no ve los pagos de los demas.
+    /// Nunca traza el numero.
     /// Registro: PreOperation sincrono, solo Create de sanic_cm_tbl_pago.
     /// </summary>
     public sealed class ReciboRepetido : PluginBase

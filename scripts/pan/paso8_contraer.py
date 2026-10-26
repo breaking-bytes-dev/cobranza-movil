@@ -1,6 +1,6 @@
-"""Fase 2 · Paso 8 (CONTRAER): el número de tarjeta deja de existir fuera de la bóveda. Ver docs/auditoria/fase2-pan-diseno.md §4.
+"""Contracción: el número de tarjeta deja de existir fuera de la bóveda.
 Orden (cada etapa es idempotente; por defecto solo muestra el plan, aplica con --aplicar):
-  a) borra las claves alternativas viejas sobre el número (con la clave única viva, ****1234 choca: 81 cuentas en 40 grupos)
+  a) borra las claves alternativas viejas sobre el número (con la clave única viva, ****1234 choca entre cuentas)
   b) plantilla Smelter: ct_numerodecuenta y cd_numerocuenta pasan a CONCAT("****", RIGHT(TRIM(NumeroCuenta), 4));
      se quita el mapeo a as_numerocuenta
   c) enmascara los datos: ct_numerodecuenta y cd_numerocuenta → ****1234 (la auditoría de esas columnas está apagada: paso 2)

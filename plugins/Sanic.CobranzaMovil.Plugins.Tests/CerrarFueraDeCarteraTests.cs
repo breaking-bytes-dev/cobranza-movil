@@ -9,7 +9,7 @@ using Xunit;
 namespace Sanic.CobranzaMovil.Plugins.Tests
 {
     /// <summary>
-    /// APP-48: la Custom API CerrarFueraDeCartera cierra en el servidor, por lotes, las Diarias activas cuya "Ultima carga"
+    /// La Custom API CerrarFueraDeCartera cierra en el servidor, por lotes, las Diarias activas cuya "Ultima carga"
     /// es anterior al dia de la ultima carga diaria. Solo el Admin (o Servicio, o sin roles de CM). No cierra si el corte
     /// que vio la app no es el del servidor ni si hay mas de las que el Admin confirmo.
     /// </summary>

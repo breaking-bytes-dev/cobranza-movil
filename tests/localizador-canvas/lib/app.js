@@ -1,4 +1,4 @@
-// Apertura de la app del COBRADOR en el web player (DEV) con la sesión de User5, para las pruebas que no
+// Apertura de la app del LOCALIZADOR en el web player (DEV) con la sesión de User5, para las pruebas que no
 // necesitan el teléfono. Reutiliza red, selectores y capturas del arnés del backoffice.
 // OJO: el web player corre la app EN LÍNEA (sin base local ni sincronización): lo offline se prueba en el teléfono.
 const fs = require('fs');
@@ -9,10 +9,10 @@ const version = require('../../backoffice-canvas/lib/version.js');
 
 const APP_ID = 'dc5e56bb-9598-4f68-baa5-c04dc56ccba4';
 const URL = `https://apps.powerapps.com/play/e/9c8994b8-b1bc-ee23-9184-2f6346502613/a/${APP_ID}?tenantId=7bcfee03-896e-4ad3-947b-8a2d9ce17974`;
-const CACHE_APP = /^(PAAppLoadCache-|PAPreloadKeyV2-)/;  // ver B-15 en el arnés del backoffice
+const CACHE_APP = /^(PAAppLoadCache-|PAPreloadKeyV2-)/;  // mismo descarte de caché que lib/player.js del backoffice
 const esRuntime = f => /runtime-app\.[^/]*powerplatform\.com\/publishedapp/.test(f.url()) && !f.isDetached();
 
-// F7: abre la app y verifica que DEV sirva la versión desplegada. El sello se ve en Sincronización: se entra por la
+// Abre la app y verifica que DEV sirva la versión desplegada. El sello se ve en Sincronización: se entra por la
 // píldora de Inicio, se lee y se vuelve a Inicio.
 async function abrir(browser, opts = {}) {
   return version.abrirVerificada('cobrador', {

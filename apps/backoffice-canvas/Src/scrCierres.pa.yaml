@@ -11,8 +11,8 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =// APP-49: motivos de cierre desde 'CM | TBL | Opciones de lista' (los edita el Admin en «Listas»), activos y en orden.
-        // Si la lectura falla o una lista está vacía, los de siempre.
+        =// Motivos de cierre desde 'CM | TBL | Opciones de lista' (los edita el Admin en «Listas»), activos y en orden.
+        // Si la lectura falla o una lista está vacía, se usan los de respaldo.
         ClearCollect(colMotIncCie,
             IfError(ForAll(Sort(Filter('CM | TBL | Opciones de lista',
                 '[OL] Lista' = '[OL] Lista (CM | TBL | Opciones de lista)'.'Motivo de cierre Incobrable' && '[OL] Activa' = true), '[OL] Orden'),
@@ -23,11 +23,11 @@ Screens:
                 '[OL] Lista' = '[OL] Lista (CM | TBL | Opciones de lista)'.'Motivo de cierre Especial' && '[OL] Activa' = true), '[OL] Orden'),
                 {Value: ThisRecord.'[OL] Texto'}), Blank()));
         If(CountRows(colMotEspCie) = 0, ClearCollect(colMotEspCie, ["Gestión completada", "Ya no aplica", "Solicitud errónea"]));
-        // Asignaciones activas Incobrable/Especial + joins horneados una vez (receta 7.7).
-        // F11 (b): solo las Especiales APROBADAS; una pendiente se resuelve en Aprobaciones (aprobar o rechazar).
+        // Asignaciones activas Incobrable/Especial + joins calculados una vez.
+        // Solo las Especiales APROBADAS; una pendiente se resuelve en Aprobaciones (aprobar o rechazar).
         // Datos de la cuenta navegando el lookup '[AS] Cuenta' (lo resuelve el servidor, sin
-        // catálogo de cuentas truncable al Data row limit).
-        // Filtro DELEGABLE: OR de igualdades de choice por valor + booleano (00 §4.2)
+        // catálogo de cuentas truncable al límite de filas).
+        // Filtro DELEGABLE: OR de igualdades de choice por valor + booleano.
         Clear(colCierresCie);
         // ESCALA: por tramos (TramoCartera); el tramo va CONSTANTE en cada consulta para que delegue (límite de 2000 filas).
         ForAll(Sequence(20, 0) As T, Collect(colCierresCie,
@@ -86,7 +86,7 @@ Screens:
                         Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD', 0)))
             )
         );
-        // Estado de pantalla (resetea tab/panel entre visitas — gotcha de persistencia)
+        // Estado de pantalla (resetea pestaña y panel: las variables persisten entre visitas).
         Set(varTabCie, "incob");
         Set(varBuscaCie, "");
         Reset(txtBuscaCie);
@@ -178,7 +178,7 @@ Screens:
                           ="🟣 Especiales (" &
                               CountIf('CM | TBL | Asignacions',
                                   '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
-                                  && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado  // F11: mismo filtro que la lista
+                                  && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado  // mismo filtro que la lista
                                   && '[AS] Estado' = true) & ")"
                         Width: =170
                         X: =178
@@ -776,8 +776,8 @@ Screens:
                   Height: =gblE.AltoBoton
                   HoverFill: =ColorFade(gblC.redBg, 10%)
                   OnSelect: |-
-                    =// Un solo Patch delegable (LookUp por el id: DAT-31)
-                    // más limpieza local: cero recargas. IfError (B-03): si falla, detalle y sin limpieza.
+                    =// Un solo Patch delegable (LookUp por el id)
+                    // más limpieza local: cero recargas. IfError: si falla, detalle y sin limpieza.
                     IfError(
                         Patch('CM | TBL | Asignacions',
                             LookUp('CM | TBL | Asignacions', 'CM | TBL | Asignacion' = varSelCie.'CM | TBL | Asignacion'),

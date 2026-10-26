@@ -8,11 +8,10 @@ const cfg = require('./config');
 const P = cfg.prefijoQA;
 const REG = () => path.join(cfg.resultadosDir, 'registro-qa.json');
 
-// PCI (fase 2): el número de cuenta completo vive SOLO en la bóveda (cuentapan.cp_pan). Los datos QA NO usan PANs
-// reales: el "PAN" QA es la cadena `QA-E2E-CTA-000n` (cp_pan), el último-4 QA es `E2En` (ct_ultimos4: no choca con
-// dígitos reales) y la clave sustituta QA es `QA-E2E-CLAVE-000n` (en vez de un HMAC). Con eso las alt keys
-// (clavepan, tipo) / (clavepan, fecha) y la 1:1 de la bóveda se cumplen sin tocar un solo dígito real.
-// Las columnas viejas as_/in_/pg_numerocuenta YA NO se escriben (se eliminan en el paso 8).
+// El número de cuenta completo vive SOLO en la bóveda (cuentapan.cp_pan). Los datos QA no usan PANs reales:
+// el "PAN" QA es `QA-E2E-CTA-000n`, los últimos 4 son `E2En` (no chocan con dígitos reales) y la clave sustituta
+// es `QA-E2E-CLAVE-000n` en vez de un HMAC. Así se cumplen las claves alternativas (clavepan, tipo) / (clavepan, fecha)
+// y la relación 1:1 con la bóveda sin tocar un solo dígito real.
 const ES = {
   cliente: ['sanic_cm_tbl_clientes', 'sanic_cm_tbl_clienteid'],
   cuenta: ['sanic_cm_tbl_cuentas', 'sanic_cm_tbl_cuentaid'],
@@ -48,7 +47,7 @@ async function agenteActivoConUsuario() {
   return r.value.find(a => !/^admin@/i.test(a.sanic_cm_ag_emailusuario)) || r.value[0];
 }
 
-// Siembra base: 1 cliente, 4 cuentas (0003 = falla controlada B-03, 0004 = reactivación B-11), 1 teléfono "antes", 2 interacciones pendientes (pago / actualización).
+// Siembra base: 1 cliente, 4 cuentas (0003 = falla controlada, 0004 = reactivación), 1 teléfono "antes", 2 interacciones pendientes (pago / actualización).
 async function sembrar() {
   const prod = (await dv.get("sanic_cm_tbl_productos?$select=sanic_cm_pr_codigo,sanic_cm_pr_tipo&$filter=sanic_cm_pr_codigo eq 'TC001'")).value[0];
   const ag = await agenteActivoConUsuario();
@@ -103,7 +102,7 @@ async function sembrar() {
   return { prod, agente: ag, cliente: cli, cuentas, int1, int2, pago, ad };
 }
 
-// Especial QA creada por API (para el rechazo de F-03).
+// Especial QA pendiente creada por API (para el escenario de rechazo del Supervisor).
 // `owner`: systemuserid dueño (como si la hubiera creado ese usuario desde la app); `estado`: false = CERRADA.
 async function crearEspecialPendiente(cuenta, solicitanteId, nota, { notas, nio = 100, owner, estado = true } = {}) {
   const a = await crear('asignacion', {
@@ -118,11 +117,11 @@ async function crearEspecialPendiente(cuenta, solicitanteId, nota, { notas, nio 
   return a;
 }
 
-// Fila QA de carga diaria con FechaCarga = HOY (DateOnly) — escenario D-07.
+// Fila QA de carga diaria con FechaCarga = HOY (DateOnly).
 async function crearCargaHoy(cliId, cuenta, fechaIso) {
   const cuentaId = cuenta.sanic_cm_tbl_cuentaid;
   return crear('carga', {
-    // cd_numerocuenta es el nombre principal (no se muestra); la alt key nueva es (cd_clavepan, cd_fechacarga).
+    // cd_numerocuenta es el nombre principal (no se muestra); la clave alternativa es (cd_clavepan, cd_fechacarga).
     sanic_cm_cd_numerocuenta: cuenta.sanic_cm_ct_numerodecuenta, sanic_cm_cd_clavepan: cuenta.sanic_cm_ct_clavepan, sanic_cm_cd_fechacarga: fechaIso, sanic_cm_cd_tipoasignacion: `${P}`,
     'sanic_cm_cd_clienteid@odata.bind': bind('sanic_cm_tbl_clientes', cliId),
     'sanic_cm_cd_cuenta@odata.bind': bind('sanic_cm_tbl_cuentas', cuentaId),
@@ -130,14 +129,13 @@ async function crearCargaHoy(cliId, cuenta, fechaIso) {
 }
 
 // Barrido por prefijo (incluye lo que creó la APP: Especiales por UI, cliente/teléfono de Maestros).
-// PCI (fase 2): ya no se barre por as_/in_/pg_numerocuenta (columnas en desuso, la app no las escribe). Se barre por la
-// clave sustituta QA (`QA-E2E-CLAVE-…`, que el plugin ClaveDesdeCuenta copia a la asignación) y por los lookups a las
-// cuentas QA.
+// Se barre por la clave sustituta QA (`QA-E2E-CLAVE-…`, que el plugin ClaveDesdeCuenta copia a la asignación)
+// y por los lookups a las cuentas QA.
 async function inventarioQA() {
   const q = async (tipo, filtro) => {
     const [set, pk] = ES[tipo];
-    // Los fixtures de los teléfonos (QA-E2E-LOC*: carteras de User5 y User6 para la app nativa) comparten el prefijo
-    // pero NO son de esta suite: el 2026-10-04 una limpieza se los llevó. Se excluyen de todo barrido por prefijo.
+    // Los fixtures de la app del localizador (QA-E2E-LOC*: carteras de User5 y User6) comparten el prefijo
+    // pero NO son de esta suite: se excluyen de todo barrido por prefijo.
     filtro = filtro.replace(/startswith\((\w+),'([^']+)'\)/g, (m, campo, pre) =>
       pre === P ? `(${m} and not startswith(${campo},'${P}-LOC') and not startswith(${campo},'${P} Localizador User'))` : m);
     return (await dv.getAll(`${set}?$select=${pk}&$filter=${encodeURIComponent(filtro)}`)).map(x => x[pk]);

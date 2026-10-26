@@ -1,4 +1,4 @@
-"""Cliente mínimo de la Web API de Dataverse para la Fase 1 (SP de pp_secrets.env)."""
+"""Cliente mínimo de la Web API de Dataverse con el Service Principal de pp_secrets.env."""
 import json, os, urllib.request, urllib.parse
 
 _env = {}
@@ -25,7 +25,7 @@ def rq(m, path, body=None, headers=None, raw=False, _reintento=True):
         with urllib.request.urlopen(r) as x:
             s = x.read(); return x.status, (json.loads(s) if s and not raw else s)
     except urllib.error.HTTPError as e:
-        # El token dura ~1 hora: una corrida larga (p. ej. paso3 con miles de asignaciones) lo renueva y reintenta una vez.
+        # El token dura ~1 hora: en una corrida larga se renueva y se reintenta una vez.
         if e.code == 401 and _reintento:
             T = token()
             return rq(m, path, body, headers, raw, _reintento=False)

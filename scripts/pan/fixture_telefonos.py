@@ -1,11 +1,10 @@
-"""Fixtures de las carteras de prueba de la app nativa (Power Apps en el teléfono), con el modelo de la Fase 2.
-- User5 (Android del VPS): QA-E2E-LOC, 1 cliente, 2 cuentas (Diaria + Especial).
-- User6 (teléfono del dueño): QA-E2E-LOC6, 2 clientes, 4 cuentas (Diaria, Incobrable, Diaria, Especial).
+"""Fixtures de las carteras de prueba de la app del localizador en el teléfono.
+Crea dos carteras (prefijos QA-E2E-LOC y QA-E2E-LOC6) con clientes y cuentas Diaria, Incobrable y Especial.
 Cada cuenta lleva un número de tarjeta FICTICIO (BIN 9999, Luhn válido) que vive solo en la bóveda (cp_pan); la cuenta
 tiene ct_clavepan = HMAC(K, número), ct_ultimos4 y, como nombre principal, una etiqueta QA sin dígitos de tarjeta.
-Las asignaciones van al agente del usuario; el flow de owner las asigna y comparte cuenta → bóveda en cascada.
+Las asignaciones van al agente del usuario; el reparto las asigna y comparte cuenta → bóveda en cascada.
 Los números nunca se imprimen (solo los últimos 4). Idempotente: lo que ya existe (por CIF) no se recrea.
-La limpieza de tests/backoffice-canvas excluye QA-E2E-LOC* (el 2026-10-04 una corrida se los llevó).
+La limpieza de tests/backoffice-canvas excluye QA-E2E-LOC* para no borrar estas carteras.
 Uso: python3 scripts/pan/fixture_telefonos.py [--aplicar | --borrar]"""
 import hashlib, hmac, os, random, sys, time
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'seguridad'))
@@ -69,7 +68,7 @@ for pre, email, clientes, cuentas in FIXTURES:
         pan = luhn('9999' + ''.join(random.choice('0123456789') for _ in range(11)))
         clave = hmac.new(K, pan.encode(), hashlib.sha256).hexdigest()
         nombre = next(x[1] for x in clientes if x[0] == cn)  # solo cuentas de clientes nuevos
-        ct = crear('cuentas', {'sanic_cm_ct_numerodecuenta': '****' + pan[-4:],  # paso 8: el nombre principal va enmascarado
+        ct = crear('cuentas', {'sanic_cm_ct_numerodecuenta': '****' + pan[-4:],  # el nombre principal va enmascarado
                                 'sanic_cm_ct_clavepan': clave, 'sanic_cm_ct_ultimos4': pan[-4:],
                                'sanic_cm_ct_nombrecliente': f'{pre} {nombre}', 'sanic_cm_ct_cifcliente': f'{pre}-CIF-{cn}',
                                'sanic_cm_ct_tipoproducto': prod['sanic_cm_pr_tipo'], 'sanic_cm_ct_saldovencidonio': nio,
@@ -83,7 +82,7 @@ for pre, email, clientes, cuentas in FIXTURES:
                                   'sanic_cm_as_cuentaid@odata.bind': b('cuentas', cid), 'sanic_cm_as_agenteid@odata.bind': b('agentes', ag[P + 'agenteid']), **extra})
         asig.append(a[P + 'asignacionid'])
         print(f'  cuenta {pre}-CTA-{n} (tarjeta ****{pan[-4:]}) tipo {tipo} → asignación creada')
-    for i in range(18):  # el flow de owner asigna y comparte (cuenta → bóveda en cascada)
+    for i in range(18):  # espera el reparto: asigna y comparte (cuenta → bóveda en cascada)
         time.sleep(10)
         dueños = [get(f"{P}asignacions({a})?$select=_ownerid_value")['_ownerid_value'] for a in asig]
         listos = sum(d == uid for d in dueños); print(f'  {(i + 1) * 10}s: owner = usuario en {listos} de {len(asig)}')

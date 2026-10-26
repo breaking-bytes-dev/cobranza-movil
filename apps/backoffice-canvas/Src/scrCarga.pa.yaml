@@ -6,7 +6,7 @@ Screens:
     Children:
       # Pantalla de carga (StartScreen). gblRol es una fórmula con nombre que lee de Dataverse el usuario, sus roles y
       # sus teams: mientras no resuelve, los Visible de scrInicio no tienen valor y se veían TODOS los recuadros más
-      # «Sin acceso». Acá se espera el rol y recién ahí se entra a Inicio (su OnVisible corre ya con el rol).
+      # «Sin acceso». Aquí se espera el rol y recién ahí se entra a Inicio (su OnVisible corre ya con el rol).
       # Colores literales: gblC se arma en OnStart, que puede no haber terminado todavía.
       - conCentroCga:
           Control: GroupContainer@1.5.0
@@ -79,7 +79,7 @@ Screens:
             OnTimerEnd: |-
               =Set(varVueltasCga, varVueltasCga + 1);
               // Entra cuando el rol resolvió; si el usuario existe pero no tiene rol, a los 3 s (Inicio muestra «Sin acceso»);
-              // y como tope a los 15 s, para no quedar nunca trabado acá.
+              // y como tope a los 15 s, para no quedar nunca trabado aquí.
               If(!IsBlank(gblRol) || (!IsBlank(gblUsuarioDV) && varVueltasCga >= 6) || varVueltasCga >= 30,
                   Navigate(scrInicio, ScreenTransition.None))
             Repeat: =true

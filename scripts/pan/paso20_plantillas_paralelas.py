@@ -1,7 +1,7 @@
-"""Fase 2 · Paso 20: plantillas de Smelter para la CARGA PARALELA (decision del dueno, 2026-10-22).
-La carga real corria en UN Import Job con la plantilla "Cobranza movil" (~100 min para 6.000 filas, lotes en serie). Ahora la
-Custom API sanic_cm_PartirCarga (plugins/.../PartirCarga.cs) convierte ese job en el de PADRES y crea N jobs de PARTES. Cada
-uno usa una plantilla derivada de la principal, que genera ESTE script:
+"""Plantillas de Smelter para la CARGA PARALELA.
+Con la plantilla "Cobranza movil" sola, la carga corre en UN Import Job con lotes en serie. La Custom API
+sanic_cm_PartirCarga (plugins/.../PartirCarga.cs) convierte ese job en el de PADRES y crea N jobs de PARTES. Cada uno usa
+una plantilla derivada de la principal, que genera ESTE script:
   - "Cobranza movil · padres": SOLO los Table Mappings de sanic_cm_tbl_producto, sanic_cm_tbl_fiador y sanic_cm_tbl_agente
     (con sus Column Mappings, flags, dedup y orden). Corre primero y solo: producto y fiador se siguen actualizando.
   - "Cobranza movil · partes": TODOS los demas. Sus lookups a producto, fiador y agente se resuelven por clave alterna en

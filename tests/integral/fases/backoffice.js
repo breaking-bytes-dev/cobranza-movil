@@ -1,4 +1,4 @@
-// F8 BackOffice (User1): Por transcribir (la interacción de F7 con su pago y su cuenta) → código + Enter → Transcritas hoy.
+// Fase 8, BackOffice (User1): Por transcribir (la interacción del localizador con su pago y su cuenta) → código + Enter → Transcritas hoy.
 // SEGURIDAD PCI: el detalle de "Por transcribir" muestra el número COMPLETO de la cuenta (solo lo ve BackOffice). La suite lo
 // evalúa dentro del navegador y solo saca un booleano (16 dígitos y últimos 4 correctos); no lo lee, no lo imprime y NO
 // captura pantallas de esta fase.
@@ -9,7 +9,7 @@ const ui = require('../lib/ui');
 const { pl, c } = ui;
 
 async function f8(ctx) {
-  const D = ctx.datos; const A = D.cuentas?.find((e) => e.clave === (D.cobro?.clave || 'A')); // cuenta donde cobró F7
+  const D = ctx.datos; const A = D.cuentas?.find((e) => e.clave === (D.cobro?.clave || 'A')); // cuenta donde cobró el localizador
   ctx.requiere(D.interaccion?.numero && D.pago, 'F7 no dejó la interacción con pago');
   const it = D.interaccion; const mask = `•••• ${A.ult4}`;
   const codigo = `QAINT${ctx.runid}`;           // 10 caracteres: el máximo del campo
@@ -47,7 +47,7 @@ async function f8(ctx) {
       ctx.chk('F8-07', colaMeta.includes(mask) && !/\d{13,}/.test(colaMeta.replace(/[\s-]/g, '')), 'la cola muestra la cuenta enmascarada (el número completo solo en el detalle)');
 
       // Grabar: código en minúsculas + Enter → la app lo pasa a mayúsculas
-      // Enter en el campo solo lleva el foco a "Grabar"; el segundo Enter (sobre el botón) graba (2026-10-09).
+      // Enter en el campo solo lleva el foco a "Grabar"; el segundo Enter (sobre el botón) graba.
       await pl.escribir(app, 'txtCodigoTrx', codigo.toLowerCase(), { enter: true, tab: false });
       await app.page.keyboard.press('Enter');
       const n = await c.esperarNotif(app, /grabada|error/i, 20000);

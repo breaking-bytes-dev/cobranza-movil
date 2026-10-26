@@ -13,36 +13,26 @@ using Microsoft.Xrm.Sdk.Query;
 namespace Sanic.CobranzaMovil.Plugins
 {
     /// <summary>
-    /// Carga paralela (decision del dueno, 2026-10-22): Custom API global "sanic_cm_PartirCarga". La carga real de 6.000 filas
-    /// corria en UN Import Job de Smelter en serie (~100 min: lotes de 100 filas de ~100 s contra el limite de 120 s). El
-    /// backoffice crea el job como siempre (plantilla "Cobranza movil", sin estado, con el archivo) y llama a esta API, que:
-    ///  1) Convierte ESE job en el de PADRES: su archivo pasa a tener solo las filas necesarias para producto, fiador y agente
-    ///     (la ULTIMA aparicion de cada uno, en orden original: mismo resultado que en serie), su plantilla pasa a
-    ///     "Cobranza movil · padres" y su nombre termina en " · padres". Corre primero y solo.
-    ///  2) Crea N jobs de PARTES (plantilla "Cobranza movil · partes", sin estado, no prueba en seco, nombre
-    ///     "&lt;nombre&gt; · parte i/N") con TODAS las filas repartidas por cliente: las filas que escriben un mismo registro
-    ///     (mismo CIF, misma cuenta, ...) van a la misma parte. Ver <see cref="ParticionCarga"/>.
+    /// Custom API global "sanic_cm_PartirCarga": parte un Import Job de Smelter para cargar en paralelo, porque en un solo
+    /// job las filas se procesan en serie en lotes que rozan el limite de 120 s por operacion.
+    ///  1) Convierte el job recibido en el de PADRES: su archivo queda con la ultima aparicion de cada producto, fiador y
+    ///     agente (mismo resultado que en serie) y pasa a la plantilla "Cobranza movil · padres". Corre primero y solo.
+    ///  2) Crea N jobs de PARTES (plantilla "Cobranza movil · partes", sin estado) con todas las filas repartidas por
+    ///     cliente: las filas que escriben un mismo registro van a la misma parte. Ver <see cref="ParticionCarga"/>.
     ///  3) Devuelve los ids y los conteos de filas (nunca valores).
-    /// La app pone En cola el de padres y, SOLO si termina Completed, las partes (cada una 20 s despues de su archivo).
+    /// La app encola el job de padres y solo si termina Completed encola las partes.
     ///
-    /// Que mira de la plantilla principal (no hay columnas fijas en el codigo): el delimitador, las columnas de dedup de
-    /// cada tabla y su columna fuente (la del CIF es la que mapea a sanic_cm_cl_cif). Exige que las plantillas de padres y
-    /// partes sean copia exacta de la principal (las genera scripts/pan/paso20_plantillas_paralelas.py): si alguien edito
-    /// la principal y no las regenero, falla sin tocar nada.
+    /// No hay columnas fijas en el codigo: el delimitador, las columnas de dedup y su columna fuente salen de la plantilla
+    /// principal. Las plantillas de padres y partes tienen que ser copia exacta de la principal; si no, falla sin tocar nada.
     ///
-    /// Validaciones: Admin, Servicio o sin roles de CM (como AltaCuenta); el job existe y el llamador lo ve; es de la
-    /// plantilla principal; no es prueba en seco; NUNCA se proceso (sin estado); tiene archivo; 1 &lt;= Partes &lt;= 4; ningun
-    /// valor es mas largo que su columna de texto (1.0.9.8: la prueba en seco de Smelter no lo detecta).
-    /// SoloValidar = true (1.0.9.9, opcional): solo esa ultima medicion, sin escribir nada, tambien para la prueba en seco
-    /// y la carga en serie (ver Validar).
-    /// Los jobs se crean y modifican con los permisos del LLAMADOR, como en "Cargar archivo": el rol de Smelter llega por el
-    /// equipo, el job queda del equipo (AssignJobOwner de Smelter) y "Creado por" es la persona (el historial filtra por ahi).
+    /// Valida: Admin, Servicio o sin roles de CM; el llamador ve el job; es de la plantilla principal, no es prueba en seco,
+    /// nunca se proceso y tiene archivo; 1 &lt;= Partes &lt;= 4; ningun valor supera el largo de su columna de texto (la
+    /// prueba en seco de Smelter no lo detecta). Con SoloValidar = true solo mide largos, sin escribir (ver Validar).
+    /// Los jobs se crean con los permisos del LLAMADOR: el rol de Smelter llega por el equipo y "Creado por" es la persona.
     /// Atomicidad: primero se crean las partes, despues se reemplaza el archivo del job original y al final su nombre y
-    /// plantilla. Si algo falla se borran las partes creadas (con el servicio del sistema: el rol Operador de Smelter no
-    /// tiene Delete) y el job original vuelve a quedar como estaba; ademas la Custom API corre en la transaccion del
-    /// pedido, que se revierte al lanzar el error.
-    /// PCI: el archivo trae el PAN completo. Solo vive en memoria; nunca se traza ni se cita: solo nombres de columna y
-    /// conteos.
+    /// plantilla. Si algo falla se borran las partes con el servicio del sistema (el rol Operador de Smelter no tiene
+    /// Delete) y se restaura el archivo; ademas la Custom API corre en la transaccion del pedido.
+    /// PCI: el archivo trae el PAN completo. Solo vive en memoria; nunca se traza ni se cita: solo columnas y conteos.
     /// </summary>
     public sealed class PartirCarga : PluginBase
     {
@@ -219,10 +209,8 @@ namespace Sanic.CobranzaMovil.Plugins
         }
 
         /// <summary>
-        /// Modo "solo validar" (1.0.9.9): la prueba en seco y la carga en serie no pasan por la particion, asi que Cargar
-        /// archivo llama a la API con SoloValidar = true antes de poner el job en cola. Mide el largo de los valores con la
-        /// misma regla que al partir (ExigirLargos sobre los mapeos de la principal) y NO escribe nada. No pide Partes, ni
-        /// las plantillas derivadas, ni el CIF: nada de eso hace falta para cargar en un solo job. Si lanza, el job queda igual.
+        /// Modo "solo validar", para la prueba en seco y la carga en serie, que no pasan por la particion: mide el largo de
+        /// los valores con la misma regla que al partir y no escribe nada. No exige Partes, plantillas derivadas ni CIF.
         /// </summary>
         private static void Validar(LocalContext local, IOrganizationService svc, Entity principal, Guid jobId)
         {
@@ -461,12 +449,9 @@ namespace Sanic.CobranzaMovil.Plugins
         }
 
         /// <summary>
-        /// Un valor mas largo que su columna de texto hace fallar la fila en Smelter y su prueba en seco no lo detecta
-        /// (2026-10-22: un codigo de 27 caracteres en una columna de 20 rompio los padres de la carga real). Se mide contra
-        /// el MaxLength de la metadata de Dataverse antes de escribir nada. Solo columnas con fuente en el archivo y sin
-        /// transformacion (lo escrito es el valor tal cual, recortado y en UTF-8 como lo lee Smelter); lookups y opciones no
-        /// tienen largo. Una consulta de metadata por tabla. El error cita fila (1 = la primera despues del encabezado),
-        /// columna, destino y largos: NUNCA el valor.
+        /// Un valor mas largo que su columna de texto hace fallar la fila en Smelter y su prueba en seco no lo detecta.
+        /// Se mide contra el MaxLength de la metadata antes de escribir nada, solo en columnas con fuente en el archivo y sin
+        /// transformacion. El error cita fila (1 = la primera despues del encabezado), columna, destino y largos: nunca el valor.
         /// </summary>
         private static void ExigirLargos(LocalContext local, IOrganizationService svc, ArchivoCsv csv, List<Mapeo> mapeos)
         {
@@ -542,10 +527,9 @@ namespace Sanic.CobranzaMovil.Plugins
         }
 
         /// <summary>
-        /// Clave de dedup de una tabla en columnas del archivo. Padres: tiene que haberla (sin dedup no hay "ultima fila").
-        /// Partes: una tabla sin dedup crea un registro por fila y no se cruza con nadie (null). Una transformacion en la
-        /// clave de partes solo se acepta si es funcion de su columna fuente y respeta la igualdad (HMAC, TRIM, UPPER,
-        /// LOWER): con otra (por ejemplo RIGHT) dos valores distintos podrian ser el mismo registro.
+        /// Clave de dedup de una tabla en columnas del archivo. Padres: es obligatoria (sin dedup no hay "ultima fila").
+        /// Partes: sin dedup devuelve null (un registro por fila). En partes solo se aceptan transformaciones que respetan
+        /// la igualdad (HMAC, TRIM, UPPER, LOWER): con otra, dos valores distintos podrian ser el mismo registro.
         /// </summary>
         private static ParticionCarga.Clave Clave(LocalContext local, ArchivoCsv csv, Mapeo m, bool padres)
         {
@@ -637,7 +621,7 @@ namespace Sanic.CobranzaMovil.Plugins
             return datos;
         }
 
-        /// <summary>Sube el archivo en bloques de 4 MB (el limite de UploadBlock), como AltaCuenta.</summary>
+        /// <summary>Sube el archivo en bloques de 4 MB (el limite de UploadBlock).</summary>
         private static void Subir(IOrganizationService svc, Guid jobId, string nombreArchivo, byte[] contenido)
         {
             var iniciar = new OrganizationRequest("InitializeFileBlocksUpload");
@@ -677,9 +661,8 @@ namespace Sanic.CobranzaMovil.Plugins
         }
 
         /// <summary>
-        /// Deshace lo hecho: borra las partes creadas (servicio del sistema: el Operador de Smelter no tiene Delete; solo
-        /// estos ids, creados en esta misma ejecucion) y, si ya se habia reemplazado, devuelve su archivo al job original
-        /// (su nombre y plantilla no llegaron a cambiar: es lo ultimo que se escribe). Nunca lanza.
+        /// Borra las partes creadas en esta ejecucion (con el servicio del sistema: el Operador de Smelter no tiene Delete)
+        /// y, si ya se habia reemplazado, devuelve el archivo original al job. Nunca lanza.
         /// </summary>
         private static void Deshacer(LocalContext local, List<Guid> creados, Guid jobId, bool archivoReemplazado, string nombreArchivo, byte[] original)
         {

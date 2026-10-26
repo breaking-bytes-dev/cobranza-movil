@@ -1,10 +1,9 @@
-"""O3 · Relleno del tipo de producto de las cuentas que ya existen (idempotente).
+"""Relleno del tipo de producto de las cuentas que ya existen (idempotente).
 La carga resuelve el producto de la cuenta por CodigoProducto (lookup ct_productoid) pero no llena ct_tipoproducto, que es
-lo que muestra el cobrador ("Tarjeta Oro · •••• 1234"): en la prueba del 2026-10-23 las 6.242 cuentas lo tenían vacío.
-Desde 1.0.10.0 el plugin TipoDesdeProducto lo copia al crear la cuenta o al cambiar su producto; esto completa las que ya
-estaban, con la misma regla: ct_tipoproducto = tipo del producto (vacío si el producto no tiene tipo). Solo escribe donde
-difiere. Corre con el Service Principal. No imprime valores, solo conteos.
-Va DESPUÉS de paso5 (plugins 1.0.10.0).
+lo que muestra el localizador ("Tarjeta Oro · •••• 1234"). El plugin TipoDesdeProducto lo copia al crear la cuenta o al
+cambiar su producto; esto completa las que ya estaban, con la misma regla: ct_tipoproducto = tipo del producto (vacío si
+el producto no tiene tipo). Solo escribe donde difiere. Corre con el Service Principal. No imprime valores, solo conteos.
+Va DESPUÉS de paso5 (con TipoDesdeProducto registrado).
 Uso: python3 scripts/pan/paso21_tipo_producto.py [--aplicar]"""
 import os, sys, collections, concurrent.futures
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'seguridad'))

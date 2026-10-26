@@ -1,12 +1,10 @@
-"""RETIRADO (2026-10-20): NO CORRER. scripts/pan/paso15_marcas_offline.py quita esta clave: offline el pago rechazado se
-perdía en silencio (el teléfono no reintenta). El repetido entra marcado por el plugin ReciboRepetido. Se conserva como historia.
+"""RETIRADO: NO CORRER. scripts/pan/paso15_marcas_offline.py quita esta clave: offline, el pago que la clave rechaza
+se pierde en silencio (el teléfono no reintenta). El recibo repetido entra marcado por el plugin ReciboRepetido.
 
-APP-09/APP-10 (respaldo del lado del servidor): clave alternativa en Pagos sobre (N° de recibo, cuenta, moneda).
-La app ya bloquea el doble toque y los recibos repetidos, pero esta clave es la última barrera para un duplicado que
-llegue por otro camino (otro dispositivo, un reintento de sincronización): la sincronización de ese pago falla y el
-cobrador lo ve en los errores de sincronización. La moneda es parte de la clave para permitir que un mismo recibo
-cubra un pago en córdobas y otro en dólares de la misma cuenta (la app valida la misma regla).
-Antes de crear la clave verifica que los datos no tengan duplicados (si los hay, el índice falla).
+Crea la clave alternativa de Pagos sobre (N° de recibo, cuenta, moneda), como barrera del servidor contra duplicados que
+lleguen por otro camino (otro dispositivo, un reintento de sincronización). La moneda forma parte de la clave para que un
+mismo recibo cubra un pago en córdobas y otro en dólares de la misma cuenta.
+Antes de crearla verifica que no haya duplicados (si los hay, el índice falla).
 Uso: python3 scripts/localizador/clave_recibo_pago.py [--aplicar]"""
 import os, sys, time
 from collections import Counter

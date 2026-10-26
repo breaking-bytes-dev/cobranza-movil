@@ -1,9 +1,8 @@
-// F7 (versión servida): antes de probar, la app que sirve DEV tiene que ser la que se desplegó.
+// Versión servida: antes de probar, la app que sirve DEV tiene que ser la que se desplegó.
 // paso7_desplegar sella "<commit>[+dirty] <aaaa-mm-dd HH:MM UTC>" en nfVersion de las dos apps y lo guarda en
-// local/version-desplegada.json. Al abrir una app se lee el sello que muestra (backoffice: pie de la nav; cobrador:
-// Sincronización). Si no coincide se cierra, se espera y se vuelve a abrir, hasta 10 min; después se corta con un
-// mensaje claro. Cada coincidencia queda en local/version-servida.log con cuánto tardó (evidencia de la demora del
-// servicio tras publicar: las fallas de F7-03 del 2026-10-14 vieron la versión anterior 1 min después de desplegar).
+// local/version-desplegada.json. Al abrir una app se lee el sello que muestra (backoffice: pie de la nav; localizador:
+// Sincronización). Si no coincide se cierra, se espera y se reabre, hasta 10 min, porque el servicio puede seguir
+// sirviendo la versión anterior un rato después de publicar. Cada coincidencia queda en local/version-servida.log.
 // Sin local/version-desplegada.json (nunca se desplegó con sello) o con CM_SIN_VERSION=1 no se verifica.
 const fs = require('fs');
 const path = require('path');

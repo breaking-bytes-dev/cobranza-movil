@@ -9,26 +9,11 @@ using Microsoft.Xrm.Sdk.Query;
 namespace Sanic.CobranzaMovil.Plugins
 {
     /// <summary>
-    /// DAT-14 (decision del dueno, 2026-10-14: opcion a): Custom API global "sanic_cm_SolicitarEspecial", que reemplaza
-    /// el Patch de scrNuevaSolicitud. El Solicitante lee solo sus asignaciones (lectura Basic): si la cuenta ya tenia una
-    /// Especial de otra persona, la app no la veia y el alta chocaba con la clave alternativa (clave PAN, tipo).
-    /// La API ve todas las Especiales de la cuenta con el servicio del sistema, sin ampliar la lectura del rol:
-    ///  a) Especial ACTIVA: no la toca. Devuelve "ya existe", quien la pidio y su estado de aprobacion.
-    ///  b) Especial CERRADA: la reactiva con las mismas columnas que la rama b) de la app (Pendiente, retiros, notas,
-    ///     solicitado por = el llamador, fecha de asignacion = ahora, sin agente, resolutor, motivos ni fecha de cierre)
-    ///     y la pasa al llamador como dueno. La escribe el servicio del sistema: la cerrada puede ser de otra persona.
-    ///     S-7 (b1, dueno 2026-10-19): si la habia pedido otra persona, le quita el compartido de la asignacion que le dio
-    ///     el reparto (si no, seguia leyendo una Especial que ya no es suya). Solo la asignacion: la cuenta, el cliente y el
-    ///     fiador los reparte RepartoAsignacion y los revisa paso3_reconciliar. Si la revocacion falla, la reactivacion
-    ///     sigue (traza el codigo): un usuario deshabilitado no puede trabar que otro pida la cuenta.
-    ///  c) Ninguna: la crea CON LOS PERMISOS DEL LLAMADOR (como hoy la app), asi el dueno y "creado por" son el
-    ///     Solicitante: la ve en "Mis solicitudes" y, al aprobarse, RepartoAsignacion se la comparte (S-7).
-    /// Valida al LLAMADOR: rol Solicitante, Admin o Servicio (o sin roles de CM), y que pueda leer la cuenta con sus
-    /// permisos (la API no sirve para averiguar cuentas ajenas). Las notas no pueden traer un PAN (13 digitos o mas).
-    /// Los demas plugins de la asignacion corren igual: ClaveDesdeCuenta completa la clave, AprobacionEspecial no frena
-    /// (Pendiente y quitar el agente no son cambios controlados) y RepartoAsignacion no reparte una Especial sin aprobar.
-    /// Nunca traza ni cita valores: ni montos, ni notas, ni identificadores.
-    /// Registro: Custom API global (sin entidad), no es funcion, sin pasos personalizados; este tipo es su plugin.
+    /// Custom API global sanic_cm_SolicitarEspecial: pide una asignacion Especial para una cuenta. El Solicitante solo
+    /// lee sus asignaciones, asi que la API busca las Especiales de la cuenta con el servicio del sistema:
+    /// si hay una activa la informa, si hay una cerrada la reactiva a nombre del llamador (quitando el compartido
+    /// al solicitante anterior) y si no hay ninguna la crea con los permisos del llamador.
+    /// Valida rol y que el llamador vea la cuenta; las notas no pueden traer un PAN. No traza valores.
     /// </summary>
     public sealed class SolicitarEspecial : PluginBase
     {
@@ -122,7 +107,7 @@ namespace Sanic.CobranzaMovil.Plugins
             }
             catch (FaultException<OrganizationServiceFault> ex)
             {
-                // Lo mas probable: otra persona la pidio en el mismo momento (clave alternativa). Solo se traza el codigo.
+                // Lo mas probable: otra persona la pidio al mismo tiempo (clave alternativa). Solo se traza el codigo.
                 local.Trace("el alta fallo con el codigo {0}.", ex.Detail == null ? 0 : ex.Detail.ErrorCode);
                 throw local.Error("no se pudo crear la Especial. Volve a intentar: si otra persona la pidio recien, "
                     + "la respuesta va a decir quien.");
@@ -223,8 +208,8 @@ namespace Sanic.CobranzaMovil.Plugins
         }
 
         /// <summary>
-        /// "Fecha asignada" (DateOnly, 2026-10-25): el dia de HOY para quien pide, en la zona horaria de su configuracion
-        /// personal de Dataverse (en UTC, despues de las 18:00 de Managua ya seria manana). Si no se puede leer, el dia UTC.
+        /// Fecha asignada (solo fecha): el dia de hoy en la zona horaria del llamador, porque en UTC puede ser ya
+        /// el dia siguiente. Si no se puede leer la zona, usa el dia UTC.
         /// </summary>
         private static DateTime HoyDelLlamador(LocalContext local)
         {

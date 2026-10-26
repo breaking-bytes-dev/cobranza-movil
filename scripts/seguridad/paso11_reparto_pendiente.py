@@ -1,13 +1,12 @@
-"""Fase 4 · Paso 11: repartir las asignaciones activas que siguen con dueño SYSTEM (DAT-07, una sola vez).
+"""Reparte las asignaciones activas que siguen con dueño SYSTEM (se corre una sola vez).
 
-Antes de RepartoAsignacion (1.0.5.0) el flow de owner no hacía nada si el agente no tenía usuario: esas asignaciones quedaron
-con dueño SYSTEM. El plugin las pasa al equipo "Cartera sin cobrador" (o al cobrador) la próxima vez que se toca su agente,
-o sea con la próxima carga. Este script no espera: a cada una le vuelve a escribir el MISMO agente (o el mismo vacío), igual
-que RepartoPorAgente, y eso dispara RepartoAsignacion. No cambia ningún dato de negocio.
-Se excluyen las Especiales sin aprobar (S-6: el reparto no las toca).
-En PROD no hace falta: la primera carga real ya nace repartida por el plugin.
+Son asignaciones cuyo agente no tenía usuario al crearse. El plugin RepartoAsignacion las pasa al equipo "Cartera sin
+cobrador" (o al localizador) la próxima vez que se toca su agente. Este script no espera a la próxima carga: a cada una le
+vuelve a escribir el MISMO agente (o el mismo vacío), igual que RepartoPorAgente, y eso dispara RepartoAsignacion.
+No cambia ningún dato de negocio. Excluye las Especiales sin aprobar (el reparto no las toca).
+En un entorno nuevo no hace falta: la primera carga ya nace repartida por el plugin.
 
-Por defecto solo muestra el plan. Aplica con --aplicar. Los trabajos asíncronos del reparto se ven en asyncoperations.
+Por defecto solo muestra el plan. Los trabajos asíncronos del reparto se ven en asyncoperations.
 Uso: python3 paso11_reparto_pendiente.py [--aplicar]"""
 import sys
 from dvlib import rq, get

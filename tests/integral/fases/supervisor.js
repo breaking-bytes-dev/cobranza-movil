@@ -1,5 +1,5 @@
-// F5 Supervisor (User3): cola de Aprobaciones, aprobar C y A-Especial con localizador, rechazar B-Especial ·
-// F6 Reparto tras aprobar (plugin RepartoAsignacion): las aprobadas pasan a User5, la rechazada no.
+// Fase 5, Supervisor (User3): cola de Aprobaciones, aprobar C y A-Especial con localizador, rechazar B-Especial.
+// Fase 6, reparto tras aprobar (plugin RepartoAsignacion): las aprobadas pasan a User5, la rechazada no.
 const dv = require('../../backoffice-canvas/lib/dataverse');
 const v = require('../../backoffice-canvas/lib/verdad');
 const { AGENTE, U, esperar } = require('../lib/ctx');
@@ -22,8 +22,8 @@ async function abrirFila(ctx, app, numero) {
 }
 
 // Sondea la asignación en Dataverse (Web API) hasta que `listo(fila)` sea verdadero o venza el plazo; devuelve la última lectura.
-// Es la CONFIRMACIÓN del resultado: el aviso (Notify) dura pocos segundos y el sondeo del navegador puede no verlo (F5-03/05/09
-// del 2026-10-19: aviso no capturado aunque el dato sí llegó), mientras que el dato en Dataverse no se pierde.
+// Es la CONFIRMACIÓN del resultado: el aviso (Notify) dura pocos segundos y el sondeo del navegador puede no verlo,
+// mientras que el dato en Dataverse no se pierde.
 const SEL_ASIG = '$select=sanic_cm_as_estadoaprobacion,sanic_cm_as_motivorechazo,_sanic_cm_as_agenteid_value,_sanic_cm_as_resolutorid_value';
 async function esperarAsig(id, listo, ms = 60000) {
   let fila = {};
@@ -112,7 +112,7 @@ async function f5(ctx) {
   } finally { await ui.cerrar(app); }
 }
 
-// ── F6 ─────────────────────────────────────────────────────────────────────────────────────────
+// ── Fase 6 ─────────────────────────────────────────────────────────────────────────────────────────
 const ownerDe = async (id) => (await dv.get(`sanic_cm_tbl_asignacions(${id})?$select=_ownerid_value`))._ownerid_value;
 
 async function f6(ctx) {

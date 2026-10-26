@@ -11,26 +11,23 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =// Corte del DÍA de la última carga (se compara por fecha, no fecha+hora): una Diaria cargada
-        // segundos antes del máximo NO es "desaparecida". Lado derecho constante → la comparación delega.
-        // 'Última carga' es DateOnly desde 2026-10-25 (antes UserLocal a medianoche UTC, con ajuste de zona): día contra día.
-        // F1: Refresh antes de leer nfUltimaCarga; habilita el cierre masivo y no puede ser la de antes de la carga.
+        =// Corte = el DÍA de la última carga (se compara por fecha, no fecha+hora): una Diaria cargada
+        // segundos antes del máximo NO es "desaparecida". Lado derecho constante, así la comparación delega.
+        // 'Última carga' es DateOnly: la comparación es día contra día, sin zona.
+        // Refresh antes de leer nfUltimaCarga: sin él se usaría la carga anterior a la de hoy.
         Refresh('CM | TBL | Carga diarias');
-        // Carga en curso (carga paralela, 2026-10-22): con nfUltimaCarga >= Today() alcanza UNA fila de carga diaria de hoy
-        // para habilitar el cierre, aunque la carga siga a medias (ya pasaba en serie; en paralelo, mientras corren las partes,
-        // las Diarias de las partes que faltan se verían «fuera de cartera»). Se exige además que NO haya un Import Job real
-        // (no prueba en seco) de las plantillas de Cobranza (principal, padres, partes) En cola o Procesando, ni SIN estado
+        // Carga en curso: alcanza una fila de carga diaria de hoy para habilitar el cierre aunque la carga siga a medias
+        // (mientras corren las partes, las Diarias que faltan se verían «fuera de cartera»). Por eso además se exige que
+        // no haya un Import Job real (no prueba en seco) de las plantillas de Cobranza en cola, procesando o sin estado
         // creado en las últimas 12 h (los que espera la pantalla Cargar archivo antes de ponerlos en cola).
-        // Falla CERRADO: Reconciliación es del Admin, que lee los jobs por el equipo «CM · Admin y Carga» (Smelter Operador:
-        // Read Basic; los jobs quedan del equipo dueño de la plantilla). Si no ve la plantilla principal o la consulta falla,
-        // el resultado sería «0 en curso» sin serlo: el cierre se deshabilita con un mensaje.
+        // Falla CERRADO: si el Admin no ve la plantilla principal o la consulta falla, el resultado sería «0 en curso»
+        // sin serlo, así que el cierre se deshabilita con un mensaje.
         // Plantillas por ID (GUID): comparar el lookup con un REGISTRO (varTpl = LookUp(...)) da ErrIncompatibleTypesForEquality
-        // en Studio y, empaquetado con pac, deja TODO el OnVisible inerte sin aviso (2026-10-22: la pantalla no contaba nada).
-        // Delegación: '[IJ] Status' = opción delega; IsBlank sobre una opción NO (doc de Dataverse), así que los «sin estado»
-        // se buscan entre los jobs creados desde varDesdeRec (consulta delegable por fecha, pocos registros) y se cuentan acá.
-        // Cada lectura se verifica aparte (ver scrCargaArchivo): en una cadena IfError solo ve el último paso, y un error
-        // intermedio dejaba el bloqueo en su valor anterior (fallaba ABIERTO). Acá, si algo no se pudo leer, queda en blanco/false
-        // y varVerifCargaRec lo bloquea.
+        // en Studio y, empaquetado con pac, deja TODO el OnVisible inerte sin aviso.
+        // Delegación: '[IJ] Status' = opción delega; IsBlank sobre una opción NO, así que los «sin estado»
+        // se buscan entre los jobs creados desde varDesdeRec (consulta delegable por fecha, pocos registros) y se cuentan aquí.
+        // Cada lectura se verifica aparte (ver scrCargaArchivo): IfError sobre una cadena solo ve el último paso.
+        // Si algo no se pudo leer queda en blanco/false y varVerifCargaRec bloquea el cierre.
         Set(varDesdeRec, DateAdd(Now(), -12, TimeUnit.Hours));
         Set(varTplPrinRec, IfError(LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil").'TBL | SMLT | Import Template', Blank()));
         Set(varTplPadRec, IfError(Coalesce(LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil · padres").'TBL | SMLT | Import Template', varTplPrinRec), Blank()));
@@ -62,9 +59,8 @@ Screens:
         Set(varVerifCargaRec, !IsBlank(varTplPrinRec) && !IsBlank(varTplPadRec) && !IsBlank(varTplParRec) && !IsBlank(varEnColaRec) && varLeyoJobsRec);
         Set(varCargaBloqRec, !varVerifCargaRec || varEnCursoRec);
         Set(varCorteRec, Date(Year(nfUltimaCarga), Month(nfUltimaCarga), Day(nfUltimaCarga)));
-        // Lista de desaparecidas + conteos EXACTOS, en paralelo. Filtros delegables (choice por
-        // valor + booleano + comparación de fecha — 00 §4.2). El nombre del cliente sale navegando
-        // el lookup '[AS] Cuenta' (lo resuelve el servidor, sin catálogo de cuentas truncable).
+        // Lista de desaparecidas + conteos EXACTOS, en paralelo. Filtros delegables (choice por valor, booleano y fecha).
+        // El nombre del cliente sale navegando el lookup '[AS] Cuenta' (lo resuelve el servidor, sin catálogo de cuentas truncable).
         // Lista acotada a 2000; el conteo es exacto (CountIf).
         Concurrent(
             ClearCollect(colDesapRec,
@@ -95,7 +91,7 @@ Screens:
             )
         );
         // Estado de pantalla. El Reset es obligatorio: el valor de la casilla PERSISTE entre
-        // visitas (gotcha 01) — sin él, un cierre confirmado ayer deja el botón armado hoy.
+        // visitas y, sin él, un cierre confirmado antes deja el botón armado.
         Set(varPctRec, Round(100 * varNDesapRec / Max(1, varNDiariasRec), 0));
         Set(varRojoRec, varPctRec > 30);
         Reset(chkConfirmarRec);
@@ -221,8 +217,8 @@ Screens:
                         PaddingLeft: =0
                         Size: =11
                         Text: |-
-                          =// Umbral de cordura (2026-10-25): pasa de BLOQUEO a ALERTA. Más del 30% suele ser un archivo truncado o una
-                          // carga incompleta, pero puede ser real (el banco sacó media cartera): el Admin decide con la confirmación.
+                          =// Umbral de cordura (alerta, no bloqueo): más del 30% suele ser un archivo truncado o una
+                          // carga incompleta, pero puede ser real (el banco sacó media cartera). El Admin decide con la confirmación.
                           "🚨 ATENCIÓN: el " & varPctRec & "% de las Diarias (" & varNDesapRec & " de " & varNDiariasRec &
                               ") NO vino en la carga de hoy. Lo normal es mucho menos: suele ser un archivo TRUNCADO o una carga incompleta. " &
                               "Revisá el Monitoreo de carga antes de cerrar. Si cerrás, desaparecen del teléfono de los localizadores " &
@@ -474,11 +470,9 @@ Screens:
                         Font: =Font.'Segoe UI'
                         Height: =If(nfMovil && varRojoRec, 72, 48)
                         OnCheck: |-
-                          =// Habilitación fresca: al confirmar se vuelve a mirar si hay una carga en curso (la pantalla pudo
-                          // quedar abierta mientras empezaba una). Mismo bloque que el OnVisible.
-                          // Cada lectura se verifica aparte (ver scrCargaArchivo): en una cadena IfError solo ve el último paso, y un error
-                          // intermedio dejaba el bloqueo en su valor anterior (fallaba ABIERTO). Acá, si algo no se pudo leer, queda en blanco/false
-                          // y varVerifCargaRec lo bloquea.
+                          =// Habilitación fresca: al confirmar se vuelve a mirar si hay una carga en curso (pudo empezar con la pantalla
+                          // abierta). Mismo bloque que el OnVisible: cada lectura se verifica aparte y, si algo no se pudo leer,
+                          // varVerifCargaRec bloquea el cierre.
                           Set(varDesdeRec, DateAdd(Now(), -12, TimeUnit.Hours));
                           Set(varTplPrinRec, IfError(LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil").'TBL | SMLT | Import Template', Blank()));
                           Set(varTplPadRec, IfError(Coalesce(LookUp('TBL | SMLT | Import Templates', '[IT] Name' = "Cobranza movil · padres").'TBL | SMLT | Import Template', varTplPrinRec), Blank()));
@@ -547,7 +541,7 @@ Screens:
                         DisabledColor: =ColorFade(gblC.redInk, 25%)
                         DisabledFill: =ColorFade(gblC.redBg, 60%)
                         DisplayMode: |-
-                          =// Con la alerta roja (más del 30%) hay que escribir la cantidad: un clic suelto ya no cierra (APP-48).
+                          =// Con la alerta roja (más del 30%) hay que escribir la cantidad para poder cerrar.
                           If(chkConfirmarRec.Value && nfUltimaCarga >= Today() && !varCargaBloqRec && !varCerrandoRec
                                   && (!varRojoRec || Trim(txtConfirmarRec.Text) = Text(varNDesapRec)),
                               DisplayMode.Edit, DisplayMode.Disabled)
@@ -558,8 +552,8 @@ Screens:
                         Height: =gblE.AltoBoton
                         HoverFill: =ColorFade(Self.Fill, 10%)
                         OnSelect: |-
-                          =// APP-48: con nfCierreServidor el cierre lo hace la Custom API por lotes (tmrCierreRec), sin el tope de 2000.
-                          // Si no, el Patch de antes. En los dos casos, overlay «⏳ Cerrando…» y botón deshabilitado mientras dura.
+                          =// Con nfCierreServidor el cierre lo hace la Custom API por lotes (tmrCierreRec), sin el tope de 2000 filas.
+                          // Si no, un Patch masivo desde la app. En los dos casos, overlay «⏳ Cerrando…» y botón deshabilitado mientras dura.
                           If(nfCierreServidor,
                               Set(varTotalCierreRec, varNDesapRec);
                               Set(varRestRec, varNDesapRec);
@@ -569,12 +563,10 @@ Screens:
                               Set(varTotalCierreRec, CountRows(colDesapRec));
                               Set(varCerradasRec, 0);
                               Set(varCerrandoRec, true);
-                              // UN solo Patch masivo: ForAll DEVUELVE la tabla de cambios (no muta adentro) y
+                              // Un solo Patch masivo: ForAll DEVUELVE la tabla de cambios (no muta adentro) y
                               // cada registro lleva la PK ('CM | TBL | Asignacion') → Patch actualiza esas filas.
                               // Sin LookUp por fila: colDesapRec ya trae la PK desde el Filter del OnVisible.
-                              // Si algún día el lote legítimo fuera de CIENTOS, esto se muda a un flow/acción
-                              // server-side que cierre en una transacción.
-                              // IfError (B-03): si el Patch masivo falla, detalle y sin aviso de éxito ni recarga.
+                              // IfError: si el Patch masivo falla, detalle y sin aviso de éxito ni recarga.
                               IfError(
                                   Patch('CM | TBL | Asignacions',
                                       ForAll(colDesapRec As D,
@@ -590,8 +582,8 @@ Screens:
                                       NotificationType.Error),
                                   Notify("🧹 " & CountRows(colDesapRec) & " Diarias cerradas — motivo: fuera de cartera",
                                       NotificationType.Success, 2500);
-                                  // Recarga — mismo bloque del OnVisible (corte del día recalculado)
-                                  // Corte = el DÍA de la última carga: 'Última carga' es DateOnly desde 2026-10-25 (día contra día, sin zona).
+                                  // Recarga, mismo bloque del OnVisible (corte del día recalculado).
+                                  // Corte = el día de la última carga ('Última carga' es DateOnly: día contra día, sin zona).
                                   Set(varCorteRec, Date(Year(nfUltimaCarga), Month(nfUltimaCarga), Day(nfUltimaCarga)));
                                   // Lista acotada a 2000; el conteo es exacto (CountIf).
                                   Concurrent(
@@ -650,7 +642,7 @@ Screens:
             AutoPause: =false
             Duration: =300
             OnTimerEnd: |-
-              =// APP-48: una vuelta = un llamado a la Custom API (hasta 250 filas, bajo el límite de 2 min de un plugin). Sigue mientras
+              =// Una vuelta = un llamado a la Custom API (hasta 250 filas, bajo el límite de 2 min de un plugin). Sigue mientras
               // queden; Esperadas = las que quedaban (si aparecen más, el servidor no cierra y avisa). varEnVueloRec evita dos
               // llamados a la vez si el temporizador vuelve a disparar antes de la respuesta.
               If(nfCierreServidor && varCerrandoRec && !varEnVueloRec,
@@ -674,8 +666,8 @@ Screens:
                           Notify("🧹 " & varCerradasRec & " Diarias cerradas — motivo: fuera de cartera", NotificationType.Success, 3000),
                           Notify("Se cerraron " & varCerradasRec & " de " & varTotalCierreRec & ". " & varErrCierreRec, NotificationType.Error)
                       );
-                      // Recarga — mismo bloque del OnVisible (corte del día recalculado)
-                      // Corte = el DÍA de la última carga: 'Última carga' es DateOnly desde 2026-10-25 (día contra día, sin zona).
+                      // Recarga, mismo bloque del OnVisible (corte del día recalculado).
+                      // Corte = el día de la última carga ('Última carga' es DateOnly: día contra día, sin zona).
                       Set(varCorteRec, Date(Year(nfUltimaCarga), Month(nfUltimaCarga), Day(nfUltimaCarga)));
                       // Lista acotada a 2000; el conteo es exacto (CountIf).
                       Concurrent(

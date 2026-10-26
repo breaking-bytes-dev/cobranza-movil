@@ -1,4 +1,4 @@
-// F0 · Generación del CSV de la carga (33 columnas, formato del banco) con 1 cliente QA y 3 cuentas:
+// Generación del CSV de la carga (33 columnas, formato del banco) con 1 cliente QA y 3 cuentas:
 // A Diaria, B Incobrable, C Especial. Los números de cuenta son PAN FICTICIOS (BIN 9999, 16 dígitos, Luhn válido,
 // aleatorios por corrida): viven solo en memoria y en el archivo temporal; jamás se imprimen ni se guardan en otro lado.
 const fs = require('fs');

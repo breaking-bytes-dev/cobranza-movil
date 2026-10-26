@@ -1,5 +1,5 @@
 // Carga del CSV por la pantalla "Cargar archivo" del backoffice (User4 = Admin), en lugar de la API de Smelter.
-// Lo usa `node run.js --carga-ui` (F1) y sirve de prueba funcional de la pantalla: prueba en seco → carga real.
+// Lo usa `node run.js --carga-ui` (fase de carga) y sirve de prueba funcional de la pantalla: prueba en seco → carga real.
 // REGLA: el CSV tiene números de tarjeta ficticios; esto solo lo sube al control de archivos y NUNCA imprime su contenido.
 const path = require('path');
 const dv = require('../../backoffice-canvas/lib/dataverse');
@@ -115,7 +115,7 @@ async function importarPorPantalla(ctx, rutaCsv, { chequeoSinFilas } = {}) {
   const enParalelo = !!padres;
   let real = enParalelo ? null : reales[0];
   if (enParalelo) {
-    // Un "job" agregado con la forma que esperan F1-01/F1-02: filas de las partes (= el archivo), fallos de todos.
+    // Un "job" agregado con la forma que esperan los chequeos de la carga: filas de las partes (= el archivo), fallos de todos.
     real = { ...padres, sanic_tbl_smlt_importjobid: padres.sanic_tbl_smlt_importjobid,
       sanic_smlt_ij_status: [padres, ...partes].every((j) => j.sanic_smlt_ij_status === 2) ? 2 : Math.max(...[padres, ...partes].map((j) => j.sanic_smlt_ij_status || 0)),
       sanic_smlt_ij_totalrows: sumar(partes, 'sanic_smlt_ij_totalrows'), sanic_smlt_ij_processedrows: sumar(partes, 'sanic_smlt_ij_processedrows'),

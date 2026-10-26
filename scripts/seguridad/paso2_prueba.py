@@ -1,4 +1,4 @@
-"""Prueba E2E del flow de compartir/revocar con datos QA-E2E-F1 (todo se borra al final)."""
+"""Prueba E2E del flow de compartir/revocar con datos QA (todo se borra al final)."""
 import time, json
 from dvlib import rq, get
 

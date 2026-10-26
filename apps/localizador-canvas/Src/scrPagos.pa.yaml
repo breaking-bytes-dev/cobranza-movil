@@ -10,7 +10,7 @@ Screens:
   scrPagos:
     Properties:
       OnVisible: |-
-        =// APP-35: pagos e interacciones del día elegido (por defecto hoy). Se releen al entrar: puede haber capturas nuevas.
+        =// Pagos e interacciones del día elegido (por defecto hoy). Se releen al entrar: puede haber capturas nuevas.
         If(IsBlank(varPagFecha), Set(varPagFecha, Today()));
         If(IsBlank(varPagTab), Set(varPagTab, "pagos"));
         Set(varCalPag, false);
@@ -314,8 +314,8 @@ Screens:
                   AlignInContainer: =AlignInContainer.Start
                   FillPortions: =1
                   Items: |-
-                    =// APP-34: una fila por pago y galería de alto fijo. La versión anterior (galería de alto variable con otra
-                    // galería adentro, una tarjeta por cuenta) dejaba huecos: el alto de la fila no seguía al de la tarjeta.
+                    =// Una fila por pago y galería de alto fijo: una galería de alto variable con otra adentro deja huecos
+                    // porque el alto de la fila no sigue al de la tarjeta.
                     // La búsqueda: nombre del cliente (contiene) o últimos dígitos de la tarjeta (termina en).
                     // La cuenta se trae UNA vez por fila (ctaRec) y de ahí salen los datos (patrón de Inicio).
                     Sort(Filter(
@@ -324,7 +324,7 @@ Screens:
                                 ctaRec, LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = ctaId)),
                                 cliNom, ctaRec.'Nombre Cliente',
                                 prod, ctaRec.'Tipo Producto',
-                                // APP-50: si la cuenta ya no está (borrada o ya no compartida), los últimos 4 que guardó la interacción
+                                // Si la cuenta ya no está (borrada o ya no compartida), los últimos 4 que guardó la interacción
                                 u4, Coalesce(ctaRec.'Últimos 4', LookUp('CM | TBL | Interaccions', 'CM | TBL | Interaccion' = intId).'[IN] Últimos 4'),
                                 cid, ctaRec.'CIF Cliente'),
                         IsBlank(varBuscarPag) || varBuscarPag in cliNom || EndsWith(u4, varBuscarPag)),
@@ -355,7 +355,7 @@ Screens:
                         RadiusTopLeft: =12
                         RadiusTopRight: =12
                         Width: |-
-                          =// TemplateWidth llegaba más angosto que la galería (2/3 del ancho, medido en la web): se usa su ancho.
+                          =// TemplateWidth llega más angosto que la galería (2/3 del ancho en la web): se usa su ancho.
                           galPagosDia.Width - 2
                       Children:
                         - conPagIzq:
@@ -448,7 +448,7 @@ Screens:
                         OnSelect: =Set(varCliente, ThisItem.cid); Set(varCliTab, "inter"); Navigate(scrCliente, ScreenTransition.Cover)
                         Text: =
                         Width: |-
-                          =// TemplateWidth llegaba más angosto que la galería (2/3 del ancho, medido en la web): se usa su ancho.
+                          =// TemplateWidth llega más angosto que la galería (2/3 del ancho en la web): se usa su ancho.
                           galPagosDia.Width - 2
             - galInterDia:
                 Control: Gallery@2.15.0
@@ -463,7 +463,7 @@ Screens:
                                 ctaRec, LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = cta)),
                                 cliNom, ctaRec.'Nombre Cliente',
                                 prod, ctaRec.'Tipo Producto',
-                                u4, Coalesce(ctaRec.'Últimos 4', '[IN] Últimos 4'),   // APP-50: respaldo de la interacción
+                                u4, Coalesce(ctaRec.'Últimos 4', '[IN] Últimos 4'),   // respaldo, lo que guardó la interacción
                                 cid, ctaRec.'CIF Cliente'),
                         IsBlank(varBuscarPag) || varBuscarPag in cliNom || EndsWith(u4, varBuscarPag)),
                          'Fecha de captura', SortOrder.Descending)
@@ -495,7 +495,7 @@ Screens:
                         RadiusTopLeft: =12
                         RadiusTopRight: =12
                         Width: |-
-                          =// TemplateWidth llegaba más angosto que la galería (2/3 del ancho, medido en la web): se usa su ancho.
+                          =// TemplateWidth llega más angosto que la galería (2/3 del ancho en la web): se usa su ancho.
                           galInterDia.Width - 2
                       Children:
                         - lblIHead:
@@ -573,15 +573,15 @@ Screens:
                         OnSelect: =Set(varCliente, ThisItem.cid); Set(varCliTab, "inter"); Navigate(scrCliente, ScreenTransition.Cover)
                         Text: =
                         Width: |-
-                          =// TemplateWidth llegaba más angosto que la galería (2/3 del ancho, medido en la web): se usa su ancho.
+                          =// TemplateWidth llega más angosto que la galería (2/3 del ancho en la web): se usa su ancho.
                           galInterDia.Width - 2
       - btnCargarPag:
           Control: Classic/Button@2.2.0
           Properties:
             OnSelect: |-
-              =// APP-35: lee de la base del teléfono los pagos y las interacciones del día elegido, con el mismo filtro que Inicio
+              =// Lee de la base del teléfono los pagos y las interacciones del día elegido, con el mismo filtro que Inicio
               // (solo comparaciones de fecha: delegables offline). La colección va SIN columnas calculadas: con AddColumns y el
-              // registro de la cuenta adentro del ClearCollect quedaba vacía sin ningún error en el teléfono (2026-10-24).
+              // registro de la cuenta adentro del ClearCollect queda vacía en el teléfono, sin ningún error.
               // Nombre, producto, últimos 4 y CIF se agregan en el Items de cada galería, como en Inicio.
               ClearCollect(colPagDia, Filter('CM | TBL | Pagos', 'Fecha del pago' >= varPagFecha && 'Fecha del pago' < DateAdd(varPagFecha, 1)));
               ClearCollect(colIntDia, Filter('CM | TBL | Interaccions', 'Fecha de captura' >= varPagFecha && 'Fecha de captura' < DateAdd(varPagFecha, 1)))

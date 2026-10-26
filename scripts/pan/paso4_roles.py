@@ -1,4 +1,4 @@
-"""Fase 2 · Paso 4: privilegios sobre la bóveda sanic_cm_tbl_cuentapan (diseño §2.3 + D6).
+"""Privilegios sobre la bóveda sanic_cm_tbl_cuentapan.
 Localizador: Read Basic (la ve solo por el compartido en cascada desde la cuenta). BackOffice: Read Global (graba en el core).
 Admin, Solicitante, Supervisor: ninguno. Nadie tiene Create/Write/Delete: la bóveda la escribe solo la carga (SYSTEM).
 Uso: python3 scripts/pan/paso4_roles.py [--aplicar]"""
@@ -18,8 +18,8 @@ for rol, depth in [('SR | CM | Localizador', 'Basic'), ('SR | CM | BackOffice', 
 for rol in ['SR | CM | Admin', 'SR | CM | Solicitante', 'SR | CM | Supervisor']:
     rid = get(f"roles?$select=roleid&$filter=name eq '{rol}'")['value'][0]['roleid']
     print(f'{rol}: Read bóveda', {p['PrivilegeId']: p['Depth'] for p in get(f'RetrieveRolePrivilegesRole(RoleId={rid})')['RolePrivileges']}.get(pv, '— (ninguno, correcto)'))
-# System Customizer recibe privilegios automáticos sobre toda tabla nueva (verificado 2026-10-04: tenía Read de la bóveda).
-# Lo tienen identidades de servicio y equipos de desarrollo: no debe leer números de tarjeta. Se le quita todo sobre la bóveda.
+# System Customizer recibe privilegios automáticos sobre toda tabla nueva (incluido Read de la bóveda) y lo tienen
+# identidades de servicio y equipos de desarrollo: se le quita todo sobre la bóveda.
 # Support User también los recibe, pero la plataforma no deja modificar ese rol (lo usa el soporte de Microsoft).
 sc = get("roles?$select=roleid&$filter=name eq 'System Customizer' and _parentroleid_value eq null")['value'][0]['roleid']
 for p in get(f"roles({sc})/roleprivileges_association?$select=name,privilegeid&$filter=contains(name,'sanic_cm_tbl_cuentapan')")['value']:

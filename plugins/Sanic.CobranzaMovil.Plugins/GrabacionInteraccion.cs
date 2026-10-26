@@ -5,14 +5,14 @@ using Microsoft.Xrm.Sdk;
 namespace Sanic.CobranzaMovil.Plugins
 {
     /// <summary>
-    /// DAT-11: la grabacion de una interaccion en el CORE la controla el servidor, no la pantalla de Transcripcion.
+    /// La grabacion de una interaccion en el CORE la controla el servidor, no la pantalla de Transcripcion.
     /// - Una interaccion Grabada no se vuelve a grabar ni cambia su codigo: si dos personas del BackOffice tienen la
     ///   misma abierta, la segunda recibe el error en lugar de pisar el codigo de la primera.
     /// - Pasar a Grabado exige el codigo de grabacion.
-    /// - La fecha y el usuario de grabacion los pone el servidor (antes los mandaba la app); fuera de una grabacion,
-    ///   lo que mande una persona en esas dos columnas se descarta.
-    /// - El BackOffice escribe solo las columnas de grabacion (Write Global no le deja tocar lo que capturo el
-    ///   cobrador: comentario, GPS, agente). Ningun otro rol de CM, salvo Admin/Servicio, escribe la interaccion.
+    /// - La fecha y el usuario de grabacion los pone el servidor; fuera de una grabacion, lo que mande una persona
+    ///   en esas dos columnas se descarta.
+    /// - El BackOffice escribe solo las columnas de grabacion (su permiso de escritura global no debe tocar lo que
+    ///   capturo el localizador). Ningun otro rol de CM, salvo Admin/Servicio, escribe la interaccion.
     /// Sin roles de CM y Admin/Servicio no tienen restriccion de columnas; el codigo se exige igual.
     ///
     /// Limite: la imagen previa se lee antes de bloquear la fila. Dos grabaciones en el mismo instante (milisegundos)

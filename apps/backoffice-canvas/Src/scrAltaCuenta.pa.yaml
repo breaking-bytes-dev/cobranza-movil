@@ -11,7 +11,7 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =// DAT-20: el Admin da de alta UNA cuenta como una importación de una fila de Smelter (Custom API sanic_cm_AltaCuenta).
+        =// El Admin da de alta UNA cuenta como una importación de una fila de Smelter (Custom API sanic_cm_AltaCuenta).
         // Solo Admin: la nav la muestra solo a ese rol y el servidor rechaza a cualquier otro.
         // Estado de pantalla limpio en cada visita; el número de tarjeta no sobrevive a salir de la pantalla.
         Set(varJobAlt, Blank());
@@ -31,7 +31,7 @@ Screens:
         Set(varVerPanAlt, true);
         Set(varProdAlt, Blank());
         Set(varAgeAlt, Blank());
-        // Desplegables (2026-10-25): productos y agentes activos, ordenados, con una etiqueta legible. Tablas chicas.
+        // Desplegables: productos y agentes activos, ordenados, con una etiqueta legible. Tablas chicas.
         ClearCollect(colProdAlt, ForAll(Sort('CM | TBL | Productos', '[PR] Codigo') As P,
             {etq: P.'[PR] Codigo' & " · " & P.'[PR] Tipo', id: P.'CM | TBL | Producto'}));
         ClearCollect(colAgeAlt, ForAll(Sort(Filter('CM | TBL | Agentes', '[AG] Activo' = true), '[AG] Nombre') As A,
@@ -1260,7 +1260,7 @@ Screens:
                                               {t: If(IsBlank(cmbTipoAlt.Selected.Value), "tipo")},
                                               {t: If(IsBlank(txtSvNioAlt.Text) || IsBlank(txtSvUsdAlt.Text) || IsBlank(txtTotalAlt.Text), "saldos")},
                                               {t: If(IsBlank(txtDiasAlt.Text) || IsBlank(txtNivelAlt.Text), "mora")},
-                                              /* 2026-10-25: el formato numérico deja escribir «-»; el servidor lo rechaza, acá se avisa antes */
+                                              /* El formato numérico deja escribir «-»; el servidor lo rechaza, aquí se avisa antes */
                                               {t: If(Value(txtSvNioAlt.Text) < 0 || Value(txtSvUsdAlt.Text) < 0 || Value(txtTotalAlt.Text) < 0
                                                      || Value(txtRetNioAlt.Text) < 0 || Value(txtRetUsdAlt.Text) < 0, "montos sin negativos")},
                                               {t: If(Value(txtSvNioAlt.Text) > 1000000000 || Value(txtSvUsdAlt.Text) > 1000000000 || Value(txtTotalAlt.Text) > 1000000000
@@ -1331,18 +1331,18 @@ Screens:
                   Font: =Font.'Segoe UI'
                   Height: =10
                   OnSelect: |-
-                    =// Camino ÚNICO (prueba en seco y carga real). La Custom API sanic_cm_AltaCuenta (DAT-20) valida todo del lado del
+                    =// Camino ÚNICO (prueba en seco y carga real). La Custom API sanic_cm_AltaCuenta valida todo del lado del
                     // servidor (rol Admin, Luhn, agente activo, producto, cliente y cuenta existentes), arma la fila del archivo y crea el
-                    // Import Job de Smelter SIN estado. Acá, como en «Cargar archivo», el job se pone En cola recién 20 s después (tmrAvanceAlt):
-                    // con el estado puesto en el mismo instante, Smelter lo procesaba varias veces en paralelo (2026-10-12).
+                    // Import Job de Smelter SIN estado. Como en «Cargar archivo», el job se pone En cola recién 20 s después (tmrAvanceAlt):
+                    // con el estado puesto en el mismo instante, Smelter lo procesaría varias veces en paralelo.
                     // PCI: el número de tarjeta va directo del cuadro (enmascarado) a la API; no pasa por ninguna variable ni se muestra.
                     // Los id van como texto: la fuente Environment declara los Guid de la API como texto.
                     Set(varJobAlt, Blank());
                     Set(varAvisosAlt, "");
                     Set(varErrorAlt, "");
                     Set(varEstAlt, -1);
-                    // Cada acción se verifica aparte (ver scrCargaArchivo): en una cadena IfError solo ve el último paso, y un rechazo
-                    // de la API pasaba de largo (la pantalla seguía por el camino de éxito con una respuesta vieja). "" = salió bien.
+                    // Cada acción se verifica aparte (ver scrCargaArchivo): IfError sobre una cadena solo ve el último paso, y un rechazo
+                    // de la API pasaría de largo (la pantalla seguiría por el camino de éxito con una respuesta vieja). "" = salió bien.
                     Set(varRespAlt, Blank());
                     Set(varRespAlt,
                             Environment.sanic_cm_AltaCuenta({

@@ -1,4 +1,4 @@
-// F0 Preparación · F1 Carga por Smelter · F2 Reparto automático (plugin RepartoAsignacion).
+// Fases 0 a 2: preparación del CSV QA, carga por Smelter y reparto automático (plugin RepartoAsignacion).
 const fs = require('fs');
 const path = require('path');
 const dv = require('../../backoffice-canvas/lib/dataverse');
@@ -12,7 +12,7 @@ const luhnOk = (n) => { const d = [...n].map(Number).reverse(); return d.reduce(
 const HEX64 = /^[0-9a-f]{64}$/;
 const tipoNombre = { 1: 'Diaria', 2: 'Incobrable', 3: 'Especial' };
 
-// ── F0 ─────────────────────────────────────────────────────────────────────────────────────────
+// ── Fase 0 ─────────────────────────────────────────────────────────────────────────────────────────
 async function f0(ctx, { conservarCsv = false } = {}) {
   const g = csv.generar(ctx);
   ctx.csvPath = path.join(ctx.dir, `carga-${PREFIJO}-${ctx.runid}.csv`);
@@ -36,7 +36,7 @@ async function f0(ctx, { conservarCsv = false } = {}) {
   else ctx.nota(`CSV conservado (--hasta F0): ${ctx.csvPath}. Contiene números de tarjeta ficticios; borralo al terminar (node run.js --solo-limpieza).`);
 }
 
-// ── F1 ─────────────────────────────────────────────────────────────────────────────────────────
+// ── Fase 1 ─────────────────────────────────────────────────────────────────────────────────────────
 const SEL_CT = 'sanic_cm_tbl_cuentaid,sanic_cm_ct_numerodecuenta,sanic_cm_ct_ultimos4,sanic_cm_ct_clavepan,sanic_cm_ct_nombrecliente,sanic_cm_ct_cifcliente,sanic_cm_ct_saldovencidonio,sanic_cm_ct_diasmora,sanic_cm_ct_tipoespecial,sanic_cm_ct_nota,sanic_cm_ct_retironio,_sanic_cm_ct_productoid_value,_sanic_cm_ct_fiador_value,_ownerid_value';
 const SEL_AS = 'sanic_cm_tbl_asignacionid,sanic_cm_as_numero,sanic_cm_as_tipo,sanic_cm_as_estado,sanic_cm_as_estadoaprobacion,sanic_cm_as_clavepan,sanic_cm_as_retironio,sanic_cm_as_notas,sanic_cm_as_ultimacarga,sanic_cm_as_fechaasignada,_sanic_cm_as_agenteid_value,_sanic_cm_as_cuentaid_value,_ownerid_value';
 
@@ -47,7 +47,7 @@ async function f1(ctx) {
   let imp1;
   try {
     // ── Importación 1 ──
-    // --carga-ui: la 1.ª importación la hace User4 desde la pantalla "Cargar archivo" (prueba en seco + carga real); sin el flag, por la API.
+    // --carga-ui: la primera importación la hace User4 desde la pantalla "Cargar archivo" (prueba en seco + carga real); sin el flag, por la API.
     imp1 = ctx.cargaUi
       ? await ctx.paso('F1-01', 'importar por la pantalla «Cargar archivo» (User4)', () => require('../lib/cargaui').importarPorPantalla(ctx, ctx.csvPath))
       : await ctx.paso('F1-01', 'importar por Smelter', () => smelter.importar(ctx, ctx.secretos.contenido, 1));
@@ -123,7 +123,7 @@ async function f1(ctx) {
   const C = D.cuentas.find((e) => e.clave === 'C');
   const aC = asg.find((x) => x._sanic_cm_as_cuentaid_value === C?.id);
   ctx.chk('F1-13', !!aC && aC.sanic_cm_as_estadoaprobacion === 2, `LA CLAVE: la Especial C del CSV nace Pendiente de aprobación (2) → entra a la cola del Supervisor (obtenido ${aC?.sanic_cm_as_estadoaprobacion})`);
-  // Smelter mapea RetiroNIO / TipoEspecial / Nota SOLO a la cuenta (DAT-01, documentado): la asignación queda sin retiro ni notas.
+  // Smelter mapea RetiroNIO / TipoEspecial / Nota SOLO a la cuenta (comportamiento documentado): la asignación queda sin retiro ni notas.
   const ctC = cts.find((x) => x.sanic_cm_tbl_cuentaid === C?.id) || {};
   ctx.chk('F1-14', Number(ctC.sanic_cm_ct_retironio) === 450 && ctC.sanic_cm_ct_tipoespecial === 'VIP' && (ctC.sanic_cm_ct_nota || '').includes(ctx.nombreCliente),
     `Especial C: los datos del CSV llegaron a la cuenta (retiro C$ ${ctC.sanic_cm_ct_retironio ?? ''} · tipo "${ctC.sanic_cm_ct_tipoespecial ?? ''}" · nota "${ctC.sanic_cm_ct_nota ?? ''}")`);
@@ -145,7 +145,7 @@ async function f1(ctx) {
   D.tCarga = Date.now();
 }
 
-// ── F2 ─────────────────────────────────────────────────────────────────────────────────────────
+// ── Fase 2 ─────────────────────────────────────────────────────────────────────────────────────────
 const ownerDe = async (id) => (await dv.get(`sanic_cm_tbl_asignacions(${id})?$select=_ownerid_value`))._ownerid_value;
 
 async function f2(ctx) {
@@ -169,10 +169,9 @@ async function f2(ctx) {
   const veC = await datos.leerComo(U.cob, `sanic_cm_tbl_cuentas(${C.id})?$select=sanic_cm_tbl_cuentaid`);
   ctx.chk('F2-04', veA.status === 200 && veB.status === 200 && veC.status !== 200, `User5 (suplantado) lee las cuentas A (${veA.status}) y B (${veB.status}) y NO la C (${veC.status}) — compartido por el reparto`);
 
-  // ── Segunda carga con el cliente YA compartido (lo que hace cada carga diaria) ──
-  // Determinista para el defecto 2 (2026-10-06): con Reparent = Cascade en cliente→cuenta y cuenta→asignación, re-escribir
-  // la cuenta le daba al cobrador lectura HEREDADA de las cuentas hermanas (la C, con su bóveda y su asignación) aunque no
-  // estuvieran asignadas a él. Antes la segunda carga iba en F1 y el defecto dependía de una carrera con el flow.
+  // ── Segunda carga con el cliente YA compartido (lo que pasa en cada carga diaria) ──
+  // Con Reparent = Cascade en cliente→cuenta y cuenta→asignación, reescribir la cuenta podría darle al localizador lectura
+  // HEREDADA de las cuentas hermanas no asignadas a él (la C, con su bóveda y su asignación). Se prueba que no pase.
   const cli = await esperar(async () => (await datos.leerComo(U.cob, `sanic_cm_tbl_clientes(${D.cliente.id})?$select=sanic_cm_tbl_clienteid`)).status === 200, { maxMs: 180000, cadaMs: 8000 });
   ctx.chk('F2-05', !!cli, 'el reparto ya compartió el cliente con User5 (condición de la carga diaria)');
   const base = D.conteosBase;

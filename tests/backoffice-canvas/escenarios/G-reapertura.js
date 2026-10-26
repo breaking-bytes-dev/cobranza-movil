@@ -1,7 +1,7 @@
-// FASE G — User2 (Solicitante) vuelve después del ciclo completo de la Especial QA de F-02:
-// aprobada por el Supervisor (C, owner → usuario del agente por Comp-14) y cerrada por el Admin (F).
-//  · F-02e: ¿sigue viendo sus Especiales (KPIs de Inicio y Mis solicitudes)?
-//  · F-02c: re-solicitar por la UI sobre esa misma cuenta → la app debe REACTIVAR la cerrada (B-11).
+// FASE G — User2 (Solicitante) vuelve después del ciclo completo de la Especial QA pedida en la fase B:
+// aprobada por el Supervisor (fase C, el owner pasa al usuario del agente) y cerrada por el Admin (fase F).
+//  · ¿Sigue viendo sus Especiales (KPIs de Inicio y Mis solicitudes)?
+//  · Re-solicitar por la UI sobre esa misma cuenta → la app debe REACTIVAR la cerrada.
 const pl = require('../lib/player');
 const inf = require('../lib/informe');
 const v = require('../lib/verdad');
@@ -19,7 +19,7 @@ module.exports = async function faseG(suite) {
     await inf.correr('F-02e', 'Tras aprobar (owner → localizador) y cerrar: el Solicitante sigue viendo SUS Especiales (KPIs de Inicio y Mis solicitudes = API)', 'Solicitante', async (e) => {
       const previa = (await especialesDe(cta))[0] || {};
       e.nota(`Especial ${previa.sanic_cm_as_numero}: aprobación ${previa.sanic_cm_as_estadoaprobacion} · estado ${previa.sanic_cm_as_estado} · owner ${previa._ownerid_value} (User2 = ${yo})`);
-      // KPIs en TIBIO (salir y volver) para aislar este escenario de B-01 (KPIs vacíos en la primera carga).
+      // KPIs en TIBIO (salir y volver): en la primera carga pueden venir vacíos y eso se prueba en otra fase.
       const k = (await c.kpisInicio(app, 'Mis solicitudes', 'scrMisSolicitudes(kpi)')).tibio;
       const [p, a, r] = [await v.especialesDe(yo, 2), await v.especialesDe(yo, 3), await v.especialesDe(yo, 4)];
       e.check(c.num(k.PENDIENTES) === p, 'PENDIENTES = API', p, k.PENDIENTES);

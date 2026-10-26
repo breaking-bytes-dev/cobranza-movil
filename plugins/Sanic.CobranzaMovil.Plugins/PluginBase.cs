@@ -74,9 +74,8 @@ namespace Sanic.CobranzaMovil.Plugins
         }
 
         /// <summary>
-        /// Servicio del SISTEMA. Para lecturas de configuracion que el llamador no tiene por que poder hacer
-        /// (por ejemplo, sus propios roles) y, en RepartoAsignacion, para el acceso a los registros (dueno, compartir
-        /// y revocar), que ningun rol de persona tiene. Nunca para escribir columnas de negocio.
+        /// Servicio del SISTEMA, solo para lo que el rol del llamador no permite: leer configuracion (por ejemplo, sus
+        /// propios roles) y gestionar el acceso a los registros (dueno, compartir y revocar).
         /// </summary>
         public IOrganizationService ServicioSistema
         {

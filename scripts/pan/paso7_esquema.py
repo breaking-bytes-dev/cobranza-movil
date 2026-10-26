@@ -1,8 +1,8 @@
-"""Fase 2 · Paso 7 (chequeo previo): la foto del esquema de la app tiene que conocer las columnas que usan sus fórmulas.
+"""Chequeo previo al despliegue: la foto del esquema de la app tiene que conocer las columnas que usan sus fórmulas.
 La app no lee Dataverse para resolver nombres: usa la copia de las columnas guardada en msapp/References/DataSources.json
 (NativeCDSDataSourceInfoNameMapping de cada tabla), tomada cuando se agregó o refrescó la fuente. Si una fórmula usa una
-columna creada después, Studio la marcaría en rojo; con `pac canvas pack` la fórmula entera queda inerte y la app no avisa
-(2026-10-21: la Cartera mostraba 0 asignaciones porque la foto no tenía '[AS] Tramo'). Esto lo corta antes de importar.
+columna creada después, Studio la marcaría en rojo; con `pac canvas pack` la fórmula entera queda inerte y la app no avisa.
+Esto lo corta antes de importar.
 
 Error (corta): un nombre entre comillas simples de las fórmulas que existe como columna en Dataverse, en alguna tabla que
 usa la app, y no está en la foto de NINGUNA tabla → falta refrescar la fuente con paso7_fuentes.py.

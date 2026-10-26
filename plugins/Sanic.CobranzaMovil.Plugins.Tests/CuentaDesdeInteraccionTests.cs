@@ -77,7 +77,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         [Fact]
         public void Rechaza_un_pago_sin_interaccion()
         {
-            // DAT-13: pg_interaccion era ApplicationRequired, que el servidor no exige.
+            // El servidor no exige pg_interaccion aunque el formulario la pida.
             var target = new Entity(Pago, Guid.NewGuid());
             target[PgCuenta] = new EntityReference(Cuenta, Guid.NewGuid());
             target[PgNumero] = "IN-1001";
@@ -127,7 +127,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             h.Factory.Verify(f => f.CreateOrganizationService(Harness.UsuarioLlamador), Moq.Times.Once);
         }
 
-        // APP-05: la app (sobre todo offline) manda la cuenta pero no el N° de interacción, que lo asigna el servidor.
+        // La app (sobre todo offline) manda la cuenta pero no el N° de interacción, que lo asigna el servidor.
         [Fact]
         public void Con_cuenta_y_sin_numero_completa_solo_el_numero()
         {

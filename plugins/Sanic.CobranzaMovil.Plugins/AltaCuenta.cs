@@ -10,34 +10,29 @@ using Microsoft.Xrm.Sdk.Query;
 namespace Sanic.CobranzaMovil.Plugins
 {
     /// <summary>
-    /// DAT-20 (decision del dueno, 2026-10-14, camino A): Custom API global "sanic_cm_AltaCuenta". El Admin da de alta
-    /// una cuenta de cualquier tipo de asignacion (Diaria, Incobrable o Especial) como una importacion de UNA fila con la
-    /// plantilla "Cobranza movil" de Smelter: el HMAC, la boveda y el enmascarado los hace Smelter, como con el archivo del
-    /// banco, y la clave K sigue en un solo lugar. Ningun plugin de CM conoce K ni guarda el PAN: el PAN solo viaja en el
-    /// pedido y queda en el archivo del job, igual que el CSV del banco.
+    /// Custom API global "sanic_cm_AltaCuenta": el Admin da de alta una cuenta (Diaria, Incobrable o Especial) como una
+    /// importacion de UNA fila con la plantilla "Cobranza movil" de Smelter. El HMAC, la boveda y el enmascarado los hace
+    /// Smelter igual que con el archivo del banco, asi la clave K sigue en un solo lugar: ningun plugin conoce K ni guarda
+    /// el PAN, que solo viaja en el pedido y queda en el archivo del job.
     ///
     /// La fila la arma el servidor, no la app, porque la plantilla hace upsert por valor de negocio y eso tiene trampas:
-    ///  1) Fecha de carga: la reconciliacion toma como ultima carga la fecha mas nueva de la carga diaria. Con la de hoy,
-    ///     antes del archivo del banco, veria ~800 Diarias "fuera de cartera". Se usa la fecha mas nueva de la carga diaria;
-    ///     si no hay ninguna (el borrado programado deja 60 dias), la MAS VIEJA de "ultima carga" de las Diarias activas (asi
-    ///     ninguna queda antes del corte); y si tampoco, hoy (UTC). Nunca la que mande el cliente.
-    ///  2) Agente y producto se buscan por nombre y codigo: con un error de tipeo la carga crearia uno nuevo. Se reciben
-    ///     por id y se escriben con el nombre y el codigo que tienen en Dataverse (el agente, ademas, activo).
-    ///  3) Cliente existente (por CIF): la carga pisaria nombre, direcciones, telefonos, departamento, distrito y trabajo.
-    ///     Se completan con lo que ya hay; lo que mande la persona se ignora y se avisa. Lo mismo con la direccion de un
-    ///     fiador que ya existe (la carga lo busca por nombre).
-    ///  4) Si ese cliente ya tiene una cuenta con los mismos ultimos 4, se rechaza: la carga pisaria esa cuenta. Si otra
-    ///     persona tiene una cuenta con esos ultimos 4 solo se avisa (sin K no se sabe si es la misma tarjeta).
+    ///  1) Fecha de carga: la reconciliacion toma la mas nueva de la carga diaria como ultima carga; con la de hoy, las
+    ///     Diarias del banco quedarian "fuera de cartera". Se usa la fecha mas nueva de la carga diaria; si no hay, la MAS
+    ///     VIEJA "ultima carga" de las Diarias activas; y si tampoco, hoy (UTC). Nunca la que mande el cliente.
+    ///  2) Agente y producto se buscan por nombre y codigo (un error de tipeo crearia uno nuevo): se reciben por id y se
+    ///     escriben con los valores de Dataverse (el agente, ademas, activo).
+    ///  3) Cliente existente (por CIF): la carga pisaria sus datos, asi que se completan con lo que ya hay y se avisa. Lo
+    ///     mismo con la direccion de un fiador que ya existe (la carga lo busca por nombre).
+    ///  4) Si ese cliente ya tiene una cuenta con los mismos ultimos 4, se rechaza: la carga la pisaria. Si es de otro
+    ///     cliente solo se avisa (sin K no se sabe si es la misma tarjeta).
     ///  5) Se avisa que hace la reconciliacion con cada tipo.
-    /// Todo se valida ANTES de crear nada. El job lo crea el LLAMADOR (como la pantalla "Cargar archivo": el rol de Smelter
-    /// llega por el equipo), sin estado: la app lo pone En cola despues de la espera, igual que en "Cargar archivo".
-    /// Solo Admin, Servicio o sin roles de CM. Nunca traza ni cita valores: ni el PAN, ni montos, ni datos del cliente.
-    /// Registro: Custom API global (sin entidad), no es funcion, sin pasos personalizados; este tipo es su plugin.
+    /// Todo se valida ANTES de crear nada. El job lo crea el LLAMADOR (el rol de Smelter llega por el equipo), sin estado:
+    /// la app lo pone En cola despues. Solo Admin, Servicio o sin roles de CM. Nunca traza ni cita valores.
     /// </summary>
     public sealed class AltaCuenta : PluginBase
     {
-        // Topes = el largo de la columna mas corta a la que va cada valor (cliente, direccion, telefono, fiador, cuenta):
-        // con uno mayor la prueba en seco daba OK y el job de Smelter fallaba despues (1.0.10.2).
+        // Topes = el largo de la columna mas corta a la que va cada valor: con uno mayor la prueba en seco da OK y el job
+        // de Smelter falla despues.
         private const int LargoCif = 20;
         private const int LargoNombre = 200;
         private const int LargoDireccion = 200;
@@ -407,7 +402,7 @@ namespace Sanic.CobranzaMovil.Plugins
             return r == null ? 0 : r.Entities.Count;
         }
 
-        /// <summary>Trampa 1: la fecha de carga la decide el servidor (ver el resumen de la clase).</summary>
+        /// <summary>La fecha de carga la decide el servidor (ver el resumen de la clase, punto 1).</summary>
         private static string FechaDeCarga(IOrganizationService svc)
         {
             var cd = new QueryExpression(Esquema.CargaDiaria) { ColumnSet = new ColumnSet(Esquema.CargaDiariaFecha), TopCount = 1 };

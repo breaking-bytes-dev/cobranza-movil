@@ -5,9 +5,8 @@ using Xunit;
 namespace Sanic.CobranzaMovil.Plugins.Tests
 {
     /// <summary>
-    /// La app del cobrador identifica a su agente con Lower(User().Email), y User().Email es el UPN (no el SMTP).
-    /// El backoffice guardaba Lower('Primary Email'): si el UPN y el correo difieren, el cobrador queda "Sin nombre".
-    /// El correo del agente se deriva siempre del usuario vinculado: UPN en minusculas.
+    /// La app del localizador identifica a su agente con Lower(User().Email), que es el UPN (no el SMTP). Por eso el
+    /// correo del agente se deriva siempre del usuario vinculado: UPN en minusculas.
     /// </summary>
     public class EmailDesdeUsuarioTests
     {

@@ -1,14 +1,14 @@
-"""APP-49 (decision del dueno, 2026-10-25): listas editables por el Admin, en vez de fijas en las apps.
+"""Listas editables por el Admin (en vez de fijas en las apps).
 Crea la tabla sanic_cm_tbl_opcionlista ("CM | TBL | Opciones de lista"), sus privilegios y las opciones iniciales (los valores
-que las apps tenian escritos), todo idempotente. Por defecto solo muestra el plan; aplica con --aplicar.
+que las apps tenían escritos), todo idempotente. Por defecto solo muestra el plan; aplica con --aplicar.
   - Lista (choice local): 1 Tipo de Especial (Nueva solicitud), 2 Motivo de cierre Incobrable y 3 Motivo de cierre Especial
-    (Cierres), 4 Mensaje rapido (Registrar visita del cobrador). El TipoEspecial que manda el banco en el archivo NO pasa por
-    esta lista (decision del dueno): entra tal como viene.
-  - Texto (nombre principal, 100), Orden (la primera activa es la opcion por defecto), Activa (no se borra: se desactiva;
-    lo elegido se guarda como texto en la asignacion o la interaccion, asi que renombrar no cambia el historial).
-  - Tabla de la organizacion (OrganizationOwned): la leen todos los roles de CM; Create y Write solo Admin y Servicio; nadie
-    tiene Delete. Auditoria encendida.
-Despues: paso7_perfil_offline.py --aplicar (el telefono la baja completa) y paso7_fuentes.py en las dos apps.
+    (Cierres), 4 Mensaje rápido (Registrar visita del localizador). El TipoEspecial que manda el banco en el archivo NO
+    pasa por esta lista: entra tal como viene.
+  - Texto (nombre principal, 100), Orden (la primera activa es la opción por defecto), Activa (no se borra: se desactiva;
+    lo elegido se guarda como texto en la asignación o la interacción, así que renombrar no cambia el historial).
+  - Tabla de la organización (OrganizationOwned): la leen todos los roles de CM; Create y Write solo Admin y Servicio; nadie
+    tiene Delete. Auditoría encendida.
+Después: paso7_perfil_offline.py --aplicar (el teléfono la baja completa) y paso7_fuentes.py en las dos apps.
 Uso: python3 scripts/pan/paso23_listas.py [--aplicar]"""
 import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'seguridad'))

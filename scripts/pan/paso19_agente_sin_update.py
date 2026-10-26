@@ -1,10 +1,8 @@
-"""Fase 2 · Paso 19: la carga no reescribe el Agente que ya existe (velocidad de la carga, propuesta D, 2026-10-22).
-Pone UpdateIfExists = false en el Table Mapping de sanic_cm_tbl_agente de la plantilla Smelter "Cobranza movil".
+"""La carga no reescribe el Agente que ya existe: UpdateIfExists = false en el Table Mapping de sanic_cm_tbl_agente de la
+plantilla Smelter "Cobranza movil".
 El Agente tiene UNA sola columna mapeada (sanic_cm_ag_nombre), que es su clave de dedup: actualizarlo no cambia nada, pero
-Smelter lo reescribía en cada fila (100 escrituras por lote sobre 2 registros). Con el flag, el existente queda Skipped y el
-que falta se sigue creando (CreateIfNotExists sigue en true).
-Por qué estaba en true: es el valor por defecto de Smelter (upsert puro, un solo viaje). Smelter honra el flag desde el
-commit cedd575 (2026-07-29), incluido en Smelter.Plugins 1.0.6 de DEV. Ojo: los "omitidos" del job suben ~1 por fila.
+Smelter lo reescribiría en cada fila. Con el flag, el existente queda Skipped y el que falta se sigue creando
+(CreateIfNotExists sigue en true). Requiere una versión de Smelter que honre el flag. Los "omitidos" del job suben ~1 por fila.
 Es solo CONFIGURACION de la plantilla; no toca codigo de Smelter. Busca el mapeo por plantilla + tabla destino (no por id).
 Respaldo previo en local/_backups/. Revertir: --revertir. Idempotente.
 Uso: python3 scripts/pan/paso19_agente_sin_update.py [--aplicar] [--revertir]"""

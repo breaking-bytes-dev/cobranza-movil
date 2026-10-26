@@ -1,8 +1,7 @@
 // FASE B — User2 en su rol REAL (team "CM · Solicitantes · DEV"; rol Solicitante: Read/Write de
 // asignaciones a nivel USUARIO = solo las propias).
-// Cubre: R-03, E-01b, D-02e (B-01 frío + subtítulo B-05), D-05 (mínimo privilegio), D-04/F-02a (buscador de cuentas B-04),
-// F-02 (crear por UI), F-02b (anti-duplicado), X-02 (falla CONTROLADA de escritura → B-03) y F-02d (reactivar
-// una Especial CERRADA propia → B-11).
+// Cubre: nav y KPIs del rol, mínimo privilegio, buscador de cuentas, crear una Especial por la UI, anti-duplicado,
+// falla CONTROLADA de escritura y reactivar una Especial CERRADA propia.
 const pl = require('../lib/player');
 const inf = require('../lib/informe');
 const v = require('../lib/verdad');
@@ -12,15 +11,15 @@ const qa = require('../lib/datosqa');
 const c = require('./comun');
 
 const SEL_AS = 'sanic_cm_tbl_asignacionid,sanic_cm_as_clavepan,sanic_cm_as_numero,sanic_cm_as_tipo,sanic_cm_as_estado,sanic_cm_as_estadoaprobacion,sanic_cm_as_notas,sanic_cm_as_retironio,sanic_cm_as_motivo,sanic_cm_as_fechacierre,sanic_cm_as_motivorechazo,_sanic_cm_as_solicitadopor_value,_sanic_cm_as_agenteid_value,_sanic_cm_as_resolutorid_value,_ownerid_value';
-// Selector de cuenta (B-04): buscador + galería; la cuenta elegida se muestra en la tarjeta lblCtaSelNva.
+// Selector de cuenta: buscador + galería; la cuenta elegida se muestra en la tarjeta lblCtaSelNva.
 const BUSCA_CTA = { buscador: 'txtBuscarCtaNva', galeria: 'galCtaNva', cambiar: 'btnCambiarCtaNva' };
-// PCI (fase 2): la Especial se busca por el lookup a la cuenta (Id), no por el número en claro. `cta` = registro de cuenta QA.
+// La Especial se busca por el lookup a la cuenta (Id), no por el número en claro. `cta` = registro de cuenta QA.
 const especialesDe = async (cta) => (await dv.get(`sanic_cm_tbl_asignacions?$select=${SEL_AS}&$filter=_sanic_cm_as_cuentaid_value eq ${cta.sanic_cm_tbl_cuentaid} and sanic_cm_as_tipo eq 3`)).value;
 // Solo cuentas QA: nombre QA + último-4 QA ("E2En"). Evita operar una cuenta real aunque el buscador la ofrezca.
 const esQA = (cta) => /^QA-E2E-CTA-/.test(cta.sanic_cm_ct_numerodecuenta || '') && /^E2E/.test(cta.sanic_cm_ct_ultimos4 || '');
 
 async function llenarSolicitud(app, cuenta, { nio, motivo, tipo = 'Retiro urgente' }) {
-  // D5: el Solicitante identifica la cuenta por los ÚLTIMOS 4 (+ cliente/CIF en la fila); la opción es "•••• E2En".
+  // El Solicitante identifica la cuenta por los ÚLTIMOS 4 (+ cliente/CIF en la fila); la opción es "•••• E2En".
   const r = await c.elegirEnBuscador(app, { ...BUSCA_CTA, buscar: cuenta.sanic_cm_ct_ultimos4, opcion: qa.mascara(cuenta) });
   if (!r.ok) return r;
   await c.elegirCombo(app, 'cmbTipoNva', { opcion: tipo });
@@ -48,8 +47,8 @@ module.exports = async function faseB(suite) {
   const [cta1, , cta3, cta4] = suite.datos.cuentas;
   const ctaQA = cta1; // registro de la cuenta QA 0001 (se muestra como "•••• E2E1")
   const mQA = qa.mascara(ctaQA);
-  // Precondiciones de X-02, F-02f y F-02d (por API, solo cuentas QA):
-  //  · CTA-0003: Especial CERRADA cuyo dueño es el Service Principal → el Solicitante (Read nivel usuario) NO la ve (X-02 y F-02f).
+  // Precondiciones de la falla controlada y la reactivación (por API, solo cuentas QA):
+  //  · CTA-0003: Especial CERRADA cuyo dueño es el Service Principal → el Solicitante (Read nivel usuario) NO la ve.
   //  · CTA-0004: Especial CERRADA cuyo dueño es User2 → la ve y la app debe REACTIVARLA.
   suite.datos.cerradaAjena = await qa.crearEspecialPendiente(cta3, cfg.usuarios.user3.id, 'X-02 cerrada ajena', { estado: false });
   suite.datos.cerradaPropia = await qa.crearEspecialPendiente(cta4, yo, 'F-02d cerrada propia', { estado: false, owner: yo });
@@ -77,11 +76,11 @@ module.exports = async function faseB(suite) {
     let busq = null;
     await inf.correr('D-04', 'Nueva solicitud: la búsqueda de cuentas (buscador + galería) viaja con StartsWith ($filter en servidor)', 'Solicitante', async (e) => {
       await c.ir(app, 'Nueva solicitud', 'scrNuevaSolicitud');
-      // B-19: sin búsqueda (< 2 caracteres) la galería de resultados no se muestra.
+      // Sin búsqueda (< 2 caracteres) la galería de resultados no se muestra.
       const galAntes = await pl.existeVisible(app, 'galCtaNva');
       e.check(!galAntes, 'sin búsqueda la galería de cuentas está oculta (no lista la tabla entera)', false, galAntes);
       app.red.marcar('B:scrNuevaSolicitud(buscador)');
-      // PCI (fase 2): se busca por NOMBRE del cliente (StartsWith); el número de cuenta ya no es buscable.
+      // Se busca por NOMBRE del cliente (StartsWith); el número de cuenta no es buscable.
       busq = await c.elegirEnBuscador(app, { ...BUSCA_CTA, buscar: 'QA-E2E CLIENTE', opcion: mQA });
       const ents = app.red.de('B:scrNuevaSolicitud(buscador)');
       const i = ents.findIndex(x => x.subs.some(s2 => /sanic_cm_tbl_cuentas.*startswith\(sanic_cm_ct_nombrecliente,'QA-E2E CLIENTE/.test(s2.ruta)));
@@ -183,10 +182,9 @@ module.exports = async function faseB(suite) {
       e.check(k === 1, 'Dataverse: sigue habiendo 1 sola Especial', 1, k);
     });
 
-    // Desde DAT-14 (2026-10-15) la Especial cerrada ajena ya no hace fallar el envío: SolicitarEspecial (servicio del sistema)
-    // la REACTIVA a nombre del Solicitante. La falla controlada de B-03 se provoca ahora con una regla del servidor: la API
-    // rechaza notas con 13 o más dígitos seguidos (podrían ser un número de tarjeta). La secuencia se arma en tiempo de
-    // ejecución y no es un número de tarjeta.
+    // Una Especial cerrada ajena no hace fallar el envío (SolicitarEspecial la REACTIVA a nombre del Solicitante),
+    // así que la falla controlada se provoca con una regla del servidor: la API rechaza notas con 13 o más dígitos
+    // seguidos (podrían ser un número de tarjeta). La secuencia se arma en tiempo de ejecución y no es una tarjeta.
     await inf.correr('X-02', 'Falla CONTROLADA de escritura (B-03): notas con 13 dígitos seguidos → el servidor rechaza, la app muestra el error y NO da por hecho', 'Solicitante', async (e) => {
       if (!busq || !busq.ok) { e.bloquear('depende del buscador de cuentas (F-02a)'); return; }
       const cta = cta3; const mCta = qa.mascara(cta);

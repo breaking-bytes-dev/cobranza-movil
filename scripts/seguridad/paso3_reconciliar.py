@@ -1,4 +1,4 @@
-"""Fase 1 · Paso 3: reconciliación de compartidos (red de seguridad del reparto).
+"""Reconciliación de compartidos (red de seguridad del reparto).
 Para cada asignación ACTIVA cuyo owner es el usuario de su agente: comparte en lectura cuenta, cliente y fiador.
 Además lista los compartidos SOBRANTES: cuenta, cliente o fiador compartidos directamente con un usuario al que ninguna
 asignación activa suya se lo justifica (por ejemplo, si un revoke del plugin falló). Con --revocar se quitan.

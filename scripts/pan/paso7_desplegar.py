@@ -1,14 +1,14 @@
-"""Fase 2 · Paso 7: despliega las dos canvas apps (cobrador y backoffice) a DEV en UNA importación, desde el repo.
-Por qué no alcanzan import-app / import-backoffice: esos workflows exportan la solución vigente y solo swapean el .msapp.
-Las tablas que la app puede usar también están en customizations.xml (<DatabaseReferences> y <CdsDependencies> de cada
-<CanvasApp>), que volvían viejas: la app publicada nunca consultaba una tabla nueva (la bóveda) aunque el .msapp la tuviera.
+"""Despliega las dos canvas apps (localizador y backoffice) a DEV en UNA importación, desde el repo.
+No alcanza con swapear el .msapp en la solución exportada: las tablas que la app puede usar también están en
+customizations.xml (<DatabaseReferences> y <CdsDependencies> de cada <CanvasApp>) y, si quedan viejas, la app publicada
+no consulta una tabla nueva aunque el .msapp la tenga.
 
 Pasos: pac canvas pack de cada app (con chequeo de YAML: con la carpeta mal nombrada pac empaqueta SIN fórmulas y no avisa)
 y chequeo de la foto del esquema (paso7_esquema: una columna que usan las fórmulas y la foto no conoce deja la fórmula inerte)
 → pac solution export → swap de los .msapp → DatabaseReferences/CdsDependencies desde LocalDatabaseReferences de cada app
 → pac solution import --publish-changes → restaura el estado de los pasos de plugin de CM y de los flows de la solución
-(verificado 2026-10-04: una importación con --activate-plugins ENCENDIÓ PanGuard y una sin él APAGÓ ClaveDesdeCuenta).
-Sello de versión (F7): cada app lleva en App.Formulas `nfVersion = "dev";`. Se empaqueta una COPIA de la carpeta con
+(la importación lo altera: con --activate-plugins enciende PanGuard y sin él apaga ClaveDesdeCuenta).
+Sello de versión: cada app lleva en App.Formulas `nfVersion = "dev";`. Se empaqueta una COPIA de la carpeta con
 "<commit>[+dirty] <aaaa-mm-dd HH:MM UTC>" en lugar de "dev" (el repo no cambia), y tras importar se guarda en
 local/version-desplegada.json: las suites lo comparan con lo que muestra la app servida antes de probar.
 Usa el perfil activo de pac (SP de DEV). Después: paso3_reconciliar.py --aplicar.
@@ -48,7 +48,7 @@ def revisar_yaml(carpeta):
         for a in archivos:
             if not a.endswith('.pa.yaml'): continue
             # YAML válido: pac empaqueta igual un archivo que no parsea (p. ej. ": " dentro de una fórmula inline) y
-            # Studio no abre la app; el servicio sigue sirviendo la versión anterior sin avisar (2026-10-05).
+            # Studio no abre la app; el servicio sigue sirviendo la versión anterior sin avisar.
             try: yaml.compose(open(os.path.join(raiz, a), encoding='utf-8'), Loader=yaml.SafeLoader)  # solo estructura ('=' no es un tag)
             except yaml.YAMLError as e:
                 errores.append(f'{a}: YAML inválido ({str(e).splitlines()[0]}; una fórmula con ": " va en bloque |-)'); continue
@@ -122,7 +122,7 @@ def actualizar_app(cust, nombre, ldr, perfil):
     return cust[:ini] + bloque + cust[fin:]
 
 for nombre, (_, ldr, perfil) in msapps.items(): cust = actualizar_app(cust, nombre, ldr, perfil)
-# Ícono de la app en la lista de Power Apps (2026-10-25): la solución lo lleva en CanvasApps/<app>_BackgroundImageUri (PNG) y
+# Ícono de la app en la lista de Power Apps: la solución lo lleva en CanvasApps/<app>_BackgroundImageUri (PNG) y
 # <BackgroundColor> del <CanvasApp>; el .msapr, en Resources/PublishInfo.json (LogoFileName) para Studio.
 ICONOS = {'sanic_appcobranzamovil_c4e67': (os.path.join(RAIZ, 'apps/localizador-canvas/icono/icono.png'), 'RGBA(15,107,107,1)')}
 iconos = {}
@@ -153,8 +153,8 @@ def estados():
     flows = {w['workflowid']: (w['name'], w['statecode']) for w in get("workflows?$select=name,statecode&$filter=category eq 5")['value'] if w['workflowid'] in ids}
     return pasos, flows
 # El import apaga los pasos de plugin y el `finally` de abajo los vuelve a su estado. Si el proceso muere a mitad
-# (2026-10-12: un `timeout` le mandó SIGTERM durante el import), el `finally` no corre y los 15 pasos de CM (PanGuard
-# incluido) quedan APAGADOS; el deploy siguiente tomaba ese estado como "el de antes" y los dejaba así.
+# (p. ej. por SIGTERM), el `finally` no corre, los pasos de CM (PanGuard incluido) quedan APAGADOS y el deploy
+# siguiente tomaría ese estado como "el de antes".
 # Defensa doble: SIGTERM/SIGHUP pasan por el `finally`, y el estado previo queda en disco hasta restaurarlo; si al
 # arrancar hay uno guardado, es de un deploy interrumpido y manda ese.
 for sig in (signal.SIGTERM, signal.SIGHUP): signal.signal(sig, lambda s, f: sys.exit(f'deploy interrumpido por la señal {s}'))
@@ -172,7 +172,7 @@ try:
     for intento in range(10):
         try:
             for l in pac('solution', 'import', '--path', deploy, '--force-overwrite', '--publish-changes')[-3:]: print(' ', l)
-            # Versión por app (cobrador / backoffice): con --parche solo cambia la que va en el parche; la otra conserva la suya.
+            # Versión por app (localizador / backoffice): con --parche solo cambia la que va en el parche; la otra conserva la suya.
             arch = os.path.join(RAIZ, 'local', 'version-desplegada.json')
             try: previo = json.load(open(arch))
             except (OSError, ValueError): previo = {}

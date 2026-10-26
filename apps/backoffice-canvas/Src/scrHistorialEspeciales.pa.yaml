@@ -23,7 +23,7 @@ Screens:
         Set(varVigHes, "todas");
         Set(varVigAHes, true);
         Set(varVigBHes, false);
-        // APP-42: localizador, solicitante y buscador (CIF, cliente o últimos 4). Localizador y solicitante entran al Filter
+        // Localizador, solicitante y buscador (CIF, cliente o últimos 4). Localizador y solicitante entran al Filter
         // DIRECTO de la galería (delegable, sin tope de 2000); la búsqueda trae las Especiales resueltas de las cuentas que
         // coinciden (btnBuscarHes) y sobre ellas aplica el resto de los filtros en memoria.
         Set(varAgHes, "Todos los localizadores"); Set(varAgRecHes, Blank());
@@ -480,8 +480,8 @@ Screens:
                           =// Todo delegable: choice/booleano contra constantes (pares de variables), fecha >=
                           // constante y Sort por columna. El rango va sobre 'Modified On' (siempre presente: en una
                           // Especial resuelta el último cambio es la resolución o el cierre); '[AS] Fecha de
-                          // Asignacion' puede venir vacía y la pisa la carga diaria (DAT-31).
-                          // APP-42: sin búsqueda, consulta DIRECTA con localizador y solicitante (pagina sola, sin tope); con búsqueda,
+                          // Asignacion' puede venir vacía y la pisa la carga diaria.
+                          // Sin búsqueda, consulta DIRECTA con localizador y solicitante (pagina sola, sin tope); con búsqueda,
                           // las Especiales de las cuentas que coinciden (colBuscaHes) con los mismos filtros en memoria.
                           If(IsBlank(varBuscaHes),
                               Sort(

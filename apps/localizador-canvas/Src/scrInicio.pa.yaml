@@ -253,7 +253,7 @@ Screens:
                         Appearance: =ButtonAppearance.Transparent
                         Height: =Parent.Height
                         OnSelect: |-
-                          =// APP-35: desde Inicio se abre siempre en hoy y en la pestaña Pagos.
+                          =// Desde Inicio se abre siempre en hoy y en la pestaña Pagos.
                           Set(varPagFecha, Today()); Set(varPagTab, "pagos"); Navigate(scrPagos)
                         RadiusBottomLeft: =16
                         RadiusBottomRight: =16
@@ -512,12 +512,12 @@ Screens:
                 Properties:
                   AlignInContainer: =AlignInContainer.Start
                   Items: |-
-                    =// Offline, LookUp(Cuentas, … = '[IN] Cuenta'.…).campo volvía vacío: primero se resuelve la cuenta (cta), se la trae UNA vez (ctaRec) y se lee de ahí.
+                    =// Offline, leer un campo a través de un LookUp anidado devuelve vacío: primero se resuelve la cuenta (cta), se la trae UNA vez (ctaRec) y se lee de ahí.
                     IfError(GroupBy(
                             AddColumns(
                                 AddColumns(AddColumns(colIntHoy, cta, '[IN] Cuenta'.'CM | TBL | Cuenta'), ctaRec, LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = cta)),
                                 cliNom,
-                                Coalesce(ctaRec.'Nombre Cliente', "(cuenta ya no asignada)"),   // APP-50
+                                Coalesce(ctaRec.'Nombre Cliente', "(cuenta ya no asignada)"),
                                 cid,
                                 ctaRec.'CIF Cliente'
                             ),
@@ -671,7 +671,7 @@ Screens:
                             ctaRec,
                             LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = cta)
                         ),
-                            cliNom, Coalesce(ctaRec.'Nombre Cliente', "(cuenta ya no asignada)"),   // APP-50
+                            cliNom, Coalesce(ctaRec.'Nombre Cliente', "(cuenta ya no asignada)"),
                             prod,   ctaRec.'Tipo Producto'
                         ),Blank())
                   LayoutMinHeight: =16

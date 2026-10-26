@@ -13,7 +13,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
     {
         private const string Asignacion = "sanic_cm_tbl_asignacion";
         private const string Tramo = "sanic_cm_as_tramo";
-        private const int TramoEsperadoPython = 2; // calculado con el relleno de paso18
+        private const int TramoEsperadoPython = 2; // calculado con scripts/pan/paso18_tramo_cartera.py
 
         private static Harness Crear(Guid? cuenta, int? tramo = null)
         {
@@ -76,7 +76,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         [Fact]
         public void Mismo_valor_que_el_relleno_en_Python()
         {
-            // paso18: fnv1a(uuid.UUID('75459bb3-63cd-f111-a05b-7ced8d706b47').bytes_le) % 20
+            // En Python: fnv1a(uuid.UUID('75459bb3-63cd-f111-a05b-7ced8d706b47').bytes_le) % 20
             Assert.Equal(TramoEsperadoPython, TramoCartera.Tramo(Guid.Parse("75459bb3-63cd-f111-a05b-7ced8d706b47")));
         }
 

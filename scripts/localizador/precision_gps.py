@@ -1,7 +1,7 @@
-"""APP-11: latitud y longitud de la interacción pasan de 2 decimales (~1 km) a 6 (~10 cm) y se acotan a rangos geográficos.
-Los datos existentes no cambian (los decimales que ya se perdieron no vuelven). Idempotente.
-Después: refrescar la fuente de la app (paso7_fuentes.py --tablas sanic_cm_tbl_interaccion --aplicar); si no, el
-.msapr guarda la precisión vieja.
+"""Latitud y longitud de la interacción: de 2 decimales (~1 km) a 6 (~10 cm), acotadas a rangos geográficos.
+Los datos existentes no cambian (los decimales perdidos no vuelven). Idempotente.
+Después hay que refrescar la fuente de la app (paso7_fuentes.py --tablas sanic_cm_tbl_interaccion --aplicar); si no, el
+.msapr conserva la precisión anterior.
 Uso: python3 scripts/localizador/precision_gps.py [--aplicar]"""
 import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'seguridad'))

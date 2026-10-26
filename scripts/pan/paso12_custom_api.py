@@ -1,8 +1,8 @@
-"""Registrar (o verificar) las Custom APIs globales de Cobranza Movil en DEV:
-- DAT-14 (a): sanic_cm_SolicitarEspecial (plugins/Sanic.CobranzaMovil.Plugins/SolicitarEspecial.cs), desde 1.0.7.0.
-- DAT-20 (camino A): sanic_cm_AltaCuenta (plugins/Sanic.CobranzaMovil.Plugins/AltaCuenta.cs), desde 1.0.8.0.
-- APP-48: sanic_cm_CerrarFueraDeCartera (plugins/Sanic.CobranzaMovil.Plugins/CerrarFueraDeCartera.cs), desde 1.0.10.5.
-- Carga paralela: sanic_cm_PartirCarga (plugins/Sanic.CobranzaMovil.Plugins/PartirCarga.cs), desde 1.0.9.7. Requiere las
+"""Registra (o verifica) las Custom APIs globales de Cobranza Móvil en DEV:
+- sanic_cm_SolicitarEspecial (plugins/Sanic.CobranzaMovil.Plugins/SolicitarEspecial.cs)
+- sanic_cm_AltaCuenta (plugins/Sanic.CobranzaMovil.Plugins/AltaCuenta.cs)
+- sanic_cm_CerrarFueraDeCartera (plugins/Sanic.CobranzaMovil.Plugins/CerrarFueraDeCartera.cs)
+- sanic_cm_PartirCarga (plugins/Sanic.CobranzaMovil.Plugins/PartirCarga.cs), para la carga paralela. Requiere las
   plantillas de Smelter "Cobranza movil · padres" y "· partes" (scripts/pan/paso20_plantillas_paralelas.py --aplicar).
 Ver docs/auditoria/01-pendientes.md.
 

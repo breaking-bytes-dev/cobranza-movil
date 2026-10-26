@@ -1,7 +1,7 @@
-"""Fase 2 · Paso 6 (solo DEV, D3.1): carga K en la tabla protegida de Smelter sanic_tbl_smlt_hmackey bajo el nombre "cm-pan".
+"""Solo DEV: carga K en la tabla protegida de Smelter sanic_tbl_smlt_hmackey bajo el nombre "cm-pan".
 - Le quita a System Customizer los privilegios automáticos sobre esa tabla (la plataforma se los da a toda tabla nueva).
   Quedan System Administrator y roles de Microsoft que no se pueden editar: Service Reader/Writer y Support User
-  ("The Support User Role cannot be modified", verificado; lo usa el soporte de Microsoft con consentimiento).
+  ("The Support User Role cannot be modified"; lo usa el soporte de Microsoft con consentimiento).
 - K se lee de PAN_HMAC_KEY_FILE (por defecto ~/.config/cobranza-movil/pan_hmac_dev.key): la MISMA que usó el backfill.
   Nunca se imprime: la verificación compara en memoria y solo informa "coincide".
 - En PROD esto NO se usa: K va en Key Vault con la identidad administrada de Power Platform.

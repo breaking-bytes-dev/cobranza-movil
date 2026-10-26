@@ -8,7 +8,7 @@ const v = require('../../backoffice-canvas/lib/verdad');
 
 const PREFIJO = 'QA-E2E-INT';
 const AGENTE = 'QA-E2E Localizador User5';          // agente fijo, ya vinculado a User5 (no se crea ni se toca)
-const USER5 = '539834c4-6116-f111-8342-000d3a316609'; // cobrador
+const USER5 = '539834c4-6116-f111-8342-000d3a316609'; // localizador
 const U = { bo: cfg.usuarios.user1.id, sol: cfg.usuarios.user2.id, sup: cfg.usuarios.user3.id, adm: cfg.usuarios.user4.id, cob: USER5 };
 const RAIZ = path.join(__dirname, '..', 'resultados');
 

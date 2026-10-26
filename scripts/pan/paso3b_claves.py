@@ -1,4 +1,4 @@
-"""Fase 2 · Paso 3b: claves alternativas nuevas sobre la clave HMAC (después del backfill).
+"""Claves alternativas nuevas sobre la clave HMAC (después del backfill).
 Los nulos no se cuentan para la unicidad (doc "Define alternate keys"), pero un duplicado real hace fallar el índice:
 la de asignación espera a que se resuelvan los duplicados por (clave, tipo).
 Uso: python3 scripts/pan/paso3b_claves.py [--aplicar] [--incluir-asignacion]"""

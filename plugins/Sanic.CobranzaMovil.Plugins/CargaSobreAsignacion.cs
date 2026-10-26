@@ -4,16 +4,11 @@ using Microsoft.Xrm.Sdk;
 namespace Sanic.CobranzaMovil.Plugins
 {
     /// <summary>
-    /// Lo que hace la carga diaria (Smelter, sin tocar su codigo ni su plantilla) al volver a traer una asignacion que
-    /// ya existe. La carga es la unica que escribe "ultima carga" (ColumnasAsignacion no se la deja a las personas).
-    ///
-    /// - DAT-10: una Diaria o Incobrable cerrada por el sistema que vuelve en el CSV se REABRE (estado activo, sin
-    ///   motivo ni fecha de cierre). El sistema cierra con dos motivos: "fuera de cartera" (reconciliacion del
-    ///   backoffice) y "Reclasificada a ..." (Reclasificacion, DAT-15). Antes quedaba cerrada para siempre: Smelter no
-    ///   mapea el estado y el valor por defecto solo aplica al crear. Los cierres de una persona (Cierres) y las
-    ///   Especiales no se reabren. El reparto corre igual: la carga manda el agente en cada fila.
-    /// - DAT-31: no pisa la fecha de asignacion si ya tenia una (antes la reemplazaba por la fecha de carga cada dia).
-    ///
+    /// Ajusta lo que hace la carga diaria al volver a traer una asignacion existente. Solo la carga escribe
+    /// "ultima carga" (ColumnasAsignacion no se la deja a las personas).
+    /// - Una Diaria o Incobrable cerrada por el sistema ("fuera de cartera" o "Reclasificada a ...") se reabre, porque
+    ///   la carga no mapea el estado. Los cierres de una persona y las Especiales no se reabren.
+    /// - No pisa la fecha de asignacion si ya tenia una.
     /// Registro: PreOperation sincrono, Update de sanic_cm_tbl_asignacion filtrado por ultima carga, con imagen previa
     /// "PreImage" de estado, motivo, tipo y fecha de asignacion. No consulta nada. Nunca traza valores.
     /// </summary>

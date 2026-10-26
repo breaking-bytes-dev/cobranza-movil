@@ -1,6 +1,6 @@
-"""Fase 2 · Paso 2: apaga la auditoría de COLUMNA de los campos que hoy guardan el PAN en claro, para que el
-enmascarado del paso 8 no deje el PAN como oldValue en la auditoría (R19). La auditoría de TABLA sigue encendida.
-Paso 11: --revertir la vuelve a encender en ct_numerodecuenta y cd_numerocuenta (ya enmascaradas). cp_pan NUNCA.
+"""Apaga la auditoría de COLUMNA de los campos que guardaban el PAN en claro, para que el enmascarado (paso 8) no deje
+el PAN como oldValue en la auditoría. La auditoría de TABLA sigue encendida.
+--revertir la vuelve a encender en ct_numerodecuenta y cd_numerocuenta (ya enmascaradas). cp_pan NUNCA.
 Uso: python3 scripts/pan/paso2_auditoria.py [--aplicar | --revertir]"""
 import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'seguridad'))

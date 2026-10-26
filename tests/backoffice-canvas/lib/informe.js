@@ -6,7 +6,7 @@ const cfg = require('./config');
 const escenarios = [];
 const capturasRed = []; // { fase, usuario, rolEfectivo, entradas }
 const hallazgos = [];   // observaciones libres (errores de runtime, etc.)
-const aperturas = [];   // traza: versión de la app que cargó el player en cada apertura (B-15)
+const aperturas = [];   // traza: versión de la app que cargó el player en cada apertura
 
 class Escenario {
   constructor(id, desc, rol) { this.id = id; this.desc = desc; this.rol = rol; this.checks = []; this.evidencia = []; this.notas = []; this.estado = null; this.t0 = Date.now(); }

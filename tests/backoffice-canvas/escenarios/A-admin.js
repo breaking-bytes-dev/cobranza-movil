@@ -9,10 +9,10 @@ const qa = require('../lib/datosqa');
 const c = require('./comun');
 
 module.exports = async function faseA(suite) {
-  // DEV no tiene carga diaria desde el borrado de 60 días: sin "última carga" la app no tiene corte y D-02a, D-02b y F-05
-  // no tienen contra qué compararse. Se siembra 1 fila QA con la fecha de la última carga REAL (la mayor 'Última carga'
-  // de las Diarias activas), así el estado es el de un DEV con cargas: el corte no cambia para las Diarias reales y, como
-  // la fecha es anterior a hoy, el cierre en lote sigue bloqueado (F-05). Una fila de HOY la prueba F (D-07, F-05b).
+  // Si DEV no tiene cargas diarias, la app no tiene corte y los conteos de desaparecidas y el cierre en lote no tienen
+  // contra qué compararse. Se siembra 1 fila QA con la fecha de la última carga REAL (la mayor 'Última carga' de las
+  // Diarias activas): el corte no cambia para las Diarias reales y, como la fecha es anterior a hoy, el cierre en lote
+  // sigue bloqueado. La fila con fecha de HOY la prueba la fase F.
   let carga = null;
   if (!(await v.ultimaCarga())) {
     const ult = (await dv.get('sanic_cm_tbl_asignacions?$select=sanic_cm_as_ultimacarga&$filter=sanic_cm_as_tipo eq 1 and sanic_cm_as_estado eq true and sanic_cm_as_ultimacarga ne null&$orderby=sanic_cm_as_ultimacarga desc&$top=1')).value[0];
@@ -116,16 +116,14 @@ module.exports = async function faseA(suite) {
       const det = await pl.texto(app, 'lblAlertaDetalleAge').catch(() => '');
       const faltan = nombres.filter(x => !det.includes(x));
       e.check(faltan.length === 0, 'el detalle lista TODOS los agentes sin usuario de la API', [], faltan);
-      // B-08: desvincular salió del OnChange a un botón aparte. Solo se verifica que EXISTE (nunca se pulsa:
-      // los agentes son reales).
+      // Desvincular es un botón aparte. Solo se verifica que EXISTE (nunca se pulsa: los agentes son reales).
       const conUsuario = despues.filter(a => a.sanic_cm_ag_emailusuario).length;
       const nDesv = await pl.ctl(app, 'btnDesvincularAge').locator('visible=true').count();
       const txtDesv = nDesv ? (await pl.ctl(app, 'btnDesvincularAge').locator('visible=true').first().innerText()).trim() : null;
       e.check(nDesv === conUsuario && txtDesv === 'Desvincular', 'botón "Desvincular" aparte, uno por agente con usuario (no se pulsa)', `${conUsuario} × "Desvincular"`, `${nDesv} × ${JSON.stringify(txtDesv)}`);
       e.evid(await pl.foto(app, 'F-04c-agentes'));
-      // B-04: el combo de usuario de la fila se reemplazó por "Vincular/Cambiar" + UN panel con buscador +
-      // galería sobre Users. SEGURIDAD: los agentes son REALES → se abre el panel, se busca y se CANCELA.
-      // NUNCA se toca una fila de galUsrAge (tocarla CONFIRMA el vínculo).
+      // "Vincular/Cambiar" abre un panel con buscador + galería sobre Users. SEGURIDAD: los agentes son REALES,
+      // así que se abre el panel, se busca y se CANCELA. NUNCA se toca una fila de galUsrAge (tocarla CONFIRMA el vínculo).
       const nVinc = await pl.ctl(app, 'btnVincularAge').locator('visible=true').count();
       e.check(nVinc > 0, 'cada fila de agente tiene su botón Vincular/Cambiar (sin combo en la fila)', '> 0', nVinc);
       if (!nVinc) return;
@@ -165,7 +163,7 @@ module.exports = async function faseA(suite) {
       e.check(filas.includes(obj.sanic_cm_cl_nombre), `búsqueda por CIF "${pCif}" muestra al centinela`, obj.sanic_cm_cl_nombre, filas.slice(0, 6));
       const rCif = app.red.de('A:scrMaestros(búsqueda CIF)').flatMap(x => x.subs.map(s => s.ruta)).filter(r => /sanic_cm_tbl_clientes/.test(r));
       e.check(rCif.some(r => /startswith\(sanic_cm_cl_cif,/.test(r)), 'la request a clientes lleva startswith(sanic_cm_cl_cif, …) en $filter', 'startswith en $filter', rCif.slice(-1)[0]);
-      // B-13: DelayOutput = true → 1 consulta al terminar de tipear (antes: 1 por tecla, 13 para un CIF).
+      // DelayOutput = true: debe salir 1 consulta al terminar de tipear, no 1 por tecla.
       const nBusq = rCif.filter(r => /startswith\(/.test(r)).length;
       e.check(nBusq >= 1 && nBusq <= 3, `B-13: tipear ${pCif.length} caracteres dispara ≤ 3 consultas (DelayOutput)`, '1..3', nBusq);
       e.evid(await pl.foto(app, 'D-03-busqueda-cif'));

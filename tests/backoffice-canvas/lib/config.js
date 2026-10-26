@@ -42,7 +42,7 @@ cfg.teams = {
 };
 
 // Membresías ESPERADAS (mapeo fijo). run.js verifica la foto inicial contra esto, la restaura al
-// final y vuelve a verificar. El único cambio temporal es R-06 (User1 + Admin y Carga, fase E).
+// final y vuelve a verificar. El único cambio temporal es agregar User1 a "Admin y Carga" en la fase E.
 cfg.membresiasEsperadas = () => {
   const out = {};
   for (const t of Object.keys(cfg.teams)) out[t] = [];

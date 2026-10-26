@@ -1,4 +1,4 @@
-"""Fase 2 · Paso 6: prueba E2E de la carga de Smelter con claves HMAC. Solo crea registros QA-E2E-PAN y los borra al final.
+"""Prueba E2E de la carga de Smelter con claves HMAC. Solo crea registros QA-E2E-PAN y los borra al final.
 1. Arma un CSV de N filas QA con PAN numéricos aleatorios (BIN 9999, Luhn válido; nunca se imprimen).
 2. Lo importa DOS veces (PrepareImport + ProcessChunk directos; el job queda sin estado, así el flow orquestador no corre).
 3. Verifica: 0 fallos; por cada PAN, ct/cp/as/cd_clavepan = HMAC(K, PAN) calculado acá; bóveda 1:1 con cp_pan = PAN y
@@ -92,7 +92,7 @@ try:
         ok_b = b is not None and hmac.compare_digest(b['sanic_cm_cp_pan'] or '', pan) and b['sanic_cm_cp_name'] == '****' + pan[-4:] and c is not None and b['_sanic_cm_cp_cuentaid_value'] == c['sanic_cm_tbl_cuentaid']
         a = todas(f"{P}asignacions?$select=sanic_cm_as_clavepan&$filter=_sanic_cm_as_cuentaid_value eq {c['sanic_cm_tbl_cuentaid']}") if c else []
         d = todas(f"{P}cargadiarias?$select=sanic_cm_cd_clavepan,sanic_cm_cd_numerocuenta&$filter=_sanic_cm_cd_cuenta_value eq {c['sanic_cm_tbl_cuentaid']}") if c else []
-        # Paso 8: la carga escribe el nombre principal enmascarado (PanGuard rechaza el número completo)
+        # La carga escribe el nombre principal enmascarado (PanGuard rechaza el número completo)
         check(c is not None and c['sanic_cm_ct_numerodecuenta'] == '****' + pan[-4:] and len(d) == 1 and d[0]['sanic_cm_cd_numerocuenta'] == '****' + pan[-4:],
               f'fila {i}: ct_numerodecuenta y cd_numerocuenta enmascarados (****{pan[-4:]})')
         check(ok_c and ok_b and len(a) == 1 and a[0]['sanic_cm_as_clavepan'] == k and len(d) == 1 and d[0]['sanic_cm_cd_clavepan'] == k,

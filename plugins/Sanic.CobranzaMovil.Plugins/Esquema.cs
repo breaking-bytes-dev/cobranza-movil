@@ -2,7 +2,7 @@ namespace Sanic.CobranzaMovil.Plugins
 {
     /// <summary>
     /// Nombres logicos de tablas y columnas. Fuente de verdad:
-    /// solutions/unpacked/Entities/*/Entity.xml y scripts/pan/paso1_esquema.py (columnas de la Fase 2).
+    /// solutions/unpacked/Entities/*/Entity.xml y scripts/pan/paso1_esquema.py.
     /// </summary>
     public static class Esquema
     {
@@ -26,7 +26,7 @@ namespace Sanic.CobranzaMovil.Plugins
         public const string CargaDiariaNumero = "sanic_cm_cd_numerocuenta";
         public const string CuentaPanNombre = "sanic_cm_cp_name";
 
-        // Columnas denormalizadas viejas: deben quedar vacias (se eliminan en el paso 8d)
+        // Columnas denormalizadas viejas: deben quedar vacias
         public const string AsignacionNumeroLegacy = "sanic_cm_as_numerocuenta";
         public const string InteraccionNumeroLegacy = "sanic_cm_in_numerocuenta";
         public const string PagoNumeroLegacy = "sanic_cm_pg_numerocuenta";
@@ -41,24 +41,24 @@ namespace Sanic.CobranzaMovil.Plugins
         public const string InteraccionNumero = "sanic_cm_in_numerointeraccion";
         public const string PagoNumeroInteraccion = "sanic_cm_pg_numerointeraccion";
         public const string ActualizacionInteraccion = "sanic_cm_ad_interaccionid";
-        // F7: offline la actualizacion llega sin interaccion; trae su cuenta y la misma fecha de captura que la interaccion
+        // Offline la actualizacion llega sin interaccion; trae su cuenta y la misma fecha de captura que la interaccion
         public const string ActualizacionCuentaId = "sanic_cm_ad_cuentaid";
         public const string ActualizacionFechaCaptura = "sanic_cm_ad_fechacaptura";
         public const string InteraccionActualizaInfo = "sanic_cm_in_actualizainfo";
         public const string CreadoPor = "createdby";
         public const int ToleranciaCapturaSegundos = 2;
-        // F7 1.0.8.8: offline tambien se descarta la fecha; se toma la interaccion pendiente mas vieja de esta ventana
+        // Si offline tambien se pierde la fecha, se toma la interaccion pendiente mas vieja de esta ventana
         public const int VentanaSinFechaHoras = 24;
         public const string InteraccionId = "sanic_cm_tbl_interaccionid";
         public const string ActualizacionId = "sanic_cm_tbl_actualizaciondatosid";
-        // F8: lo que viene del telefono nunca se rechaza (el runtime offline lo descarta en silencio): se acepta marcado
+        // Lo que viene del telefono nunca se rechaza (el runtime offline lo descarta en silencio): se acepta marcado
         public const string ActualizacionSinVincular = "sanic_cm_ad_sinvincular";
 
-        // F6: recibo repetido; no se rechaza, se marca para que BackOffice lo revise
+        // Recibo repetido: no se rechaza, se marca para que el backoffice lo revise
         public const string PagoNumeroRecibo = "sanic_cm_pg_numerorecibo";
         public const string PagoReciboRepetido = "sanic_cm_pg_reciborepetido";
 
-        // Aprobacion de la asignacion Especial (S-6)
+        // Aprobacion de la asignacion Especial
         public const string AsignacionTipo = "sanic_cm_as_tipo";
         public const string AsignacionEstadoAprobacion = "sanic_cm_as_estadoaprobacion";
         public const string AsignacionAgente = "sanic_cm_as_agenteid";
@@ -66,7 +66,7 @@ namespace Sanic.CobranzaMovil.Plugins
         public const int AprobacionAprobado = 3;    // sanic_choice_cm_estadoaprobacionespecial
         public const int AprobacionRechazada = 4;
 
-        // Reparto de la asignacion (RepartoAsignacion: reemplaza al flow "Cambio de Owner en Asignaciones")
+        // Reparto de la asignacion (RepartoAsignacion)
         public const string Propietario = "ownerid";
         public const string AsignacionId = "sanic_cm_tbl_asignacionid";
         public const string AsignacionEstado = "sanic_cm_as_estado";
@@ -75,20 +75,20 @@ namespace Sanic.CobranzaMovil.Plugins
         public const string CuentaCliente = "sanic_cm_ct_clienteid";
         public const string CuentaFiador = "sanic_cm_ct_fiador";
 
-        // Cartera sin cobrador (DAT-07/08): equipo dueno, sin miembros, de las asignaciones cuyo agente no tiene usuario.
-        // El nombre lleva el entorno al final, como los demas equipos de CM: "CM · Cartera sin cobrador · DEV".
+        // Cartera sin cobrador: equipo dueno, sin miembros, de las asignaciones cuyo agente no tiene usuario.
+        // El nombre lleva el entorno al final, como los demas equipos de CM: "CM · Cartera sin cobrador · <entorno>".
         public const string PrefijoEquipoSinCobrador = "CM \u00B7 Cartera sin cobrador";
         public const string EquipoNombre = "name";
         public const string EquipoTipo = "teamtype";
         public const int EquipoTipoDueno = 0;
 
-        // Columnas de la asignacion que escriben las personas (ColumnasAsignacion, S-11) y la carga (CargaSobreAsignacion)
+        // Columnas de la asignacion que escriben las personas (ColumnasAsignacion) y la carga (CargaSobreAsignacion)
         public const string PrefijoColumnaAsignacion = "sanic_cm_as_";
         public const string AsignacionOrden = "sanic_cm_as_orden";
         public const string AsignacionMotivo = "sanic_cm_as_motivo";
         public const string AsignacionMotivoRechazo = "sanic_cm_as_motivorechazo";
         public const string AsignacionFechaCierre = "sanic_cm_as_fechacierre";
-        public const string AsignacionFechaAsignada = "sanic_cm_as_fechaasignada";     // DateOnly (2026-10-25): el dia, sin zona
+        public const string AsignacionFechaAsignada = "sanic_cm_as_fechaasignada";     // DateOnly: el dia, sin zona
         public const string AsignacionUltimaCarga = "sanic_cm_as_ultimacarga";
         public const string AsignacionResolutor = "sanic_cm_as_resolutorid";
         public const string AsignacionNotas = "sanic_cm_as_notas";
@@ -99,11 +99,11 @@ namespace Sanic.CobranzaMovil.Plugins
         public const int AprobacionBorrador = 1;
         public const int AprobacionPendiente = 2;
 
-        // Motivos de cierre que pone el sistema: la reconciliacion del backoffice (DAT-10) y la reclasificacion (DAT-15)
+        // Motivos de cierre que pone el sistema: la reconciliacion del backoffice y la reclasificacion
         public const string MotivoFueraDeCartera = "fuera de cartera";
         public const string PrefijoMotivoReclasificada = "Reclasificada a ";
 
-        // Interaccion: grabacion en el CORE (DAT-11) y alta desde el telefono (DAT-13, SEC-08)
+        // Interaccion: grabacion en el CORE y alta desde el telefono
         public const string PrefijoColumnaCm = "sanic_cm_";
         public const string InteraccionAgente = "sanic_cm_in_agente";
         public const string InteraccionNombreAgente = "sanic_cm_in_nombreagente";
@@ -111,14 +111,14 @@ namespace Sanic.CobranzaMovil.Plugins
         public const string InteraccionCodigoGrabacion = "sanic_cm_in_codigograbacion";
         public const string InteraccionFechaGrabacion = "sanic_cm_in_fechagrabacion";
         public const string InteraccionGrabadoPor = "sanic_cm_in_grabadopor";
-        public const string InteraccionFechaCaptura = "sanic_cm_in_fechacaptura"; // la pone el telefono (APP-20), UTC al llegar
+        public const string InteraccionFechaCaptura = "sanic_cm_in_fechacaptura"; // la pone el telefono, UTC al llegar
         public const string CreadoEl = "createdon";
         public const string AuditoriaCreadoEl = "createdon"; // columna del registro de auditoria
         public const int GrabacionPendiente = 1;
         public const int GrabacionGrabado = 2;
         public const string AgenteNombre = "sanic_cm_ag_nombre";
 
-        // Custom API SolicitarEspecial (DAT-14): mensaje global, sin entidad; corre en la etapa principal (30)
+        // Custom API SolicitarEspecial: mensaje global, sin entidad; corre en la etapa principal (30)
         public const string MensajeSolicitarEspecial = "sanic_cm_SolicitarEspecial";
         public const string EntidadNinguna = "none";
         public const int EtapaMainOperation = 30;
@@ -135,7 +135,7 @@ namespace Sanic.CobranzaMovil.Plugins
         public const string ResultadoYaExiste = "ya existe";
         public const string UsuarioNombreCompleto = "fullname";
 
-        // Custom API AltaCuenta (DAT-20): el Admin da de alta una cuenta como una importacion de UNA fila de Smelter
+        // Custom API AltaCuenta: el Admin da de alta una cuenta como una importacion de UNA fila de Smelter
         public const string MensajeAltaCuenta = "sanic_cm_AltaCuenta";
         public const string ParamProductoId = "ProductoId";
         public const string ParamAgenteId = "AgenteId";
@@ -180,11 +180,11 @@ namespace Sanic.CobranzaMovil.Plugins
         public const string PlantillaSmelterOrigen = "sanic_smlt_it_sourcetype";
 
         // Custom API PartirCarga (carga paralela): parte el archivo de un job en "padres" (producto, fiador y agente, con la
-        // ULTIMA fila de cada uno) y N "partes" por CIF. Las plantillas derivadas las genera scripts/pan/paso20.
+        // ULTIMA fila de cada uno) y N "partes" por CIF.
         public const string MensajePartirCarga = "sanic_cm_PartirCarga";
         public const string ParamJobId = "JobId";
         public const string ParamPartes = "Partes";
-        /// <summary>1.0.9.9, opcional: true = solo mide el largo de los valores (prueba en seco y carga en serie), sin escribir.</summary>
+        /// <summary>Opcional: true = solo mide el largo de los valores (prueba en seco y carga en serie), sin escribir.</summary>
         public const string ParamSoloValidar = "SoloValidar";
         public const string SalidaPadresJobId = "PadresJobId";
         public const string SalidaPartesJobIds = "PartesJobIds";
@@ -193,7 +193,7 @@ namespace Sanic.CobranzaMovil.Plugins
         public const string SalidaFilasPadres = "FilasPadres";
         public const string SalidaFilasPartes = "FilasPartes";
 
-        // Custom API CerrarFueraDeCartera (APP-48): cierre en lote de las Diarias fuera de la carga, en el servidor y por lotes.
+        // Custom API CerrarFueraDeCartera: cierre en lote de las Diarias fuera de la carga, en el servidor y por lotes.
         public const string MensajeCerrarFueraDeCartera = "sanic_cm_CerrarFueraDeCartera";
         public const string ParamCorte = "Corte";
         public const string ParamEsperadas = "Esperadas";
@@ -227,7 +227,7 @@ namespace Sanic.CobranzaMovil.Plugins
         public const string MapeoColumnaOpciones = "sanic_smlt_cm_optionsetmapping";
         public const string MapeoColumnaTransformacion = "sanic_smlt_cm_transformexpression";
 
-        // Agente <-> usuario (app del cobrador: gblAgente busca por Lower(User().Email), que es el UPN)
+        // Agente <-> usuario (app del localizador: gblAgente busca por Lower(User().Email), que es el UPN)
         public const string AgenteUsuario = "sanic_cm_ag_usuarioid";
         public const string AgenteEmail = "sanic_cm_ag_emailusuario";
         public const string UsuarioUpn = "domainname";
@@ -243,7 +243,7 @@ namespace Sanic.CobranzaMovil.Plugins
         public const int EtapaPostOperation = 40;
         public const int ModoAsincrono = 1;
 
-        // F3: la Especial de la carga toma tipo, nota y retiro de la cuenta (EspecialDesdeCuenta)
+        // La Especial de la carga toma tipo, nota y retiro de la cuenta (EspecialDesdeCuenta)
         public const string CuentaTipoEspecial = "sanic_cm_ct_tipoespecial";
         public const string CuentaNota = "sanic_cm_ct_nota";
         public const string CuentaRetiroNio = "sanic_cm_ct_retironio";
@@ -260,11 +260,11 @@ namespace Sanic.CobranzaMovil.Plugins
         // Escala de la cartera: la app trae las asignaciones por tramos, cada uno bajo el limite de 2000 filas (TramoCartera)
         public const string AsignacionTramo = "sanic_cm_as_tramo";
         public const string CuentaTramo = "sanic_cm_ct_tramo";
-        // El pago tambien: Transcritas trae los pagos del dia (de todos los cobradores) por tramos
+        // El pago tambien: Transcritas trae los pagos del dia (de todos los localizadores) por tramos
         public const string PagoTramo = "sanic_cm_pg_tramo";
         public const int TramosCartera = 20;
 
-        // O3: la carga resuelve el producto por CodigoProducto (lookup) pero no llena el tipo de la cuenta, que es lo que
+        // La carga resuelve el producto por CodigoProducto (lookup) pero no llena el tipo de la cuenta, que es lo que
         // muestra la app. TipoDesdeProducto lo copia del producto.
         public const string CuentaProductoId = "sanic_cm_ct_productoid";
         public const string CuentaTipoProducto = "sanic_cm_ct_tipoproducto";

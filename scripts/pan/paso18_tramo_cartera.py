@@ -1,14 +1,14 @@
-"""Escala de la cartera · tramo de la asignación y de la cuenta (aditivo e idempotente).
-La app copia la cartera a colecciones y cada copia se corta en el límite de filas (2000): con 2.340 asignaciones el
-teléfono armaba la Cartera con trozos distintos cada vez (prueba de estrés del 2026-10-21). Con el tramo, la app la trae
-en partes: Filter(Asignaciones, Tramo = n) y Filter(Cuentas, Tramo = n), n = 0..19, cada una muy por debajo del límite.
+"""Tramo de la asignación, la cuenta y el pago, para que la app traiga la cartera por partes (aditivo e idempotente).
+La app copia la cartera a colecciones y cada copia se corta en el límite de filas (2000): por encima, el teléfono arma la
+Cartera con trozos distintos cada vez. Con el tramo, la app la trae en partes: Filter(Asignaciones, Tramo = n) y
+Filter(Cuentas, Tramo = n), n = 0..19, cada una muy por debajo del límite.
 
 Crea "[AS] Tramo" (sanic_cm_as_tramo), "[CT] Tramo" (sanic_cm_ct_tramo) y "[PG] Tramo" (sanic_cm_pg_tramo), enteros
-0..19. Los pone TramoCartera (plugins 1.0.9.5) al crear; el pago usa el id de su INTERACCIÓN (Transcritas trae los pagos
-del día por tramos); con --rellenar completa los que ya existen con el MISMO cálculo que el plugin:
+0..19. Los pone el plugin TramoCartera al crear; el pago usa el id de su INTERACCIÓN (Transcritas trae los pagos del día
+por tramos); con --rellenar completa los que ya existen con el MISMO cálculo que el plugin:
   tramo = FNV-1a de 32 bits de los 16 bytes del id de la CUENTA (orden .NET: uuid.UUID(id).bytes_le) % 20
-La asignación usa el id de su cuenta, así cuenta y asignaciones caen en el mismo tramo. (Los ids de Dataverse son
-secuenciales: tomar sus primeros bytes repartía de 228 a 410 por tramo.)
+La asignación usa el id de su cuenta, así cuenta y asignaciones caen en el mismo tramo. Se hashea el id completo porque los
+ids de Dataverse son secuenciales y sus primeros bytes reparten muy desparejo.
 Va ANTES de paso5. Imprime solo conteos.
 Uso: python3 scripts/pan/paso18_tramo_cartera.py [--aplicar] [--rellenar]"""
 import os, sys, collections, concurrent.futures, uuid

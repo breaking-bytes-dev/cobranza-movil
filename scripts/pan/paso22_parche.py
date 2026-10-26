@@ -1,7 +1,7 @@
-"""Paso 22: solución «parche» (cm_parche) para desplegar rápido SOLO lo que se está cambiando.
+"""Solución «parche» (cm_parche) para desplegar rápido SOLO lo que se está cambiando.
 La solución completa (cm_core_cobranzamovil) trae plugins, pasos, flows, roles y Custom APIs: exportarla e importarla
 tarda y obliga a apagar y restaurar los pasos de plugin. cm_parche es una solución no administrada del mismo editor que
-contiene únicamente los componentes que se le agregan (por ejemplo, la app del cobrador y una tabla que cambió). Un
+contiene únicamente los componentes que se le agregan (por ejemplo, la app del localizador y una tabla que cambió). Un
 componente puede estar a la vez en cm_core y en cm_parche: no se mueve, solo se lista también acá.
 
 Despliegue con el parche: python3 scripts/pan/paso7_desplegar.py --parche --aplicar (exporta e importa cm_parche).
@@ -9,7 +9,7 @@ La fuente de verdad sigue siendo cm_core: lo que se agrega al parche ya existe e
 
 Uso:
   python3 scripts/pan/paso22_parche.py                          lista lo que tiene el parche
-  python3 scripts/pan/paso22_parche.py --app cobrador [--aplicar]  agrega la app del cobrador (o backoffice)
+  python3 scripts/pan/paso22_parche.py --app cobrador [--aplicar]  agrega la app del localizador (o backoffice)
   python3 scripts/pan/paso22_parche.py --tabla sanic_cm_tbl_pago [--aplicar]
   python3 scripts/pan/paso22_parche.py --quitar --app backoffice [--aplicar]"""
 import os, sys

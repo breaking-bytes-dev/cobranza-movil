@@ -11,7 +11,7 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =// APP-49: el Admin edita las opciones de las listas de las apps ('CM | TBL | Opciones de lista', scripts/pan/paso23_listas.py).
+        =// El Admin edita las opciones de las listas de las apps ('CM | TBL | Opciones de lista').
         // No hay borrado: se desactiva (lo elegido se guarda como texto, renombrar no cambia el historial). La primera activa
         // es la opción por defecto. Solo el Admin (menú) y, en el servidor, solo Admin y Servicio tienen Create/Write.
         ClearCollect(colListasLst,

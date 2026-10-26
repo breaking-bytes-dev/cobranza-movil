@@ -9,7 +9,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
 {
     /// <summary>
     /// Borrado por salida de cartera: la interaccion guarda los ultimos 4, el CIF y la clave HMAC de su cuenta, para seguir
-    /// identificandola en el core cuando la cuenta se borre. Solo lo vacio y nunca rechaza (F8).
+    /// identificandola en el core cuando la cuenta se borre. Solo lo vacio y nunca rechaza.
     /// </summary>
     public class IdentidadEnInteraccionTests
     {

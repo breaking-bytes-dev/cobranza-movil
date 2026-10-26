@@ -172,7 +172,7 @@ async function preparar() {
   fx.dir0 = pk('direccion', await crearSP('direccion', F.direccion(0)));
   fx.tel0 = pk('telefono', await crearSP('telefono', F.telefono(0)));
   fx.car0 = pk('carga', await crearSP('carga', F.carga(0)));
-  // Cartera del cobrador: Diaria activa con el agente de User5; el reparto le pasa la asignación y le comparte cuenta,
+  // Cartera del localizador: Diaria activa con el agente de User5; el reparto le pasa la asignación y le comparte cuenta,
   // cliente y fiador (las direcciones y teléfonos van en cascada desde el cliente).
   fx.cliK = pk('cliente', await crearSP('cliente', F.cliente('K')));
   fx.fiaK = pk('fiador', await crearSP('fiador', F.fiador('K')));

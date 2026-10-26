@@ -5,17 +5,12 @@ using Microsoft.Xrm.Sdk.Query;
 namespace Sanic.CobranzaMovil.Plugins
 {
     /// <summary>
-    /// O3: la carga (Smelter, sin tocar su plantilla) resuelve el producto de la cuenta por CodigoProducto en el lookup
-    /// ct_productoid, pero no llena ct_tipoproducto, que es lo que muestran Cliente, Detalle, Interaccion, Pagos e Inicio
-    /// del cobrador ("Tarjeta Oro · •••• 1234"). Resultado: el tipo salia vacio en todas las cuentas. Esto copia el tipo del
-    /// producto a la cuenta, en la misma operacion (sin un Update extra) y offline sin agregar tablas al perfil.
-    ///
-    /// Cada carga reescribe ct_productoid con el mismo valor: si el producto no cambio y la cuenta ya tiene tipo, no lee
-    /// nada (sin esto serian ~6.000 lecturas de producto por carga). Si se cambia el tipo de un producto, las cuentas lo
-    /// toman cuando cambie su producto; no se propaga solo.
-    /// Lee el producto con el servicio del SISTEMA (la carga corre sin roles de CM, el alta no). Nunca traza valores.
-    /// Registro: PreOperation sincrono. Create de sanic_cm_tbl_cuenta, y Update filtrado por ct_productoid con imagen previa
-    /// "PreImage" de ct_productoid y ct_tipoproducto.
+    /// Copia el tipo del producto (ct_productoid) a ct_tipoproducto de la cuenta en la misma operacion, porque la carga
+    /// solo llena el lookup y las pantallas del localizador muestran el tipo sin consultar la tabla de productos.
+    /// Si el producto no cambio y la cuenta ya tiene tipo no lee nada (la carga reescribe el lookup en cada fila).
+    /// Cambiar el tipo de un producto no se propaga a sus cuentas. Lee con el servicio del sistema; nunca traza valores.
+    /// Registro: PreOperation sincrono, Create y Update de sanic_cm_tbl_cuenta (filtrado por ct_productoid) con
+    /// imagen previa "PreImage" de ct_productoid y ct_tipoproducto.
     /// </summary>
     public sealed class TipoDesdeProducto : PluginBase
     {

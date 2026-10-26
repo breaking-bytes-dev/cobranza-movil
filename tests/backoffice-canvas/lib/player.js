@@ -1,6 +1,6 @@
 // Helpers del PLAYER de Power Apps (apps.powerapps.com/play) para Playwright.
 //
-// Hallazgos que sostienen estos helpers (verificados en DEV, 2026-10-03):
+// Comportamientos del player en los que se apoyan estos helpers:
 //  - La app corre dentro del iframe runtime-app.preview.powerplatform.com. Cada control
 //    expone su nombre de Studio en el atributo data-control-name → selector estable
 //    `[data-control-name="btnFilaNavCmp"]` (no hace falta depender de textos ni posiciones).
@@ -85,10 +85,9 @@ function resumirResp(status, json) {
 // ── Apertura ─────────────────────────────────────────────────────────────────────────────
 async function lanzar() { return chromium.launch({ headless: cfg.headless }); }
 
-// B-15: el player guarda la app en localStorage (PAAppLoadCache-*, PAPreloadKeyV2-*) y arranca
-// con esa copia mientras revalida en segundo plano (stale-while-revalidate). Como la sesión es un
-// JSON congelado que nunca se re-guarda, cada corrida probaba la versión cacheada el día que se
-// capturó la sesión, no la publicada. Se descartan esas claves; la autenticación (msal.*) queda.
+// El player guarda la app en localStorage (PAAppLoadCache-*, PAPreloadKeyV2-*) y arranca con esa copia
+// mientras revalida en segundo plano. Como la sesión guardada nunca se actualiza, se probaría la versión
+// cacheada y no la publicada: se descartan esas claves y se conserva la autenticación (msal.*).
 const CACHE_APP = /^(PAAppLoadCache-|PAPreloadKeyV2-)/;
 function sesionSinCacheDeApp(usuario) {
   const s = JSON.parse(fs.readFileSync(cfg.sesionPath(usuario), 'utf8'));
@@ -96,8 +95,8 @@ function sesionSinCacheDeApp(usuario) {
   return s;
 }
 
-// F7: abre la app y verifica que DEV sirva la versión desplegada (pie de la nav). En el diseño móvil la nav no se ve:
-// ahí no se verifica.
+// Abre la app y verifica que DEV sirva la versión desplegada (pie de la nav). En el diseño móvil la nav no se ve
+// y no se verifica.
 async function abrirApp(browser, usuario, opts = {}) {
   const ancho = (opts.viewport || { width: 1600 }).width;
   return version.abrirVerificada('backoffice', {
@@ -119,10 +118,8 @@ async function abrirAppUnaVez(browser, usuario, { viewport = { width: 1600, heig
   const app = { ctx, page, red, usuario, consola, _frame: null };
   // El iframe del runtime se REEMPLAZA durante la carga (preload → app): se resuelve perezoso.
   Object.defineProperty(app, 'frame', { get: () => frameApp(app) });
-  // Carga en frío: esperar a que la nav lateral, la barra móvil o el estado "sin acceso" aparezcan.
-  // El frame elegido tiene que MOSTRAR la app: un título de la nav VISIBLE (o el estado "sin acceso"/barra móvil visibles).
-  // Antes bastaba con que el control existiera, y a veces quedaba el iframe de precarga, que tiene la app oculta: la prueba
-  // leía nav vacía y secciones de otros roles "visibles" (R-02/R-04/R-06a, corrida 7, 2026-10-09).
+  // Carga en frío: esperar a que la nav lateral, la barra móvil o el estado "sin acceso" estén VISIBLES.
+  // No basta con que el control exista: el iframe de precarga tiene la app oculta y daría una nav vacía.
   const sel = '[data-control-name="lblTituloNavCmp"], [data-control-name="cmpVacioIni"], [data-control-name="conBarraMovilEncCmp"]';
   const buscar = async () => {
     for (const f of page.frames().filter(esRuntime).reverse()) {
@@ -137,7 +134,7 @@ async function abrirAppUnaVez(browser, usuario, { viewport = { width: 1600, heig
   await red.quieta(page, { quietoMs: 8000, maxMs: cfg.tCargaMs, minMs: 5000 });
   app._frame = (await buscar()) || app._frame;   // por si el iframe se reemplazó durante la espera
   await cerrarAviso(page);
-  // Versión publicada que efectivamente cargó el player (traza para el reporte; ver B-15).
+  // Versión publicada que efectivamente cargó el player (traza para el reporte).
   app.version = await page.evaluate(() => Object.keys(localStorage)
     .filter(k => k.startsWith('PAPreloadKeyV2-')).map(k => k.slice(-20)).join(',')).catch(() => '');
   return app;

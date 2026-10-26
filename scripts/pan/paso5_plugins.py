@@ -1,12 +1,12 @@
-"""Fase 2 · Paso 5: registrar (o actualizar) el ensamblado Sanic.CobranzaMovil.Plugins y sus pasos en DEV.
-Ver docs/auditoria/fase2-pan-diseno.md §2.6 y §4 (filas 5 y 8) y plugins/Sanic.CobranzaMovil.Plugins/README.md.
+"""Registra (o actualiza) el ensamblado Sanic.CobranzaMovil.Plugins y sus pasos en DEV.
+Ver plugins/Sanic.CobranzaMovil.Plugins/README.md.
 
 Idempotente: el ensamblado y cada paso se buscan por nombre; lo que ya existe se actualiza, nunca se duplica.
 Por defecto solo MUESTRA el plan (solo hace GET). Aplica con --aplicar.
 
-REGLA DE PanGuard (paso 8 del plan):
-  Hasta el paso 8 la carga de Smelter todavia escribe el PAN en las columnas que PanGuard vigila, asi que sus
-  pasos se crean DESACTIVADOS. Un paso PanGuard que ya existe conserva su estado, salvo que se pida:
+PanGuard:
+  Mientras la carga de Smelter escriba el PAN en las columnas que PanGuard vigila (hasta el paso 8), sus pasos se crean
+  DESACTIVADOS. Un paso PanGuard que ya existe conserva su estado, salvo que se pida:
     --activar-panguard      activa los pasos PanGuard (paso 8)
     --desactivar-panguard   los desactiva (rollback)
   Los pasos de ClaveDesdeCuenta, CuentaDesdeInteraccion, AprobacionEspecial, ActualizacionConInteraccion, EmailDesdeUsuario,
@@ -14,15 +14,15 @@ REGLA DE PanGuard (paso 8 del plan):
   GrabacionInteraccion, VincularActualizacionPendiente, ReciboRepetido, EspecialDesdeCuenta, IdentidadEnInteraccion,
   TramoCartera y TipoDesdeProducto quedan activos.
 
-Las Custom APIs (SolicitarEspecial, AltaCuenta y, desde 1.0.9.7, PartirCarga de la carga paralela) no tienen pasos: sus tipos
-vienen en la misma dll y las define scripts/pan/paso12_custom_api.py DESPUES de este paso. PartirCarga necesita ademas las
-plantillas de Smelter "Cobranza movil · padres" y "· partes" (scripts/pan/paso20_plantillas_paralelas.py --aplicar).
+Las Custom APIs (SolicitarEspecial, AltaCuenta, PartirCarga...) no tienen pasos: sus tipos vienen en la misma dll y las
+define scripts/pan/paso12_custom_api.py DESPUÉS de este paso. PartirCarga necesita además las plantillas de Smelter
+"Cobranza movil · padres" y "· partes" (scripts/pan/paso20_plantillas_paralelas.py --aplicar).
 
-RepartoAsignacion y RepartoPorAgente son ASINCRONOS (PostOperation, borran el trabajo del sistema si termina bien).
-RepartoAsignacion reemplaza al flow "Cambio de Owner en Asignaciones"; nunca sincrono: correria dentro del trozo de 100 filas
-de Smelter (2 minutos por mensaje). RepartoPorAgente (DAT-08) re-reparte las asignaciones de un agente al cambiar su usuario.
+RepartoAsignacion y RepartoPorAgente son ASÍNCRONOS (PostOperation, borran el trabajo del sistema si termina bien).
+RepartoAsignacion nunca va síncrono: correría dentro del lote de 100 filas de Smelter (2 minutos por mensaje).
+RepartoPorAgente re-reparte las asignaciones de un agente al cambiar su usuario.
 Ambos necesitan el equipo "Cartera sin cobrador" (scripts/seguridad/paso5_cartera_sin_cobrador.py).
-Reclasificacion es PostOperation SINCRONO: cierra la asignacion del otro tipo en la misma transaccion que la fila de la carga.
+Reclasificacion es PostOperation SÍNCRONO: cierra la asignación del otro tipo en la misma transacción que la fila de la carga.
 
 Credenciales: variables de entorno DATAVERSE_URL, PP_CLIENT_ID, PP_CLIENT_SECRET, PP_TENANT_ID (las mismas
 secrets del repo). En local, si faltan, se leen de pp_secrets.env (gitignored). Nunca se imprimen.
@@ -82,7 +82,7 @@ def definir_pasos():
         tipo=NS + 'CuentaDesdeInteraccion', mensaje='Create', entidad=P + 'pago', panguard=False, filtro=[],
         columnas=['sanic_cm_pg_cuentaid', 'sanic_cm_pg_interaccion'], legacy=False, imagen=None,
         descripcion='Completa pg_cuentaid desde la interaccion'))
-    # AprobacionEspecial (S-6): solo Supervisor/Admin aprueban, rechazan o ponen agente a una Especial
+    # AprobacionEspecial: solo Supervisor/Admin aprueban, rechazan o ponen agente a una Especial
     for mensaje in ('Create', 'Update'):
         cols = ['sanic_cm_as_agenteid', 'sanic_cm_as_estadoaprobacion', 'sanic_cm_as_tipo']
         pasos.append(dict(
@@ -90,7 +90,7 @@ def definir_pasos():
             filtro=cols if mensaje == 'Update' else [], columnas=cols, legacy=False,
             imagen=dict(nombre=IMAGEN_PREVIA, atributos=cols) if mensaje == 'Update' else None,
             descripcion='S-6: solo Supervisor/Admin aprueban, rechazan o asignan agente a una Especial'))
-    # ActualizacionConInteraccion (APP-24): la actualizacion de datos cuelga de una interaccion con cuenta
+    # ActualizacionConInteraccion: la actualización de datos cuelga de una interacción con cuenta
     for mensaje in ('Create', 'Update'):
         pasos.append(dict(
             tipo=NS + 'ActualizacionConInteraccion', mensaje=mensaje, entidad=P + 'actualizaciondatos', panguard=False,
@@ -104,7 +104,7 @@ def definir_pasos():
             filtro=['sanic_cm_ag_usuarioid'] if mensaje == 'Update' else [],
             columnas=['sanic_cm_ag_usuarioid', 'sanic_cm_ag_emailusuario'], legacy=False, imagen=None,
             descripcion='Correo del agente = UPN (minusculas) del usuario vinculado'))
-    # RepartoAsignacion: dueno al cobrador, compartir cuenta/cliente/fiador y revocar al anterior. ASINCRONO.
+    # RepartoAsignacion: dueño al localizador, compartir cuenta/cliente/fiador y revocar al anterior. ASÍNCRONO.
     for mensaje in ('Create', 'Update'):
         cols = ['sanic_cm_as_agenteid', 'sanic_cm_as_estado', 'sanic_cm_as_estadoaprobacion']
         pasos.append(dict(
@@ -112,27 +112,27 @@ def definir_pasos():
             filtro=cols if mensaje == 'Update' else [], columnas=cols + ['sanic_cm_as_solicitadopor'], legacy=False,
             imagen=None, etapa=ETAPA_POSTOPERATION, modo=MODO_ASINCRONO,
             descripcion='Reparto: dueno al cobrador, compartidos de cuenta/cliente/fiador y revocacion al anterior (asincrono)'))
-    # RepartoPorAgente (DAT-08): al vincular, cambiar o quitar el usuario del agente, re-reparte sus asignaciones. ASINCRONO.
+    # RepartoPorAgente: al vincular, cambiar o quitar el usuario del agente, re-reparte sus asignaciones. ASÍNCRONO.
     pasos.append(dict(
         tipo=NS + 'RepartoPorAgente', mensaje='Update', entidad=P + 'agente', panguard=False,
         filtro=['sanic_cm_ag_usuarioid'], columnas=['sanic_cm_ag_usuarioid'], legacy=False,
         imagen=None, etapa=ETAPA_POSTOPERATION, modo=MODO_ASINCRONO,
         descripcion='DAT-08: al cambiar el usuario del agente, re-reparte sus asignaciones activas (asincrono)'))
-    # ColumnasAsignacion (S-11): cada rol de CM escribe solo las columnas de la asignacion que usa su pantalla. Sin filtro
-    # A PROPOSITO: controla cualquier columna sanic_cm_as_* (un filtro dejaria pasar las que no lista). Desde 1.0.9.6 no le
-    # consulta roles a SYSTEM (la carga), asi que en cada fila de la carga ya no cuesta consultas.
+    # ColumnasAsignacion: cada rol de CM escribe solo las columnas de la asignación que usa su pantalla. Sin filtro
+    # A PROPÓSITO: controla cualquier columna sanic_cm_as_* (un filtro dejaría pasar las que no lista). A SYSTEM (la carga)
+    # no le consulta roles, así que no agrega consultas por fila de la carga.
     pasos.append(dict(
         tipo=NS + 'ColumnasAsignacion', mensaje='Update', entidad=P + 'asignacion', panguard=False, filtro=[],
         columnas=['sanic_cm_as_orden', 'sanic_cm_as_estadoaprobacion'], legacy=False, imagen=None,
         descripcion='S-11: cada rol de CM escribe solo las columnas de la asignacion que usa su pantalla'))
-    # CargaSobreAsignacion (DAT-10, DAT-31): la carga reabre lo que cerro el sistema y no pisa la fecha de asignacion.
+    # CargaSobreAsignacion: la carga reabre lo que cerró el sistema y no pisa la fecha de asignación.
     cols = ['sanic_cm_as_estado', 'sanic_cm_as_motivo', 'sanic_cm_as_tipo', 'sanic_cm_as_fechaasignada']
     pasos.append(dict(
         tipo=NS + 'CargaSobreAsignacion', mensaje='Update', entidad=P + 'asignacion', panguard=False,
         filtro=['sanic_cm_as_ultimacarga'], columnas=cols + ['sanic_cm_as_ultimacarga', 'sanic_cm_as_fechacierre'], legacy=False,
         imagen=dict(nombre=IMAGEN_PREVIA, atributos=cols),
         descripcion='DAT-10/31: la carga reabre la Diaria/Incobrable que cerro el sistema y no pisa la fecha de asignacion'))
-    # Reclasificacion (DAT-15): una sola activa entre Diaria e Incobrable por cuenta. PostOperation SINCRONO.
+    # Reclasificacion: una sola activa entre Diaria e Incobrable por cuenta. PostOperation SÍNCRONO.
     for mensaje in ('Create', 'Update'):
         cols = ['sanic_cm_as_tipo', 'sanic_cm_as_estado', 'sanic_cm_as_cuentaid']
         pasos.append(dict(
@@ -142,32 +142,32 @@ def definir_pasos():
             imagen=dict(nombre=IMAGEN_PREVIA, atributos=cols) if mensaje == 'Update' else None,
             etapa=ETAPA_POSTOPERATION, modo=MODO_SINCRONO,
             descripcion='DAT-15: al traer la cuenta con el otro tipo, cierra la Diaria/Incobrable anterior (sincrono)'))
-    # InteraccionDelCobrador (DAT-13, SEC-08): cuenta y agente obligatorios; el agente del cobrador lo pone el servidor.
+    # InteraccionDelCobrador: cuenta y agente obligatorios; el agente del localizador lo pone el servidor.
     pasos.append(dict(
         tipo=NS + 'InteraccionDelCobrador', mensaje='Create', entidad=P + 'interaccion', panguard=False, filtro=[],
         columnas=['sanic_cm_in_cuentaid', 'sanic_cm_in_agente', 'sanic_cm_in_nombreagente', 'sanic_cm_in_estadograbacion'],
         legacy=False, imagen=None,
         descripcion='DAT-13/SEC-08: cuenta y agente obligatorios; el agente del cobrador lo pone el servidor'))
-    # GrabacionInteraccion (DAT-11): la grabacion en el CORE la controla el servidor. Sin filtro.
+    # GrabacionInteraccion: la grabación en el CORE la controla el servidor. Sin filtro.
     cols = ['sanic_cm_in_estadograbacion', 'sanic_cm_in_codigograbacion']
     pasos.append(dict(
         tipo=NS + 'GrabacionInteraccion', mensaje='Update', entidad=P + 'interaccion', panguard=False, filtro=[],
         columnas=cols + ['sanic_cm_in_fechagrabacion', 'sanic_cm_in_grabadopor'], legacy=False,
         imagen=dict(nombre=IMAGEN_PREVIA, atributos=cols),
         descripcion='DAT-11: no se vuelve a grabar una interaccion grabada; fecha y usuario de grabacion del servidor'))
-    # VincularActualizacionPendiente (F8): al llegar la interaccion, cuelga la actualizacion que entro sin vincular. ASINCRONO:
-    # si fallara sincrono, se perderia la interaccion del telefono.
+    # VincularActualizacionPendiente: al llegar la interacción, cuelga la actualización que entró sin vincular. ASÍNCRONO:
+    # si fallara síncrono, se perdería la interacción del teléfono.
     pasos.append(dict(
         tipo=NS + 'VincularActualizacionPendiente', mensaje='Create', entidad=P + 'interaccion', panguard=False, filtro=[],
         columnas=['sanic_cm_in_actualizainfo', 'sanic_cm_in_cuentaid'], legacy=False,
         imagen=None, etapa=ETAPA_POSTOPERATION, modo=MODO_ASINCRONO,
         descripcion='F8: cuelga de la interaccion que llega la actualizacion de datos que entro sin vincular (asincrono)'))
-    # ReciboRepetido (F6): el recibo repetido no se rechaza, se marca para BackOffice
+    # ReciboRepetido: el recibo repetido no se rechaza, se marca para BackOffice
     pasos.append(dict(
         tipo=NS + 'ReciboRepetido', mensaje='Create', entidad=P + 'pago', panguard=False, filtro=[],
         columnas=['sanic_cm_pg_numerorecibo', 'sanic_cm_pg_reciborepetido'], legacy=False, imagen=None,
         descripcion='F6: marca el pago cuyo numero de recibo ya existe (no lo rechaza)'))
-    # EspecialDesdeCuenta (F3): la Especial de la carga toma tipo, nota y retiro de la cuenta (solo lo vacio, sin solicitante)
+    # EspecialDesdeCuenta: la Especial de la carga toma tipo, nota y retiro de la cuenta (solo lo vacío, sin solicitante)
     cols = ['sanic_cm_as_tipo', 'sanic_cm_as_cuentaid', 'sanic_cm_as_solicitadopor', 'sanic_cm_as_notas',
             'sanic_cm_as_retironio', 'sanic_cm_as_retirousd']
     for mensaje in ('Create', 'Update'):
@@ -177,7 +177,7 @@ def definir_pasos():
             columnas=cols + ['sanic_cm_as_ultimacarga'], legacy=False,
             imagen=dict(nombre=IMAGEN_PREVIA, atributos=cols) if mensaje == 'Update' else None,
             descripcion='F3: la Especial de la carga toma tipo, nota y retiro de la cuenta (solo lo vacio)'))
-    # TipoDesdeProducto (O3): la cuenta toma el tipo de su producto (la carga solo resuelve el lookup por CodigoProducto)
+    # TipoDesdeProducto: la cuenta toma el tipo de su producto (la carga solo resuelve el lookup por CodigoProducto)
     for mensaje in ('Create', 'Update'):
         pasos.append(dict(
             tipo=NS + 'TipoDesdeProducto', mensaje=mensaje, entidad=P + 'cuenta', panguard=False,
@@ -186,14 +186,14 @@ def definir_pasos():
             imagen=dict(nombre=IMAGEN_PREVIA, atributos=['sanic_cm_ct_productoid', 'sanic_cm_ct_tipoproducto'])
             if mensaje == 'Update' else None,
             descripcion='O3: la cuenta toma el tipo de su producto (lo que muestra el cobrador)'))
-    # IdentidadEnInteraccion (borrado por salida de cartera): la interaccion guarda ultimos 4, CIF y clave HMAC de su cuenta,
-    # porque la cuenta se borra 14 dias despues de salir y la interaccion vive 2 anos. Nunca rechaza.
+    # IdentidadEnInteraccion: la interacción guarda últimos 4, CIF y clave HMAC de su cuenta, porque la cuenta se borra
+    # 14 días después de salir de cartera y la interacción vive 2 años. Nunca rechaza.
     pasos.append(dict(
         tipo=NS + 'IdentidadEnInteraccion', mensaje='Create', entidad=P + 'interaccion', panguard=False, filtro=[],
         columnas=['sanic_cm_in_cuentaid', 'sanic_cm_in_ultimos4', 'sanic_cm_in_cifcliente', 'sanic_cm_in_clavepan'],
         legacy=False, imagen=None,
         descripcion='Borrado por salida: la interaccion guarda ultimos 4, CIF y clave de su cuenta (no rechaza)'))
-    # TramoCartera (escala de la cartera): tramo 0..19 de la asignacion, sale de su cuenta. La app la trae por tramos.
+    # TramoCartera: tramo 0..19 de la asignación, sale de su cuenta. La app la trae por tramos.
     pasos.append(dict(
         tipo=NS + 'TramoCartera', mensaje='Create', entidad=P + 'asignacion', panguard=False, filtro=[],
         columnas=['sanic_cm_as_cuentaid', 'sanic_cm_as_tramo'], legacy=False, imagen=None,
@@ -371,7 +371,7 @@ def main():
 
         if faltantes:
             if p['legacy']:
-                # Paso 8d ya borro la columna en desuso: este paso ya no tiene razon de ser.
+                # El paso 8d ya borró la columna en desuso: este paso ya no tiene razón de ser.
                 if existente:
                     accion('retirar paso (la columna en desuso %s ya no existe): %s' % (', '.join(faltantes), p['nombre']),
                            'DELETE', 'sdkmessageprocessingsteps(%s)' % existente['sdkmessageprocessingstepid'])
@@ -457,8 +457,8 @@ def main():
                             'attributes': atributos, 'messagepropertyname': 'Target',
                             'sdkmessageprocessingstepid@odata.bind': '/sdkmessageprocessingsteps(%s)' % paso_id})
                 elif imgs[0]['attributes'] != atributos or imgs[0]['entityalias'] != p['imagen']['nombre'] or imgs[0]['imagetype'] != 0:
-                    # PATCH sobre la imagen devuelve 0x80040216 en DEV (2026-10-25): se borra y se crea de nuevo, y se toca el
-                    # paso (descripción ida y vuelta) porque el servicio sigue usando la imagen vieja hasta que el paso cambia.
+                    # PATCH sobre la imagen devuelve 0x80040216: se borra y se crea de nuevo, y se toca el paso (descripción ida y
+                    # vuelta) porque el servicio sigue usando la imagen vieja hasta que el paso cambia.
                     accion('borrar imagen previa vieja de ' + p['nombre'], 'DELETE',
                            'sdkmessageprocessingstepimages(%s)' % imgs[0]['sdkmessageprocessingstepimageid'])
                     accion('crear imagen previa %s (%s) en %s' % (p['imagen']['nombre'], atributos, p['nombre']),

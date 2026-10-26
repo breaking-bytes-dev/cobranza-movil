@@ -5,12 +5,10 @@ using Xunit;
 namespace Sanic.CobranzaMovil.Plugins.Tests
 {
     /// <summary>
-    /// 1.0.9.6: la carga de Smelter escribe como SYSTEM, que no tiene roles de CM. AprobacionEspecial y ColumnasAsignacion
-    /// ya no le consultan los roles (dos RetrieveMultiple por fila que siempre daban "sin roles de CM") y ClaveDesdeCuenta
-    /// no relee la cuenta que la carga referencia por su clave alternativa. SYSTEM se reconoce con un WhoAmI del servicio
-    /// del sistema, una vez por organizacion.
-    /// Las reglas de seguridad no cambian: a una PERSONA se le consultan los roles como siempre (S-6, H1, H2, S-7, S-11),
-    /// y si no se sabe quien es SYSTEM se consulta como antes.
+    /// La carga escribe como SYSTEM, que no tiene roles de CM: AprobacionEspecial y ColumnasAsignacion no le consultan
+    /// los roles y ClaveDesdeCuenta no relee la cuenta referenciada por clave alternativa. SYSTEM se reconoce con un
+    /// WhoAmI del servicio del sistema, una vez por organizacion. A una persona se le consultan los roles siempre, y si
+    /// no se sabe quien es SYSTEM tambien.
     /// </summary>
     public class CargaComoSistemaTests
     {
@@ -78,7 +76,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             var h = Carga("Create", t);
             h.Ejecutar(new AprobacionEspecial());
             Assert.Equal(0, h.ConsultasAlServicio());
-            Assert.Equal(Borrador, t.GetAttributeValue<OptionSetValue>(Aprobacion).Value); // DAT-28 sigue igual
+            Assert.Equal(Borrador, t.GetAttributeValue<OptionSetValue>(Aprobacion).Value);
         }
 
         [Fact]
@@ -119,7 +117,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         [Fact]
         public void Si_no_se_sabe_quien_es_SYSTEM_se_consultan_los_roles_como_antes()
         {
-            // Sin respuesta de WhoAmI: no hay atajo (falla hacia el comportamiento anterior, no hacia la exencion).
+            // Sin respuesta de WhoAmI no hay atajo: falla hacia consultar los roles, no hacia la exencion.
             var t = Nueva(Diaria, null, conAgente: true);
             var h = new Harness("Create", Asignacion).ConTarget(t).RolesDelLlamador();
             h.Ejecutar(new AprobacionEspecial());
@@ -127,7 +125,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             Assert.Equal(Borrador, t.GetAttributeValue<OptionSetValue>(Aprobacion).Value);
         }
 
-        // ------------------------------------------------------------------ AprobacionEspecial: las personas, igual que antes
+        // ------------------------------------------------------------------ AprobacionEspecial: las personas
 
         [Theory]
         [InlineData(Localizador)]
@@ -174,7 +172,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             Assert.Contains("Solicitado por", ex.Message);
         }
 
-        // ------------------------------------------------------------------ ColumnasAsignacion (S-11)
+        // ------------------------------------------------------------------ ColumnasAsignacion
 
         [Fact]
         public void S11_la_carga_actualiza_sus_columnas_sin_consultar_roles()
@@ -214,7 +212,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
 
         private static EntityReference CuentaResueltaPorClave(Guid id, string clave)
         {
-            // Lo que llega de la carga: referencia por clave alternativa (R26) que la plataforma ya resolvio a un Id.
+            // Lo que llega de la carga: referencia por clave alternativa que la plataforma ya resolvio a un Id.
             return new EntityReference(Cuenta, new KeyAttributeCollection { { ClaveCt, clave } }) { Id = id };
         }
 
@@ -247,8 +245,8 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         [Fact]
         public void Una_persona_con_Id_y_clave_en_la_referencia_se_valida_contra_la_cuenta_leida()
         {
-            // Con Id explicito la plataforma no tiene por que mirar la clave que acompana a la referencia: a una persona no
-            // se le cree. La cuenta tiene ClaveA; la referencia dice ClaveB y el Target tambien: se rechaza como siempre.
+            // Con Id explicito la plataforma no valida la clave de la referencia, asi que a una persona no se le cree:
+            // la cuenta tiene ClaveA, la referencia y el Target dicen ClaveB, y se rechaza.
             var cuentaId = Guid.NewGuid();
             var cuenta = new Entity(Cuenta, cuentaId);
             cuenta[ClaveCt] = ClaveA;

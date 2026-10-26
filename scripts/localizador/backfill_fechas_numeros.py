@@ -1,9 +1,9 @@
-"""APP-05 / APP-21: completa datos que la app no escribía (o no podía escribir offline), para los registros que ya existen.
-  - Pago.Fecha del pago vacía      → su createdon (la app ahora escribe Now() al guardar).
+"""Completa datos que la app no escribe (o no puede escribir offline) en los registros que ya existen.
+  - Pago.Fecha del pago vacía      → su createdon.
   - Interacción.Fecha de captura   → su createdon, si está vacía.
-  - Pago.N° de interacción vacío   → el número de su interacción (de ahora en adelante lo completa el plugin
-                                     CuentaDesdeInteraccion al crear el pago).
-Idempotente: solo toca lo vacío. Nunca imprime números de tarjeta (estas tablas no los tienen).
+  - Pago.N° de interacción vacío   → el número de su interacción (en los pagos nuevos lo completa el plugin
+                                     CuentaDesdeInteraccion).
+Idempotente: solo toca lo vacío. Estas tablas no guardan números de tarjeta.
 Uso: python3 scripts/localizador/backfill_fechas_numeros.py [--aplicar]"""
 import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'seguridad'))

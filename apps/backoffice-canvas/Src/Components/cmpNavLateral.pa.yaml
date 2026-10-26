@@ -110,9 +110,8 @@ ComponentDefinitions:
                   FocusedBorderThickness: =2
                   Height: =Parent.Height - (gblE.AltoBarra + gblE.Pad) - (gblE.AltoFila + gblE.PadSm)
                   Items: |-
-                    =// B-06 (verificado por telemetría del player: Filter · galNavCmp.Items · "expected a table"):
-                    // leer la fórmula con nombre de la APP (nfNav) desde el componente fallaba en la 1.ª
-                    // evaluación al abrir. El catálogo es local al componente: una tabla literal siempre es tabla.
+                    =// Leer la fórmula con nombre de la app (nfNav) desde el componente falla en la primera evaluación
+                    // al abrir ("expected a table"). El catálogo es local al componente: una tabla literal siempre es tabla.
                     // Un rol solo VE su navegación (Roles ∩ gblRol). Todo en memoria, cero delegación.
                     Sort(
                         Filter(

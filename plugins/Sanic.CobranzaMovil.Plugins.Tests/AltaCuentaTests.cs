@@ -12,8 +12,8 @@ using Xunit;
 namespace Sanic.CobranzaMovil.Plugins.Tests
 {
     /// <summary>
-    /// DAT-20 (camino A): la Custom API AltaCuenta arma en el servidor UNA fila del archivo del banco y la manda a Smelter
-    /// como un Import Job del llamador (sin estado: lo pone la app). Cubre los rechazos, las cinco trampas del upsert de la
+    /// La Custom API AltaCuenta arma en el servidor una fila del archivo de carga y la manda como un Import Job del
+    /// llamador (sin estado: lo pone la app). Cubre los rechazos, las cinco trampas del upsert de la
     /// plantilla (fecha de carga, agente y producto por nombre, cliente existente, cuenta existente, aviso por tipo), el
     /// armado exacto del CSV y que el PAN nunca aparece en trazas, mensajes, avisos ni en el nombre del job.
     /// </summary>

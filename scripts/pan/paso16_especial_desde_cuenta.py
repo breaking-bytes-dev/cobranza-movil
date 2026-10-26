@@ -1,9 +1,9 @@
-"""F3 · Relleno de las Especiales de la carga que ya existen (idempotente).
-La carga escribe tipo, nota y retiro de la Especial en la CUENTA y la app los lee de la ASIGNACIÓN. Desde 1.0.9.1 el plugin
+"""Relleno de las Especiales de la carga que ya existen (idempotente).
+La carga escribe tipo, nota y retiro de la Especial en la CUENTA y la app los lee de la ASIGNACIÓN. El plugin
 EspecialDesdeCuenta los copia al crear la Especial o en cada carga; esto completa las que ya estaban, con la misma regla:
 solo Especiales SIN solicitante y solo lo vacío (notas = "Tipo — nota", retiro NIO y USD). Nunca pisa lo de una persona.
 Corre con el Service Principal (sin roles de CM: ColumnasAsignacion no lo frena). No imprime valores, solo conteos.
-Va DESPUÉS de paso5 (plugins 1.0.9.1).
+Va DESPUÉS de paso5 (con EspecialDesdeCuenta registrado).
 Uso: python3 scripts/pan/paso16_especial_desde_cuenta.py [--aplicar]"""
 import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'seguridad'))

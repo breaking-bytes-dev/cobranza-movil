@@ -1,4 +1,4 @@
-// F3 Admin (User4): lo que ve tras la carga · F9 Admin (User4): cierres + revocación del compartido.
+// Fase 3, Admin (User4): lo que ve tras la carga · Fase 9, Admin (User4): cierres + revocación del compartido.
 // SEGURIDAD: en Reconciliación NO se pulsa nada (ni casilla ni cierre en lote). En Agentes NO se vincula ni desvincula.
 const dv = require('../../backoffice-canvas/lib/dataverse');
 const v = require('../../backoffice-canvas/lib/verdad');
@@ -9,7 +9,7 @@ const { pl, c } = ui;
 
 const mascara = (e) => `•••• ${e.ult4}`;
 
-// ── F3 ─────────────────────────────────────────────────────────────────────────────────────────
+// ── Fase 3 ─────────────────────────────────────────────────────────────────────────────────────────
 async function f3(ctx) {
   const D = ctx.datos; ctx.requiere(D.cuentas?.every((e) => e.id), 'F1 no dejó las cuentas');
   const dd = ctx.hoy.fecha.slice(8, 10), mm = ctx.hoy.fecha.slice(5, 7);
@@ -73,7 +73,7 @@ async function f3(ctx) {
   ctx.chk('F3-12', JSON.stringify(agAntes) === JSON.stringify(agDesp), `los agentes (nombre, correo, usuario, activo) quedaron idénticos tras abrir la pantalla (${agDesp.length} agentes)`);
 }
 
-// ── F9 ─────────────────────────────────────────────────────────────────────────────────────────
+// ── Fase 9 ─────────────────────────────────────────────────────────────────────────────────────────
 // Abre en el panel de Cierres la fila del cliente de la corrida cuya cuenta es `mask` (la galería virtualiza: se baja con la rueda).
 async function abrirCierre(app, nombre, mask) {
   const gal = pl.ctl(app, 'galCierresCie'); const caja = await gal.boundingBox().catch(() => null);

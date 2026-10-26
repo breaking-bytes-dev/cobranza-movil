@@ -1,4 +1,4 @@
-"""Fase 2 · Paso 13: fiador sin nombre -> "(sin fiador)" (opcion 2a-2 de docs/auditoria/01-pendientes.md, fila "Fiadores (origen)").
+"""Fiador sin nombre -> "(sin fiador)".
 Pone DefaultValue = "(sin fiador)" en el Column Mapping NombreFianza -> sanic_cm_fi_nombre del Table Mapping de la tabla
 sanic_cm_tbl_fiador de la plantilla Smelter "Cobranza movil". Smelter aplica el default ANTES del chequeo de vacio
 (NormalizationEngine) y UpsertWriter arma la clave alterna solo si el valor no es nulo: asi las filas sin fiador dejan de

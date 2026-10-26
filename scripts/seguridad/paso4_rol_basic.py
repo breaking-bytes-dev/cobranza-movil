@@ -1,4 +1,4 @@
-"""Fase 1 · Paso 4: rol 'SR | CM | Localizador' → Read Basic (en vez de Global) en maestros.
+"""Rol 'SR | CM | Localizador': Read Basic (en vez de Global) en las tablas maestras.
 Uso: python3 paso4_rol_basic.py [--aplicar | --revertir]"""
 import sys
 from dvlib import rq, get

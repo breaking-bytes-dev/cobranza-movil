@@ -1,4 +1,4 @@
-// FASE E — MULTI-ROL (R-06): User1 (Backoffice) se agrega TEMPORALMENTE al team "CM · Admin y Carga · DEV",
+// FASE E — MULTI-ROL: User1 (Backoffice) se agrega TEMPORALMENTE al team "CM · Admin y Carga · DEV",
 // se prueba la nav combinada y se lo QUITA; luego se verifica que vuelve a SOLO Backoffice.
 // (run.js además restaura la foto de membresías al final, pase lo que pase.)
 const pl = require('../lib/player');

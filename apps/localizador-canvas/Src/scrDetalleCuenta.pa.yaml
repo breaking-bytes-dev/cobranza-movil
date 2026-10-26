@@ -15,7 +15,7 @@ Screens:
         =// locPan: número completo (se oculta solo). locEsp: Especial activa de ESTA cuenta (retiro y nota viven en la asignación).
         UpdateContext({
             locPan: Blank(),
-            // APP-08: una Especial sin aprobar no existe para el cobrador (Borrador, Pendiente o Rechazada).
+            // Una Especial sin aprobar (Borrador, Pendiente o Rechazada) no existe para el localizador.
             locEsp: LookUp('CM | TBL | Asignacions',
                 '[AS] Cuenta'.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta'
                 && '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
@@ -384,8 +384,8 @@ Screens:
                               Size: =gblT.fbase
                               Text: |-
                                 =With({f: Trim(varCuenta.'[CT] Fecha Pago')},
-                                    // DAT-26: la carga trae aaaa-mm-dd (casi todas) o dd/mm/aaaa. Se arma el texto a mano: DateValue dependia del
-                                    // idioma del telefono y en ingles leia 05/07 como 7 de mayo.
+                                    // La carga trae aaaa-mm-dd (casi todas) o dd/mm/aaaa. Se arma el texto a mano: DateValue depende del
+                                    // idioma del teléfono (en inglés lee 05/07 como 7 de mayo).
                                     If(IsMatch(f, "\d{4}-\d{2}-\d{2}", MatchOptions.BeginsWith),
                                         Mid(f, 9, 2) & "/" & Mid(f, 6, 2) & "/" & Left(f, 4),
                                         f))
@@ -425,7 +425,7 @@ Screens:
                               LayoutMinWidth: =16
                               Size: =gblT.fbase
                               Text: |-
-                                =// '[CT] Último pago' es DateOnly (2026-10-25): el día que manda el banco, sin zona horaria.
+                                =// '[CT] Último pago' es DateOnly: el día que manda el banco, sin zona horaria.
                                 If(IsBlank(varCuenta.'[CT] Último pago'), "", Text(varCuenta.'[CT] Último pago', "dd/mm/yyyy"))
                   - conFila_Ciclo:
                       Control: GroupContainer@1.5.0
@@ -500,7 +500,7 @@ Screens:
                               LayoutMinWidth: =16
                               Size: =gblT.fbase
                               Text: |-
-                                =// 'Fecha asignada' es DateOnly (2026-10-25): el día tal cual, venga de la carga o de una Especial pedida en la app.
+                                =// 'Fecha asignada' es DateOnly: el día tal cual, venga de la carga o de una Especial pedida en la app.
                                 Text(varAsig.'[AS] Fecha asignada', "dd/mm/yyyy")
                   - conFila_UltCarga:
                       Control: GroupContainer@1.5.0
@@ -889,7 +889,7 @@ Screens:
                                     LayoutMinWidth: =16
                                     Size: =gblT.fxs
                                     Text: |-
-                                      =// APP-05/16: los pagos se buscan por la relación con la interacción (el N° de interacción está vacío offline).
+                                      =// Los pagos se buscan por la relación con la interacción (el N° de interacción está vacío offline).
                                       With({ p: Filter('CM | TBL | Pagos', '[PG] Interaccion'.'CM | TBL | Interaccion' = ThisItem.'CM | TBL | Interaccion') },
                                           If(IsEmpty(p), "", "💵 " & Concat(p, If(Text('[PG] Moneda')="USD","US$ ","C$ ") & Text('[PG] Monto',"#,##0.00", "en-US") &
                                                   " (rec. " & '[PG] Numero recibo' & ")", " · ")))

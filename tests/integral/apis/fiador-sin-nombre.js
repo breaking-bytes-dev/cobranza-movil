@@ -1,4 +1,4 @@
-// Fiador sin nombre (opcion 2a-2, paso13_fiador_sin_nombre.py) en vivo, con datos QA y PAN FICTICIOS (BIN 9999, solo en memoria).
+// Filas sin fiador en la carga y en el alta de cuenta, en vivo, con datos QA y PAN FICTICIOS (BIN 9999, solo en memoria).
 // Carga por la API de Smelter (como lib/smelter.js) de 2 filas SIN NombreFianza + 1 con fiador QA; 2.a carga igual; Alta de cuenta
 // (Custom API sanic_cm_AltaCuenta como User4) sin fiador. Verifica: un solo fiador "(sin fiador)", cuentas sin fiador con el lookup
 // vacio, la cuenta con fiador enlazada a su fiador QA, jobs Completed sin filas fallidas y ningun fiador vacio nuevo.

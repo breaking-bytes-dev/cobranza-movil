@@ -1,21 +1,21 @@
-"""Fase 1 · Paso 2: el flow de owner comparte (lectura) cuenta/cliente/fiador con el cobrador y revoca al anterior/al cerrar.
-Una Especial sin aprobar no se comparte ni cambia de dueño (S-6).
-Uso: python3 paso2_flow.py [--aplicar --reactivar-flow-retirado]   (sin --aplicar guarda el JSON y muestra el resumen)
-RETIRADO: lo reemplaza el plugin RepartoAsignacion (2026-10-13). Ver el guard de abajo."""
+"""RETIRADO: lo reemplaza el plugin RepartoAsignacion. Ver el guard de abajo.
+Configura el flow de owner: comparte en lectura cuenta/cliente/fiador con el localizador y revoca al anterior o al cerrar.
+Una Especial sin aprobar no se comparte ni cambia de dueño.
+Uso: python3 paso2_flow.py [--aplicar --reactivar-flow-retirado]   (sin --aplicar guarda el JSON y muestra el resumen)"""
 import copy, json, os, sys
 from dvlib import rq, get
 
 APLICAR = '--aplicar' in sys.argv
-# RETIRADO 2026-10-13: el flow quedo apagado y lo reemplaza el plugin asincrono RepartoAsignacion (ver
+# RETIRADO: el flow quedó apagado y lo reemplaza el plugin asíncrono RepartoAsignacion (ver
 # plugins/Sanic.CobranzaMovil.Plugins/README.md). Aplicar este script lo vuelve a ENCENDER: solo como rollback, y
-# desactivando antes los dos pasos "Sanic.CobranzaMovil.Plugins.RepartoAsignacion" (si no, repartirian los dos).
+# desactivando antes los dos pasos "Sanic.CobranzaMovil.Plugins.RepartoAsignacion" (si no, repartirían los dos).
 if APLICAR and '--reactivar-flow-retirado' not in sys.argv:
     sys.exit('El flow de owner esta retirado (lo reemplaza RepartoAsignacion). Rollback: desactivar los pasos de '
              'RepartoAsignacion y repetir con --aplicar --reactivar-flow-retirado.')
 WF = 'workflows(3b897aa2-0077-f111-ab0e-70a8a5b226fd)'
 live = get(WF + '?$select=clientdata,statecode')
 json.dump(json.loads(live['clientdata']), open('flow-vigente-respaldo.json', 'w'), indent=1)  # lo que está desplegado ahora
-# BASE FIJA: la versión validada antes de la Fase 1 (B-10/B-16/B-17). Construir siempre desde acá, nunca desde lo vivo.
+# BASE FIJA: la versión validada del flow. Construir siempre desde acá, nunca desde lo desplegado.
 cd = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'flow-owner-base.json')))
 d = cd['properties']['definition']
 trig = list(d['triggers'].values())[0]
@@ -45,7 +45,7 @@ def revoke(nombre, entset, idexpr, user, after):
 
 def filtro_otras(user, campo_cuenta=None, valor=None):
     """OData $filter: ¿el usuario tiene OTRA asignación activa (de la misma cuenta, o cuya cuenta tenga ese cliente/fiador)?
-    Antes era FetchXML con link-entity: el conector 'List rows' fallaba con esa variante aunque la Web API la aceptara."""
+    Es OData y no FetchXML con link-entity porque el conector 'List rows' falla con esa variante."""
     base = f"_ownerid_value eq @{{{user}}} and sanic_cm_as_estado eq true and sanic_cm_tbl_asignacionid ne @{{{ASIG}}}"
     if campo_cuenta is None:
         return base + f" and _sanic_cm_as_cuentaid_value eq @{{{CUENTA}}}"
@@ -114,8 +114,8 @@ d['actions'] = {
     'Obtener_cuenta': obtener_cuenta,
     'Segun_estado_de_la_asignacion': {'runAfter': {'Obtener_cuenta': ['Succeeded']}, 'type': 'If',
         'expression': {'equals': [f"@{T('sanic_cm_as_estado')}", True]},
-        # S-6 / APP-08: una Especial sin aprobar (Borrador, Pendiente o Rechazada) no se comparte ni cambia de dueño,
-        # venga del backoffice o del CSV de Smelter. Al aprobarla, el Supervisor pone el agente y el flow corre.
+        # Una Especial sin aprobar (Borrador, Pendiente o Rechazada) no se comparte ni cambia de dueño, venga del backoffice
+        # o del CSV de Smelter. Al aprobarla, el Supervisor pone el agente y el flow corre.
         'actions': {'Solo_si_no_es_Especial_sin_aprobar': {'runAfter': {}, 'type': 'If',
             'expression': {'or': [{'not': {'equals': [f"@{T('sanic_cm_as_tipo')}", 3]}},
                                   {'equals': [f"@{T('sanic_cm_as_estadoaprobacion')}", 3]}]},

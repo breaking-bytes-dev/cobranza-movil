@@ -5,16 +5,9 @@ using Microsoft.Crm.Sdk.Messages;
 namespace Sanic.CobranzaMovil.Plugins
 {
     /// <summary>
-    /// Reconoce al usuario SYSTEM sin consultar sus roles. La carga de Smelter escribe como SYSTEM (su plugin usa
-    /// CreateOrganizationService(null), R28 de fase2-pan-diseno.md), y los plugins de CM que escriben con el servicio del
-    /// sistema tambien. SYSTEM no tiene roles de CM: pedirle los roles en cada fila de la carga (dos consultas) siempre
-    /// devolvia lo mismo, "sin roles de CM".
-    ///
-    /// Como se sabe quien es SYSTEM: la documentacion de CreateOrganizationService dice que, en un plugin, null es el
-    /// usuario SYSTEM; un WhoAmI con ese servicio devuelve su id. Se pregunta UNA vez por organizacion y proceso del
-    /// sandbox (el id de SYSTEM no cambia nunca) y se guarda en memoria. No depende de nombres ni de datos editables.
-    /// Si el WhoAmI no devuelve un id, no se guarda nada y quien lo usa sigue por el camino de siempre (consultar roles):
-    /// falla hacia el comportamiento anterior, nunca hacia la exencion.
+    /// Reconoce al usuario SYSTEM (con el que escriben la carga y el servicio del sistema) sin consultar sus roles en
+    /// cada fila. Su id sale de un WhoAmI con CreateOrganizationService(null), una vez por organizacion y proceso.
+    /// Si el WhoAmI no devuelve id no se cachea nada y el llamador consulta roles: nunca falla hacia la exencion.
     /// </summary>
     internal static class UsuarioSistema
     {

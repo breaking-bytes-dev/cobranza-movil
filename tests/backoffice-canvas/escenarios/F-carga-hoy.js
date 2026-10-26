@@ -1,6 +1,6 @@
 // FASE F — User4 en su rol REAL (Admin y Carga):
-//  1) F-04: cierra la Especial QA aprobada en C (motivo + detalle).
-//  2) D-07 / F-05b / B-12: una fila QA de carga diaria con FechaCarga = HOY para probar Monitoreo, Inicio y
+//  1) Cierra la Especial QA aprobada en la fase C (motivo + detalle).
+//  2) Una fila QA de carga diaria con FechaCarga = HOY para probar Monitoreo, Inicio y
 //     Reconciliación "después del import" (sin tocar datos reales). La fila QA se borra apenas termina la fase.
 //     NUNCA se ejecuta el cierre en lote: solo se lee su estado y su texto.
 const pl = require('../lib/player');
@@ -32,7 +32,7 @@ async function abrirCierreQA(app, cuenta) { // `cuenta` = texto enmascarado, p.e
 
 module.exports = async function faseF(suite) {
   const { cliente, cuentas } = suite.datos;
-  // ── 1) F-04 ───────────────────────────────────────────────────────────────────────────
+  // ── 1) Cierre de la Especial QA ───────────────────────────────────────────────────────────────────────────
   const app1 = await c.abrir(suite, 'user4', 'F', 'Admin');
   try {
     await inf.correr('F-04', 'Admin cierra la Especial QA (de F-02/F-03) con motivo + detalle', 'Admin', async (e) => {
@@ -98,7 +98,7 @@ module.exports = async function faseF(suite) {
       const pct = Math.round(100 * desap / Math.max(1, dia));
       e.check(m && c.num(m[1]) === desap && c.num(m[2]) === dia && Number(m[3]) === pct, 'resumen "N de M (pct%)" = API', `${desap} de ${dia} (${pct}%)`, res);
       e.check(!(await pl.existeVisible(app, 'conBloqueoRec')), 'card ⛔ oculta (ya hay carga de hoy)', false, true);
-      // B-12: la colección debe traer TODAS las desaparecidas (≤ 2000), sin el aviso "Mostrando las primeras N".
+      // La colección debe traer TODAS las desaparecidas (≤ 2000), sin el aviso "Mostrando las primeras N".
       const tope = await pl.existeVisible(app, 'lblTopeRec');
       e.check(!tope, 'sin aviso "Mostrando las primeras …"', 'oculto', tope ? await pl.texto(app, 'lblTopeRec') : 'oculto');
       const txtBtn = (await pl.existeVisible(app, 'btnCerrarRec')) ? await pl.texto(app, 'btnCerrarRec') : '';

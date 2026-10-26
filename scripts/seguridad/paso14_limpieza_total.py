@@ -1,17 +1,17 @@
-"""Limpieza total de DEV antes de una prueba guiada "como un día normal" (autorizada por el dueño, 2026-10-19).
+"""Limpieza total de DEV antes de una prueba guiada "como un día normal". NO es para PROD.
 
 Borra TODOS los registros de negocio de Cobranza Móvil y los import jobs de Smelter de la plantilla "Cobranza movil".
-NO es para PROD. Orden (por las reglas de borrado: cuenta→interacción/pago/carga = RemoveLink, interacción→pago/AD = Restrict,
+Orden (por las reglas de borrado: cuenta→interacción/pago/carga = RemoveLink, interacción→pago/AD = Restrict,
 agente→cuenta/asignación/interacción/carga = Restrict, cliente→carga = Restrict):
-  1 pago y actualización de datos → 2 interacción → 3 carga diaria → 4 cuenta (arrastra asignación y cuentapan/bóveda)
+  1 pago y actualización de datos → 2 interacción → 3 carga diaria → 4 cuenta (arrastra asignación y bóveda)
   → 5 fiador (excepto el placeholder "(sin fiador)") → 6 cliente (arrastra dirección y teléfono)
-  → 7 agentes que no estén en CONSERVAR_AGENTES (por nombre) → 8 logs y jobs de Smelter de la plantilla (filtra por plantilla,
-  NO por nombre del job).
-SE CONSERVAN: productos, equipos, roles, plantilla/mappings de Smelter, la tabla de la clave K (no se lee ni se toca), jobs de otras
-plantillas, usuarios (systemuser). Idempotente.
+  → 7 agentes que no estén en CONSERVAR_AGENTES (por nombre) → 8 logs y jobs de Smelter de la plantilla (filtra por
+  plantilla, NO por nombre del job).
+Se conservan: productos, equipos, roles, plantilla y mappings de Smelter, la tabla de la clave K (no se lee ni se toca),
+jobs de otras plantillas y usuarios (systemuser). Idempotente.
 
-Sesión: el Service Principal de pp_secrets.env, la misma que usan las suites (tests/integral/lib/datos.js limpiar()) para borrar.
-Nunca se imprime un PAN ni la K: toda salida pasa por sin_pan() (enmascara 13-19 dígitos).
+Usa el Service Principal de pp_secrets.env. Nunca imprime un PAN ni la K: toda salida pasa por sin_pan() (enmascara
+13-19 dígitos).
 
 Por defecto solo muestra el plan (conteos por tabla). Aplica con --aplicar.
   --cliente CIF   ensayo: restringe los pasos 1-6 a ese cliente (con sus cuentas, interacciones, pagos...) y salta 7 y 8

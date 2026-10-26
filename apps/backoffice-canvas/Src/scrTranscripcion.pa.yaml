@@ -11,9 +11,9 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =// 3) pendientes del día + join horneado UNA vez (receta 7.7); nombre en Upper (LED-01).
+        =// 3) Pendientes del día + join calculado UNA vez; nombre en mayúsculas.
         //    Datos de la cuenta navegando el lookup '[IN] Cuenta' (lo resuelve el servidor, sin
-        //    catálogo de cuentas truncable al Data row limit).
+        //    catálogo de cuentas truncable al límite de filas).
         ClearCollect(colPendTrx,
             AddColumns(
                 // FIFO EN EL SERVIDOR: si la cola pasa del límite de filas (2000), entran las MÁS ANTIGUAS (las que van primero).
@@ -62,8 +62,8 @@ Screens:
         If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info',
             Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                 '[AD] Interaccion'.'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'));
-            // F10: sin la vinculada, la que entró SIN VINCULAR (F8) de la misma cuenta; si tampoco, no llegó nada
-            Set(varADSinVincTrx, IsBlank(varADTrx) && !IsBlank(varActualTrx.'[IN] Cuenta'));  // APP-50: sin cuenta no se busca la sin vincular (clave vacía)
+            // Sin la vinculada, la que entró sin vincular de la misma cuenta; si tampoco, no llegó nada.
+            Set(varADSinVincTrx, IsBlank(varADTrx) && !IsBlank(varActualTrx.'[IN] Cuenta'));  // sin cuenta no se busca la sin vincular (clave vacía)
             If(varADSinVincTrx, Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                 '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = varActualTrx.'[IN] Cuenta'.'CM | TBL | Cuenta')));
             ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
@@ -147,8 +147,8 @@ Screens:
               If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info',
                   Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                       '[AD] Interaccion'.'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'));
-                  // F10: sin la vinculada, la que entró SIN VINCULAR (F8) de la misma cuenta; si tampoco, no llegó nada
-                  Set(varADSinVincTrx, IsBlank(varADTrx) && !IsBlank(varActualTrx.'[IN] Cuenta'));  // APP-50: sin cuenta no se busca la sin vincular (clave vacía)
+                  // Sin la vinculada, la que entró sin vincular de la misma cuenta; si tampoco, no llegó nada.
+                  Set(varADSinVincTrx, IsBlank(varADTrx) && !IsBlank(varActualTrx.'[IN] Cuenta'));  // sin cuenta no se busca la sin vincular (clave vacía)
                   If(varADSinVincTrx, Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                       '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = varActualTrx.'[IN] Cuenta'.'CM | TBL | Cuenta')));
                   ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
@@ -216,8 +216,8 @@ Screens:
                     If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info',
                         Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                             '[AD] Interaccion'.'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'));
-                        // F10: sin la vinculada, la que entró SIN VINCULAR (F8) de la misma cuenta; si tampoco, no llegó nada
-                        Set(varADSinVincTrx, IsBlank(varADTrx) && !IsBlank(varActualTrx.'[IN] Cuenta'));  // APP-50: sin cuenta no se busca la sin vincular (clave vacía)
+                        // Sin la vinculada, la que entró sin vincular de la misma cuenta; si tampoco, no llegó nada.
+                        Set(varADSinVincTrx, IsBlank(varADTrx) && !IsBlank(varActualTrx.'[IN] Cuenta'));  // sin cuenta no se busca la sin vincular (clave vacía)
                         If(varADSinVincTrx, Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                             '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = varActualTrx.'[IN] Cuenta'.'CM | TBL | Cuenta')));
                         ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
@@ -328,8 +328,8 @@ Screens:
                     If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info',
                         Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                             '[AD] Interaccion'.'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'));
-                        // F10: sin la vinculada, la que entró SIN VINCULAR (F8) de la misma cuenta; si tampoco, no llegó nada
-                        Set(varADSinVincTrx, IsBlank(varADTrx) && !IsBlank(varActualTrx.'[IN] Cuenta'));  // APP-50: sin cuenta no se busca la sin vincular (clave vacía)
+                        // Sin la vinculada, la que entró sin vincular de la misma cuenta; si tampoco, no llegó nada.
+                        Set(varADSinVincTrx, IsBlank(varADTrx) && !IsBlank(varActualTrx.'[IN] Cuenta'));  // sin cuenta no se busca la sin vincular (clave vacía)
                         If(varADSinVincTrx, Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                             '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = varActualTrx.'[IN] Cuenta'.'CM | TBL | Cuenta')));
                         ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
@@ -455,8 +455,8 @@ Screens:
                     If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info',
                         Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                             '[AD] Interaccion'.'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'));
-                        // F10: sin la vinculada, la que entró SIN VINCULAR (F8) de la misma cuenta; si tampoco, no llegó nada
-                        Set(varADSinVincTrx, IsBlank(varADTrx) && !IsBlank(varActualTrx.'[IN] Cuenta'));  // APP-50: sin cuenta no se busca la sin vincular (clave vacía)
+                        // Sin la vinculada, la que entró sin vincular de la misma cuenta; si tampoco, no llegó nada.
+                        Set(varADSinVincTrx, IsBlank(varADTrx) && !IsBlank(varActualTrx.'[IN] Cuenta'));  // sin cuenta no se busca la sin vincular (clave vacía)
                         If(varADSinVincTrx, Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                             '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = varActualTrx.'[IN] Cuenta'.'CM | TBL | Cuenta')));
                         ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
@@ -723,15 +723,15 @@ Screens:
                               Size: =24
                               TabIndex: =0
                               Text: |-
-                                =// PCI (fase 2): el número completo vive SOLO en la bóveda y solo lo lee el rol BackOffice
+                                =// PCI: el número completo vive SOLO en la bóveda y solo lo lee el rol BackOffice
                                 // (lectura Global). Un LookUp (delegable, un nivel de lookup) por registro mostrado.
                                 // Sin rol, sin permiso o sin fila en la bóveda → solo "•••• 1234"; nunca se cae al
-                                // número de la cuenta. Copy() (OnSelect) existe SOLO acá (D8).
+                                // número de la cuenta. Copy() (OnSelect) existe SOLO aquí.
                                 If(IsBlank(varActualTrx), "",
                                     "Backoffice" in gblRol,
                                     Coalesce(
                                         IfError(
-                                            // APP-50: sin cuenta (borrada por el ciclo de vida) no se consulta: una clave vacía buscaría "Cuenta vacía"
+                                            // Sin cuenta (borrada por el ciclo de vida) no se consulta: una clave vacía buscaría "Cuenta vacía"
                                             If(IsBlank(varActualTrx.cuentaIdTrx), Blank(),
                                                 LookUp('CM | TBL | PAN de cuentas',
                                                     Cuenta.'CM | TBL | Cuenta' = varActualTrx.cuentaIdTrx).PAN),
@@ -764,8 +764,8 @@ Screens:
                       Properties:
                         DropShadow: =DropShadow.None
                         Height: |-
-                          =// Comentario, pagos y actualización de datos en UNA zona que se desplaza (2026-10-24): con muchos pagos y
-                          // todos los campos no entraban entre la tarjeta y la barra del código, y las listas se cortaban.
+                          =// Comentario, pagos y actualización de datos en UNA zona que se desplaza: con muchos pagos y
+                          // todos los campos no entrarían entre la tarjeta y la barra del código.
                           conCodigoTrx.Y - Self.Y - gblE.PadSm
                         LayoutDirection: =LayoutDirection.Vertical
                         LayoutGap: =gblE.PadSm
@@ -820,8 +820,7 @@ Screens:
                               FocusedBorderColor: =gblC.teal
                               FocusedBorderThickness: =2
                               Height: |-
-                                =// Alto completo: la zona de comentario, pagos y datos (conCuerpoTrx) es la que se desplaza. Antes medía 74
-                                // fijos y sin barra: de 5 pagos se veían 2 (2026-10-24).
+                                =// Alto completo: la zona de comentario, pagos y datos (conCuerpoTrx) es la que se desplaza.
                                 Self.AllItemsCount * Self.TemplateHeight
                               Items: |-
                                 =Filter('CM | TBL | Pagos',
@@ -877,7 +876,7 @@ Screens:
                                     Height: =22
                                     PaddingRight: =0
                                     Size: =10
-                                    # F6: el servidor marca el recibo que ya existía (no lo rechaza): BackOffice lo revisa
+                                    # El servidor marca el recibo que ya existía (no lo rechaza): BackOffice lo revisa
                                     Text: ="Recibo " & ThisItem.'[PG] Numero recibo' & If(ThisItem.'[PG] Recibo repetido', " ⚠ REPETIDO", "")
                                     Width: =Parent.TemplateWidth * 0.4
                                     Wrap: =false
@@ -905,7 +904,7 @@ Screens:
                               Height: =18
                               PaddingLeft: =0
                               Size: =8
-                              # F10: tres estados. La marca "Actualiza info" sola no alcanza: la actualización pudo no llegar (F8)
+                              # Tres estados. La marca "Actualiza info" sola no alcanza: la actualización pudo no llegar
                               Text: |-
                                 =If(IsBlank(varADTrx), "⚠ MARCADA CON DATOS NUEVOS, PERO LOS DATOS NO LLEGARON — CONSULTÁ AL LOCALIZADOR",
                                     varADSinVincTrx, "⚠ DATOS SIN VINCULAR (LLEGARON SEPARADOS DE LA VISITA) — REVISALOS Y GRABALOS EN EL CORE",
@@ -922,7 +921,7 @@ Screens:
                               DropShadow: =DropShadow.None
                               Fill: =gblC.espBg
                               Height: |-
-                                =// Los 7 campos posibles a alto completo (antes se cortaba en 4); desplaza conCuerpoTrx.
+                                =// Los 7 campos posibles a alto completo; desplaza conCuerpoTrx.
                                 CountRows(colCambiosTrx) * 52 + 10
                               RadiusBottomLeft: =gblE.RadioSm
                               RadiusBottomRight: =gblE.RadioSm
@@ -1098,7 +1097,7 @@ Screens:
                               MaxLength: =10
                               OnChange: |-
                                 =// Power Apps no distingue Enter de Tab ni de un clic afuera: los tres confirman el valor y disparan OnChange.
-                                // Por eso NO se graba acá (antes un Tab o un clic grababan sin querer): el foco pasa a "Grabar" y se graba
+                                // Por eso NO se graba aquí (un Tab o un clic grabarían sin querer): el foco pasa a "Grabar" y se graba
                                 // con Enter (o clic) sobre el botón.
                                 If(!IsBlank(Trim(Self.Text)) && !IsBlank(varActualTrx), SetFocus(btnGrabarTrx))
                               RadiusBottomLeft: =10
@@ -1132,13 +1131,13 @@ Screens:
                                 Set(varPosTrx,
                                     CountRows(Filter(colVistaTrx, 'Fecha de captura' < varActualTrx.'Fecha de captura')) + 1);
                                 Set(varNumTrx, varActualTrx.'[IN] Numero de Interaccion');
-                                // 2) patch (receta 7.8) — LA única llamada de escritura
-                                // IfError (B-03): si el Patch falla se muestra el detalle y NO se saca de la cola,
-                                // no se avanza ni se limpia el input. Si sale bien, el flujo 3..8 de siempre.
+                                // 2) Patch: la única llamada de escritura.
+                                // IfError: si el Patch falla se muestra el detalle y NO se saca de la cola,
+                                // no se avanza ni se limpia el input. Si sale bien, siguen los pasos 3 a 8.
                                 IfError(
-                                    // DAT-11: la fecha y el usuario de grabación los pone el servidor (plugin GrabacionInteraccion),
+                                    // La fecha y el usuario de grabación los pone el servidor (plugin GrabacionInteraccion),
                                     // que además rechaza grabar una interacción que otra persona ya grabó.
-                                    // DAT-31: se busca por el id, no por el número autonumérico.
+                                    // Se busca por el id, no por el número autonumérico.
                                     Patch('CM | TBL | Interaccions',
                                         LookUp('CM | TBL | Interaccions',
                                             'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'),
@@ -1147,7 +1146,7 @@ Screens:
                                             '[IN] Codigo Grabacion': Upper(Trim(txtCodigoTrx.Text))
                                         }),
                                     Notify("No se pudo grabar " & varNumTrx & ": " & FirstError.Message, NotificationType.Error),
-                                    // 3) sacar de la cola local (00 §5: cero re-consulta)
+                                    // 3) Sacar de la cola local (sin volver a consultar).
                                     Remove(colPendTrx, LookUp(colPendTrx,
                                         '[IN] Numero de Interaccion' = varNumTrx));
                                     // 4) refrescar la columna de localizadores
@@ -1182,8 +1181,8 @@ Screens:
                                     If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info',
                                         Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                                             '[AD] Interaccion'.'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'));
-                                        // F10: sin la vinculada, la que entró SIN VINCULAR (F8) de la misma cuenta; si tampoco, no llegó nada
-                                        Set(varADSinVincTrx, IsBlank(varADTrx) && !IsBlank(varActualTrx.'[IN] Cuenta'));  // APP-50: sin cuenta no se busca la sin vincular (clave vacía)
+                                        // Sin la vinculada, la que entró sin vincular de la misma cuenta; si tampoco, no llegó nada.
+                                        Set(varADSinVincTrx, IsBlank(varADTrx) && !IsBlank(varActualTrx.'[IN] Cuenta'));  // sin cuenta no se busca la sin vincular (clave vacía)
                                         If(varADSinVincTrx, Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                                             '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = varActualTrx.'[IN] Cuenta'.'CM | TBL | Cuenta')));
                                         ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
@@ -1201,12 +1200,12 @@ Screens:
                                     );
                                     // 6) limpiar el input
                                     Reset(txtCodigoTrx);
-                                    // 7) confirmar ANUNCIANDO el siguiente (la reselección del paso 5 ya corrió — R1-06)
+                                    // 7) Confirmar ANUNCIANDO el siguiente (la reselección del paso 5 ya corrió).
                                     Notify("✓ " & varNumTrx & " grabada" &
                                             If(IsBlank(varActualTrx), " — ¡cola vacía!",
                                                 " — siguiente: " & varActualTrx.clienteTrx),
                                         NotificationType.Success, 2500);
-                                    // 8) devolver el foco al input — la fluidez de la estación (solo desktop; R1-04)
+                                    // 8) Devolver el foco al input para seguir tipeando (solo desktop).
                                     If(!nfMovil, SetFocus(txtCodigoTrx))
                                 )
                               Size: =9
@@ -1237,8 +1236,8 @@ Screens:
                                     If(!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info',
                                         Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                                             '[AD] Interaccion'.'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'));
-                                        // F10: sin la vinculada, la que entró SIN VINCULAR (F8) de la misma cuenta; si tampoco, no llegó nada
-                                        Set(varADSinVincTrx, IsBlank(varADTrx) && !IsBlank(varActualTrx.'[IN] Cuenta'));  // APP-50: sin cuenta no se busca la sin vincular (clave vacía)
+                                        // Sin la vinculada, la que entró sin vincular de la misma cuenta; si tampoco, no llegó nada.
+                                        Set(varADSinVincTrx, IsBlank(varADTrx) && !IsBlank(varActualTrx.'[IN] Cuenta'));  // sin cuenta no se busca la sin vincular (clave vacía)
                                         If(varADSinVincTrx, Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                                             '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = varActualTrx.'[IN] Cuenta'.'CM | TBL | Cuenta')));
                                         ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
@@ -1255,7 +1254,7 @@ Screens:
                                         Set(varADTrx, Blank()); Clear(colCambiosTrx)
                                     )
                                 );
-                                // devolver el foco al input — la fluidez de la estación (solo desktop; R1-04)
+                                // Devolver el foco al input para seguir tipeando (solo desktop).
                                 If(!nfMovil, SetFocus(txtCodigoTrx))
                               Size: =9
                               Text: ="Saltar →"

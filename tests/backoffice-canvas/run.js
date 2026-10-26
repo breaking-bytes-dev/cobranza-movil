@@ -27,7 +27,7 @@ const soloLimpieza = args.includes('--solo-limpieza');
 const fasesArg = (args[args.indexOf('--fases') + 1] || '').split(',').filter(Boolean);
 const fases = args.includes('--fases') ? fasesArg : ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'X'];
 
-// D-01 — análisis de delegación de TODA la red capturada (por fase y pantalla).
+// Análisis de delegación de toda la red capturada, por fase y pantalla.
 function d01() {
   const e = inf.escenario('D-01', 'Intercepción de red: listas/conteos delegados ($filter/$apply) — sin GET sin filtro a tablas grandes, sin N+1, sin errores', 'todos');
   const out = inf.volcar(); // genera el análisis
@@ -36,8 +36,8 @@ function d01() {
     for (const [pantalla, lista] of Object.entries(d.pantallas)) {
       const gets = lista.filter(x => x.metodo === 'GET');
       const alertas = lista.filter(x => x.alerta);
-      // Errores de LECTURA (permisos/consultas) cuentan acá; los de ESCRITURA los juzga su escenario funcional
-      // (X-02 provoca uno a propósito; F-02c puede fallar por la app) y se listan como nota.
+      // Solo los errores de LECTURA (permisos/consultas) hacen fallar este análisis. Los de escritura los juzga
+      // su escenario funcional (alguno se provoca a propósito) y aquí solo se anotan.
       const errores = lista.filter(x => (x.status >= 400 || x.error) && x.metodo === 'GET');
       const errEscr = lista.filter(x => (x.status >= 400 || x.error) && x.metodo && x.metodo !== 'GET');
       e.check(alertas.length === 0, `${pantalla} (${d.rolEfectivo}): ${gets.length} GET, sin consultas sin filtro a tablas grandes ni N+1`, 'ninguna', alertas.map(a => `${a.entidad}: ${a.veredicto} ${a.ruta || ''}`.slice(0, 220)));
@@ -51,7 +51,7 @@ function d01() {
 async function main() {
   fs.mkdirSync(cfg.resultadosDir, { recursive: true });
   console.log(`Resultados en ${cfg.resultadosDir}`);
-  // 0) limpieza previa de restos QA de corridas anteriores
+  // Limpieza previa de restos QA de corridas anteriores.
   const previa = await qa.limpiar();
   console.log('Limpieza previa:', JSON.stringify(previa.restantes));
   try { fs.unlinkSync(path.join(cfg.resultadosDir, 'registro-qa.json')); } catch (e) { /* no había */ }
@@ -67,8 +67,8 @@ async function main() {
   const difMapeo = (foto) => Object.keys(esperado).filter(t => JSON.stringify(comoMapa(foto)[t]) !== JSON.stringify(esperado[t]));
   if (difMapeo(fotoMembresias).length) inf.hallazgo(`Membresías al inicio NO coinciden con el mapeo fijo en: ${difMapeo(fotoMembresias).join(', ')} — esperado ${JSON.stringify(esperado)}`);
 
-  // Red de seguridad: foto de los agentes REALES (la pantalla Agentes re-escribe vínculos al abrirse —
-  // hallazgo de esta suite). Al final se verifica que usuario/email/activo sigan idénticos y, si no, se restauran.
+  // Red de seguridad: foto de los agentes REALES, porque la pantalla Agentes reescribe vínculos al abrirse.
+  // Al final se verifica que usuario/email/activo sigan idénticos y, si no, se restauran.
   const SEL_AG = 'sanic_cm_tbl_agentes?$select=sanic_cm_ag_nombre,sanic_cm_ag_emailusuario,_sanic_cm_ag_usuarioid_value,sanic_cm_ag_activo';
   const fotoAgentes = await dv.getAll(SEL_AG);
   const suite = { browser: await pl.lanzar(), datos: {} };

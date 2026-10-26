@@ -9,18 +9,14 @@ namespace Sanic.CobranzaMovil.Plugins
     /// <summary>
     /// Carga paralela: decide que filas van al archivo de PADRES y como se reparten las demas en PARTES. Logica pura.
     ///
-    /// PADRES (producto, fiador y agente; corre primero y solo): por cada tabla y cada registro distinto, la ULTIMA fila
-    /// del archivo donde aparece; las filas elegidas se escriben en su ORDEN ORIGINAL. Asi, para cada registro, la ultima
-    /// escritura es su ultima aparicion: el mismo resultado que hoy en serie. La clave es el valor EXACTO (recortado) de
-    /// las columnas fuente de su dedup: si Dataverse considera iguales dos valores distintos (mayusculas, acentos), se
-    /// eligen las dos ultimas apariciones y la mas tardia sigue siendo la ultima: elegir de mas nunca cambia el resultado.
+    /// PADRES (producto, fiador y agente; corre primero y solo): la ultima fila de cada registro distinto, en su orden
+    /// original, para que la ultima escritura sea la misma que en una carga en serie. La clave es el valor exacto
+    /// (recortado): elegir de mas nunca cambia el resultado.
     ///
-    /// PARTES (todas las demas tablas; corren en paralelo): dos filas que escriben el MISMO registro de cualquier tabla
-    /// (cliente por CIF, cuenta y asignacion por la clave del numero de cuenta, etc.) van a la misma parte, con
-    /// union-find sobre las claves de dedup. La clave se normaliza de mas (sin acentos, mayusculas, solo letras y digitos):
-    /// juntar de mas solo desbalancea; juntar de menos haria que dos partes escriban el mismo registro a la vez (la
-    /// fila duplicada del 2026-10-12). Grupos repartidos por tamano (el mas grande a la parte con menos filas); dentro de
-    /// cada parte, el orden original. Determinista.
+    /// PARTES (las demas tablas; corren en paralelo): las filas que escriben el mismo registro de cualquier tabla van a la
+    /// misma parte (union-find sobre las claves de dedup). La clave se normaliza de mas porque juntar de mas solo
+    /// desbalancea, pero juntar de menos haria que dos partes escriban el mismo registro a la vez. Reparto determinista
+    /// por tamano de grupo, conservando el orden original dentro de cada parte.
     /// </summary>
     public static class ParticionCarga
     {
