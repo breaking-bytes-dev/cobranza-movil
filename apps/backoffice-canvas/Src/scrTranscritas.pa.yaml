@@ -437,16 +437,16 @@ Screens:
                       Filter('CM | TBL | Interaccions',
                           '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Grabado
                           && '[IN] Fecha grabacion' >= varFechaTsc && '[IN] Fecha grabacion' < varFinTsc) As IntTsc,
-                      clienteTsc, Upper(Coalesce(IntTsc.'[IN] Cuenta'.'Nombre Cliente', "—")),   // LED-01
-                      cifTsc, Coalesce(IntTsc.'[IN] Cuenta'.'CIF Cliente', "—"),
+                      clienteTsc, Upper(Coalesce(IntTsc.'[IN] Cuenta'.'Nombre Cliente', If(IsBlank(IntTsc.'[IN] Cuenta'), "(cuenta fuera de cartera)", "—"))),   // LED-01
+                      cifTsc, Coalesce(IntTsc.'[IN] Cuenta'.'CIF Cliente', IntTsc.'[IN] CIF cliente', "—"),   // APP-50: respaldo de la interacción
                       prodTsc, Coalesce(IntTsc.'[IN] Cuenta'.'Tipo Producto', "—"),
-                      ult4Tsc, Coalesce(IntTsc.'[IN] Cuenta'.'Últimos 4', ""),
+                      ult4Tsc, Coalesce(IntTsc.'[IN] Cuenta'.'Últimos 4', IntTsc.'[IN] Últimos 4', ""),
                       cuentaIdTsc, IntTsc.'[IN] Cuenta'.'CM | TBL | Cuenta',
                       grabTsc, Coalesce(IntTsc.'[IN] Grabado por'.'Full Name', "—"),
                       // F10: "ok" la actualización vinculada existe; "sinv" entró sin vincular (F8); "falta" no llegó.
                       datosTsc, If(!IntTsc.'[IN] Actualiza info', "",
                           !IsBlank(LookUp('CM | TBL | Actualizacion de datos', '[AD] Interaccion'.'CM | TBL | Interaccion' = IntTsc.'CM | TBL | Interaccion')), "ok",
-                          !IsBlank(LookUp('CM | TBL | Actualizacion de datos', '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = IntTsc.'[IN] Cuenta'.'CM | TBL | Cuenta')), "sinv",
+                          !IsBlank(IntTsc.'[IN] Cuenta') && !IsBlank(LookUp('CM | TBL | Actualizacion de datos', '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = IntTsc.'[IN] Cuenta'.'CM | TBL | Cuenta')), "sinv",
                           "falta")
                   )
               ))), 0), Coalesce(FirstError.Message, "sin detalle")));
@@ -672,8 +672,10 @@ Screens:
                         "Backoffice" in gblRol,
                         Coalesce(
                             IfError(
-                                LookUp('CM | TBL | PAN de cuentas',
-                                    Cuenta.'CM | TBL | Cuenta' = varSelTsc.cuentaIdTsc).PAN,
+                                // APP-50: sin cuenta no se consulta la bóveda (clave vacía)
+                                If(IsBlank(varSelTsc.cuentaIdTsc), Blank(),
+                                    LookUp('CM | TBL | PAN de cuentas',
+                                        Cuenta.'CM | TBL | Cuenta' = varSelTsc.cuentaIdTsc).PAN),
                                 Blank()),
                             CuentaMasc(varSelTsc.ult4Tsc)),
                         CuentaMasc(varSelTsc.ult4Tsc)) & If(varSelTsc.prodTsc = "—", "", " · " & varSelTsc.prodTsc)

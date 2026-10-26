@@ -517,7 +517,7 @@ Screens:
                             AddColumns(
                                 AddColumns(AddColumns(colIntHoy, cta, '[IN] Cuenta'.'CM | TBL | Cuenta'), ctaRec, LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = cta)),
                                 cliNom,
-                                ctaRec.'Nombre Cliente',
+                                Coalesce(ctaRec.'Nombre Cliente', "(cuenta ya no asignada)"),   // APP-50
                                 cid,
                                 ctaRec.'CIF Cliente'
                             ),
@@ -653,7 +653,7 @@ Screens:
                           ="Abrir cliente " & ThisItem.cliNom
                         Appearance: =ButtonAppearance.Transparent
                         Height: =Parent.TemplateHeight
-                        OnSelect: =Set(varCliente, ThisItem.cid); Set(varCliTab,"inter"); Navigate(scrCliente, ScreenTransition.Cover)
+                        OnSelect: =If(IsBlank(ThisItem.cid), Notify("Esa cuenta ya no está en tu cartera, su detalle no se puede abrir.", NotificationType.Information), Set(varCliente, ThisItem.cid); Set(varCliTab,"inter"); Navigate(scrCliente, ScreenTransition.Cover))
                         Text: =
                         Width: =Parent.TemplateWidth
             - galDesglose_cuenta:
@@ -671,7 +671,7 @@ Screens:
                             ctaRec,
                             LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = cta)
                         ),
-                            cliNom, ctaRec.'Nombre Cliente',
+                            cliNom, Coalesce(ctaRec.'Nombre Cliente', "(cuenta ya no asignada)"),   // APP-50
                             prod,   ctaRec.'Tipo Producto'
                         ),Blank())
                   LayoutMinHeight: =16
@@ -803,7 +803,7 @@ Screens:
                           ="Abrir cuenta de " & ThisItem.cliNom
                         Appearance: =ButtonAppearance.Transparent
                         Height: =Parent.TemplateHeight
-                        OnSelect: =Set(varAsig, Blank()); Set(varCuenta, ThisItem.ctaRec); Set(varDetTab,"inter"); Set(varDetSrc,"inicio"); Navigate(scrDetalleCuenta, ScreenTransition.Cover)
+                        OnSelect: =If(IsBlank(ThisItem.ctaRec), Notify("Esa cuenta ya no está en tu cartera, su detalle no se puede abrir.", NotificationType.Information), Set(varAsig, Blank()); Set(varCuenta, ThisItem.ctaRec); Set(varDetTab,"inter"); Set(varDetSrc,"inicio"); Navigate(scrDetalleCuenta, ScreenTransition.Cover))
                         Text: =
                         Width: =Parent.TemplateWidth
       - cmpSheet_1:

@@ -21,13 +21,13 @@ Screens:
                     '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Pendiente),
                     'Fecha de captura', SortOrder.Ascending),
                 clienteTrx, Upper(Coalesce(
-                    ThisRecord.'[IN] Cuenta'.'Nombre Cliente', "—")),
+                    ThisRecord.'[IN] Cuenta'.'Nombre Cliente', If(IsBlank(ThisRecord.'[IN] Cuenta'), "(cuenta fuera de cartera)", "—"))),
                 cifTrx, Coalesce(
-                    ThisRecord.'[IN] Cuenta'.'CIF Cliente', "—"),
+                    ThisRecord.'[IN] Cuenta'.'CIF Cliente', ThisRecord.'[IN] CIF cliente', "—"),
                 productoTrx, Coalesce(
                     ThisRecord.'[IN] Cuenta'.'Tipo Producto', "—"),
                 ult4Trx, Coalesce(
-                    ThisRecord.'[IN] Cuenta'.'Últimos 4', ""),
+                    ThisRecord.'[IN] Cuenta'.'Últimos 4', ThisRecord.'[IN] Últimos 4', ""),
                 cuentaIdTrx, ThisRecord.'[IN] Cuenta'.'CM | TBL | Cuenta'
             )
         );
@@ -63,7 +63,7 @@ Screens:
             Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                 '[AD] Interaccion'.'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'));
             // F10: sin la vinculada, la que entró SIN VINCULAR (F8) de la misma cuenta; si tampoco, no llegó nada
-            Set(varADSinVincTrx, IsBlank(varADTrx));
+            Set(varADSinVincTrx, IsBlank(varADTrx) && !IsBlank(varActualTrx.'[IN] Cuenta'));  // APP-50: sin cuenta no se busca la sin vincular (clave vacía)
             If(varADSinVincTrx, Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                 '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = varActualTrx.'[IN] Cuenta'.'CM | TBL | Cuenta')));
             ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
@@ -109,13 +109,13 @@ Screens:
                           '[IN] Estado grabacion' = 'Choice | CM | Estado grabacion Interaccio'.Pendiente),
                           'Fecha de captura', SortOrder.Ascending),
                       clienteTrx, Upper(Coalesce(
-                          ThisRecord.'[IN] Cuenta'.'Nombre Cliente', "—")),
+                          ThisRecord.'[IN] Cuenta'.'Nombre Cliente', If(IsBlank(ThisRecord.'[IN] Cuenta'), "(cuenta fuera de cartera)", "—"))),
                       cifTrx, Coalesce(
-                          ThisRecord.'[IN] Cuenta'.'CIF Cliente', "—"),
+                          ThisRecord.'[IN] Cuenta'.'CIF Cliente', ThisRecord.'[IN] CIF cliente', "—"),
                       productoTrx, Coalesce(
                           ThisRecord.'[IN] Cuenta'.'Tipo Producto', "—"),
                       ult4Trx, Coalesce(
-                          ThisRecord.'[IN] Cuenta'.'Últimos 4', ""),
+                          ThisRecord.'[IN] Cuenta'.'Últimos 4', ThisRecord.'[IN] Últimos 4', ""),
                       cuentaIdTrx, ThisRecord.'[IN] Cuenta'.'CM | TBL | Cuenta'
                   )
               );
@@ -148,7 +148,7 @@ Screens:
                   Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                       '[AD] Interaccion'.'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'));
                   // F10: sin la vinculada, la que entró SIN VINCULAR (F8) de la misma cuenta; si tampoco, no llegó nada
-                  Set(varADSinVincTrx, IsBlank(varADTrx));
+                  Set(varADSinVincTrx, IsBlank(varADTrx) && !IsBlank(varActualTrx.'[IN] Cuenta'));  // APP-50: sin cuenta no se busca la sin vincular (clave vacía)
                   If(varADSinVincTrx, Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                       '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = varActualTrx.'[IN] Cuenta'.'CM | TBL | Cuenta')));
                   ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
@@ -217,7 +217,7 @@ Screens:
                         Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                             '[AD] Interaccion'.'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'));
                         // F10: sin la vinculada, la que entró SIN VINCULAR (F8) de la misma cuenta; si tampoco, no llegó nada
-                        Set(varADSinVincTrx, IsBlank(varADTrx));
+                        Set(varADSinVincTrx, IsBlank(varADTrx) && !IsBlank(varActualTrx.'[IN] Cuenta'));  // APP-50: sin cuenta no se busca la sin vincular (clave vacía)
                         If(varADSinVincTrx, Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                             '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = varActualTrx.'[IN] Cuenta'.'CM | TBL | Cuenta')));
                         ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
@@ -329,7 +329,7 @@ Screens:
                         Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                             '[AD] Interaccion'.'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'));
                         // F10: sin la vinculada, la que entró SIN VINCULAR (F8) de la misma cuenta; si tampoco, no llegó nada
-                        Set(varADSinVincTrx, IsBlank(varADTrx));
+                        Set(varADSinVincTrx, IsBlank(varADTrx) && !IsBlank(varActualTrx.'[IN] Cuenta'));  // APP-50: sin cuenta no se busca la sin vincular (clave vacía)
                         If(varADSinVincTrx, Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                             '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = varActualTrx.'[IN] Cuenta'.'CM | TBL | Cuenta')));
                         ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
@@ -456,7 +456,7 @@ Screens:
                         Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                             '[AD] Interaccion'.'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'));
                         // F10: sin la vinculada, la que entró SIN VINCULAR (F8) de la misma cuenta; si tampoco, no llegó nada
-                        Set(varADSinVincTrx, IsBlank(varADTrx));
+                        Set(varADSinVincTrx, IsBlank(varADTrx) && !IsBlank(varActualTrx.'[IN] Cuenta'));  // APP-50: sin cuenta no se busca la sin vincular (clave vacía)
                         If(varADSinVincTrx, Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                             '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = varActualTrx.'[IN] Cuenta'.'CM | TBL | Cuenta')));
                         ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
@@ -731,8 +731,10 @@ Screens:
                                     "Backoffice" in gblRol,
                                     Coalesce(
                                         IfError(
-                                            LookUp('CM | TBL | PAN de cuentas',
-                                                Cuenta.'CM | TBL | Cuenta' = varActualTrx.cuentaIdTrx).PAN,
+                                            // APP-50: sin cuenta (borrada por el ciclo de vida) no se consulta: una clave vacía buscaría "Cuenta vacía"
+                                            If(IsBlank(varActualTrx.cuentaIdTrx), Blank(),
+                                                LookUp('CM | TBL | PAN de cuentas',
+                                                    Cuenta.'CM | TBL | Cuenta' = varActualTrx.cuentaIdTrx).PAN),
                                             Blank()),
                                         CuentaMasc(varActualTrx.ult4Trx)),
                                     CuentaMasc(varActualTrx.ult4Trx))
@@ -859,7 +861,7 @@ Screens:
                                     Size: =10
                                     Text: |-
                                       =// Un cobro puede repartirse entre varias cuentas del cliente: a cuál se aplica este pago.
-                                      "Cuenta •••• " & LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = ThisItem.Cuenta.'CM | TBL | Cuenta').'Últimos 4'
+                                      "Cuenta •••• " & Coalesce(LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = ThisItem.Cuenta.'CM | TBL | Cuenta').'Últimos 4', varActualTrx.ult4Trx)
                                     Width: =Parent.TemplateWidth * 0.25
                                     Wrap: =false
                                     X: =Parent.TemplateWidth * 0.35
@@ -1181,7 +1183,7 @@ Screens:
                                         Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                                             '[AD] Interaccion'.'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'));
                                         // F10: sin la vinculada, la que entró SIN VINCULAR (F8) de la misma cuenta; si tampoco, no llegó nada
-                                        Set(varADSinVincTrx, IsBlank(varADTrx));
+                                        Set(varADSinVincTrx, IsBlank(varADTrx) && !IsBlank(varActualTrx.'[IN] Cuenta'));  // APP-50: sin cuenta no se busca la sin vincular (clave vacía)
                                         If(varADSinVincTrx, Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                                             '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = varActualTrx.'[IN] Cuenta'.'CM | TBL | Cuenta')));
                                         ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
@@ -1236,7 +1238,7 @@ Screens:
                                         Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                                             '[AD] Interaccion'.'CM | TBL | Interaccion' = varActualTrx.'CM | TBL | Interaccion'));
                                         // F10: sin la vinculada, la que entró SIN VINCULAR (F8) de la misma cuenta; si tampoco, no llegó nada
-                                        Set(varADSinVincTrx, IsBlank(varADTrx));
+                                        Set(varADSinVincTrx, IsBlank(varADTrx) && !IsBlank(varActualTrx.'[IN] Cuenta'));  // APP-50: sin cuenta no se busca la sin vincular (clave vacía)
                                         If(varADSinVincTrx, Set(varADTrx, LookUp('CM | TBL | Actualizacion de datos',
                                             '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = varActualTrx.'[IN] Cuenta'.'CM | TBL | Cuenta')));
                                         ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));

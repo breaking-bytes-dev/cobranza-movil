@@ -416,7 +416,10 @@ Screens:
                                     LayoutMinWidth: =16
                                     Size: =gblT.fbase
                                     Text: |-
-                                      =With({ c: LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = ThisItem.'[IN] Cuenta'.'CM | TBL | Cuenta') }, c.'Nombre Cliente' & If(IsBlank(c.'Tipo Producto'), "", " · " & c.'Tipo Producto'))
+                                      =// APP-50: sin la cuenta (borrada o ya no compartida) se muestran los últimos 4 que guardó la interacción
+                                      With({ c: LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = ThisItem.'[IN] Cuenta'.'CM | TBL | Cuenta') },
+                                          If(IsBlank(c), "(cuenta ya no asignada) · " & PanMasc(ThisItem.'[IN] Últimos 4'),
+                                              c.'Nombre Cliente' & If(IsBlank(c.'Tipo Producto'), "", " · " & c.'Tipo Producto')))
                                     Width: =Parent.Width
                               - lblCapH:
                                   Control: Label@2.5.1
