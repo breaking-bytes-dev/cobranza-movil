@@ -328,7 +328,7 @@ Screens:
                         RadiusBottomRight: =14
                         RadiusTopLeft: =14
                         RadiusTopRight: =14
-                        Width: =Parent.TemplateWidth
+                        Width: =App.Width - 12
                       Children:
                         - lblChip:
                             Control: Label@2.5.1
