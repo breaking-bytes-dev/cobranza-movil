@@ -15,7 +15,16 @@ Screens:
                       + CountRows(Filter('CM | TBL | Pagos', IsBlank('[PG] Numero'))));
            // Capturas de hoy por la fecha de CAPTURA (la pone el teléfono); 'Created On' de un registro offline
            // lo pone el servidor al sincronizar.
-           Set(varCapHoy, Sort(Filter('CM | TBL | Interaccions', 'Fecha de captura' >= Today() && 'Fecha de captura' < DateAdd(Today(), 1)), 'Fecha de captura', SortOrder.Descending))
+           Set(varCapHoy, Sort(Filter('CM | TBL | Interaccions', 'Fecha de captura' >= Today() && 'Fecha de captura' < DateAdd(Today(), 1)), 'Fecha de captura', SortOrder.Descending));
+           // Versión de la solución instalada (Custom API sanic_cm_MisRoles): solo con conexión. Se guarda en el
+           // teléfono para mostrar la última conocida sin conexión.
+           If(Connection.Connected,
+               Set(varRespVerSin, IfError(Environment.sanic_cm_MisRoles(), Blank()));
+               If(!IsBlank(varRespVerSin.Version),
+                   ClearCollect(colVersion, {v: Text(varRespVerSin.Version)});
+                   IfError(SaveData(colVersion, "cmVersion"), Blank())
+               )
+           )
     Children:
       - conMaster_6:
           Control: GroupContainer@1.5.0
@@ -345,7 +354,7 @@ Screens:
                   LayoutMinWidth: =16
                   Size: =gblT.fxs
                   Text: |-
-                    ="Versión de la app: " & nfVersion
+                    ="Versión de la app: " & Coalesce(First(colVersion).v, "—")
             - lblCapTit:
                 Control: Label@2.5.1
                 Properties:
