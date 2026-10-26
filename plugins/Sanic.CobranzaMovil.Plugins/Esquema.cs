@@ -192,6 +192,16 @@ namespace Sanic.CobranzaMovil.Plugins
         public const string SalidaFilasArchivo = "FilasArchivo";
         public const string SalidaFilasPadres = "FilasPadres";
         public const string SalidaFilasPartes = "FilasPartes";
+
+        // Custom API CerrarFueraDeCartera (APP-48): cierre en lote de las Diarias fuera de la carga, en el servidor y por lotes.
+        public const string MensajeCerrarFueraDeCartera = "sanic_cm_CerrarFueraDeCartera";
+        public const string ParamCorte = "Corte";
+        public const string ParamEsperadas = "Esperadas";
+        public const string ParamLote = "Lote";
+        public const string ParamSoloContar = "SoloContar";
+        public const string SalidaCerradas = "Cerradas";
+        public const string SalidaRestantes = "Restantes";
+        public const string SalidaCorte = "Corte";
         public const string NombrePlantillaPadres = "Cobranza movil · padres";
         public const string NombrePlantillaPartes = "Cobranza movil · partes";
         public const string MapeoTabla = "sanic_tbl_smlt_tablemapping";

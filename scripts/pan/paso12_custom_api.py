@@ -1,6 +1,7 @@
 """Registrar (o verificar) las Custom APIs globales de Cobranza Movil en DEV:
 - DAT-14 (a): sanic_cm_SolicitarEspecial (plugins/Sanic.CobranzaMovil.Plugins/SolicitarEspecial.cs), desde 1.0.7.0.
 - DAT-20 (camino A): sanic_cm_AltaCuenta (plugins/Sanic.CobranzaMovil.Plugins/AltaCuenta.cs), desde 1.0.8.0.
+- APP-48: sanic_cm_CerrarFueraDeCartera (plugins/Sanic.CobranzaMovil.Plugins/CerrarFueraDeCartera.cs), desde 1.0.10.5.
 - Carga paralela: sanic_cm_PartirCarga (plugins/Sanic.CobranzaMovil.Plugins/PartirCarga.cs), desde 1.0.9.7. Requiere las
   plantillas de Smelter "Cobranza movil · padres" y "· partes" (scripts/pan/paso20_plantillas_paralelas.py --aplicar).
 Ver docs/auditoria/01-pendientes.md.
@@ -114,6 +115,22 @@ APIS = [
             ('FilasArchivo', ENTERO, 'Filas de datos del archivo original'),
             ('FilasPadres', ENTERO, 'Filas del archivo de padres'),
             ('FilasPartes', TEXTO, 'Filas de cada parte, separadas por coma'),
+        ]),
+    dict(
+        api='sanic_cm_CerrarFueraDeCartera', tipo='CerrarFueraDeCartera', version=(1, 0, 10, 5),
+        definicion=definicion('sanic_cm_CerrarFueraDeCartera', 'CM - Cerrar fuera de cartera',
+                              'APP-48: Reconciliacion. Cierra por lotes, en el servidor, las Diarias activas cuya ultima carga es '
+                              'anterior al dia de la ultima carga diaria (motivo "fuera de cartera"). Solo el Admin.'),
+        parametros=[
+            ('Corte', TEXTO, False, 'Dia de la ultima carga que vio la pantalla, aaaa-mm-dd (si cambio, no cierra)'),
+            ('Esperadas', ENTERO, False, 'Cuantas confirmo el Admin (o las que quedaban); si hay mas, no cierra'),
+            ('Lote', ENTERO, True, 'Cuantas cerrar en este llamado (1 a 500; por defecto 250)'),
+            ('SoloContar', BOOLEANO, True, 'true = no cierra, solo devuelve cuantas cerraria'),
+        ],
+        respuesta=[
+            ('Cerradas', ENTERO, 'Cerradas en este llamado'),
+            ('Restantes', ENTERO, 'Las que siguen fuera de la carga despues de este llamado'),
+            ('Corte', TEXTO, 'Dia de la ultima carga usado como corte, aaaa-mm-dd'),
         ]),
 ]
 
