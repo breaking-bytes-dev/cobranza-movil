@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="FilasPadres">
+  <description default="Filas del archivo de padres">
+    <label description="Filas del archivo de padres" languagecode="1033" />
+  </description>
+  <displayname default="FilasPadres">
+    <label description="FilasPadres" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>sanic_cm_PartirCarga.FilasPadres</name>
+  <type>7</type>
+</customapiresponseproperty>

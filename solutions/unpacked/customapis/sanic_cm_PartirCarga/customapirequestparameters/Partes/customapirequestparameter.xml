@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="Partes">
+  <description default="Cantidad de partes pedidas (1 a 4; con menos de 300 filas se hace una sola)">
+    <label description="Cantidad de partes pedidas (1 a 4; con menos de 300 filas se hace una sola)" languagecode="1033" />
+  </description>
+  <displayname default="Partes">
+    <label description="Partes" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>0</isoptional>
+  <name>sanic_cm_PartirCarga.Partes</name>
+  <type>7</type>
+</customapirequestparameter>

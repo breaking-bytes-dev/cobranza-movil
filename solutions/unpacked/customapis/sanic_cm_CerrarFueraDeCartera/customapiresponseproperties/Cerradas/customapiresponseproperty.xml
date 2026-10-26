@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Cerradas">
+  <description default="Cerradas en este llamado">
+    <label description="Cerradas en este llamado" languagecode="1033" />
+  </description>
+  <displayname default="Cerradas">
+    <label description="Cerradas" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>sanic_cm_CerrarFueraDeCartera.Cerradas</name>
+  <type>7</type>
+</customapiresponseproperty>

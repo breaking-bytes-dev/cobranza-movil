@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="RetiroUsd">
+  <description default="Retiro en dolares (0 a 1.000.000.000)">
+    <label description="Retiro en dolares (0 a 1.000.000.000)" languagecode="1033" />
+  </description>
+  <displayname default="RetiroUsd">
+    <label description="RetiroUsd" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>1</isoptional>
+  <name>sanic_cm_SolicitarEspecial.RetiroUsd</name>
+  <type>2</type>
+</customapirequestparameter>

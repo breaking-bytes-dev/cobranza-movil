@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="DireccionEC">
+  <description default="Direccion del estado de cuenta (cliente nuevo)">
+    <label description="Direccion del estado de cuenta (cliente nuevo)" languagecode="1033" />
+  </description>
+  <displayname default="DireccionEC">
+    <label description="DireccionEC" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>1</isoptional>
+  <name>sanic_cm_AltaCuenta.DireccionEC</name>
+  <type>10</type>
+</customapirequestparameter>

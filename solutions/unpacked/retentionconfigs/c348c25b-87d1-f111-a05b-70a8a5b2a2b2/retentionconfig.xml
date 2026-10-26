@@ -1,0 +1,14 @@
+<retentionconfig retentionconfigid="c348c25b-87d1-f111-a05b-70a8a5b2a2b2">
+  <criteria>{"QuerySet": ["&lt;fetch version=\"1.0\" mapping=\"logical\" distinct=\"true\"&gt;&lt;entity name=\"sanic_cm_tbl_cuenta\"&gt;&lt;attribute name=\"sanic_cm_tbl_cuentaid\"/&gt;&lt;link-entity name=\"sanic_cm_tbl_asignacion\" from=\"sanic_cm_as_cuentaid\" to=\"sanic_cm_tbl_cuentaid\" link-type=\"outer\" alias=\"viva\"&gt;&lt;filter type=\"or\"&gt;&lt;condition attribute=\"sanic_cm_as_estado\" operator=\"eq\" value=\"1\"/&gt;&lt;condition attribute=\"sanic_cm_as_ultimacarga\" operator=\"last-x-days\" value=\"14\"/&gt;&lt;condition attribute=\"sanic_cm_as_fechacierre\" operator=\"last-x-days\" value=\"14\"/&gt;&lt;/filter&gt;&lt;/link-entity&gt;&lt;link-entity name=\"sanic_cm_tbl_interaccion\" from=\"sanic_cm_in_cuentaid\" to=\"sanic_cm_tbl_cuentaid\" link-type=\"outer\" alias=\"pend\"&gt;&lt;filter type=\"or\"&gt;&lt;condition attribute=\"sanic_cm_in_estadograbacion\" operator=\"eq\" value=\"1\"/&gt;&lt;/filter&gt;&lt;/link-entity&gt;&lt;filter type=\"and\"&gt;&lt;condition attribute=\"modifiedon\" operator=\"olderthan-x-days\" value=\"14\"/&gt;&lt;condition entityname=\"viva\" attribute=\"sanic_cm_tbl_asignacionid\" operator=\"null\"/&gt;&lt;condition entityname=\"pend\" attribute=\"sanic_cm_tbl_interaccionid\" operator=\"null\"/&gt;&lt;/filter&gt;&lt;/entity&gt;&lt;/fetch&gt;"], "SendEmailNotification": false, "ToRecipients": [], "CCRecipients": []}</criteria>
+  <entitylogicalname>sanic_cm_tbl_cuenta</entitylogicalname>
+  <iscustomizable>1</iscustomizable>
+  <name>CM - Cuentas fuera de cartera hace mas de 14 dias</name>
+  <provisioningmode>0</provisioningmode>
+  <recurrence>FREQ=DAILY;INTERVAL=1</recurrence>
+  <starttime>10/27/2026 9:00:00 AM</starttime>
+  <statecode>0</statecode>
+  <statuscode>1</statuscode>
+  <timezoneruleversionnumber>4</timezoneruleversionnumber>
+  <type>1</type>
+  <uniquename>CM - Cuentas fuera de cartera hace mas de 14 dias</uniquename>
+</retentionconfig>

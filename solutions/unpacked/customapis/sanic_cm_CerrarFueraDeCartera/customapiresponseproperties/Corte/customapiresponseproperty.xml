@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Corte">
+  <description default="Dia de la ultima carga usado como corte, aaaa-mm-dd">
+    <label description="Dia de la ultima carga usado como corte, aaaa-mm-dd" languagecode="1033" />
+  </description>
+  <displayname default="Corte">
+    <label description="Corte" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>sanic_cm_CerrarFueraDeCartera.Corte</name>
+  <type>10</type>
+</customapiresponseproperty>

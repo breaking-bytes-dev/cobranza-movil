@@ -1,0 +1,140 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<MobileOfflineProfile MobileOfflineProfileId="d0193da8-7ac0-f111-a05a-70a8a5b09c9f" Name="Cobranza Movil - Cobrador" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <MobileOfflineProfileItems>
+    <MobileOfflineProfileItem MobileOfflineProfileItemId="d2193da8-7ac0-f111-a05a-70a8a5b09c9f" Name="sanic_cm_tbl_cliente">
+      <MobileOfflineProfileItemAssociations />
+      <MobileOfflineProfileItemId>{D2193DA8-7AC0-F111-A05A-70A8A5B09C9F}</MobileOfflineProfileItemId>
+      <RegardingObjectId>{D0193DA8-7AC0-F111-A05A-70A8A5B09C9F}</RegardingObjectId>
+      <Name>sanic_cm_tbl_cliente</Name>
+      <RecordDistributionCriteria>1</RecordDistributionCriteria>
+      <RecordsOwnedByMe>0</RecordsOwnedByMe>
+      <RecordsOwnedByMyTeam>0</RecordsOwnedByMyTeam>
+      <RecordsOwnedByMyBusinessUnit>0</RecordsOwnedByMyBusinessUnit>
+      <ProfileItemEntityFilter></ProfileItemEntityFilter>
+      <EntitySchemaName>sanic_cm_tbl_cliente</EntitySchemaName>
+    </MobileOfflineProfileItem>
+    <MobileOfflineProfileItem MobileOfflineProfileItemId="d3193da8-7ac0-f111-a05a-70a8a5b09c9f" Name="sanic_cm_tbl_actualizaciondatos">
+      <MobileOfflineProfileItemAssociations />
+      <MobileOfflineProfileItemId>{D3193DA8-7AC0-F111-A05A-70A8A5B09C9F}</MobileOfflineProfileItemId>
+      <RegardingObjectId>{D0193DA8-7AC0-F111-A05A-70A8A5B09C9F}</RegardingObjectId>
+      <Name>sanic_cm_tbl_actualizaciondatos</Name>
+      <RecordDistributionCriteria>3</RecordDistributionCriteria>
+      <RecordsOwnedByMe>0</RecordsOwnedByMe>
+      <RecordsOwnedByMyTeam>0</RecordsOwnedByMyTeam>
+      <RecordsOwnedByMyBusinessUnit>0</RecordsOwnedByMyBusinessUnit>
+      <ProfileItemEntityFilter>&lt;fetch version="1.0" mapping="logical"&gt;&lt;entity name="sanic_cm_tbl_actualizaciondatos"&gt;&lt;filter type="and"&gt;&lt;condition attribute="modifiedon" operator="last-x-days" value="90" /&gt;&lt;/filter&gt;&lt;/entity&gt;&lt;/fetch&gt;</ProfileItemEntityFilter>
+      <EntitySchemaName>sanic_cm_tbl_actualizaciondatos</EntitySchemaName>
+    </MobileOfflineProfileItem>
+    <MobileOfflineProfileItem MobileOfflineProfileItemId="d4193da8-7ac0-f111-a05a-70a8a5b09c9f" Name="sanic_cm_tbl_agente">
+      <MobileOfflineProfileItemAssociations />
+      <MobileOfflineProfileItemId>{D4193DA8-7AC0-F111-A05A-70A8A5B09C9F}</MobileOfflineProfileItemId>
+      <RegardingObjectId>{D0193DA8-7AC0-F111-A05A-70A8A5B09C9F}</RegardingObjectId>
+      <Name>sanic_cm_tbl_agente</Name>
+      <RecordDistributionCriteria>1</RecordDistributionCriteria>
+      <RecordsOwnedByMe>0</RecordsOwnedByMe>
+      <RecordsOwnedByMyTeam>0</RecordsOwnedByMyTeam>
+      <RecordsOwnedByMyBusinessUnit>0</RecordsOwnedByMyBusinessUnit>
+      <ProfileItemEntityFilter></ProfileItemEntityFilter>
+      <EntitySchemaName>sanic_cm_tbl_agente</EntitySchemaName>
+    </MobileOfflineProfileItem>
+    <MobileOfflineProfileItem MobileOfflineProfileItemId="d5193da8-7ac0-f111-a05a-70a8a5b09c9f" Name="sanic_cm_tbl_asignacion">
+      <MobileOfflineProfileItemAssociations />
+      <MobileOfflineProfileItemId>{D5193DA8-7AC0-F111-A05A-70A8A5B09C9F}</MobileOfflineProfileItemId>
+      <RegardingObjectId>{D0193DA8-7AC0-F111-A05A-70A8A5B09C9F}</RegardingObjectId>
+      <Name>sanic_cm_tbl_asignacion</Name>
+      <RecordDistributionCriteria>3</RecordDistributionCriteria>
+      <RecordsOwnedByMe>0</RecordsOwnedByMe>
+      <RecordsOwnedByMyTeam>0</RecordsOwnedByMyTeam>
+      <RecordsOwnedByMyBusinessUnit>0</RecordsOwnedByMyBusinessUnit>
+      <ProfileItemEntityFilter>&lt;fetch version="1.0" mapping="logical"&gt;&lt;entity name="sanic_cm_tbl_asignacion"&gt;&lt;filter type="and"&gt;&lt;condition attribute="sanic_cm_as_estado" operator="eq" value="1" /&gt;&lt;/filter&gt;&lt;/entity&gt;&lt;/fetch&gt;</ProfileItemEntityFilter>
+      <EntitySchemaName>sanic_cm_tbl_asignacion</EntitySchemaName>
+    </MobileOfflineProfileItem>
+    <MobileOfflineProfileItem MobileOfflineProfileItemId="d6193da8-7ac0-f111-a05a-70a8a5b09c9f" Name="sanic_cm_tbl_cuenta">
+      <MobileOfflineProfileItemAssociations />
+      <MobileOfflineProfileItemId>{D6193DA8-7AC0-F111-A05A-70A8A5B09C9F}</MobileOfflineProfileItemId>
+      <RegardingObjectId>{D0193DA8-7AC0-F111-A05A-70A8A5B09C9F}</RegardingObjectId>
+      <Name>sanic_cm_tbl_cuenta</Name>
+      <RecordDistributionCriteria>1</RecordDistributionCriteria>
+      <RecordsOwnedByMe>0</RecordsOwnedByMe>
+      <RecordsOwnedByMyTeam>0</RecordsOwnedByMyTeam>
+      <RecordsOwnedByMyBusinessUnit>0</RecordsOwnedByMyBusinessUnit>
+      <ProfileItemEntityFilter></ProfileItemEntityFilter>
+      <EntitySchemaName>sanic_cm_tbl_cuenta</EntitySchemaName>
+    </MobileOfflineProfileItem>
+    <MobileOfflineProfileItem MobileOfflineProfileItemId="d7193da8-7ac0-f111-a05a-70a8a5b09c9f" Name="sanic_cm_tbl_pago">
+      <MobileOfflineProfileItemAssociations />
+      <MobileOfflineProfileItemId>{D7193DA8-7AC0-F111-A05A-70A8A5B09C9F}</MobileOfflineProfileItemId>
+      <RegardingObjectId>{D0193DA8-7AC0-F111-A05A-70A8A5B09C9F}</RegardingObjectId>
+      <Name>sanic_cm_tbl_pago</Name>
+      <RecordDistributionCriteria>3</RecordDistributionCriteria>
+      <RecordsOwnedByMe>0</RecordsOwnedByMe>
+      <RecordsOwnedByMyTeam>0</RecordsOwnedByMyTeam>
+      <RecordsOwnedByMyBusinessUnit>0</RecordsOwnedByMyBusinessUnit>
+      <ProfileItemEntityFilter>&lt;fetch version="1.0" mapping="logical"&gt;&lt;entity name="sanic_cm_tbl_pago"&gt;&lt;filter type="and"&gt;&lt;condition attribute="modifiedon" operator="last-x-days" value="90" /&gt;&lt;/filter&gt;&lt;/entity&gt;&lt;/fetch&gt;</ProfileItemEntityFilter>
+      <EntitySchemaName>sanic_cm_tbl_pago</EntitySchemaName>
+    </MobileOfflineProfileItem>
+    <MobileOfflineProfileItem MobileOfflineProfileItemId="d8193da8-7ac0-f111-a05a-70a8a5b09c9f" Name="sanic_cm_tbl_direccion">
+      <MobileOfflineProfileItemAssociations />
+      <MobileOfflineProfileItemId>{D8193DA8-7AC0-F111-A05A-70A8A5B09C9F}</MobileOfflineProfileItemId>
+      <RegardingObjectId>{D0193DA8-7AC0-F111-A05A-70A8A5B09C9F}</RegardingObjectId>
+      <Name>sanic_cm_tbl_direccion</Name>
+      <RecordDistributionCriteria>1</RecordDistributionCriteria>
+      <RecordsOwnedByMe>0</RecordsOwnedByMe>
+      <RecordsOwnedByMyTeam>0</RecordsOwnedByMyTeam>
+      <RecordsOwnedByMyBusinessUnit>0</RecordsOwnedByMyBusinessUnit>
+      <ProfileItemEntityFilter></ProfileItemEntityFilter>
+      <EntitySchemaName>sanic_cm_tbl_direccion</EntitySchemaName>
+    </MobileOfflineProfileItem>
+    <MobileOfflineProfileItem MobileOfflineProfileItemId="d9193da8-7ac0-f111-a05a-70a8a5b09c9f" Name="sanic_cm_tbl_interaccion">
+      <MobileOfflineProfileItemAssociations />
+      <MobileOfflineProfileItemId>{D9193DA8-7AC0-F111-A05A-70A8A5B09C9F}</MobileOfflineProfileItemId>
+      <RegardingObjectId>{D0193DA8-7AC0-F111-A05A-70A8A5B09C9F}</RegardingObjectId>
+      <Name>sanic_cm_tbl_interaccion</Name>
+      <RecordDistributionCriteria>3</RecordDistributionCriteria>
+      <RecordsOwnedByMe>0</RecordsOwnedByMe>
+      <RecordsOwnedByMyTeam>0</RecordsOwnedByMyTeam>
+      <RecordsOwnedByMyBusinessUnit>0</RecordsOwnedByMyBusinessUnit>
+      <ProfileItemEntityFilter>&lt;fetch version="1.0" mapping="logical"&gt;&lt;entity name="sanic_cm_tbl_interaccion"&gt;&lt;filter type="and"&gt;&lt;condition attribute="modifiedon" operator="last-x-days" value="90" /&gt;&lt;/filter&gt;&lt;/entity&gt;&lt;/fetch&gt;</ProfileItemEntityFilter>
+      <EntitySchemaName>sanic_cm_tbl_interaccion</EntitySchemaName>
+    </MobileOfflineProfileItem>
+    <MobileOfflineProfileItem MobileOfflineProfileItemId="da193da8-7ac0-f111-a05a-70a8a5b09c9f" Name="sanic_cm_tbl_telefono">
+      <MobileOfflineProfileItemAssociations />
+      <MobileOfflineProfileItemId>{DA193DA8-7AC0-F111-A05A-70A8A5B09C9F}</MobileOfflineProfileItemId>
+      <RegardingObjectId>{D0193DA8-7AC0-F111-A05A-70A8A5B09C9F}</RegardingObjectId>
+      <Name>sanic_cm_tbl_telefono</Name>
+      <RecordDistributionCriteria>1</RecordDistributionCriteria>
+      <RecordsOwnedByMe>0</RecordsOwnedByMe>
+      <RecordsOwnedByMyTeam>0</RecordsOwnedByMyTeam>
+      <RecordsOwnedByMyBusinessUnit>0</RecordsOwnedByMyBusinessUnit>
+      <ProfileItemEntityFilter></ProfileItemEntityFilter>
+      <EntitySchemaName>sanic_cm_tbl_telefono</EntitySchemaName>
+    </MobileOfflineProfileItem>
+    <MobileOfflineProfileItem MobileOfflineProfileItemId="db193da8-7ac0-f111-a05a-70a8a5b09c9f" Name="sanic_cm_tbl_cuentapan">
+      <MobileOfflineProfileItemAssociations />
+      <MobileOfflineProfileItemId>{DB193DA8-7AC0-F111-A05A-70A8A5B09C9F}</MobileOfflineProfileItemId>
+      <RegardingObjectId>{D0193DA8-7AC0-F111-A05A-70A8A5B09C9F}</RegardingObjectId>
+      <Name>sanic_cm_tbl_cuentapan</Name>
+      <RecordDistributionCriteria>1</RecordDistributionCriteria>
+      <RecordsOwnedByMe>0</RecordsOwnedByMe>
+      <RecordsOwnedByMyTeam>0</RecordsOwnedByMyTeam>
+      <RecordsOwnedByMyBusinessUnit>0</RecordsOwnedByMyBusinessUnit>
+      <ProfileItemEntityFilter></ProfileItemEntityFilter>
+      <EntitySchemaName>sanic_cm_tbl_cuentapan</EntitySchemaName>
+    </MobileOfflineProfileItem>
+    <MobileOfflineProfileItem MobileOfflineProfileItemId="530c2fd7-e6d0-f111-a05b-70a8a5b2a2b2" Name="sanic_cm_tbl_opcionlista">
+      <MobileOfflineProfileItemAssociations />
+      <MobileOfflineProfileItemId>{530C2FD7-E6D0-F111-A05B-70A8A5B2A2B2}</MobileOfflineProfileItemId>
+      <RegardingObjectId>{D0193DA8-7AC0-F111-A05A-70A8A5B09C9F}</RegardingObjectId>
+      <Name>sanic_cm_tbl_opcionlista</Name>
+      <RecordDistributionCriteria>1</RecordDistributionCriteria>
+      <RecordsOwnedByMe>0</RecordsOwnedByMe>
+      <RecordsOwnedByMyTeam>0</RecordsOwnedByMyTeam>
+      <RecordsOwnedByMyBusinessUnit>0</RecordsOwnedByMyBusinessUnit>
+      <ProfileItemEntityFilter></ProfileItemEntityFilter>
+      <EntitySchemaName>sanic_cm_tbl_opcionlista</EntitySchemaName>
+    </MobileOfflineProfileItem>
+  </MobileOfflineProfileItems>
+  <MobileOfflineProfileId>{d0193da8-7ac0-f111-a05a-70a8a5b09c9f}</MobileOfflineProfileId>
+  <Name>Cobranza Movil - Cobrador</Name>
+  <Description>App del cobrador (canvas). Generado por scripts/pan/paso7_perfil_offline.py</Description>
+</MobileOfflineProfile>

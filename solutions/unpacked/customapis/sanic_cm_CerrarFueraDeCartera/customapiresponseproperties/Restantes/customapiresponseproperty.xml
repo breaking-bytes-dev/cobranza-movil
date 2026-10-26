@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Restantes">
+  <description default="Las que siguen fuera de la carga despues de este llamado">
+    <label description="Las que siguen fuera de la carga despues de este llamado" languagecode="1033" />
+  </description>
+  <displayname default="Restantes">
+    <label description="Restantes" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>sanic_cm_CerrarFueraDeCartera.Restantes</name>
+  <type>7</type>
+</customapiresponseproperty>

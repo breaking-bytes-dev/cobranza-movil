@@ -3,7 +3,6 @@
   <IsCustomizable>1</IsCustomizable>
   <IsAutoAssigned>0</IsAutoAssigned>
   <RolePrivileges>
-    <RolePrivilege name="prvActivateSynchronousWorkflow" level="Basic" />
     <RolePrivilege name="prvAppendNewProcess" level="Global" />
     <RolePrivilege name="prvAppendsanic_cm_tbl_actualizaciondatos" level="Basic" />
     <RolePrivilege name="prvAppendsanic_cm_tbl_asignacion" level="Basic" />
@@ -23,15 +22,11 @@
     <RolePrivilege name="prvAppendTosanic_cm_tbl_producto" level="Global" />
     <RolePrivilege name="prvAppendToSyncError" level="Global" />
     <RolePrivilege name="prvAppendToTranslationProcess" level="Global" />
-    <RolePrivilege name="prvAppendToWorkflow" level="Global" />
     <RolePrivilege name="prvAppendToWorkflowSession" level="Basic" />
     <RolePrivilege name="prvAppendTranslationProcess" level="Global" />
-    <RolePrivilege name="prvAppendWorkflow" level="Basic" />
     <RolePrivilege name="prvAppendWorkflowSession" level="Basic" />
     <RolePrivilege name="prvAssignAsyncOperation" level="Basic" />
-    <RolePrivilege name="prvAssignsanic_cm_tbl_pago" level="Basic" />
     <RolePrivilege name="prvAssignSyncError" level="Global" />
-    <RolePrivilege name="prvAssignWorkflow" level="Basic" />
     <RolePrivilege name="prvAssignWorkflowSession" level="Basic" />
     <RolePrivilege name="prvCreateNewProcess" level="Global" />
     <RolePrivilege name="prvCreatesanic_cm_tbl_actualizaciondatos" level="Basic" />
@@ -42,16 +37,13 @@
     <RolePrivilege name="prvCreateTranslationProcess" level="Global" />
     <RolePrivilege name="prvCreateUserApplicationMetadata" level="Basic" />
     <RolePrivilege name="prvCreateUserEntityUISettings" level="Basic" />
-    <RolePrivilege name="prvCreateWorkflow" level="Basic" />
     <RolePrivilege name="prvCreateWorkflowSession" level="Basic" />
     <RolePrivilege name="prvDeleteNewProcess" level="Global" />
     <RolePrivilege name="prvDeleteSyncError" level="Global" />
     <RolePrivilege name="prvDeleteTranslationProcess" level="Global" />
     <RolePrivilege name="prvDeleteUserApplicationMetadata" level="Basic" />
     <RolePrivilege name="prvDeleteUserEntityUISettings" level="Basic" />
-    <RolePrivilege name="prvDeleteWorkflow" level="Basic" />
     <RolePrivilege name="prvDeleteWorkflowSession" level="Basic" />
-    <RolePrivilege name="prvFlow" level="Global" />
     <RolePrivilege name="prvReadAppConfigMaster" level="Global" />
     <RolePrivilege name="prvReadAppModule" level="Global" />
     <RolePrivilege name="prvReadAsyncOperation" level="Basic" />
@@ -68,7 +60,6 @@
     <RolePrivilege name="prvReadOptionSet" level="Global" />
     <RolePrivilege name="prvReadOrganization" level="Global" />
     <RolePrivilege name="prvReadPluginAssembly" level="Global" />
-    <RolePrivilege name="prvReadPluginTraceLog" level="Global" />
     <RolePrivilege name="prvReadPluginType" level="Global" />
     <RolePrivilege name="prvReadQuery" level="Global" />
     <RolePrivilege name="prvReadRelationship" level="Global" />
@@ -77,14 +68,16 @@
     <RolePrivilege name="prvReadsanic_cm_tbl_actualizaciondatos" level="Basic" />
     <RolePrivilege name="prvReadsanic_cm_tbl_agente" level="Global" />
     <RolePrivilege name="prvReadsanic_cm_tbl_asignacion" level="Basic" />
-    <RolePrivilege name="prvReadsanic_cm_tbl_cliente" level="Global" />
-    <RolePrivilege name="prvReadsanic_cm_tbl_cuenta" level="Global" />
-    <RolePrivilege name="prvReadsanic_cm_tbl_direccion" level="Global" />
-    <RolePrivilege name="prvReadsanic_cm_tbl_fiador" level="Global" />
+    <RolePrivilege name="prvReadsanic_cm_tbl_cliente" level="Basic" />
+    <RolePrivilege name="prvReadsanic_cm_tbl_cuenta" level="Basic" />
+    <RolePrivilege name="prvReadsanic_cm_tbl_cuentapan" level="Basic" />
+    <RolePrivilege name="prvReadsanic_cm_tbl_direccion" level="Basic" />
+    <RolePrivilege name="prvReadsanic_cm_tbl_fiador" level="Basic" />
     <RolePrivilege name="prvReadsanic_cm_tbl_interaccion" level="Basic" />
+    <RolePrivilege name="prvReadsanic_cm_tbl_opcionlista" level="Global" />
     <RolePrivilege name="prvReadsanic_cm_tbl_pago" level="Basic" />
     <RolePrivilege name="prvReadsanic_cm_tbl_producto" level="Global" />
-    <RolePrivilege name="prvReadsanic_cm_tbl_telefono" level="Global" />
+    <RolePrivilege name="prvReadsanic_cm_tbl_telefono" level="Basic" />
     <RolePrivilege name="prvReadSavedQueryVisualizations" level="Global" />
     <RolePrivilege name="prvReadSdkMessage" level="Global" />
     <RolePrivilege name="prvReadSdkMessageProcessingStep" level="Global" />
@@ -108,21 +101,16 @@
     <RolePrivilege name="prvReadWorkflowSession" level="Global" />
     <RolePrivilege name="prvShareSyncError" level="Global" />
     <RolePrivilege name="prvShareUserEntityUISettings" level="Basic" />
-    <RolePrivilege name="prvShareWorkflow" level="Basic" />
     <RolePrivilege name="prvShareWorkflowSession" level="Basic" />
     <RolePrivilege name="prvWorkflowExecution" level="Global" />
     <RolePrivilege name="prvWriteAsyncOperation" level="Basic" />
     <RolePrivilege name="prvWriteNewProcess" level="Global" />
-    <RolePrivilege name="prvWritesanic_cm_tbl_actualizaciondatos" level="Basic" />
     <RolePrivilege name="prvWritesanic_cm_tbl_asignacion" level="Basic" />
-    <RolePrivilege name="prvWritesanic_cm_tbl_interaccion" level="Basic" />
-    <RolePrivilege name="prvWritesanic_cm_tbl_pago" level="Basic" />
     <RolePrivilege name="prvWriteSharePointData" level="Global" />
     <RolePrivilege name="prvWriteSyncError" level="Global" />
     <RolePrivilege name="prvWriteTranslationProcess" level="Global" />
     <RolePrivilege name="prvWriteUserApplicationMetadata" level="Basic" />
     <RolePrivilege name="prvWriteUserEntityUISettings" level="Basic" />
-    <RolePrivilege name="prvWriteWorkflow" level="Basic" />
     <RolePrivilege name="prvWriteWorkflowSession" level="Basic" />
   </RolePrivileges>
 </Role>

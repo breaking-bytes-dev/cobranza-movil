@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="Distrito">
+  <description default="Distrito (cliente nuevo)">
+    <label description="Distrito (cliente nuevo)" languagecode="1033" />
+  </description>
+  <displayname default="Distrito">
+    <label description="Distrito" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>1</isoptional>
+  <name>sanic_cm_AltaCuenta.Distrito</name>
+  <type>10</type>
+</customapirequestparameter>

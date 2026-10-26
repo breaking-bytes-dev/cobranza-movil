@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="RetiroNio">
+  <description default="Retiro en cordobas (0 a 1.000.000.000)">
+    <label description="Retiro en cordobas (0 a 1.000.000.000)" languagecode="1033" />
+  </description>
+  <displayname default="RetiroNio">
+    <label description="RetiroNio" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>1</isoptional>
+  <name>sanic_cm_SolicitarEspecial.RetiroNio</name>
+  <type>2</type>
+</customapirequestparameter>

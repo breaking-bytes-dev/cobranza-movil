@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="DireccionFianza">
+  <description default="Direccion del fiador (si existe, se usa la de Dataverse)">
+    <label description="Direccion del fiador (si existe, se usa la de Dataverse)" languagecode="1033" />
+  </description>
+  <displayname default="DireccionFianza">
+    <label description="DireccionFianza" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>1</isoptional>
+  <name>sanic_cm_AltaCuenta.DireccionFianza</name>
+  <type>10</type>
+</customapirequestparameter>

@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="Trabajo">
+  <description default="Empleador (cliente nuevo)">
+    <label description="Empleador (cliente nuevo)" languagecode="1033" />
+  </description>
+  <displayname default="Trabajo">
+    <label description="Trabajo" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>1</isoptional>
+  <name>sanic_cm_AltaCuenta.Trabajo</name>
+  <type>10</type>
+</customapirequestparameter>

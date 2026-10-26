@@ -1,0 +1,18 @@
+<customapi uniquename="sanic_cm_AltaCuenta">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="El Admin da de alta una cuenta como una importacion de una fila con la plantilla &quot;Cobranza movil&quot; de Smelter. Devuelve el Import Job sin estado (la app lo pone En cola).">
+    <label description="El Admin da de alta una cuenta como una importacion de una fila con la plantilla &quot;Cobranza movil&quot; de Smelter. Devuelve el Import Job sin estado (la app lo pone En cola)." languagecode="1033" />
+  </description>
+  <displayname default="CM - Alta de cuenta">
+    <label description="CM - Alta de cuenta" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>sanic_cm_AltaCuenta</name>
+  <plugintypeid>
+    <plugintypeexportkey>52170118-39c8-f111-a05a-000d3a3b5b91</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

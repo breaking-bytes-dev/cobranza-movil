@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="Esperadas">
+  <description default="Cuantas confirmo el Admin (o las que quedaban); si hay mas, no cierra">
+    <label description="Cuantas confirmo el Admin (o las que quedaban); si hay mas, no cierra" languagecode="1033" />
+  </description>
+  <displayname default="Esperadas">
+    <label description="Esperadas" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>0</isoptional>
+  <name>sanic_cm_CerrarFueraDeCartera.Esperadas</name>
+  <type>7</type>
+</customapirequestparameter>

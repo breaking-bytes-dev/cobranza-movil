@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="CuentaId">
+  <description default="Id de la cuenta (sanic_cm_tbl_cuenta)">
+    <label description="Id de la cuenta (sanic_cm_tbl_cuenta)" languagecode="1033" />
+  </description>
+  <displayname default="CuentaId">
+    <label description="CuentaId" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>0</isoptional>
+  <name>sanic_cm_SolicitarEspecial.CuentaId</name>
+  <type>12</type>
+</customapirequestparameter>

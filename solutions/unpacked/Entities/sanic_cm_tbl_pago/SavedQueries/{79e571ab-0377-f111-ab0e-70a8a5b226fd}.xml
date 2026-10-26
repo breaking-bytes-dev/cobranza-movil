@@ -10,7 +10,6 @@
     <layoutxml>
       <grid name="resultset" jump="sanic_cm_pg_numero" select="1" icon="1" preview="1">
         <row name="result" id="sanic_cm_tbl_pagoid">
-          <cell name="sanic_cm_pg_numerocuenta" width="160" />
           <cell name="sanic_cm_pg_numerorecibo" width="156" />
           <cell name="sanic_cm_pg_monto" width="137" />
           <cell name="sanic_cm_pg_moneda" width="117" />
@@ -27,7 +26,6 @@
           <attribute name="sanic_cm_pg_moneda" />
           <attribute name="sanic_cm_pg_numerorecibo" />
           <attribute name="createdon" />
-          <attribute name="sanic_cm_pg_numerocuenta" />
         </entity>
       </fetch>
     </fetchxml>

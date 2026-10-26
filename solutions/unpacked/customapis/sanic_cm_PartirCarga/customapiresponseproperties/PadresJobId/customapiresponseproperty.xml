@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="PadresJobId">
+  <description default="Id del job de padres (el mismo JobId, ya convertido)">
+    <label description="Id del job de padres (el mismo JobId, ya convertido)" languagecode="1033" />
+  </description>
+  <displayname default="PadresJobId">
+    <label description="PadresJobId" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>sanic_cm_PartirCarga.PadresJobId</name>
+  <type>12</type>
+</customapiresponseproperty>

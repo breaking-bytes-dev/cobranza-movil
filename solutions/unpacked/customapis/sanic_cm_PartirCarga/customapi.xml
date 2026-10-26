@@ -1,0 +1,18 @@
+<customapi uniquename="sanic_cm_PartirCarga">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="Carga paralela: convierte el Import Job de la carga real (sin estado, plantilla &quot;Cobranza movil&quot;) en el de padres (producto, fiador y agente) y crea N jobs de partes por CIF, sin estado.">
+    <label description="Carga paralela: convierte el Import Job de la carga real (sin estado, plantilla &quot;Cobranza movil&quot;) en el de padres (producto, fiador y agente) y crea N jobs de partes por CIF, sin estado." languagecode="1033" />
+  </description>
+  <displayname default="CM - Partir carga">
+    <label description="CM - Partir carga" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>sanic_cm_PartirCarga</name>
+  <plugintypeid>
+    <plugintypeexportkey>26f70b72-52ce-f111-a05b-7ced8d711436</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

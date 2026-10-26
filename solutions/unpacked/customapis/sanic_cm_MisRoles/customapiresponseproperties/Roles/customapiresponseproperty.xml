@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Roles">
+  <description default="Perfiles sin el prefijo &quot;SR | CM | &quot;, ordenados y separados por &quot;|&quot; (vacio si no tiene)">
+    <label description="Perfiles sin el prefijo &quot;SR | CM | &quot;, ordenados y separados por &quot;|&quot; (vacio si no tiene)" languagecode="1033" />
+  </description>
+  <displayname default="Roles">
+    <label description="Roles" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>sanic_cm_MisRoles.Roles</name>
+  <type>10</type>
+</customapiresponseproperty>

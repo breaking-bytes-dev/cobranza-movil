@@ -14,6 +14,7 @@
     <RolePrivilege name="prvAppendsanic_cm_tbl_direccion" level="Global" />
     <RolePrivilege name="prvAppendsanic_cm_tbl_fiador" level="Global" />
     <RolePrivilege name="prvAppendsanic_cm_tbl_interaccion" level="Global" />
+    <RolePrivilege name="prvAppendsanic_cm_tbl_opcionlista" level="Global" />
     <RolePrivilege name="prvAppendsanic_cm_tbl_pago" level="Global" />
     <RolePrivilege name="prvAppendsanic_cm_tbl_producto" level="Global" />
     <RolePrivilege name="prvAppendsanic_cm_tbl_telefono" level="Global" />
@@ -28,6 +29,7 @@
     <RolePrivilege name="prvAppendTosanic_cm_tbl_direccion" level="Global" />
     <RolePrivilege name="prvAppendTosanic_cm_tbl_fiador" level="Global" />
     <RolePrivilege name="prvAppendTosanic_cm_tbl_interaccion" level="Global" />
+    <RolePrivilege name="prvAppendTosanic_cm_tbl_opcionlista" level="Global" />
     <RolePrivilege name="prvAppendTosanic_cm_tbl_pago" level="Global" />
     <RolePrivilege name="prvAppendTosanic_cm_tbl_producto" level="Global" />
     <RolePrivilege name="prvAppendTosanic_cm_tbl_telefono" level="Global" />
@@ -62,6 +64,7 @@
     <RolePrivilege name="prvCreatesanic_cm_tbl_direccion" level="Global" />
     <RolePrivilege name="prvCreatesanic_cm_tbl_fiador" level="Global" />
     <RolePrivilege name="prvCreatesanic_cm_tbl_interaccion" level="Global" />
+    <RolePrivilege name="prvCreatesanic_cm_tbl_opcionlista" level="Global" />
     <RolePrivilege name="prvCreatesanic_cm_tbl_pago" level="Global" />
     <RolePrivilege name="prvCreatesanic_cm_tbl_producto" level="Global" />
     <RolePrivilege name="prvCreatesanic_cm_tbl_telefono" level="Global" />
@@ -122,6 +125,7 @@
     <RolePrivilege name="prvReadsanic_cm_tbl_direccion" level="Global" />
     <RolePrivilege name="prvReadsanic_cm_tbl_fiador" level="Global" />
     <RolePrivilege name="prvReadsanic_cm_tbl_interaccion" level="Global" />
+    <RolePrivilege name="prvReadsanic_cm_tbl_opcionlista" level="Global" />
     <RolePrivilege name="prvReadsanic_cm_tbl_pago" level="Global" />
     <RolePrivilege name="prvReadsanic_cm_tbl_producto" level="Global" />
     <RolePrivilege name="prvReadsanic_cm_tbl_telefono" level="Global" />
@@ -172,6 +176,7 @@
     <RolePrivilege name="prvWritesanic_cm_tbl_direccion" level="Global" />
     <RolePrivilege name="prvWritesanic_cm_tbl_fiador" level="Global" />
     <RolePrivilege name="prvWritesanic_cm_tbl_interaccion" level="Global" />
+    <RolePrivilege name="prvWritesanic_cm_tbl_opcionlista" level="Global" />
     <RolePrivilege name="prvWritesanic_cm_tbl_pago" level="Global" />
     <RolePrivilege name="prvWritesanic_cm_tbl_producto" level="Global" />
     <RolePrivilege name="prvWritesanic_cm_tbl_telefono" level="Global" />

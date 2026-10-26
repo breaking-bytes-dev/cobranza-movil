@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="SolicitadoPor">
+  <description default="Si ya existe: nombre de quien la pidio; si no, vacio">
+    <label description="Si ya existe: nombre de quien la pidio; si no, vacio" languagecode="1033" />
+  </description>
+  <displayname default="SolicitadoPor">
+    <label description="SolicitadoPor" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>sanic_cm_SolicitarEspecial.SolicitadoPor</name>
+  <type>10</type>
+</customapiresponseproperty>

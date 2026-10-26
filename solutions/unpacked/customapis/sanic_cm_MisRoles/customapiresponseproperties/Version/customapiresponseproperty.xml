@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Version">
+  <description default="Version de la solucion cm_core_cobranzamovil, para mostrar en las apps (vacio si no se encuentra)">
+    <label description="Version de la solucion cm_core_cobranzamovil, para mostrar en las apps (vacio si no se encuentra)" languagecode="1033" />
+  </description>
+  <displayname default="Version">
+    <label description="Version" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>sanic_cm_MisRoles.Version</name>
+  <type>10</type>
+</customapiresponseproperty>

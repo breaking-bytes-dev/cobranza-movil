@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="EstadoAprobacion">
+  <description default="Estado de aprobacion (2 = Pendiente, 3 = Aprobado, 4 = Rechazada)">
+    <label description="Estado de aprobacion (2 = Pendiente, 3 = Aprobado, 4 = Rechazada)" languagecode="1033" />
+  </description>
+  <displayname default="EstadoAprobacion">
+    <label description="EstadoAprobacion" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>sanic_cm_SolicitarEspecial.EstadoAprobacion</name>
+  <type>7</type>
+</customapiresponseproperty>

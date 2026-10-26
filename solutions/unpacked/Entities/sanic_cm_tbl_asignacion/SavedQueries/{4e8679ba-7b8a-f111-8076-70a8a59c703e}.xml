@@ -14,7 +14,7 @@
           <cell name="sanic_cm_as_cuentaid" width="150" />
           <cell name="sanic_cm_as_estadoaprobacion" width="150" />
           <cell name="sanic_cm_as_agenteid" width="140" />
-          <cell name="sanic_cm_as_fechasignacion" width="140" />
+          <cell name="sanic_cm_as_fechaasignada" width="140" />
         </row>
       </grid>
     </layoutxml>
@@ -26,9 +26,9 @@
           <attribute name="sanic_cm_as_cuentaid" />
           <attribute name="sanic_cm_as_estadoaprobacion" />
           <attribute name="sanic_cm_as_agenteid" />
-          <attribute name="sanic_cm_as_fechasignacion" />
+          <attribute name="sanic_cm_as_fechaasignada" />
           <attribute name="sanic_cm_tbl_asignacionid" />
-          <order attribute="sanic_cm_as_fechasignacion" descending="true" />
+          <order attribute="sanic_cm_as_fechaasignada" descending="true" />
           <filter type="and">
             <condition attribute="sanic_cm_as_tipo" operator="eq" value="3" />
             <condition attribute="sanic_cm_as_estado" operator="eq" value="1" />

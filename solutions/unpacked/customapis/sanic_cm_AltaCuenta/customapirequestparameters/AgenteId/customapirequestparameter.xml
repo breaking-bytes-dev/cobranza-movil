@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="AgenteId">
+  <description default="Id del agente (sanic_cm_tbl_agente) existente y activo">
+    <label description="Id del agente (sanic_cm_tbl_agente) existente y activo" languagecode="1033" />
+  </description>
+  <displayname default="AgenteId">
+    <label description="AgenteId" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>0</isoptional>
+  <name>sanic_cm_AltaCuenta.AgenteId</name>
+  <type>12</type>
+</customapirequestparameter>

@@ -1,0 +1,18 @@
+<customapi uniquename="sanic_cm_CerrarFueraDeCartera">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="Reconciliacion. Cierra por lotes, en el servidor, las Diarias activas cuya ultima carga es anterior al dia de la ultima carga diaria (motivo &quot;fuera de cartera&quot;). Solo el Admin.">
+    <label description="Reconciliacion. Cierra por lotes, en el servidor, las Diarias activas cuya ultima carga es anterior al dia de la ultima carga diaria (motivo &quot;fuera de cartera&quot;). Solo el Admin." languagecode="1033" />
+  </description>
+  <displayname default="CM - Cerrar fuera de cartera">
+    <label description="CM - Cerrar fuera de cartera" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>sanic_cm_CerrarFueraDeCartera</name>
+  <plugintypeid>
+    <plugintypeexportkey>33c9c49a-dfd0-f111-a05b-70a8a5b2a2b2</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

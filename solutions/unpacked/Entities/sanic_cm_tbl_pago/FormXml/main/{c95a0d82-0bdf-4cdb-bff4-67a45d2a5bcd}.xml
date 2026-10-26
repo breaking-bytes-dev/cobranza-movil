@@ -43,14 +43,7 @@
                         <control id="sanic_cm_pg_numerointeraccion" classid="{4273EDBD-AC1D-40D3-9FB2-095C621B552D}" datafieldname="sanic_cm_pg_numerointeraccion" disabled="true" />
                       </cell>
                     </row>
-                    <row>
-                      <cell id="{e8f83ec0-77e2-4156-8e2d-24e99ad2550b}" locklevel="1" colspan="1" rowspan="1">
-                        <labels>
-                          <label description="[PG] Numero Cuenta" languagecode="1033" />
-                        </labels>
-                        <control id="sanic_cm_pg_numerocuenta" classid="{4273EDBD-AC1D-40D3-9FB2-095C621B552D}" datafieldname="sanic_cm_pg_numerocuenta" disabled="true" />
-                      </cell>
-                    </row>
+                    <row />
                     <row>
                       <cell id="{d18544e4-12fc-44cd-8c2f-5c2d8a1d516a}" locklevel="1" colspan="1" rowspan="1">
                         <labels>

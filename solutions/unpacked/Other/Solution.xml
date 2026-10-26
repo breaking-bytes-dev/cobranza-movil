@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<ImportExportXml version="9.2.26093.135" SolutionPackageVersion="9.2" languagecode="1033" generatedBy="CrmLive" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.26093.135" OrganizationSchemaType="Standard" CRMServerServiceabilityVersion="9.2.26093.00139">
+<ImportExportXml version="9.2.26103.137" SolutionPackageVersion="9.2" languagecode="1033" generatedBy="CrmLive" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.26103.137" OrganizationSchemaType="Standard" CRMServerServiceabilityVersion="9.2.26103.00137">
   <SolutionManifest>
     <UniqueName>cm_core_cobranzamovil</UniqueName>
     <LocalizedNames>
@@ -11,7 +11,7 @@
     <Publisher>
       <UniqueName>Sistemas_Abiertos_Nicaragua</UniqueName>
       <LocalizedNames>
-        <LocalizedName description="Sistemas Abiertos Nicaragua" languagecode="1033" />
+        <LocalizedName description="Sistemas_Abiertos_Nicaragua" languagecode="1033" />
       </LocalizedNames>
       <Descriptions>
         <Description description="Sistemas Abiertos - BacCredomatic NIC" languagecode="1033" />
@@ -20,64 +20,7 @@
       <SupportingWebsiteUrl xsi:nil="true"></SupportingWebsiteUrl>
       <CustomizationPrefix>sanic</CustomizationPrefix>
       <CustomizationOptionValuePrefix>15946</CustomizationOptionValuePrefix>
-      <Addresses>
-        <Address>
-          <AddressNumber>1</AddressNumber>
-          <AddressTypeCode>1</AddressTypeCode>
-          <City xsi:nil="true"></City>
-          <County xsi:nil="true"></County>
-          <Country xsi:nil="true"></Country>
-          <Fax xsi:nil="true"></Fax>
-          <FreightTermsCode xsi:nil="true"></FreightTermsCode>
-          <ImportSequenceNumber xsi:nil="true"></ImportSequenceNumber>
-          <Latitude xsi:nil="true"></Latitude>
-          <Line1 xsi:nil="true"></Line1>
-          <Line2 xsi:nil="true"></Line2>
-          <Line3 xsi:nil="true"></Line3>
-          <Longitude xsi:nil="true"></Longitude>
-          <Name xsi:nil="true"></Name>
-          <PostalCode xsi:nil="true"></PostalCode>
-          <PostOfficeBox xsi:nil="true"></PostOfficeBox>
-          <PrimaryContactName xsi:nil="true"></PrimaryContactName>
-          <ShippingMethodCode>1</ShippingMethodCode>
-          <StateOrProvince xsi:nil="true"></StateOrProvince>
-          <Telephone1 xsi:nil="true"></Telephone1>
-          <Telephone2 xsi:nil="true"></Telephone2>
-          <Telephone3 xsi:nil="true"></Telephone3>
-          <TimeZoneRuleVersionNumber xsi:nil="true"></TimeZoneRuleVersionNumber>
-          <UPSZone xsi:nil="true"></UPSZone>
-          <UTCOffset xsi:nil="true"></UTCOffset>
-          <UTCConversionTimeZoneCode xsi:nil="true"></UTCConversionTimeZoneCode>
-        </Address>
-        <Address>
-          <AddressNumber>2</AddressNumber>
-          <AddressTypeCode>1</AddressTypeCode>
-          <City xsi:nil="true"></City>
-          <County xsi:nil="true"></County>
-          <Country xsi:nil="true"></Country>
-          <Fax xsi:nil="true"></Fax>
-          <FreightTermsCode xsi:nil="true"></FreightTermsCode>
-          <ImportSequenceNumber xsi:nil="true"></ImportSequenceNumber>
-          <Latitude xsi:nil="true"></Latitude>
-          <Line1 xsi:nil="true"></Line1>
-          <Line2 xsi:nil="true"></Line2>
-          <Line3 xsi:nil="true"></Line3>
-          <Longitude xsi:nil="true"></Longitude>
-          <Name xsi:nil="true"></Name>
-          <PostalCode xsi:nil="true"></PostalCode>
-          <PostOfficeBox xsi:nil="true"></PostOfficeBox>
-          <PrimaryContactName xsi:nil="true"></PrimaryContactName>
-          <ShippingMethodCode>1</ShippingMethodCode>
-          <StateOrProvince xsi:nil="true"></StateOrProvince>
-          <Telephone1 xsi:nil="true"></Telephone1>
-          <Telephone2 xsi:nil="true"></Telephone2>
-          <Telephone3 xsi:nil="true"></Telephone3>
-          <TimeZoneRuleVersionNumber xsi:nil="true"></TimeZoneRuleVersionNumber>
-          <UPSZone xsi:nil="true"></UPSZone>
-          <UTCOffset xsi:nil="true"></UTCOffset>
-          <UTCConversionTimeZoneCode xsi:nil="true"></UTCConversionTimeZoneCode>
-        </Address>
-      </Addresses>
+      <Addresses />
     </Publisher>
     <RootComponents>
       <RootComponent type="1" schemaName="sanic_cm_tbl_actualizaciondatos" behavior="0" />
@@ -86,20 +29,23 @@
       <RootComponent type="1" schemaName="sanic_cm_tbl_cargadiaria" behavior="0" />
       <RootComponent type="1" schemaName="sanic_cm_tbl_cliente" behavior="0" />
       <RootComponent type="1" schemaName="sanic_cm_tbl_cuenta" behavior="0" />
+      <RootComponent type="1" schemaName="sanic_cm_tbl_cuentapan" behavior="0" />
       <RootComponent type="1" schemaName="sanic_cm_tbl_direccion" behavior="0" />
       <RootComponent type="1" schemaName="sanic_cm_tbl_fiador" behavior="0" />
       <RootComponent type="1" schemaName="sanic_cm_tbl_interaccion" behavior="0" />
+      <RootComponent type="1" schemaName="sanic_cm_tbl_opcionlista" behavior="0" />
       <RootComponent type="1" schemaName="sanic_cm_tbl_pago" behavior="0" />
       <RootComponent type="1" schemaName="sanic_cm_tbl_producto" behavior="0" />
       <RootComponent type="1" schemaName="sanic_cm_tbl_telefono" behavior="0" />
       <RootComponent type="1" schemaName="systemuser" behavior="1" />
+      <RootComponent type="161" id="{d0193da8-7ac0-f111-a05a-70a8a5b09c9f}" behavior="0" />
       <RootComponent type="20" id="{0ed5c9cb-fd76-f111-ab0e-70a8a5b226fd}" behavior="0" />
+      <RootComponent type="20" id="{566233f9-9dc7-f111-a05a-000d3a3b5b91}" behavior="0" />
       <RootComponent type="20" id="{6488515d-fe76-f111-ab0e-70a8a5b226fd}" behavior="0" />
       <RootComponent type="20" id="{b2884281-f573-f111-ab0e-000d3a3483e7}" behavior="0" />
       <RootComponent type="20" id="{c1736ff3-fb76-f111-ab0e-70a8a5b226fd}" behavior="0" />
       <RootComponent type="20" id="{d9f0f107-fd76-f111-ab0e-70a8a5b226fd}" behavior="0" />
       <RootComponent type="20" id="{e56809a5-fc76-f111-ab0e-70a8a5b226fd}" behavior="0" />
-      <RootComponent type="29" id="{3b897aa2-0077-f111-ab0e-70a8a5b226fd}" behavior="0" />
       <RootComponent type="29" id="{6fdd6914-0777-f111-ab0e-70a8a5b226fd}" behavior="0" />
       <RootComponent type="29" id="{bc33bc07-f48a-f111-8076-70a8a59c703e}" behavior="0" />
       <RootComponent type="300" schemaName="sanic_appcmbackofficecanvas_d0162" behavior="0" />
@@ -108,25 +54,67 @@
       <RootComponent type="9" schemaName="sanic_choice_cm_monedaenpago" behavior="0" />
       <RootComponent type="9" schemaName="sanic_choice_cm_tipoasignacion" behavior="0" />
       <RootComponent type="9" schemaName="sanic_cm_choice_estadograbacioninteraccion" behavior="0" />
+      <RootComponent type="91" id="{ec98c49b-17c0-f111-a05a-70a8a5b09c9f}" schemaName="Sanic.CobranzaMovil.Plugins, Version=1.0.10.9, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" behavior="0" />
+      <RootComponent type="92" id="{0a2b7718-f2cc-f111-a05b-00224808ffcd}" behavior="0" />
+      <RootComponent type="92" id="{0d2b7718-f2cc-f111-a05b-00224808ffcd}" behavior="0" />
+      <RootComponent type="92" id="{24cd194a-dac7-f111-a05a-000d3a3b5b91}" behavior="0" />
+      <RootComponent type="92" id="{27cd194a-dac7-f111-a05a-000d3a3b5b91}" behavior="0" />
+      <RootComponent type="92" id="{2bcd194a-dac7-f111-a05a-000d3a3b5b91}" behavior="0" />
+      <RootComponent type="92" id="{3458cdaf-17c0-f111-a05a-70a8a5b09c9f}" behavior="0" />
+      <RootComponent type="92" id="{42e1b941-9ec7-f111-a05a-000d3a3b5b91}" behavior="0" />
+      <RootComponent type="92" id="{47fe6551-7ccd-f111-a05b-7ced8d706b47}" behavior="0" />
+      <RootComponent type="92" id="{5a3edc96-68d1-f111-a05b-70a8a5b2a2b2}" behavior="0" />
+      <RootComponent type="92" id="{67038add-04cd-f111-a05b-00224808ffcd}" behavior="0" />
+      <RootComponent type="92" id="{6a038add-04cd-f111-a05b-00224808ffcd}" behavior="0" />
+      <RootComponent type="92" id="{712126be-7dcd-f111-a05b-7ced8d706b47}" behavior="0" />
+      <RootComponent type="92" id="{8518bca2-17c0-f111-a05a-70a8a5b09c9f}" behavior="0" />
+      <RootComponent type="92" id="{8818bca2-17c0-f111-a05a-70a8a5b09c9f}" behavior="0" />
+      <RootComponent type="92" id="{8b18bca2-17c0-f111-a05a-70a8a5b09c9f}" behavior="0" />
+      <RootComponent type="92" id="{9bb4fd5b-cac6-f111-a05a-000d3a3b5b91}" behavior="0" />
+      <RootComponent type="92" id="{9eb4fd5b-cac6-f111-a05a-000d3a3b5b91}" behavior="0" />
+      <RootComponent type="92" id="{b109332c-29c1-f111-a05a-70a8a5b09c9f}" behavior="0" />
+      <RootComponent type="92" id="{b409332c-29c1-f111-a05a-70a8a5b09c9f}" behavior="0" />
+      <RootComponent type="92" id="{c59396f9-02c1-f111-a05a-70a8a5b09c9f}" behavior="0" />
+      <RootComponent type="92" id="{c5d32cc5-64cd-f111-a05b-7ced8d706b47}" behavior="0" />
+      <RootComponent type="92" id="{c7359b8c-66cf-f111-a05b-7ced8d711436}" behavior="0" />
+      <RootComponent type="92" id="{ca359b8c-66cf-f111-a05b-7ced8d711436}" behavior="0" />
+      <RootComponent type="92" id="{cacf3b86-68d1-f111-a05b-70a8a5b2a2b2}" behavior="0" />
+      <RootComponent type="92" id="{cad88634-26ce-f111-a05b-7ced8d711436}" behavior="0" />
+      <RootComponent type="92" id="{cdcf3b86-68d1-f111-a05b-70a8a5b2a2b2}" behavior="0" />
+      <RootComponent type="92" id="{d0cf3b86-68d1-f111-a05b-70a8a5b2a2b2}" behavior="0" />
+      <RootComponent type="92" id="{d19396f9-02c1-f111-a05a-70a8a5b09c9f}" behavior="0" />
+      <RootComponent type="92" id="{d3cf3b86-68d1-f111-a05b-70a8a5b2a2b2}" behavior="0" />
+      <RootComponent type="92" id="{d7efef50-dac7-f111-a05a-000d3a3b5b91}" behavior="0" />
+      <RootComponent type="92" id="{dbefef50-dac7-f111-a05a-000d3a3b5b91}" behavior="0" />
+      <RootComponent type="92" id="{dd9396f9-02c1-f111-a05a-70a8a5b09c9f}" behavior="0" />
+      <RootComponent type="92" id="{deefef50-dac7-f111-a05a-000d3a3b5b91}" behavior="0" />
+      <RootComponent type="92" id="{e49396f9-02c1-f111-a05a-70a8a5b09c9f}" behavior="0" />
+      <RootComponent type="92" id="{f298c49b-17c0-f111-a05a-70a8a5b09c9f}" behavior="0" />
+      <RootComponent type="92" id="{f598c49b-17c0-f111-a05a-70a8a5b09c9f}" behavior="0" />
+      <RootComponent type="92" id="{f5a0b3a9-17c0-f111-a05a-70a8a5b09c9f}" behavior="0" />
+      <RootComponent type="92" id="{f898c49b-17c0-f111-a05a-70a8a5b09c9f}" behavior="0" />
+      <RootComponent type="92" id="{f8a0b3a9-17c0-f111-a05a-70a8a5b09c9f}" behavior="0" />
     </RootComponents>
     <MissingDependencies>
       <MissingDependency>
-        <Required type="1" schemaName="systemuser" displayName="SystemUser" parentSchemaName="" solution="msdyn_PowerAdminSettingsEmail (2.2.3538.1)" />
+        <Required type="1" schemaName="sanic_tbl_smlt_importjob" displayName="TBL | SMLT | Import Job" solution="Active" />
+        <Dependent type="300" schemaName="sanic_appcmbackofficecanvas_d0162" displayName="App - CM - Backoffice Canvas" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="1" schemaName="sanic_tbl_smlt_importjob" displayName="TBL | SMLT | Import Job" solution="Active" />
+        <Dependent type="92" displayName="PCI: borra el archivo de carga de los jobs de CM terminados y barre los de mas de 7 dias (asincrono)" id="{5a3edc96-68d1-f111-a05b-70a8a5b2a2b2}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="1" schemaName="sanic_tbl_smlt_importtemplate" displayName="TBL | SMLT | Import Template" solution="Active" />
+        <Dependent type="300" schemaName="sanic_appcmbackofficecanvas_d0162" displayName="App - CM - Backoffice Canvas" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="1" schemaName="systemuser" displayName="SystemUser" parentSchemaName="" solution="msdyn_PowerAdminSettingsEmail (2.2.3573.1)" />
         <Dependent type="1" schemaName="systemuser" displayName="SystemUser" />
       </MissingDependency>
       <MissingDependency>
-        <Required type="161" displayName="autogenProfile-sanic_appcobranzamovil_c4e67" solution="Active" id="{f5f8e1c2-2c89-f111-8076-70a8a5b317f2}" />
-        <Dependent type="300" schemaName="sanic_appcobranzamovil_c4e67" displayName="App - Cobranza Movil" />
-      </MissingDependency>
-      <MissingDependency>
-        <Required type="90" schemaName="Microsoft.PowerFx.Evaluator, Microsoft.PowerFx.PlexPlugins, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" displayName="Microsoft.PowerFx.Evaluator" solution="msft_PowerfxRuleSolution (1.0.3464.116)" id="{462b3e8f-beb4-4981-9b87-a60c2162a9f7}">
-          <package appName="PowerfxRuleApp Package" version="1.0.3464.116">PowerfxRuleApp_Anchor (1.0.3464.116)</package>
-        </Required>
-        <Dependent type="CustomAPI" displayName="sanic_PlugInCMMarcarinteraccioncomograbadaenCORE" id.uniquename="sanic_PlugInCMMarcarinteraccioncomograbadaenCORE" />
-      </MissingDependency>
-      <MissingDependency>
-        <Required type="connectionreference" displayName="wf_sharedcommondataserviceforapps_3bc81" solution="Active" id.connectionreferencelogicalname="wf_sharedcommondataserviceforapps_3bc81" />
-        <Dependent type="29" displayName="Cloud Flow | CM | Cambio de Owner en Asignaciones" id="{3b897aa2-0077-f111-ab0e-70a8a5b226fd}" />
+        <Required type="2" schemaName="sanic_smlt_ij_status" displayName="[IJ] Status" parentSchemaName="sanic_tbl_smlt_importjob" parentDisplayName="TBL | SMLT | Import Job" solution="Active" />
+        <Dependent type="92" displayName="PCI: borra el archivo de carga de los jobs de CM terminados y barre los de mas de 7 dias (asincrono)" id="{5a3edc96-68d1-f111-a05b-70a8a5b2a2b2}" />
       </MissingDependency>
     </MissingDependencies>
   </SolutionManifest>

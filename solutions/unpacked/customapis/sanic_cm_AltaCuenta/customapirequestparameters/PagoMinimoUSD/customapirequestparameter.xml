@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="PagoMinimoUSD">
+  <description default="Pago minimo en dolares">
+    <label description="Pago minimo en dolares" languagecode="1033" />
+  </description>
+  <displayname default="PagoMinimoUSD">
+    <label description="PagoMinimoUSD" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>1</isoptional>
+  <name>sanic_cm_AltaCuenta.PagoMinimoUSD</name>
+  <type>2</type>
+</customapirequestparameter>

@@ -1,0 +1,18 @@
+<customapi uniquename="sanic_cm_SolicitarEspecial">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="Crea, reactiva o avisa que ya existe la asignacion Especial de una cuenta. Valida el rol del llamador y que pueda leer la cuenta.">
+    <label description="Crea, reactiva o avisa que ya existe la asignacion Especial de una cuenta. Valida el rol del llamador y que pueda leer la cuenta." languagecode="1033" />
+  </description>
+  <displayname default="CM - Solicitar Especial">
+    <label description="CM - Solicitar Especial" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>sanic_cm_SolicitarEspecial</name>
+  <plugintypeid>
+    <plugintypeexportkey>ec1da211-39c8-f111-a05a-000d3a3b5b91</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

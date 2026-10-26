@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="PagoMinimoNIO">
+  <description default="Pago minimo en cordobas">
+    <label description="Pago minimo en cordobas" languagecode="1033" />
+  </description>
+  <displayname default="PagoMinimoNIO">
+    <label description="PagoMinimoNIO" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>1</isoptional>
+  <name>sanic_cm_AltaCuenta.PagoMinimoNIO</name>
+  <type>2</type>
+</customapirequestparameter>

@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<SdkMessageProcessingStep Name="Sanic.CobranzaMovil.Plugins.Reclasificacion: Update of sanic_cm_tbl_asignacion" SdkMessageProcessingStepId="{d7efef50-dac7-f111-a05a-000d3a3b5b91}" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <SdkMessageId>20bebb1b-ea3e-db11-86a7-000a3a5473e8</SdkMessageId>
+  <PluginTypeName>Sanic.CobranzaMovil.Plugins.Reclasificacion, Sanic.CobranzaMovil.Plugins, Version=1.0.10.9, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c</PluginTypeName>
+  <PluginTypeId>955b5d35-dac7-f111-a05a-000d3a3b5b91</PluginTypeId>
+  <PrimaryEntity>sanic_cm_tbl_asignacion</PrimaryEntity>
+  <AsyncAutoDelete>0</AsyncAutoDelete>
+  <Description>Al traer la cuenta con el otro tipo, cierra la Diaria/Incobrable anterior (sincrono)</Description>
+  <FilteringAttributes>sanic_cm_as_ultimacarga,sanic_cm_as_estado,sanic_cm_as_tipo</FilteringAttributes>
+  <ImpersonatingUserIdName></ImpersonatingUserIdName>
+  <InvocationSource>1</InvocationSource>
+  <Mode>0</Mode>
+  <Rank>1</Rank>
+  <EventHandlerTypeCode>4602</EventHandlerTypeCode>
+  <Stage>40</Stage>
+  <IsCustomizable>1</IsCustomizable>
+  <IsHidden>0</IsHidden>
+  <SupportedDeployment>0</SupportedDeployment>
+  <IntroducedVersion>1.1.0.0</IntroducedVersion>
+  <SdkMessageProcessingStepImages>
+    <SdkMessageProcessingStepImage Name="PreImage">
+      <SdkMessageProcessingStepImageId>{daefef50-dac7-f111-a05a-000d3a3b5b91}</SdkMessageProcessingStepImageId>
+      <Attributes>sanic_cm_as_tipo,sanic_cm_as_estado,sanic_cm_as_cuentaid</Attributes>
+      <EntityAlias>PreImage</EntityAlias>
+      <ImageType>0</ImageType>
+      <MessagePropertyName>Target</MessagePropertyName>
+      <IsCustomizable>1</IsCustomizable>
+    </SdkMessageProcessingStepImage>
+  </SdkMessageProcessingStepImages>
+</SdkMessageProcessingStep>

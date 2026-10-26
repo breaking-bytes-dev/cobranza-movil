@@ -8,11 +8,11 @@
     <ReferencingEntityName>sanic_cm_tbl_cargadiaria</ReferencingEntityName>
     <ReferencedEntityName>sanic_cm_tbl_cliente</ReferencedEntityName>
     <CascadeAssign>Cascade</CascadeAssign>
-    <CascadeDelete>Cascade</CascadeDelete>
+    <CascadeDelete>Restrict</CascadeDelete>
     <CascadeArchive>RemoveLink</CascadeArchive>
-    <CascadeReparent>Cascade</CascadeReparent>
-    <CascadeShare>Cascade</CascadeShare>
-    <CascadeUnshare>Cascade</CascadeUnshare>
+    <CascadeReparent>NoCascade</CascadeReparent>
+    <CascadeShare>NoCascade</CascadeShare>
+    <CascadeUnshare>NoCascade</CascadeUnshare>
     <CascadeRollupView>NoCascade</CascadeRollupView>
     <IsValidForAdvancedFind>1</IsValidForAdvancedFind>
     <ReferencingAttributeName>sanic_cm_cd_clienteid</ReferencingAttributeName>
@@ -45,9 +45,9 @@
     <CascadeAssign>Cascade</CascadeAssign>
     <CascadeDelete>Cascade</CascadeDelete>
     <CascadeArchive>RemoveLink</CascadeArchive>
-    <CascadeReparent>Cascade</CascadeReparent>
-    <CascadeShare>Cascade</CascadeShare>
-    <CascadeUnshare>Cascade</CascadeUnshare>
+    <CascadeReparent>NoCascade</CascadeReparent>
+    <CascadeShare>NoCascade</CascadeShare>
+    <CascadeUnshare>NoCascade</CascadeUnshare>
     <CascadeRollupView>NoCascade</CascadeRollupView>
     <IsValidForAdvancedFind>1</IsValidForAdvancedFind>
     <ReferencingAttributeName>sanic_cm_ct_clienteid</ReferencingAttributeName>

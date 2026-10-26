@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Resultado">
+  <description default="&quot;creada&quot;, &quot;reactivada&quot; o &quot;ya existe&quot;">
+    <label description="&quot;creada&quot;, &quot;reactivada&quot; o &quot;ya existe&quot;" languagecode="1033" />
+  </description>
+  <displayname default="Resultado">
+    <label description="Resultado" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>sanic_cm_SolicitarEspecial.Resultado</name>
+  <type>10</type>
+</customapiresponseproperty>

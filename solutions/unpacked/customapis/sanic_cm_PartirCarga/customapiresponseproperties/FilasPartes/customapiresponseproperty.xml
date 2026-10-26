@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="FilasPartes">
+  <description default="Filas de cada parte, separadas por coma">
+    <label description="Filas de cada parte, separadas por coma" languagecode="1033" />
+  </description>
+  <displayname default="FilasPartes">
+    <label description="FilasPartes" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>sanic_cm_PartirCarga.FilasPartes</name>
+  <type>10</type>
+</customapiresponseproperty>

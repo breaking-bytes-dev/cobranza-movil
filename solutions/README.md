@@ -21,6 +21,6 @@ El *workflow* [`solution-release.yml`](../.github/workflows/solution-release.yml
 - ⚠️ **`unpacked/` no se instala ni se edita.** Es solo un registro para comparar versiones, y puede estar atrasada respecto del ambiente. Un cambio hecho acá no vuelve a Dataverse.
 - **El código fuente de las apps está en [`apps/`](../apps/)**, no en la *solution*: `CanvasApps/` se excluye porque las *canvas apps* no admiten ida y vuelta con el *Solution Packager*.
 - **Los cambios se hacen en el ambiente de desarrollo, dentro de la *solution*.** Después se exporta un Release.
-- Lo que no viaja en la *solution* (equipos, clave K, plantillas de Smelter, trabajos de borrado) lo crean los scripts de [`scripts/`](../scripts/README.md).
+- Los trabajos de borrado programado viajan en la *solution* (`retentionconfigs/`). Lo que no viaja (equipos, clave K, plantillas de Smelter, roles de cada persona) se configura a mano: [Instalación y despliegue](../docs/tecnica/09-instalacion-y-despliegue.md).
 
 Instalación completa y publicación de cambios: [Instalación y despliegue](../docs/tecnica/09-instalacion-y-despliegue.md).

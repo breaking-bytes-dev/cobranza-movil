@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="ContagiadoUSD">
+  <description default="Contagiado en dolares">
+    <label description="Contagiado en dolares" languagecode="1033" />
+  </description>
+  <displayname default="ContagiadoUSD">
+    <label description="ContagiadoUSD" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>1</isoptional>
+  <name>sanic_cm_AltaCuenta.ContagiadoUSD</name>
+  <type>2</type>
+</customapirequestparameter>

@@ -1,0 +1,14 @@
+<retentionconfig retentionconfigid="cd48c25b-87d1-f111-a05b-70a8a5b2a2b2">
+  <criteria>{"QuerySet": ["&lt;fetch version=\"1.0\" mapping=\"logical\" distinct=\"true\"&gt;&lt;entity name=\"sanic_cm_tbl_fiador\"&gt;&lt;attribute name=\"sanic_cm_tbl_fiadorid\"/&gt;&lt;link-entity name=\"sanic_cm_tbl_cuenta\" from=\"sanic_cm_ct_fiador\" to=\"sanic_cm_tbl_fiadorid\" link-type=\"outer\" alias=\"cta\"&gt;&lt;/link-entity&gt;&lt;filter type=\"and\"&gt;&lt;condition attribute=\"modifiedon\" operator=\"olderthan-x-days\" value=\"2\"/&gt;&lt;condition entityname=\"cta\" attribute=\"sanic_cm_tbl_cuentaid\" operator=\"null\"/&gt;&lt;/filter&gt;&lt;/entity&gt;&lt;/fetch&gt;"], "SendEmailNotification": false, "ToRecipients": [], "CCRecipients": []}</criteria>
+  <entitylogicalname>sanic_cm_tbl_fiador</entitylogicalname>
+  <iscustomizable>1</iscustomizable>
+  <name>CM - Fiadores sin cuentas</name>
+  <provisioningmode>0</provisioningmode>
+  <recurrence>FREQ=DAILY;INTERVAL=1</recurrence>
+  <starttime>10/27/2026 9:00:00 AM</starttime>
+  <statecode>0</statecode>
+  <statuscode>1</statuscode>
+  <timezoneruleversionnumber>4</timezoneruleversionnumber>
+  <type>1</type>
+  <uniquename>CM - Fiadores sin cuentas</uniquename>
+</retentionconfig>

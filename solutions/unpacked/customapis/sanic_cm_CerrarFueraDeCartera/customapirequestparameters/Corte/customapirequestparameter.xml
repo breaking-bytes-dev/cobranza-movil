@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="Corte">
+  <description default="Dia de la ultima carga que vio la pantalla, aaaa-mm-dd (si cambio, no cierra)">
+    <label description="Dia de la ultima carga que vio la pantalla, aaaa-mm-dd (si cambio, no cierra)" languagecode="1033" />
+  </description>
+  <displayname default="Corte">
+    <label description="Corte" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>0</isoptional>
+  <name>sanic_cm_CerrarFueraDeCartera.Corte</name>
+  <type>10</type>
+</customapirequestparameter>

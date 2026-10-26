@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="SoloContar">
+  <description default="true = no cierra, solo devuelve cuantas cerraria">
+    <label description="true = no cierra, solo devuelve cuantas cerraria" languagecode="1033" />
+  </description>
+  <displayname default="SoloContar">
+    <label description="SoloContar" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>1</isoptional>
+  <name>sanic_cm_CerrarFueraDeCartera.SoloContar</name>
+  <type>0</type>
+</customapirequestparameter>

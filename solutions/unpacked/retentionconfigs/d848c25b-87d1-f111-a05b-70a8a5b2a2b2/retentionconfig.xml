@@ -1,0 +1,14 @@
+<retentionconfig retentionconfigid="d848c25b-87d1-f111-a05b-70a8a5b2a2b2">
+  <criteria>{"QuerySet": ["&lt;fetch version=\"1.0\" mapping=\"logical\" distinct=\"true\"&gt;&lt;entity name=\"sanic_cm_tbl_actualizaciondatos\"&gt;&lt;attribute name=\"sanic_cm_tbl_actualizaciondatosid\"/&gt;&lt;filter type=\"and\"&gt;&lt;condition attribute=\"createdon\" operator=\"olderthan-x-days\" value=\"730\"/&gt;&lt;/filter&gt;&lt;/entity&gt;&lt;/fetch&gt;"], "SendEmailNotification": false, "ToRecipients": [], "CCRecipients": []}</criteria>
+  <entitylogicalname>sanic_cm_tbl_actualizaciondatos</entitylogicalname>
+  <iscustomizable>1</iscustomizable>
+  <name>CM - Actualizaciones de datos de mas de 2 anos</name>
+  <provisioningmode>0</provisioningmode>
+  <recurrence>FREQ=DAILY;INTERVAL=1</recurrence>
+  <starttime>10/27/2026 9:00:00 AM</starttime>
+  <statecode>0</statecode>
+  <statuscode>1</statuscode>
+  <timezoneruleversionnumber>4</timezoneruleversionnumber>
+  <type>1</type>
+  <uniquename>CM - Actualizaciones de datos de mas de 2 anos</uniquename>
+</retentionconfig>

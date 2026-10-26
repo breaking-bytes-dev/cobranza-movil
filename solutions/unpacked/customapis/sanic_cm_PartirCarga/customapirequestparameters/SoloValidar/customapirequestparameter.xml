@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="SoloValidar">
+  <description default="true = solo mide el largo de los valores, sin escribir (prueba en seco y carga en serie)">
+    <label description="true = solo mide el largo de los valores, sin escribir (prueba en seco y carga en serie)" languagecode="1033" />
+  </description>
+  <displayname default="SoloValidar">
+    <label description="SoloValidar" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>1</isoptional>
+  <name>sanic_cm_PartirCarga.SoloValidar</name>
+  <type>0</type>
+</customapirequestparameter>

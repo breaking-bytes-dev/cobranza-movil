@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<savedqueries xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <savedquery>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>0</CanBeDeleted>
+    <isquickfindquery>0</isquickfindquery>
+    <isprivate>0</isprivate>
+    <isdefault>0</isdefault>
+    <savedqueryid>{021db343-a545-41df-ab45-b18112dc7f06}</savedqueryid>
+    <layoutxml>
+      <grid name="resultset" jump="sanic_cm_cp_name" select="1" icon="1" preview="1">
+        <row name="result" id="sanic_cm_tbl_cuentapanid">
+          <cell name="sanic_cm_cp_name" width="300" />
+          <cell name="createdon" width="125" />
+        </row>
+      </grid>
+    </layoutxml>
+    <querytype>0</querytype>
+    <fetchxml>
+      <fetch version="1.0" mapping="logical">
+        <entity name="sanic_cm_tbl_cuentapan">
+          <attribute name="sanic_cm_tbl_cuentapanid" />
+          <attribute name="sanic_cm_cp_name" />
+          <attribute name="createdon" />
+          <order attribute="sanic_cm_cp_name" descending="false" />
+          <filter type="and">
+            <condition attribute="statecode" operator="eq" value="1" />
+          </filter>
+        </entity>
+      </fetch>
+    </fetchxml>
+    <IntroducedVersion>1.0</IntroducedVersion>
+    <LocalizedNames>
+      <LocalizedName description="Inactive CM | TBL | PAN de cuentas" languagecode="1033" />
+    </LocalizedNames>
+  </savedquery>
+</savedqueries>

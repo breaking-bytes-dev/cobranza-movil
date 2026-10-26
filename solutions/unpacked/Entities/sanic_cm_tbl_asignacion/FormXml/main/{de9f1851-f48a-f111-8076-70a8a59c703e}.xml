@@ -54,9 +54,9 @@
                     <row>
                       <cell id="{b65eeaad-9d4b-47c5-bdd8-d43f5c7ed3ea}">
                         <labels>
-                          <label description="Fecha de asignación" languagecode="1033" />
+                          <label description="Fecha asignada" languagecode="1033" />
                         </labels>
-                        <control id="sanic_cm_as_fechasignacion" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="sanic_cm_as_fechasignacion" disabled="true" />
+                        <control id="sanic_cm_as_fechaasignada" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="sanic_cm_as_fechaasignada" disabled="true" />
                       </cell>
                     </row>
                     <row>

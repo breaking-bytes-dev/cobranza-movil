@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="NumeroCasa">
+  <description default="Telefono de la casa (cliente nuevo)">
+    <label description="Telefono de la casa (cliente nuevo)" languagecode="1033" />
+  </description>
+  <displayname default="NumeroCasa">
+    <label description="NumeroCasa" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>1</isoptional>
+  <name>sanic_cm_AltaCuenta.NumeroCasa</name>
+  <type>10</type>
+</customapirequestparameter>

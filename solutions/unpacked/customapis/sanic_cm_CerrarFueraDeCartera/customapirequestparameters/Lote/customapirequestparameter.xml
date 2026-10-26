@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="Lote">
+  <description default="Cuantas cerrar en este llamado (1 a 500; por defecto 250)">
+    <label description="Cuantas cerrar en este llamado (1 a 500; por defecto 250)" languagecode="1033" />
+  </description>
+  <displayname default="Lote">
+    <label description="Lote" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>1</isoptional>
+  <name>sanic_cm_CerrarFueraDeCartera.Lote</name>
+  <type>7</type>
+</customapirequestparameter>

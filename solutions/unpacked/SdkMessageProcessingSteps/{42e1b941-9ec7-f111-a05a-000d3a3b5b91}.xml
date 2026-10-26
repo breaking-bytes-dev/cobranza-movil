@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<SdkMessageProcessingStep Name="Sanic.CobranzaMovil.Plugins.RepartoPorAgente: Update of sanic_cm_tbl_agente" SdkMessageProcessingStepId="{42e1b941-9ec7-f111-a05a-000d3a3b5b91}" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <SdkMessageId>20bebb1b-ea3e-db11-86a7-000a3a5473e8</SdkMessageId>
+  <PluginTypeName>Sanic.CobranzaMovil.Plugins.RepartoPorAgente, Sanic.CobranzaMovil.Plugins, Version=1.0.10.9, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c</PluginTypeName>
+  <PluginTypeId>1541cb2f-9ec7-f111-a05a-000d3a3b5b91</PluginTypeId>
+  <PrimaryEntity>sanic_cm_tbl_agente</PrimaryEntity>
+  <AsyncAutoDelete>1</AsyncAutoDelete>
+  <Description>Al cambiar el usuario del agente, re-reparte sus asignaciones activas (asincrono)</Description>
+  <FilteringAttributes>sanic_cm_ag_usuarioid</FilteringAttributes>
+  <ImpersonatingUserIdName></ImpersonatingUserIdName>
+  <InvocationSource>1</InvocationSource>
+  <Mode>1</Mode>
+  <Rank>1</Rank>
+  <EventHandlerTypeCode>4602</EventHandlerTypeCode>
+  <Stage>40</Stage>
+  <IsCustomizable>1</IsCustomizable>
+  <IsHidden>0</IsHidden>
+  <SupportedDeployment>0</SupportedDeployment>
+  <IntroducedVersion>1.1.0.0</IntroducedVersion>
+  <SdkMessageProcessingStepImages />
+</SdkMessageProcessingStep>

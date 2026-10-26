@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<ImportExportXml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.26093.135" OrganizationSchemaType="Standard" CRMServerServiceabilityVersion="9.2.26093.00139">
+<ImportExportXml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.26103.137" OrganizationSchemaType="Standard" CRMServerServiceabilityVersion="9.2.26103.00137">
   <Entities />
   <Roles />
   <Workflows />
@@ -9,15 +9,14 @@
   <EntityRelationships />
   <OrganizationSettings />
   <optionsets />
+  <MobileOfflineProfiles />
   <CustomControls />
-  <AppModuleSiteMaps />
-  <AppModules />
+  <SolutionPluginAssemblies />
+  <SdkMessageProcessingSteps />
   <EntityDataProviders />
   <CanvasApps />
-  <appaction_appactionrule_classicrulesset>
-  </appaction_appactionrule_classicrulesset>
-  <msdyn_functions />
   <Languages>
     <Language>1033</Language>
+    <Language>3082</Language>
   </Languages>
 </ImportExportXml>

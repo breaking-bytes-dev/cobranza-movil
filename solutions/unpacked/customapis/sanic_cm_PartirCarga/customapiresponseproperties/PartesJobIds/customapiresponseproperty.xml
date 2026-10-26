@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="PartesJobIds">
+  <description default="Ids de los jobs de partes, separados por coma, en orden (parte 1, 2, ...)">
+    <label description="Ids de los jobs de partes, separados por coma, en orden (parte 1, 2, ...)" languagecode="1033" />
+  </description>
+  <displayname default="PartesJobIds">
+    <label description="PartesJobIds" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>sanic_cm_PartirCarga.PartesJobIds</name>
+  <type>10</type>
+</customapiresponseproperty>

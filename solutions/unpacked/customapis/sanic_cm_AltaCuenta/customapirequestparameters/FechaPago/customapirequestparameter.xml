@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="FechaPago">
+  <description default="Fecha de pago, aaaa-mm-dd">
+    <label description="Fecha de pago, aaaa-mm-dd" languagecode="1033" />
+  </description>
+  <displayname default="FechaPago">
+    <label description="FechaPago" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>1</isoptional>
+  <name>sanic_cm_AltaCuenta.FechaPago</name>
+  <type>10</type>
+</customapirequestparameter>

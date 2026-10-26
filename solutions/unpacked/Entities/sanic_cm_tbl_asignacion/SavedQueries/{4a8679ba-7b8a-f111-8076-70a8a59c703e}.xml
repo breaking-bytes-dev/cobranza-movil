@@ -12,7 +12,6 @@
         <row name="result" id="sanic_cm_tbl_asignacionid">
           <cell name="sanic_cm_as_numero" width="110" />
           <cell name="sanic_cm_as_cuentaid" width="150" />
-          <cell name="sanic_cm_as_numerocuenta" width="130" />
           <cell name="sanic_cm_as_agenteid" width="140" />
           <cell name="sanic_cm_as_ultimacarga" width="140" />
         </row>
@@ -24,7 +23,6 @@
         <entity name="sanic_cm_tbl_asignacion">
           <attribute name="sanic_cm_as_numero" />
           <attribute name="sanic_cm_as_cuentaid" />
-          <attribute name="sanic_cm_as_numerocuenta" />
           <attribute name="sanic_cm_as_agenteid" />
           <attribute name="sanic_cm_as_ultimacarga" />
           <attribute name="sanic_cm_tbl_asignacionid" />

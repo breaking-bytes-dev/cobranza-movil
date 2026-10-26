@@ -1,0 +1,18 @@
+<customapi uniquename="sanic_cm_MisRoles">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="Perfiles de CM del usuario que llama (roles directos y por equipo), para el menu y los permisos de la app de la oficina.">
+    <label description="Perfiles de CM del usuario que llama (roles directos y por equipo), para el menu y los permisos de la app de la oficina." languagecode="1033" />
+  </description>
+  <displayname default="CM - Mis roles">
+    <label description="CM - Mis roles" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>sanic_cm_MisRoles</name>
+  <plugintypeid>
+    <plugintypeexportkey>a4604625-7fd1-f111-a05b-70a8a5b2a2b2</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

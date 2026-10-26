@@ -35,14 +35,7 @@
                         <control id="sanic_cm_in_cuentaid" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="sanic_cm_in_cuentaid" disabled="true" />
                       </cell>
                     </row>
-                    <row>
-                      <cell id="{7ee408f6-b416-47e1-8164-b3b2062334fb}">
-                        <labels>
-                          <label description="N° de cuenta" languagecode="1033" />
-                        </labels>
-                        <control id="sanic_cm_in_numerocuenta" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="sanic_cm_in_numerocuenta" disabled="true" />
-                      </cell>
-                    </row>
+                    <row />
                     <row>
                       <cell id="{a9b08bbc-90bf-4fc4-9571-aa2ada2ebafe}">
                         <labels>

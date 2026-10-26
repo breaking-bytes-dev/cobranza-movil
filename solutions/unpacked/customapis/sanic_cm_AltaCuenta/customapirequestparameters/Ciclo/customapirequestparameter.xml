@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="Ciclo">
+  <description default="Ciclo">
+    <label description="Ciclo" languagecode="1033" />
+  </description>
+  <displayname default="Ciclo">
+    <label description="Ciclo" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>1</isoptional>
+  <name>sanic_cm_AltaCuenta.Ciclo</name>
+  <type>10</type>
+</customapirequestparameter>

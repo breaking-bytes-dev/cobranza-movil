@@ -1,0 +1,14 @@
+<retentionconfig retentionconfigid="d3f3e53c-87d1-f111-a05b-70a8a5b2a2b2">
+  <criteria>{"QuerySet": ["&lt;fetch version=\"1.0\" mapping=\"logical\" distinct=\"true\"&gt;&lt;entity name=\"sanic_cm_tbl_cargadiaria\"&gt;&lt;attribute name=\"sanic_cm_tbl_cargadiariaid\"/&gt;&lt;filter type=\"and\"&gt;&lt;condition attribute=\"sanic_cm_cd_fechacarga\" operator=\"olderthan-x-days\" value=\"7\"/&gt;&lt;/filter&gt;&lt;/entity&gt;&lt;/fetch&gt;"], "SendEmailNotification": false, "ToRecipients": [], "CCRecipients": []}</criteria>
+  <entitylogicalname>sanic_cm_tbl_cargadiaria</entitylogicalname>
+  <iscustomizable>1</iscustomizable>
+  <name>CM - Carga diaria de mas de 7 dias</name>
+  <provisioningmode>0</provisioningmode>
+  <recurrence>FREQ=DAILY;INTERVAL=1</recurrence>
+  <starttime>10/27/2026 9:00:00 AM</starttime>
+  <statecode>0</statecode>
+  <statuscode>1</statuscode>
+  <timezoneruleversionnumber>4</timezoneruleversionnumber>
+  <type>1</type>
+  <uniquename>CM - Carga diaria de mas de 7 dias</uniquename>
+</retentionconfig>

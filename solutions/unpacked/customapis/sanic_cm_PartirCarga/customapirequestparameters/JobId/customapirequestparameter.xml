@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="JobId">
+  <description default="Id del Import Job (sanic_tbl_smlt_importjob) de la carga real, sin estado y con archivo">
+    <label description="Id del Import Job (sanic_tbl_smlt_importjob) de la carga real, sin estado y con archivo" languagecode="1033" />
+  </description>
+  <displayname default="JobId">
+    <label description="JobId" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>0</isoptional>
+  <name>sanic_cm_PartirCarga.JobId</name>
+  <type>12</type>
+</customapirequestparameter>

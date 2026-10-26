@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Advertencias">
+  <description default="Avisos para el Admin, uno por linea">
+    <label description="Avisos para el Admin, uno por linea" languagecode="1033" />
+  </description>
+  <displayname default="Advertencias">
+    <label description="Advertencias" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>sanic_cm_AltaCuenta.Advertencias</name>
+  <type>10</type>
+</customapiresponseproperty>

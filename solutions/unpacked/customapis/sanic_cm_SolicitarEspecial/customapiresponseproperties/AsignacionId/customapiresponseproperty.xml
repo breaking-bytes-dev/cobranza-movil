@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="AsignacionId">
+  <description default="Id de la asignacion Especial creada, reactivada o existente">
+    <label description="Id de la asignacion Especial creada, reactivada o existente" languagecode="1033" />
+  </description>
+  <displayname default="AsignacionId">
+    <label description="AsignacionId" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>sanic_cm_SolicitarEspecial.AsignacionId</name>
+  <type>12</type>
+</customapiresponseproperty>

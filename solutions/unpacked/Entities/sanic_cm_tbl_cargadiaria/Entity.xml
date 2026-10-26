@@ -527,6 +527,46 @@
             <Description description="" languagecode="1033" />
           </Descriptions>
         </attribute>
+        <attribute PhysicalName="sanic_cm_cd_clavepan">
+          <Type>nvarchar</Type>
+          <Name>sanic_cm_cd_clavepan</Name>
+          <LogicalName>sanic_cm_cd_clavepan</LogicalName>
+          <RequiredLevel>none</RequiredLevel>
+          <DisplayMask>ValidForAdvancedFind|ValidForForm|ValidForGrid</DisplayMask>
+          <ImeMode>auto</ImeMode>
+          <ValidForUpdateApi>1</ValidForUpdateApi>
+          <ValidForReadApi>1</ValidForReadApi>
+          <ValidForCreateApi>1</ValidForCreateApi>
+          <IsCustomField>1</IsCustomField>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <IntroducedVersion>1.1.0.0</IntroducedVersion>
+          <IsCustomizable>1</IsCustomizable>
+          <IsRenameable>1</IsRenameable>
+          <CanModifySearchSettings>1</CanModifySearchSettings>
+          <CanModifyRequirementLevelSettings>1</CanModifyRequirementLevelSettings>
+          <CanModifyAdditionalSettings>1</CanModifyAdditionalSettings>
+          <SourceType>0</SourceType>
+          <IsGlobalFilterEnabled>0</IsGlobalFilterEnabled>
+          <IsSortableEnabled>0</IsSortableEnabled>
+          <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
+          <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
+          <IsDataSourceSecret>0</IsDataSourceSecret>
+          <AutoNumberFormat></AutoNumberFormat>
+          <IsSearchable>0</IsSearchable>
+          <IsFilterable>0</IsFilterable>
+          <IsRetrievable>0</IsRetrievable>
+          <IsLocalizable>0</IsLocalizable>
+          <Format>text</Format>
+          <MaxLength>64</MaxLength>
+          <Length>128</Length>
+          <displaynames>
+            <displayname description="Clave PAN (HMAC)" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="HMAC-SHA256 del PAN de la cuenta." languagecode="1033" />
+          </Descriptions>
+        </attribute>
         <attribute PhysicalName="sanic_cm_cd_clienteid">
           <Type>lookup</Type>
           <Name>sanic_cm_cd_clienteid</Name>
@@ -1362,16 +1402,16 @@
       </attributes>
       <EntityKeys>
         <EntityKey>
-          <Name>sanic_cm_pk_cd_numerocuenta_fechacarga</Name>
-          <LogicalName>sanic_cm_pk_cd_numerocuenta_fechacarga</LogicalName>
-          <IntroducedVersion>1.0.0.0</IntroducedVersion>
+          <Name>sanic_cm_ak_cd_clavepan_fecha</Name>
+          <LogicalName>sanic_cm_ak_cd_clavepan_fecha</LogicalName>
+          <IntroducedVersion>1.1.0.0</IntroducedVersion>
           <IsCustomizable>0</IsCustomizable>
           <EntityKeyAttributes>
-            <AttributeName>sanic_cm_cd_numerocuenta</AttributeName>
+            <AttributeName>sanic_cm_cd_clavepan</AttributeName>
             <AttributeName>sanic_cm_cd_fechacarga</AttributeName>
           </EntityKeyAttributes>
           <displaynames>
-            <displayname description="CM | PK | Carga Diaria | Numerocuenta_Fechacarga" languagecode="1033" />
+            <displayname description="Clave PAN + fecha de carga" languagecode="1033" />
           </displaynames>
         </EntityKey>
       </EntityKeys>

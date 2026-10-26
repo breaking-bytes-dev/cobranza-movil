@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="FilasArchivo">
+  <description default="Filas de datos del archivo original">
+    <label description="Filas de datos del archivo original" languagecode="1033" />
+  </description>
+  <displayname default="FilasArchivo">
+    <label description="FilasArchivo" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>sanic_cm_PartirCarga.FilasArchivo</name>
+  <type>7</type>
+</customapiresponseproperty>

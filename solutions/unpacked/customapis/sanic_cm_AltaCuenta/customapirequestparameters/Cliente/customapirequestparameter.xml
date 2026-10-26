@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="Cliente">
+  <description default="Nombre del cliente; obligatorio si el cliente es nuevo (si existe, se usa el de Dataverse)">
+    <label description="Nombre del cliente; obligatorio si el cliente es nuevo (si existe, se usa el de Dataverse)" languagecode="1033" />
+  </description>
+  <displayname default="Cliente">
+    <label description="Cliente" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>1</isoptional>
+  <name>sanic_cm_AltaCuenta.Cliente</name>
+  <type>10</type>
+</customapirequestparameter>

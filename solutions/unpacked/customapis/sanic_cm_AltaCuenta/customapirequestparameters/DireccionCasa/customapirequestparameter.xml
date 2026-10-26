@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="DireccionCasa">
+  <description default="Direccion de la casa (cliente nuevo)">
+    <label description="Direccion de la casa (cliente nuevo)" languagecode="1033" />
+  </description>
+  <displayname default="DireccionCasa">
+    <label description="DireccionCasa" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>1</isoptional>
+  <name>sanic_cm_AltaCuenta.DireccionCasa</name>
+  <type>10</type>
+</customapirequestparameter>

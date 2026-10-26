@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="TotalSaldoVencido">
+  <description default="Total del saldo vencido">
+    <label description="Total del saldo vencido" languagecode="1033" />
+  </description>
+  <displayname default="TotalSaldoVencido">
+    <label description="TotalSaldoVencido" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>0</isoptional>
+  <name>sanic_cm_AltaCuenta.TotalSaldoVencido</name>
+  <type>2</type>
+</customapirequestparameter>
