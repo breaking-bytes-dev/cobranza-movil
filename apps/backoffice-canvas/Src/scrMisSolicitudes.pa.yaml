@@ -16,9 +16,9 @@ Screens:
         If(IsBlank(varDesdeSol), Set(varDesdeSol, DateAdd(Today(), -1, TimeUnit.Months)));
         If(IsBlank(varHastaSol), Set(varHastaSol, Today()));
         If(IsBlank(varEstSol), Set(varEstSol, "Todos los estados"));
-        If(IsBlank(varAgSol), Set(varAgSol, "Todos los cobradores"));
+        If(IsBlank(varAgSol), Set(varAgSol, "Todos los localizadores"));
         // Cobradores del filtro (todos, por nombre). El DropDown aplica Default una sola vez: Reset después de cargar.
-        ClearCollect(colAgSol, {nom: "Todos los cobradores"});
+        ClearCollect(colAgSol, {nom: "Todos los localizadores"});
         Collect(colAgSol, ForAll(Sort('CM | TBL | Agentes', '[AG] Nombre'), {nom: ThisRecord.'[AG] Nombre'}));
         Reset(drpAgSol);
         Set(varPanelSol, false);
@@ -190,7 +190,7 @@ Screens:
                   - drpAgSol:
                       Control: Classic/DropDown@2.3.1
                       Properties:
-                        AccessibleLabel: ="Cobrador (localizador)"
+                        AccessibleLabel: ="Localizador"
                         BorderColor: =gblC.borde
                         BorderThickness: =1
                         ChevronBackground: =gblC.card
@@ -210,10 +210,10 @@ Screens:
                         SelectionColor: =gblC.card
                         SelectionFill: =gblC.teal
                         Size: =10
-                        Default: =Coalesce(varAgSol, "Todos los cobradores")
+                        Default: =Coalesce(varAgSol, "Todos los localizadores")
                         Items: =colAgSol
                         Items.Value: =nom
-                        OnChange: =Set(varAgSol, Coalesce(Self.Selected.nom, "Todos los cobradores")); Select(btnCargarSol)
+                        OnChange: =Set(varAgSol, Coalesce(Self.Selected.nom, "Todos los localizadores")); Select(btnCargarSol)
                         Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, 240)
                   - txtCifSol:
                       Control: Classic/TextInput@2.3.2
@@ -274,12 +274,12 @@ Screens:
                         Height: =gblE.AltoInput
                         OnSelect: |-
                           =Set(varDesdeSol, DateAdd(Today(), -1, TimeUnit.Months)); Set(varHastaSol, Today());
-                          Set(varEstSol, "Todos los estados"); Set(varAgSol, "Todos los cobradores"); Set(varCifSol, ""); Set(varCtaSol, "");
+                          Set(varEstSol, "Todos los estados"); Set(varAgSol, "Todos los localizadores"); Set(varCifSol, ""); Set(varCtaSol, "");
                           Reset(dtpDesdeSol); Reset(dtpHastaSol); Reset(drpEstSol); Reset(drpAgSol); Reset(txtCifSol); Reset(txtCtaSol);
                           Select(btnCargarSol)
                         Size: =10
                         Text: ="Limpiar"
-                        Tooltip: ="Último mes, todos los estados, sin cobrador, CIF ni cuenta"
+                        Tooltip: ="Último mes, todos los estados, sin localizador, CIF ni cuenta"
                         Width: =If(nfMovil, Parent.Width, 90)
             - conListaSol:
                 Control: GroupContainer@1.5.0
@@ -525,7 +525,7 @@ Screens:
               // resuelve el servidor navegando '[AS] Cuenta').
               Set(varCargandoSol, true);
               Set(varFinSol, DateAdd(varHastaSol, 1));
-              Set(varAgRecSol, If(IsBlank(varAgSol) || varAgSol = "Todos los cobradores", Blank(), LookUp('CM | TBL | Agentes', '[AG] Nombre' = varAgSol)));
+              Set(varAgRecSol, If(IsBlank(varAgSol) || varAgSol = "Todos los localizadores", Blank(), LookUp('CM | TBL | Agentes', '[AG] Nombre' = varAgSol)));
               Set(varErrSol, Blank());
               Clear(colSolRawSol);
               Clear(colCtaSol);
@@ -585,7 +585,7 @@ Screens:
               );
               ClearCollect(colSolSol, Sort(colSolRawSol, 'Created On', SortOrder.Descending));
               If(CountRows(colSolRawSol) >= 2000,
-                  Notify("Hay 2.000 o más solicitudes con estos filtros y se muestran 2.000. Acotá las fechas o filtrá por estado, cobrador, CIF o cuenta.", NotificationType.Warning));
+                  Notify("Hay 2.000 o más solicitudes con estos filtros y se muestran 2.000. Acotá las fechas o filtrá por estado, localizador, CIF o cuenta.", NotificationType.Warning));
               If(CountRows(colCtaSol) > 50,
                   Notify("Más de 50 cuentas coinciden con ese CIF o cuenta: se buscó en las primeras 50. Escribí el CIF completo.", NotificationType.Warning));
               If(!IsBlank(varErrSol),

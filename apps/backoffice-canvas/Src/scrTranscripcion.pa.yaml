@@ -907,7 +907,7 @@ Screens:
                               Size: =8
                               # F10: tres estados. La marca "Actualiza info" sola no alcanza: la actualización pudo no llegar (F8)
                               Text: |-
-                                =If(IsBlank(varADTrx), "⚠ MARCADA CON DATOS NUEVOS, PERO LOS DATOS NO LLEGARON — CONSULTÁ AL COBRADOR",
+                                =If(IsBlank(varADTrx), "⚠ MARCADA CON DATOS NUEVOS, PERO LOS DATOS NO LLEGARON — CONSULTÁ AL LOCALIZADOR",
                                     varADSinVincTrx, "⚠ DATOS SIN VINCULAR (LLEGARON SEPARADOS DE LA VISITA) — REVISALOS Y GRABALOS EN EL CORE",
                                     "✏️ ACTUALIZACIÓN DE DATOS — GRABALA TAMBIÉN EN EL CORE")
                               Visible: =!IsBlank(varActualTrx) && varActualTrx.'[IN] Actualiza info'

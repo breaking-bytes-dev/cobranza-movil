@@ -148,7 +148,7 @@ Screens:
                           =Concat(
                               Filter(colAgentesAge, '[AG] Activo' && IsBlank('Email Usuario')),
                               '[AG] Nombre', ", ") &
-                              ". Esta lista debe estar VACÍA antes de operar: sin usuario no entran a la app del celular y sus asignaciones quedan en la cartera sin cobrador."
+                              ". Esta lista debe estar VACÍA antes de operar: sin usuario no entran a la app del celular y sus asignaciones quedan en la cartera sin localizador."
                         VerticalAlign: =VerticalAlign.Top
                         Width: =Parent.Width - 2*gblE.Pad
                         X: =gblE.Pad
@@ -426,7 +426,7 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: |-
-                    ="Desactivar un agente bloquea al cobrador en la app (no puede registrar visitas ni pagos), pero NO cierra ni mueve sus asignaciones: reasignalas en Reasignar."
+                    ="Desactivar un agente bloquea al localizador en la app (no puede registrar visitas ni pagos), pero NO cierra ni mueve sus asignaciones: reasignalas en Reasignar."
                   Width: =Parent.Width
                   Y: =conListaAge.Y + conListaAge.Height + gblE.PadSm
       - recScrimAge:

@@ -225,7 +225,7 @@ Screens:
                           // carga incompleta, pero puede ser real (el banco sacó media cartera): el Admin decide con la confirmación.
                           "🚨 ATENCIÓN: el " & varPctRec & "% de las Diarias (" & varNDesapRec & " de " & varNDiariasRec &
                               ") NO vino en la carga de hoy. Lo normal es mucho menos: suele ser un archivo TRUNCADO o una carga incompleta. " &
-                              "Revisá el Monitoreo de carga antes de cerrar. Si cerrás, desaparecen del teléfono de los cobradores " &
+                              "Revisá el Monitoreo de carga antes de cerrar. Si cerrás, desaparecen del teléfono de los localizadores " &
                               "(si el banco las vuelve a mandar, se reabren solas)."
                         VerticalAlign: =VerticalAlign.Middle
                         Width: =Parent.Width - 2*gblE.Pad
@@ -510,7 +510,7 @@ Screens:
                           Set(varVerifCargaRec, !IsBlank(varTplPrinRec) && !IsBlank(varTplPadRec) && !IsBlank(varTplParRec) && !IsBlank(varEnColaRec) && varLeyoJobsRec);
                           Set(varCargaBloqRec, !varVerifCargaRec || varEnCursoRec);
                           If(varRojoRec,
-                              Notify("🚨 Vas a cerrar el " & varPctRec & "% de las Diarias. Si la carga vino truncada, esto vacía la cartera de los cobradores.",
+                              Notify("🚨 Vas a cerrar el " & varPctRec & "% de las Diarias. Si la carga vino truncada, esto vacía la cartera de los localizadores.",
                                   NotificationType.Warning, 6000))
                         Size: =9
                         Text: |-

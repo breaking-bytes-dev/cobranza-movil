@@ -18,7 +18,7 @@ Screens:
             {n: 1, etq: "Tipo de Especial", uso: "Nueva solicitud: tipo de la Especial. La primera activa viene elegida."},
             {n: 2, etq: "Motivo de cierre · Incobrable", uso: "Cierres: motivo al cerrar una Incobrable."},
             {n: 3, etq: "Motivo de cierre · Especial", uso: "Cierres: motivo al cerrar una Especial."},
-            {n: 4, etq: "Mensajes rápidos del cobrador", uso: "Teléfono, Registrar visita: botones que agregan el texto al comentario. Llegan al teléfono en su próxima sincronización."}
+            {n: 4, etq: "Mensajes rápidos del localizador", uso: "Teléfono, Registrar visita: botones que agregan el texto al comentario. Llegan al teléfono en su próxima sincronización."}
         );
         If(IsBlank(varListaLst), Set(varListaLst, First(colListasLst)));
         Set(varEnumLst, Switch(varListaLst.n,

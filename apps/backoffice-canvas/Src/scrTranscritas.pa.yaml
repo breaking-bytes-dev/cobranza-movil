@@ -798,7 +798,7 @@ Screens:
                     =Switch(varSelTsc.datosTsc,
                         "ok", "✏️ Trae datos nuevos del cliente — revisalos en el core",
                         "sinv", "⚠ Los datos llegaron sin vincular a la visita — revisalos en el core",
-                        "⚠ Marcada con datos nuevos, pero no llegaron — consultá al cobrador")
+                        "⚠ Marcada con datos nuevos, pero no llegaron — consultá al localizador")
                   Visible: =varSelTsc.'[IN] Actualiza info'
                   Width: =14 + 7*Len(Self.Text)
                   X: =gblE.Pad
