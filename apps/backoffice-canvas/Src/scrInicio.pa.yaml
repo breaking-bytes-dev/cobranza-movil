@@ -957,7 +957,7 @@ Screens:
                               Height: =22
                               PaddingLeft: =0
                               Size: =11
-                              Text: ="Agentes"
+                              Text: ="Localizadores"
                               Width: =Parent.Width - 2*gblE.Pad
                               Wrap: =false
                               X: =gblE.Pad

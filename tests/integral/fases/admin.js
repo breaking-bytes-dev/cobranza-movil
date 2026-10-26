@@ -57,7 +57,7 @@ async function f3(ctx) {
       await ui.captura(ctx, app, 'reconciliacion');
     });
     await ctx.paso('F3-10', 'Agentes', async () => {
-      await ui.ir(app, 'Agentes y usuarios', 'scrAgentes');
+      await ui.ir(app, 'Localizadores y usuarios', 'scrAgentes');
       const u = (await dv.get(`systemusers(${U.cob})?$select=fullname,internalemailaddress`));
       const lista = await ui.filas(app, 'galAgentesAge').lista();
       const fila = lista.filter({ hasText: AGENTE }).first();

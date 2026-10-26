@@ -45,7 +45,7 @@ El menú vive en [`cmpNavLateral`](../../apps/backoffice-canvas/Src/Components/c
 | 12 | Alta de cuenta | `scrAltaCuenta` | Admin |
 | 13 | Reconciliación | `scrReconciliacion` | Admin |
 | 14 | Cierres | `scrCierres` | Admin |
-| 15 | Agentes y usuarios | `scrAgentes` | Admin |
+| 15 | Localizadores y usuarios | `scrAgentes` | Admin |
 | 16 | Datos maestros | `scrMaestros` | Admin |
 | 17 | Listas | `scrListas` | Admin |
 
@@ -126,7 +126,7 @@ Cierra las Diarias activas que no vinieron en la última carga («fuera de carte
 
 El Admin cierra manualmente Incobrables y Especiales aprobadas activas, con un motivo de la lista administrable («Motivo de cierre Incobrable» o «Motivo de cierre Especial») y un detalle opcional. Un `Patch` por asignación: estado inactivo, motivo y fecha de cierre. Carga por tramos.
 
-#### Agentes y usuarios — [`scrAgentes`](../../apps/backoffice-canvas/Src/scrAgentes.pa.yaml)
+#### Localizadores y usuarios — [`scrAgentes`](../../apps/backoffice-canvas/Src/scrAgentes.pa.yaml)
 
 Alta de agentes, activar o desactivar, y vincular o desvincular el usuario de Entra. La app solo escribe el lookup `'[AG] Usuario'`; el correo que usa el teléfono para identificar al agente lo deriva [`EmailDesdeUsuario.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/EmailDesdeUsuario.cs). Al vincular o desvincular, [`RepartoPorAgente.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/RepartoPorAgente.cs) mueve sus asignaciones al nuevo usuario o al equipo «Cartera sin cobrador». Desvincular es un botón y no el `OnChange` de un combo, porque ese evento se dispara al abrir la pantalla.
 

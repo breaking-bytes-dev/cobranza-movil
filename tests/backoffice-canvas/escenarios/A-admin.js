@@ -100,7 +100,7 @@ module.exports = async function faseA(suite) {
     await inf.correr('F-04c', 'Agentes (solo lectura): alerta "sin usuario" = API (conteo y nombres) y abrir la pantalla NO escribe', 'Admin', async (e) => {
       const sel = 'sanic_cm_tbl_agentes?$select=sanic_cm_ag_nombre,sanic_cm_ag_emailusuario,_sanic_cm_ag_usuarioid_value,sanic_cm_ag_activo,modifiedon&$orderby=sanic_cm_ag_nombre';
       const antes = await dv.getAll(sel);
-      await c.ir(app, 'Agentes y usuarios', 'scrAgentes');
+      await c.ir(app, 'Localizadores y usuarios', 'scrAgentes');
       const notif = await pl.notificaciones(app);
       const escr = app.red.de('A:scrAgentes').flatMap(x => x.subs).filter(s => s.metodo !== 'GET');
       e.check(escr.length === 0, 'solo VER la pantalla no genera escrituras a Dataverse', 0, escr.map(s => `${s.metodo} ${s.ruta}`));
@@ -193,6 +193,8 @@ module.exports = async function faseA(suite) {
       e.check(await pl.botonHabilitado(app, 'btnCrearMae'), 'botón Crear habilitado con CIF+nombre', true, false);
       // Seguridad: el CIF que se va a crear es QA
       if (!/^QA-E2E/.test(cif)) throw new Error('CIF no QA — abortado');
+      // Lo crea la app: se anota el CIF exacto antes, para que la limpieza lo encuentre (con su teléfono).
+      qa.registrarClave('cif', cif, 'cliente de Datos maestros');
       await (await pl.boton(app, 'btnCrearMae')).click();
       const n1 = await c.esperarNotif(app, /creado|Ya existe/);
       e.check(/Cliente QA-E2E CLIENTE NUEVO creado/.test(n1 || ''), 'Notify de creación', '✓ Cliente … creado', n1);

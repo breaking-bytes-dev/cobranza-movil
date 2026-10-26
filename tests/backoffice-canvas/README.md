@@ -19,11 +19,12 @@ Necesita el archivo de secretos del Service Principal (`BO_SECRETS_FILE`) y, en 
 
 ```bash
 node run.js                     # fases A, B, C, D, E, F, G, H, X
-node run.js --fases A,X         # algunas fases (B → C → F → G dependen entre sí; H depende de D)node run.js --solo-limpieza     # borra restos QA de corridas anteriores
+node run.js --fases A,X         # algunas fases (B → C → F → G dependen entre sí; H depende de D)
+node run.js --solo-limpieza     # borra lo que dejó anotado la corrida anterior
 BO_HEADED=1 node run.js         # con el navegador visible
 ```
 
-El código de salida es 0 aunque fallen escenarios: el resultado está en `resultados/resumen.md`.
+Sale con código distinto de 0 si algún escenario no pasó o una fase se abortó; el detalle está en `resultados/resumen.md`. La limpieza borra solo lo que la corrida anotó en `resultados/registro-qa.json` y lo que cuelga de eso, nunca por prefijo, así que no toca los datos QA de otras suites.
 
 ## Estructura
 

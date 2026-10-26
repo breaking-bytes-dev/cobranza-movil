@@ -51,8 +51,8 @@ flowchart LR
 
 ### Alta y baja de un localizador
 
-1. **Alta.** Darle a la persona el rol `SR | CM | Localizador` (directo o por un equipo; si es por equipo, revisar la herencia de privilegios de [Instalación, paso 4.3](09-instalacion-y-despliegue.md#43-herencia-de-privilegios-para-roles-dados-por-equipo)) y compartirle la app del localizador ([paso 9](09-instalacion-y-despliegue.md#9-asignar-roles-a-las-personas-y-compartir-las-apps)). En la app de la oficina → **Agentes y usuarios** ([`scrAgentes.pa.yaml`](../../apps/backoffice-canvas/Src/scrAgentes.pa.yaml)), vincular su usuario al agente. `EmailDesdeUsuario` copia el correo al agente y `RepartoPorAgente` le pasa sus asignaciones activas. Tarda unos minutos porque el reparto es asíncrono.
-2. **Baja.** En **Agentes y usuarios**, desvincular el usuario. Sus asignaciones pasan al equipo «Cartera sin cobrador» y dejan de bajar a su teléfono. Después quitarle el rol (o sacarlo del equipo o del grupo de Entra ID que se lo da) y dejar de compartirle la app.
+1. **Alta.** Darle a la persona el rol `SR | CM | Localizador` (directo o por un equipo; si es por equipo, revisar la herencia de privilegios de [Instalación, paso 4.3](09-instalacion-y-despliegue.md#43-herencia-de-privilegios-para-roles-dados-por-equipo)) y compartirle la app del localizador ([paso 9](09-instalacion-y-despliegue.md#9-asignar-roles-a-las-personas-y-compartir-las-apps)). En la app de la oficina → **Localizadores y usuarios** ([`scrAgentes.pa.yaml`](../../apps/backoffice-canvas/Src/scrAgentes.pa.yaml)), vincular su usuario al agente. `EmailDesdeUsuario` copia el correo al agente y `RepartoPorAgente` le pasa sus asignaciones activas. Tarda unos minutos porque el reparto es asíncrono.
+2. **Baja.** En **Localizadores y usuarios**, desvincular el usuario. Sus asignaciones pasan al equipo «Cartera sin cobrador» y dejan de bajar a su teléfono. Después quitarle el rol (o sacarlo del equipo o del grupo de Entra ID que se lo da) y dejar de compartirle la app.
 3. **Cambio de localizador de una cartera.** Vincular el agente al usuario nuevo: `RepartoPorAgente` reparte y revoca al anterior.
 
 ⚠️ El teléfono del localizador anterior conserva lo que ya bajó hasta la próxima sincronización completa (**Actualizar todo desde el servidor** en la pantalla de sincronización, [`scrSincronizacion.pa.yaml`](../../apps/localizador-canvas/Src/scrSincronizacion.pa.yaml)), o hasta que se borren los datos de la app. Quitar un permiso no modifica el registro, y la sincronización incremental solo baja registros modificados.
@@ -62,7 +62,7 @@ flowchart LR
 `RepartoAsignacion` comparte en lectura cuenta, cliente y fiador con el usuario del agente, y se los revoca al anterior. Si un trabajo del reparto falló, pueden quedar compartidos de menos (el localizador no ve una cuenta suya) o de más (sigue viendo una que ya no es suya).
 
 1. **System jobs**: buscar el trabajo fallido de `RepartoAsignacion` o `RepartoPorAgente` y leer su error. Corregir la causa (por ejemplo, un usuario sin rol Localizador o un equipo «Cartera sin cobrador» faltante o duplicado).
-2. En la app de la oficina → **Agentes y usuarios**, **desvincular** el usuario del agente afectado y **volver a vincularlo**. Al desvincular, sus asignaciones pasan al equipo «Cartera sin cobrador» y se revocan los compartidos; al vincular, `RepartoPorAgente` vuelve a escribir el agente en todas y `RepartoAsignacion` vuelve a compartir. Mientras tanto el localizador no ve su cartera: hacerlo fuera de su horario.
+2. En la app de la oficina → **Localizadores y usuarios**, **desvincular** el usuario del agente afectado y **volver a vincularlo**. Al desvincular, sus asignaciones pasan al equipo «Cartera sin cobrador» y se revocan los compartidos; al vincular, `RepartoPorAgente` vuelve a escribir el agente en todas y `RepartoAsignacion` vuelve a compartir. Mientras tanto el localizador no ve su cartera: hacerlo fuera de su horario.
 3. Esperar unos minutos y comprobar en **System jobs** que los trabajos terminaron sin error.
 
 No hay una pantalla que reconcilie todos los agentes de una vez: se repite por agente. Hacerlo con la carga quieta, porque el reparto de una carga en curso puede cambiar los compartidos a la vez.
@@ -129,7 +129,7 @@ Una actualización de datos que llega «sin vincular» la cuelga después `Vincu
 
 | Causa | Qué hacer |
 |---|---|
-| Su usuario no está vinculado al agente, o está vinculado a otro | **Agentes y usuarios** en la app de la oficina |
+| Su usuario no está vinculado al agente, o está vinculado a otro | **Localizadores y usuarios** en la app de la oficina |
 | El agente no tiene correo o no coincide con el del usuario | Lo completa `EmailDesdeUsuario` al vincular ([`EmailDesdeUsuario.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/EmailDesdeUsuario.cs)). Desvincular y volver a vincular |
 | No tiene el rol Localizador, o lo hereda de un equipo sin *Direct User (Basic) access level and Team privileges* | Ver [Instalación, paso 4.3](09-instalacion-y-despliegue.md#43-herencia-de-privilegios-para-roles-dados-por-equipo) y [Seguridad](03-seguridad.md#roles-heredados-por-equipos-de-entra-id) |
 | El reparto no corrió (asignaciones con dueño SYSTEM o del equipo «Cartera sin cobrador») | Revisar trabajos asíncronos fallidos. Volver a vincular el agente dispara `RepartoPorAgente` |

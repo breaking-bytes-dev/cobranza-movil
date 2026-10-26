@@ -41,7 +41,7 @@ const ESPERADO = {
     interaccion: f('C Ra Ua D A S', 'dsdddd', `Inicio cuenta interacciones. Ninguna pantalla del Admin las crea ni edita (crear una sería inventar una visita). ${ADM_DUDA}`),
     pago: f('C Ra Ua D A S', 'dsdddd', `Inicio cuenta pagos. Ninguna pantalla del Admin crea ni edita pagos (sería inventar un cobro). ${ADM_DUDA}`),
     actualizacion: f('C Ra Ua D A S', 'dsdddd', `Ninguna pantalla del Admin la usa; es lo que captura el cobrador. ${ADM_DUDA}`),
-    agente: f('C Ra Ua D A S', 'sssddd', `Agentes: "＋ Nuevo agente", activar y vincular el usuario. ${ADM_DUDA}`),
+    agente: f('C Ra Ua D A S', 'sssddd', `Agentes: "＋ Nuevo localizador", activar y vincular el usuario. ${ADM_DUDA}`),
     producto: f('C Ra Ua D A S', 'dsdddd', `Alta de cuenta elige un producto existente; los productos los crea la carga. ${ADM_DUDA}`),
     fiador: f('C Ra Ua D A S', 'dddddd', `Ninguna pantalla del Admin muestra fiadores (dato personal: nombre y dirección). ${ADM_DUDA}`),
     direccion: f('C Ra Ua D A S', 'sssddd', `Datos maestros agrega y edita direcciones. ${ADM_DUDA}`),

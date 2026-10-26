@@ -85,17 +85,19 @@ module.exports = async function faseH(suite) {
   const U = cfg.usuarios;
 
   // ── API por rol ───────────────────────────────────────────────────────────────
+  // Bóveda de ESTA corrida: por la clave sustituta exacta de las cuentas sembradas (otras suites también tienen bóveda QA).
+  const filtroClaves = encodeURIComponent((suite.datos.cuentas || []).map(c => `sanic_cm_cp_clavepan eq '${c.sanic_cm_ct_clavepan}'`).join(' or ') || 'false');
   await inf.correr('H-01', 'Bóveda de PAN (API, suplantando al usuario): BackOffice la lee; Solicitante, Supervisor y Admin → 403 o vacío', 'todos', async (e) => {
     const bo = await leerBovedaComo(U.user1.id);
     e.check(bo.status === 200 && bo.filas > 0, 'BackOffice (User1) lee la bóveda', '200 con filas', `${bo.status} · ${bo.filas} fila(s)`);
-    const qaPan = await dv.raw('GET', "sanic_cm_tbl_cuentapans?$select=sanic_cm_cp_pan&$filter=startswith(sanic_cm_cp_clavepan,'QA-E2E')&$top=5", undefined, { MSCRMCallerID: U.user1.id }).then(r => r.json.value.map(x => x.sanic_cm_cp_pan)).catch(() => []);
+    const qaPan = await dv.raw('GET', `sanic_cm_tbl_cuentapans?$select=sanic_cm_cp_pan&$filter=${filtroClaves}&$top=5`, undefined, { MSCRMCallerID: U.user1.id }).then(r => r.json.value.map(x => x.sanic_cm_cp_pan)).catch(() => []);
     e.check(qaPan.length > 0 && qaPan.every(x => /^QA-E2E-CTA-/.test(x)), 'BackOffice lee el "PAN" de las cuentas QA de la bóveda (cadenas QA-E2E-CTA-…)', 'QA-E2E-CTA-…', qaPan.map(x => x.slice(0, 12)));
     for (const k of ['user2', 'user3', 'user4']) {
       const r = await leerBovedaComo(U[k].id);
       e.check(r.status === 403 || (r.status === 200 && r.filas === 0), `${U[k].rol} (${U[k].alias}) NO lee la bóveda`, '403 o vacío', `${r.status} · ${r.filas} fila(s)`);
     }
     // El nombre principal de la bóveda y de la carga diaria nunca tiene 5+ dígitos (aquí solo se revisan los datos QA).
-    const nombres = await dv.getAll("sanic_cm_tbl_cuentapans?$select=sanic_cm_cp_name&$filter=startswith(sanic_cm_cp_clavepan,'QA-E2E')");
+    const nombres = await dv.getAll(`sanic_cm_tbl_cuentapans?$select=sanic_cm_cp_name&$filter=${filtroClaves}`);
     e.check(nombres.length > 0 && nombres.every(x => !/\d{5,}/.test(x.sanic_cm_cp_name || '')), 'el nombre principal de la bóveda QA va enmascarado (sin 5+ dígitos)', 'sin 5+ dígitos', nombres.length);
   });
 

@@ -157,7 +157,7 @@ La app de la oficina decide el menú con los **roles de seguridad efectivos** de
 
 | Caso | Rol | Pasos | Resultado esperado |
 |---|---|---|---|
-| SEG-01 Admin, rol directo | P-ADM | Abrir la app de la oficina | «Cargando…» y después Inicio. Menú: Inicio, Reasignar, Monitoreo de carga, Cargar archivo, Alta de cuenta, Reconciliación, Cierres, Agentes y usuarios, Datos maestros, Listas. Indicadores: carga de hoy, Diarias fuera de cartera, agentes activos sin usuario |
+| SEG-01 Admin, rol directo | P-ADM | Abrir la app de la oficina | «Cargando…» y después Inicio. Menú: Inicio, Reasignar, Monitoreo de carga, Cargar archivo, Alta de cuenta, Reconciliación, Cierres, Localizadores y usuarios, Datos maestros, Listas. Indicadores: carga de hoy, Diarias fuera de cartera, agentes activos sin usuario |
 | SEG-02 BackOffice | P-BO | Abrir la app | Menú: Inicio, Por transcribir, Transcritas. Indicadores: en cola, con pago, transcritas hoy |
 | SEG-03 Solicitante | P-SOL | Abrir la app | Menú: Inicio, Nueva solicitud, Mis solicitudes. Indicadores de sus Especiales (pendientes, aprobadas, rechazadas), sin cobrado de hoy (el rol no lee pagos) y sin errores en pantalla |
 | SEG-04 Supervisor | P-SUP | Abrir la app | Menú: Inicio, Aprobaciones, Reasignar, Cartera por localizador, Historial de Especiales. Indicador de Especiales pendientes de aprobación |
@@ -178,9 +178,9 @@ Se hacen antes de la carga para que los agentes del archivo ya tengan usuario. S
 
 | Caso | Rol | Pasos | Resultado esperado |
 |---|---|---|---|
-| AGE-01 Crear agente | P-ADM | Agentes y usuarios → «＋ Nuevo agente» → escribir «Agente Prueba Uno» → «Crear agente». Repetir con «Agente Prueba Dos» | «✓ Agente … creado». El botón «Crear agente» está deshabilitado con el nombre vacío. Repetir el mismo nombre avisa «Ya existe un agente llamado…» y no crea otro |
+| AGE-01 Crear localizador | P-ADM | Localizadores y usuarios → «＋ Nuevo localizador» → escribir «Agente Prueba Uno» → «Crear localizador». Repetir con «Agente Prueba Dos» | «✓ Localizador … creado». El botón «Crear localizador» está deshabilitado con el nombre vacío. Repetir el mismo nombre avisa «Ya existe un localizador llamado…» y no crea otro |
 | AGE-02 Vincular usuario | P-ADM | En la fila de «Agente Prueba Uno» → «Vincular» → buscar a P-LOC1 → «Vincular a …». Lo mismo con «Agente Prueba Dos» y P-LOC2 | «✓ … vinculado a <correo>». La fila muestra el correo en minúsculas (lo completa el servidor). Un usuario sin correo principal se rechaza con aviso |
-| AGE-03 Solo mirar no escribe | P-ADM | Abrir Agentes y usuarios, recorrer la lista y salir sin tocar botones | En make, ningún agente cambió (fecha de modificación igual) |
+| AGE-03 Solo mirar no escribe | P-ADM | Abrir Localizadores y usuarios, recorrer la lista y salir sin tocar botones | En make, ningún agente cambió (fecha de modificación igual) |
 | AGE-04 Desvincular | P-ADM, P-LOC2 | Después de [CAR-06](#3-carga-diaria-car): «Desvincular» en «Agente Prueba Dos». Revisar en make el propietario de la asignación `0046`. P-LOC2 sincroniza por completo | «Vínculo quitado — …». (min) La asignación pasa al equipo «Cartera sin cobrador». En Inicio del Admin, «agentes activos sin usuario» sube en 1. Después de la sincronización completa, P-LOC2 ya no ve la cuenta. Volver a vincular al terminar: (min) la asignación vuelve a P-LOC2 |
 | AGE-05 Desactivar | P-ADM, P-LOC1 | «Desactivar» en «Agente Prueba Uno». P-LOC1 sincroniza y abre Inicio; intenta registrar una visita | Inicio muestra «⛔ Tu localizador está desactivado.» y Guardar avisa que no puede registrar visitas. «Activar» al terminar y verificar que vuelve a dejar registrar |
 | AGE-06 Usuario sin rol Localizador | P-ADM, Verificador | Crear un agente de prueba, darle una asignación (por ejemplo, reasignarle una Especial aprobada) y vincularle a P-SINROL | (min) El reparto falla: en **Trabajos del sistema** aparece un error de `RepartoAsignacion` porque Dataverse no deja hacer dueño a un usuario sin lectura sobre la tabla. Desvincular y desactivar ese agente al terminar |

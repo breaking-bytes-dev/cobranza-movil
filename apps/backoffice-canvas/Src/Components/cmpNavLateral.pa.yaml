@@ -217,7 +217,7 @@ ComponentDefinitions:
                             {
                                 Orden: 15,
                                 Icono: "🏍️",
-                                Titulo: "Agentes y usuarios",
+                                Titulo: "Localizadores y usuarios",
                                 Ruta: "age",
                                 Roles: "Admin"
                             },

@@ -20,13 +20,14 @@ NODE_PATH=../backoffice-canvas/node_modules node run.js                 # F0 a F
 NODE_PATH=../backoffice-canvas/node_modules node run.js --hasta F5      # hasta una fase, limpia igual
 NODE_PATH=../backoffice-canvas/node_modules node run.js --carga-ui      # la carga por la pantalla Cargar archivo
 NODE_PATH=../backoffice-canvas/node_modules node run.js --solo-limpieza
-NODE_PATH=../backoffice-canvas/node_modules node seguridad/matriz.js --sin-informe
+NODE_PATH=../backoffice-canvas/node_modules node seguridad/matriz.js                    # matriz de roles
+NODE_PATH=../backoffice-canvas/node_modules node seguridad/matriz.js --informe <ruta>    # el informe a otra ruta
 NODE_PATH=../backoffice-canvas/node_modules node apis/<prueba>.js
 ```
 
 Depuración: `--conservar` no limpia y guarda el estado; `--desde <fase>` reanuda sobre esos datos.
 
-Resultados en `resultados/corrida-<fecha>/` (`resumen.md`, `resultados.json`, `registro.json`, `capturas/`). Sale con código distinto de 0 si algún chequeo falla.
+Resultados en `resultados/corrida-<fecha>/` (`resumen.md`, `resultados.json`, `registro.json`, `capturas/`). Sale con código distinto de 0 si algún chequeo falla. La matriz deja los suyos en `resultados/matriz-<corrida>/` (`resultados.json`, `registro.json` y el informe `matriz-roles.md`, salvo que se pase `--informe <ruta>` o `--sin-informe`).
 
 ## Estructura
 

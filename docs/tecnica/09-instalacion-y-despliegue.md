@@ -50,7 +50,7 @@ flowchart TD
 | Opciones iniciales de las listas | No (son registros) | App de la oficina → **Listas** | 10 |
 | Siete trabajos de *bulk delete* (componentes **Data Life Cycle Config**) | Sí | Admin center → **Bulk deletion** | 2 y 11 |
 | Nivel de trazas de *plugins*, auditoría del ambiente, DLP | No | Admin center y configuración clásica | 12 |
-| Vínculo entre cada localizador y su agente | No (es un dato) | App de la oficina → **Agentes y usuarios** | Después de la primera carga |
+| Vínculo entre cada localizador y su agente | No (es un dato) | App de la oficina → **Localizadores y usuarios** | Después de la primera carga |
 
 ## Requisitos previos
 
@@ -351,7 +351,7 @@ Las columnas de fecha de carga y de «Última carga» son *DateOnly* (solo fecha
 | Versión de las apps | App de la oficina: pie del menú. App del localizador: pantalla **Sincronización** | Las dos muestran el **Version number** de la *solution* `cm_core_cobranzamovil` recién importada (el que se ve en **Solutions**). La del localizador muestra la última versión conocida si no hay conexión, y «—» si nunca pudo obtenerla |
 | Auditoría y trazas | Ajustes del paso 12 | Auditoría encendida; trazas en *Exception* |
 | Carga de punta a punta | **Solo en el ambiente de desarrollo**: app de la oficina → **Cargar archivo** con [`cobranza-mock-1000.csv`](../../test-data/cobranza-mock-1000.csv); después **Monitoreo** ([`scrMonitoreo.pa.yaml`](../../apps/backoffice-canvas/Src/scrMonitoreo.pa.yaml)) | Trabajo completo, 0 filas fallidas, asignaciones repartidas en pocos minutos. Unos minutos después, los trabajos ya no tienen archivo: lo borra [`PurgaArchivoCarga`](../../plugins/Sanic.CobranzaMovil.Plugins/PurgaArchivoCarga.cs) |
-| Agentes | Después de la primera carga, app de la oficina → **Agentes y usuarios** ([`scrAgentes.pa.yaml`](../../apps/backoffice-canvas/Src/scrAgentes.pa.yaml)) | Cada localizador vinculado a su agente, con el correo de su usuario (lo completa [`EmailDesdeUsuario.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/EmailDesdeUsuario.cs)) |
+| Agentes | Después de la primera carga, app de la oficina → **Localizadores y usuarios** ([`scrAgentes.pa.yaml`](../../apps/backoffice-canvas/Src/scrAgentes.pa.yaml)) | Cada localizador vinculado a su agente, con el correo de su usuario (lo completa [`EmailDesdeUsuario.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/EmailDesdeUsuario.cs)) |
 | Teléfono | Un localizador abre la app en Power Apps móvil y sincroniza | Ve solo su cartera, que coincide con sus asignaciones activas |
 
 ⚠️ Nunca cargar archivos de prueba en producción. Los de [`test-data/`](../../test-data/) usan números de tarjeta generados al azar.
@@ -395,7 +395,7 @@ La importación no toca los datos: equipos, K, plantillas, opciones y asignacion
 - **El orden importa.** El equipo de carga antes de las plantillas (que toman su dueño). El equipo «Cartera sin cobrador», la clave K y las tres plantillas antes de la primera carga. Si falta K, la carga falla con `TransformError`; si faltan las derivadas o no coinciden con la principal, `PartirCarga` se niega a partir.
 - **Una K nueva no reconoce los datos viejos.** Las claves `*_clavepan` son HMAC con K. Si se migran datos desde otro ambiente, hay que usar su misma K; si no, la carga no encuentra las cuentas existentes y las duplica.
 - **La importación puede apagar pasos.** Sin **Enable plug-in steps and flows included in the solution**, los pasos que llegan inactivos quedan inactivos. Revisar **Plug-in steps** después de cada importación.
-- **Cambios durante la importación.** Mientras se importa, los pasos asíncronos de reparto pueden no correr. Un cambio de asignaciones en ese intervalo puede quedar sin dueño correcto o sin compartir. Para un agente concreto, quitar y volver a poner su usuario en **Agentes y usuarios** dispara `RepartoPorAgente`, que re-reparte sus asignaciones. No hay una pantalla que reconcilie todo de una vez.
+- **Cambios durante la importación.** Mientras se importa, los pasos asíncronos de reparto pueden no correr. Un cambio de asignaciones en ese intervalo puede quedar sin dueño correcto o sin compartir. Para un agente concreto, quitar y volver a poner su usuario en **Localizadores y usuarios** dispara `RepartoPorAgente`, que re-reparte sus asignaciones. No hay una pantalla que reconcilie todo de una vez.
 - **App abierta en Studio.** Si alguien tiene una app abierta en modo edición, la importación falla. Reintentar cuando la cierre.
 - **El ensamblado no cambia *major* ni *minor*.** Si cambia *build* o *revision*, Dataverse lo actualiza en el lugar y los pasos siguen apuntando a él. Si cambia *major* o *minor*, al importar lo trata como **otro ensamblado** y los pasos siguen apuntando al viejo ([documentación de Microsoft](https://learn.microsoft.com/power-apps/developer/data-platform/register-plug-in#assembly-versioning)). Es una regla para quien genera la versión; quien instala solo nota el síntoma.
 - **Una *solution* administrada no se exporta.** Si un ambiente se va a usar para modificar CM, importar ahí la no administrada.

@@ -367,13 +367,27 @@ Screens:
                   Size: =gblT.fxs
                   Text: ="Capturas de hoy"
                   Visible: =galCap.AllItemsCount>0
+            - lblCapLimite:
+                Control: Label@2.5.1
+                Properties:
+                  AlignInContainer: =AlignInContainer.Stretch
+                  AutoHeight: =true
+                  Color: =gblC.muted
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  Size: =gblT.fxs
+                  Text: |-
+                    ="Se muestran las últimas 100 de " & CountRows(varCapHoy) & " capturas de hoy."
+                  Visible: =CountRows(varCapHoy) > 100
             - galCap:
                 Control: Gallery@2.15.0
                 Variant: Vertical
                 Properties:
                   FillPortions: =0
                   Height: =Self.AllItemsCount * Self.TemplateHeight
-                  Items: =varCapHoy
+                  Items: |-
+                    =// Solo las 100 más recientes: con miles de capturas la galería se vuelve pesada.
+                    FirstN(varCapHoy, 100)
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
                   TemplatePadding: =

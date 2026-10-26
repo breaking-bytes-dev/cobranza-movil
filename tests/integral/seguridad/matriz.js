@@ -8,9 +8,11 @@
 //   EXPECTATIVA DUDOSA la celda es 'd': ninguna pantalla lo usa, decide el dueño
 // Datos: solo filas QA (prefijo QA-E2E-INT-MX…) creadas por la prueba; las reales nunca se tocan. Limpieza en finally.
 // Nunca se usa User6. Ningún número de tarjeta: la bóveda QA lleva un texto, no dígitos. Toda salida pasa por sinPAN.
-// Uso: cd tests/integral && NODE_PATH=../backoffice-canvas/node_modules node seguridad/matriz.js [--sin-informe]
+// Uso: cd tests/integral && NODE_PATH=../backoffice-canvas/node_modules node seguridad/matriz.js [--sin-informe] [--informe <ruta>]
+// El informe va por defecto a resultados/matriz-<corrida>/matriz-roles.md, junto a resultados.json.
 const fs = require('fs');
 const path = require('path');
+const LANZADO_EN = process.cwd();
 process.chdir(path.join(__dirname, '..'));
 const dv = require('../../backoffice-canvas/lib/dataverse');
 const { PREFIJO, AGENTE, U, ES, RAIZ, sinPAN, dormir } = require('../lib/ctx');
@@ -20,9 +22,11 @@ const { ROLES, TABLAS, OPS, ESPERADO } = require('./esperado');
 const RUN = Date.now().toString(36).slice(-3).toUpperCase();
 const P = `${PREFIJO}-MX${RUN}`;
 const P2 = `${PREFIJO}-${RUN}`;   // para columnas de 20 caracteres (CIF)
-const INFORME = path.join(__dirname, '..', '..', '..', 'docs', 'auditoria', 'matriz-roles.md');
 const DIR = path.join(RAIZ, `matriz-${RUN}`);
 fs.mkdirSync(DIR, { recursive: true });
+// Ruta del informe: --informe <ruta> (relativa a donde se lanzó node) o, por defecto, la carpeta de la corrida.
+const argInforme = () => { const i = process.argv.indexOf('--informe'); return i > 0 && process.argv[i + 1] ? path.resolve(LANZADO_EN, process.argv[i + 1]) : null; };
+function escribirInforme(destino, texto) { fs.mkdirSync(path.dirname(destino), { recursive: true }); fs.writeFileSync(destino, texto); console.log(`informe: ${destino}`); }
 
 // Tablas de la matriz → [entitySet, pk, logicalName]
 const T = {
@@ -279,20 +283,60 @@ async function casosDeColumna() {
   }
 }
 
-// ── limpieza: orden de dependencias, después el barrido por prefijo y los agentes QA ─────────────────
+// ── limpieza: solo lo de esta corrida (su REG, lo que cuelga de eso y el prefijo P), nunca el prefijo de la suite ──
+// Así no borra los datos de una corrida de run.js (o de otra matriz) que esté usando el mismo ambiente.
+async function inventarioCorrida() {
+  const uniq = (a) => [...new Set(a)];
+  const deReg = (t) => REG[t] || [];
+  const conP = (tipo, campo) => datos.ids(tipo, `startswith(${campo},'${P}')`);
+  const cliente = uniq([...deReg('cliente'), ...(await conP('cliente', 'sanic_cm_cl_nombre'))]);
+  const cuenta = uniq([...deReg('cuenta'), ...(await datos.porLista('cuenta', '_sanic_cm_ct_clienteid_value', cliente))]);
+  const interaccion = uniq([...deReg('interaccion'), ...(await conP('interaccion', 'sanic_cm_in_comentario')), ...(await datos.porLista('interaccion', '_sanic_cm_in_cuentaid_value', cuenta))]);
+  return {
+    pago: uniq([...deReg('pago'), ...(await conP('pago', 'sanic_cm_pg_numerorecibo')), ...(await datos.porLista('pago', '_sanic_cm_pg_cuentaid_value', cuenta)), ...(await datos.porLista('pago', '_sanic_cm_pg_interaccion_value', interaccion))]),
+    actualizacion: uniq([...deReg('actualizacion'), ...(await datos.porLista('actualizacion', '_sanic_cm_ad_interaccionid_value', interaccion))]),
+    interaccion,
+    asignacion: uniq([...deReg('asignacion'), ...(await datos.porLista('asignacion', '_sanic_cm_as_cuentaid_value', cuenta))]),
+    carga: uniq([...deReg('carga'), ...(await datos.porLista('carga', '_sanic_cm_cd_cuenta_value', cuenta))]),
+    boveda: uniq([...deReg('boveda'), ...(await datos.porLista('boveda', '_sanic_cm_cp_cuentaid_value', cuenta))]),
+    cuenta,
+    direccion: uniq([...deReg('direccion'), ...(await datos.porLista('direccion', '_sanic_cm_dr_clienteid_value', cliente))]),
+    telefono: uniq([...deReg('telefono'), ...(await datos.porLista('telefono', '_sanic_cm_tl_clienteid_value', cliente))]),
+    cliente,
+    producto: uniq(deReg('producto')),
+    fiador: uniq([...deReg('fiador'), ...(await conP('fiador', 'sanic_cm_fi_nombre'))]),
+    job: uniq([...deReg('job'), ...(await conP('job', 'sanic_smlt_ij_name'))]),
+    agente: uniq([...deReg('agente'), ...(await dv.getAll(`sanic_cm_tbl_agentes?$select=sanic_cm_tbl_agenteid&$filter=startswith(sanic_cm_ag_nombre,'${P}')`)).map((a) => a.sanic_cm_tbl_agenteid)]),
+  };
+}
+const TL = { ...T, job: ES.job };
+const setDe = (t) => TL[t][0];
+async function vive(t, id) {
+  try { await dv.get(`${setDe(t)}(${id})?$select=${TL[t][1]}`); return true; }
+  catch (e) { if (e.status === 404) return false; throw e; }
+}
+
 async function limpiar() {
+  // Pagos y actualizaciones antes que su interacción (Restrict), lo que cuelga de cuenta/cliente antes que ellos, y al final maestros, jobs y agentes.
   const orden = ['pago', 'actualizacion', 'interaccion', 'asignacion', 'carga', 'boveda', 'cuenta', 'direccion', 'telefono', 'cliente', 'producto', 'fiador', 'job', 'agente'];
   const errores = [];
-  for (const t of orden) for (const id of [...new Set(REG[t] || [])]) {
-    const set = t === 'job' ? 'sanic_tbl_smlt_importjobs' : T[t][0];
-    try { await dv.del(set, id); } catch (e) { errores.push(`${t}: ${sinPAN(e.message).slice(0, 140)}`); }
+  const inv = await inventarioCorrida();
+  for (const t of orden) for (const id of inv[t]) {
+    try {
+      await dv.del(setDe(t), id);
+      // Los logs del job, si la cascada no los borró.
+      if (t === 'job') for (const l of await dv.getAll(`sanic_tbl_smlt_importjoblogs?$select=sanic_tbl_smlt_importjoblogid&$filter=_sanic_smlt_ijl_importjobid_value eq ${id}`)) await dv.del('sanic_tbl_smlt_importjoblogs', l.sanic_tbl_smlt_importjoblogid);
+    } catch (e) { errores.push(`${t}: ${sinPAN(e.message).slice(0, 140)}`); }
   }
-  const l = await datos.limpiar({ ...REG });
-  const agentes = (await dv.getAll(`sanic_cm_tbl_agentes?$select=sanic_cm_tbl_agenteid&$filter=startswith(sanic_cm_ag_nombre,'${P}')`));
-  for (const a of agentes) { try { await dv.del('sanic_cm_tbl_agentes', a.sanic_cm_tbl_agenteid); } catch (e) { errores.push(`agente: ${e.message.slice(0, 140)}`); } }
-  const vivos = Object.entries(l.restantes || {}).filter(([, v]) => v).map(([k, v]) => `${k} ${v}`);
-  const agVivos = (await dv.getAll(`sanic_cm_tbl_agentes?$select=sanic_cm_tbl_agenteid&$filter=startswith(sanic_cm_ag_nombre,'${P}')`)).length;
-  return { errores: [...errores, ...(l.errores || [])], restantes: [...vivos, ...(agVivos ? [`agente ${agVivos}`] : [])] };
+  // Verificación: el mismo inventario, contando solo lo que sigue existiendo.
+  const resto = await inventarioCorrida();
+  const restantes = [];
+  for (const t of orden) {
+    let n = 0;
+    for (const id of resto[t]) { try { if (await vive(t, id)) n++; } catch (e) { n++; } }
+    if (n) restantes.push(`${t} ${n}`);
+  }
+  return { errores, restantes };
 }
 
 // ── informe ───────────────────────────────────────────────────────────────────────────────────────
@@ -306,7 +350,7 @@ function clasificar(x) {
 const NOMBRE_OP = { C: 'crear', Ra: 'leer ajena', Rc: 'leer de su cartera', Ua: 'editar ajena', Up: 'editar la propia', D: 'borrar ajena', A: 'reasignarse ajena', S: 'compartir ajena' };
 const celdaTxt = (x) => (x ? `${x.ok ? '✔' : '✘'} ${x.st}` : '');
 
-function informe(limpieza, inicio) {
+function informe(limpieza, inicio, destino) {
   const L = [];
   const todas = [...resultados, ...columnas];
   const dif = todas.map((x) => ({ ...x, clase: clasificar(x) })).filter((x) => x.clase);
@@ -314,7 +358,8 @@ function informe(limpieza, inicio) {
   const coinciden = todas.filter((x) => x.esp !== 'd' && !clasificar(x)).length;
   L.push('# Matriz de roles contra el servidor ("rol por pantalla")', '');
   L.push(`> Corrida \`${RUN}\` del ${inicio.toISOString().slice(0, 16).replace('T', ' ')} UTC en DEV, generada por \`tests/integral/seguridad/matriz.js\`.`);
-  L.push('> Lo esperado está en [`tests/integral/seguridad/esperado.js`](../../tests/integral/seguridad/esperado.js), con el porqué de cada fila.', '');
+  const esperadoRel = path.relative(path.dirname(destino), path.join(__dirname, 'esperado.js')).split(path.sep).join('/');
+  L.push(`> Lo esperado está en [\`tests/integral/seguridad/esperado.js\`](${esperadoRel}), con el porqué de cada fila.`, '');
   L.push('**Cómo se lee.** Cada celda es lo que respondió el servidor cuando ese usuario, sin pasar por la app, intentó la operación: ✔ la hizo (código 2xx), ✘ la frenó (403 = sin privilegio, 400 = regla de un plugin, 404 = no la ve). Las filas son datos QA creados por la prueba y borrados al final.', '');
   L.push('| | Celdas |', '|---|---|');
   L.push(`| Probadas | ${todas.length} (${resultados.length} de la matriz y ${columnas.length} casos de columna) |`);
@@ -375,8 +420,9 @@ function informe(limpieza, inicio) {
     const j = JSON.parse(fs.readFileSync(path.join(dir, 'resultados.json'), 'utf8'));
     resultados.push(...j.resultados); columnas.push(...j.columnas);
     fs.rmSync(DIR, { recursive: true, force: true });
-    fs.writeFileSync(INFORME, sinPAN(informe(j.limpieza, fs.statSync(path.join(dir, 'resultados.json')).mtime)).replace(`Corrida \`${RUN}\``, `Corrida \`${j.runid}\``));
-    console.log(`informe: ${INFORME}`); process.exit(0);
+    const destino = argInforme() || path.join(dir, 'matriz-roles.md');
+    escribirInforme(destino, sinPAN(informe(j.limpieza, fs.statSync(path.join(dir, 'resultados.json')).mtime, destino)).replace(`Corrida \`${RUN}\``, `Corrida \`${j.runid}\``));
+    process.exit(0);
   }
   const inicio = new Date();
   let fallo = null, limpieza = { errores: [], restantes: [] };
@@ -392,7 +438,10 @@ function informe(limpieza, inicio) {
     console.log(`  restantes: ${limpieza.restantes.join(', ') || 'ninguno'} · errores: ${limpieza.errores.length}`);
     for (const e of limpieza.errores.slice(0, 10)) console.log('   ', e);
     fs.writeFileSync(path.join(DIR, 'resultados.json'), sinPAN(JSON.stringify({ runid: RUN, resultados, columnas, limpieza }, null, 1)));
-    if (!fallo && !process.argv.includes('--sin-informe')) { fs.writeFileSync(INFORME, sinPAN(informe(limpieza, inicio))); console.log(`informe: ${INFORME}`); }
+    if (!fallo && !process.argv.includes('--sin-informe')) {
+      const destino = argInforme() || path.join(DIR, 'matriz-roles.md');
+      escribirInforme(destino, sinPAN(informe(limpieza, inicio, destino)));
+    }
     const todas = [...resultados, ...columnas].map(clasificar);
     console.log(`\n${resultados.length + columnas.length} celdas · HUECO ${todas.filter((c) => c === 'H').length} · DEMASIADO CERRADO ${todas.filter((c) => c === 'C').length} · DUDOSA ${todas.filter((c) => c === 'D').length}`);
     process.exit(fallo ? 1 : 0);

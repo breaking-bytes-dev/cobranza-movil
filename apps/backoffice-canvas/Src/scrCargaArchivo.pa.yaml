@@ -732,12 +732,12 @@ Screens:
                         PaddingLeft: =0
                         Size: =9
                         Text: |-
-                          =If(varEstCar = -1 && varFaseCar = "partir", "⏳ Partiendo el archivo en el servidor: primero productos, fiadores y agentes; después las partes por cliente.",
+                          =If(varEstCar = -1 && varFaseCar = "partir", "⏳ Partiendo el archivo en el servidor: primero productos, fiadores y localizadores; después las partes por cliente.",
                               varEstCar = -1 && varFaseCar = "validar", "⏳ Revisando en el servidor que ningún valor sea más largo que su columna.",
                               varEstCar = -1, "⏳ Preparando la carga: el archivo ya subió, en unos segundos se pone en cola.",
                               varSigueCar, "⚠ La pantalla dejó de consultar después de 1 hora y media, pero la carga puede seguir en Smelter. Mirá su estado en «Mis últimas cargas» (se actualiza al volver a entrar) o avisá a soporte con el nombre de la carga.",
                               varVueltasCar > 400 && varFaseCar <> "padres", "⏳ Lleva más de 20 minutos y sigue en Smelter (una carga grande tarda). La pantalla consulta cada 30 segundos; si salís, el resultado queda en «Mis últimas cargas».",
-                              varFaseCar = "padres", "⏳ Paso 1 de 2: productos, fiadores y agentes (" & Text(varFilasPadCar, "#,##0") & " filas), solo. Si termina bien, se lanzan las " & CountRows(colPartesCar) & " partes en paralelo.",
+                              varFaseCar = "padres", "⏳ Paso 1 de 2: productos, fiadores y localizadores (" & Text(varFilasPadCar, "#,##0") & " filas), solo. Si termina bien, se lanzan las " & CountRows(colPartesCar) & " partes en paralelo.",
                               varFaseCar = "partes", "⏳ Paso 2 de 2: " & CountRows(colPartesCar) & " partes en paralelo (" & Text(varFilasArchCar, "#,##0") & " filas). La pantalla consulta el avance cada 3 segundos.",
                               "⏳ Smelter está trabajando; la pantalla consulta el avance cada 3 segundos.")
                         VerticalAlign: =VerticalAlign.Top
@@ -1173,7 +1173,7 @@ Screens:
                           If(IsBlank(varErrTmrCar),
                               Set(varFaseCar, "partes");
                               Set(varEstCar, 0),
-                              Set(varMsgCar, "Los productos, fiadores y agentes se cargaron, pero no se pudieron poner en cola todas las partes: " & varErrTmrCar & " Relanzalas desde «Mis últimas cargas» o avisá a soporte con el nombre de la carga.");
+                              Set(varMsgCar, "Los productos, fiadores y localizadores se cargaron, pero no se pudieron poner en cola todas las partes: " & varErrTmrCar & " Relanzalas desde «Mis últimas cargas» o avisá a soporte con el nombre de la carga.");
                               Set(varFaseCar, "fin");
                               Set(varEstCar, 4)
                           ),
@@ -1183,7 +1183,7 @@ Screens:
                           // Padres con errores o fallido: las partes NO se lanzan. Se marcan Falló (sin correr: el orquestador
                           // solo arranca con En cola) para que no queden «en curso» y bloqueen Reconciliación.
                           Set(varMsgCar,
-                              "La primera etapa (productos, fiadores y agentes) " & If(varEstCar = 3, "terminó con errores", "falló")
+                              "La primera etapa (productos, fiadores y localizadores) " & If(varEstCar = 3, "terminó con errores", "falló")
                               & ": NO se lanzaron las " & CountRows(colPartesCar) & " partes y no se cargó ninguna cuenta. Avisá a soporte con el nombre de la carga.");
                           IfError(
                               ForAll(colPartesCar As P,

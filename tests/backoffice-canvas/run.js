@@ -54,7 +54,8 @@ async function main() {
   // Limpieza previa de restos QA de corridas anteriores.
   const previa = await qa.limpiar();
   console.log('Limpieza previa:', JSON.stringify(previa.restantes));
-  try { fs.unlinkSync(path.join(cfg.resultadosDir, 'registro-qa.json')); } catch (e) { /* no había */ }
+  // El registro se descarta solo si no quedó nada vivo: si no, la limpieza final vuelve a intentarlo.
+  if (Object.values(previa.restantes).every(n => n === 0)) { try { fs.unlinkSync(path.join(cfg.resultadosDir, 'registro-qa.json')); } catch (e) { /* no había */ } }
   if (soloLimpieza) return;
 
   const app = (await dv.get("canvasapps?$select=name,displayname,appversion,lastpublishtime&$filter=displayname eq 'App - CM - Backoffice Canvas'")).value[0] || {};
@@ -73,6 +74,7 @@ async function main() {
   const fotoAgentes = await dv.getAll(SEL_AG);
   const suite = { browser: await pl.lanzar(), datos: {} };
   let limpieza = null, restauracion = null, agentes = null;
+  const abortadas = [];
   const cerrarTodo = async () => {
     try { limpieza = await qa.limpiar(); } catch (e) { limpieza = { error: e.message }; }
     try { restauracion = await qa.restaurarMembresias(fotoMembresias); } catch (e) { restauracion = { error: e.message }; }
@@ -100,7 +102,7 @@ async function main() {
     for (const f of fases) {
       console.log(`\n================ FASE ${f} ================`);
       try { await FASES[f](suite); }
-      catch (err) { inf.hallazgo(`Fase ${f} abortada por excepción del runner: ${err.message.slice(0, 300)}`); console.error(err); }
+      catch (err) { abortadas.push(f); inf.hallazgo(`Fase ${f} abortada por excepción del runner: ${err.message.slice(0, 300)}`); console.error(err); }
     }
   } finally {
     await suite.browser.close().catch(() => {});
@@ -115,6 +117,12 @@ async function main() {
     console.log('Membresías restauradas:', restauracion && restauracion.iguales, JSON.stringify(restauracion && restauracion.cambios));
     console.log('\nRESUMEN'); for (const e of inf.escenarios) console.log(`  ${e.id.padEnd(7)} ${e.estado}`);
     console.log(`\n${p}`);
+    // Código de salida: distinto de 0 si algún caso no pasó o una fase se abortó.
+    const noPasaron = inf.escenarios.filter(e => e.estado !== 'PASÓ').map(e => `${e.id}=${e.estado}`);
+    if (noPasaron.length || abortadas.length) {
+      console.log(`\nFALLÓ: ${[...noPasaron, ...abortadas.map(f => `fase ${f} abortada`)].join(', ')}`);
+      process.exitCode = 1;
+    }
   }
 }
 

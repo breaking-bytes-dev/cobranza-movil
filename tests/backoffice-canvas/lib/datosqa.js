@@ -1,5 +1,6 @@
 // Datos de prueba QA-E2E: creación, registro (para limpiar aunque la corrida se caiga) y limpieza.
-// REGLA: todo registro que la suite crea o hace crear a la app lleva el prefijo "QA-E2E".
+// REGLA: la limpieza borra solo lo anotado en el registro de la corrida y lo que cuelga de eso (por lookup o por la
+// clave exacta anotada), nunca por prefijo: otras suites (integral, localizador) usan datos QA-E2E en el mismo ambiente.
 const fs = require('fs');
 const path = require('path');
 const dv = require('./dataverse');
@@ -25,11 +26,25 @@ const ES = {
   carga: ['sanic_cm_tbl_cargadiarias', 'sanic_cm_tbl_cargadiariaid'],
 };
 
-function leerRegistro() { try { return JSON.parse(fs.readFileSync(REG(), 'utf8')); } catch (e) { return { creados: [] }; } }
-function registrar(tipo, id, nota) {
-  const r = leerRegistro(); r.creados.push({ tipo, id, nota, t: new Date().toISOString() });
-  fs.mkdirSync(path.dirname(REG()), { recursive: true }); fs.writeFileSync(REG(), JSON.stringify(r, null, 1));
+function leerRegistro() {
+  let r; try { r = JSON.parse(fs.readFileSync(REG(), 'utf8')); } catch (e) { r = {}; }
+  return { creados: r.creados || [], claves: r.claves || [] };
 }
+function guardarRegistro(r) { fs.mkdirSync(path.dirname(REG()), { recursive: true }); fs.writeFileSync(REG(), JSON.stringify(r, null, 1)); }
+function registrar(tipo, id, nota) {
+  const r = leerRegistro(); r.creados.push({ tipo, id, nota, t: new Date().toISOString() }); guardarRegistro(r);
+}
+// Clave exacta de lo que crea la APP (o de lo que se va a crear): se anota ANTES de crearlo para poder
+// encontrarlo aunque la corrida se caiga en el medio. campo: 'clavepan' (cuenta) o 'cif' (cliente).
+function registrarClave(campo, valor, nota) {
+  const r = leerRegistro();
+  if (!r.claves.some(c => c.campo === campo && c.valor === valor)) { r.claves.push({ campo, valor, nota, t: new Date().toISOString() }); guardarRegistro(r); }
+}
+// Claves fijas de la siembra: siempre se buscan, para que un resto de una corrida anterior de ESTA suite
+// (con el registro perdido) no duplique la siembra. Son valores exactos, no prefijos.
+const CUENTAS_SIEMBRA = ['0001', '0002', '0003', '0004'];
+const CIF_SIEMBRA = `${P}-CIF-001`;
+const CLAVES_SIEMBRA = [{ campo: 'cif', valor: CIF_SIEMBRA }, ...CUENTAS_SIEMBRA.map(n => ({ campo: 'clavepan', valor: `${P}-CLAVE-${n}` }))];
 async function crear(tipo, data, nota) {
   const [set, pk] = ES[tipo];
   const rec = await dv.create(set, data);
@@ -51,16 +66,17 @@ async function agenteActivoConUsuario() {
 async function sembrar() {
   const prod = (await dv.get("sanic_cm_tbl_productos?$select=sanic_cm_pr_codigo,sanic_cm_pr_tipo&$filter=sanic_cm_pr_codigo eq 'TC001'")).value[0];
   const ag = await agenteActivoConUsuario();
+  for (const k of CLAVES_SIEMBRA) registrarClave(k.campo, k.valor, 'siembra');
   const cli = await crear('cliente', {
-    sanic_cm_cl_cif: `${P}-CIF-001`, sanic_cm_cl_nombre: `${P} CLIENTE UNO`, sanic_cm_cl_departamento: `${P} Managua`,
+    sanic_cm_cl_cif: CIF_SIEMBRA, sanic_cm_cl_nombre: `${P} CLIENTE UNO`, sanic_cm_cl_departamento: `${P} Managua`,
   }, 'cliente base');
   const cliId = cli.sanic_cm_tbl_clienteid;
   const cuentas = [];
-  for (const n of ['0001', '0002', '0003', '0004']) {
+  for (const n of CUENTAS_SIEMBRA) {
     const c = await crear('cuenta', {
       sanic_cm_ct_numerodecuenta: `${P}-CTA-${n}`, sanic_cm_ct_nombrecliente: `${P} CLIENTE UNO`,
       sanic_cm_ct_ultimos4: `E2E${n.slice(-1)}`, sanic_cm_ct_clavepan: `${P}-CLAVE-${n}`,
-      sanic_cm_ct_cifcliente: `${P}-CIF-001`, sanic_cm_ct_tipoproducto: prod.sanic_cm_pr_tipo,
+      sanic_cm_ct_cifcliente: CIF_SIEMBRA, sanic_cm_ct_tipoproducto: prod.sanic_cm_pr_tipo,
       sanic_cm_ct_saldovencidonio: 1500, sanic_cm_ct_saldovencidousd: 0, sanic_cm_ct_diasmora: 30,
       'sanic_cm_ct_clienteid@odata.bind': bind('sanic_cm_tbl_clientes', cliId),
       'sanic_cm_ct_productoid@odata.bind': bind('sanic_cm_tbl_productos', prod.sanic_cm_tbl_productoid),
@@ -74,7 +90,7 @@ async function sembrar() {
     }, `boveda ${n}`);
   }
   await crear('telefono', {
-    sanic_cm_tl_cif: `${P}-CIF-001`, sanic_cm_tl_numero: '2222-0000', sanic_cm_tl_tipo: 'Casa',
+    sanic_cm_tl_cif: CIF_SIEMBRA, sanic_cm_tl_numero: '2222-0000', sanic_cm_tl_tipo: 'Casa',
     'sanic_cm_tl_clienteid@odata.bind': bind('sanic_cm_tbl_clientes', cliId),
   }, 'telefono antes');
   const ahora = Date.now();
@@ -128,42 +144,57 @@ async function crearCargaHoy(cliId, cuenta, fechaIso) {
   }, 'carga de hoy QA');
 }
 
-// Barrido por prefijo (incluye lo que creó la APP: Especiales por UI, cliente/teléfono de Maestros).
-// Se barre por la clave sustituta QA (`QA-E2E-CLAVE-…`, que el plugin ClaveDesdeCuenta copia a la asignación)
-// y por los lookups a las cuentas QA.
+// Inventario de la corrida: lo anotado en el registro y lo que cuelga de eso. Lo que crea la APP (Especiales por
+// UI, cliente/teléfono de Maestros) se encuentra por lookup a las cuentas/clientes anotados o por la clave exacta
+// anotada (clave sustituta de la cuenta, que el plugin ClaveDesdeCuenta copia a la asignación; CIF del cliente).
 async function inventarioQA() {
+  const uniq = a => [...new Set(a)];
   const q = async (tipo, filtro) => {
     const [set, pk] = ES[tipo];
-    // Los fixtures de la app del localizador (QA-E2E-LOC*: carteras de User5 y User6) comparten el prefijo
-    // pero NO son de esta suite: se excluyen de todo barrido por prefijo.
-    filtro = filtro.replace(/startswith\((\w+),'([^']+)'\)/g, (m, campo, pre) =>
-      pre === P ? `(${m} and not startswith(${campo},'${P}-LOC') and not startswith(${campo},'${P} Localizador User'))` : m);
     return (await dv.getAll(`${set}?$select=${pk}&$filter=${encodeURIComponent(filtro)}`)).map(x => x[pk]);
   };
-  const reg = leerRegistro().creados;
-  const deReg = t => reg.filter(x => x.tipo === t).map(x => x.id);
-  const uniq = a => [...new Set(a)];
-  const cuentas = uniq([...await q('cuenta', `startswith(sanic_cm_ct_numerodecuenta,'${P}')`), ...deReg('cuenta')]);
-  const porCuenta = (campo) => cuentas.length ? cuentas.map(id => `${campo} eq ${id}`).join(' or ') : null;
-  const qCuentas = async (tipo, campo) => { const f = porCuenta(campo); return f ? q(tipo, f) : []; };
-  const inter = uniq([
-    ...await q('interaccion', `startswith(sanic_cm_in_nombreagente,'${P}')`),
-    ...await qCuentas('interaccion', '_sanic_cm_in_cuentaid_value'), ...deReg('interaccion')]);
-  const adPorInt = [];
-  for (const id of inter) {
-    adPorInt.push(...(await dv.getAll(`sanic_cm_tbl_actualizaciondatoses?$select=sanic_cm_tbl_actualizaciondatosid&$filter=_sanic_cm_ad_interaccionid_value eq ${id}`)).map(x => x.sanic_cm_tbl_actualizaciondatosid));
-  }
+  // `campo eq v1 or campo eq v2 …`, en tandas para no pasarse del largo de la URL.
+  const porLista = async (tipo, campo, valores, comillas = false) => {
+    const out = [];
+    for (let i = 0; i < valores.length; i += 40) {
+      out.push(...await q(tipo, valores.slice(i, i + 40).map(v => `${campo} eq ${comillas ? `'${String(v).replace(/'/g, "''")}'` : v}`).join(' or ')));
+    }
+    return out;
+  };
+  const reg = leerRegistro();
+  const deReg = t => reg.creados.filter(x => x.tipo === t).map(x => x.id);
+  const claves = [...CLAVES_SIEMBRA, ...reg.claves];
+  const clavesPan = uniq(claves.filter(c => c.campo === 'clavepan').map(c => c.valor));
+  const cifs = uniq(claves.filter(c => c.campo === 'cif').map(c => c.valor));
+
+  const cliente = uniq([...await porLista('cliente', 'sanic_cm_cl_cif', cifs, true), ...deReg('cliente')]);
+  const cuenta = uniq([
+    ...await porLista('cuenta', 'sanic_cm_ct_clavepan', clavesPan, true),
+    ...await porLista('cuenta', '_sanic_cm_ct_clienteid_value', cliente), ...deReg('cuenta')]);
+  const interaccion = uniq([...await porLista('interaccion', '_sanic_cm_in_cuentaid_value', cuenta), ...deReg('interaccion')]);
   return {
-    pago: uniq([...await q('pago', `startswith(sanic_cm_pg_numerorecibo,'${P}')`), ...await qCuentas('pago', '_sanic_cm_pg_cuentaid_value'), ...deReg('pago')]),
-    actualizacion: uniq([...adPorInt, ...await q('actualizacion', "startswith(sanic_cm_ad_correoelectronico,'qa-e2e')"), ...deReg('actualizacion')]),
-    interaccion: inter,
-    asignacion: uniq([...await q('asignacion', `startswith(sanic_cm_as_clavepan,'${P}')`), ...await qCuentas('asignacion', '_sanic_cm_as_cuentaid_value'), ...deReg('asignacion')]),
-    carga: uniq([...await q('carga', `startswith(sanic_cm_cd_numerocuenta,'${P}')`), ...deReg('carga')]),
-    boveda: uniq([...await q('boveda', `startswith(sanic_cm_cp_clavepan,'${P}')`), ...await qCuentas('boveda', '_sanic_cm_cp_cuentaid_value'), ...deReg('boveda')]),
-    cuenta: cuentas,
-    telefono: uniq([...await q('telefono', `startswith(sanic_cm_tl_cif,'${P}')`), ...deReg('telefono')]),
-    direccion: uniq([...await q('direccion', `startswith(sanic_cm_dr_cif,'${P}')`), ...deReg('direccion')]),
-    cliente: uniq([...await q('cliente', `startswith(sanic_cm_cl_cif,'${P}')`), ...deReg('cliente')]),
+    pago: uniq([
+      ...await porLista('pago', '_sanic_cm_pg_cuentaid_value', cuenta),
+      ...await porLista('pago', '_sanic_cm_pg_interaccion_value', interaccion), ...deReg('pago')]),
+    actualizacion: uniq([...await porLista('actualizacion', '_sanic_cm_ad_interaccionid_value', interaccion), ...deReg('actualizacion')]),
+    interaccion,
+    asignacion: uniq([
+      ...await porLista('asignacion', 'sanic_cm_as_clavepan', clavesPan, true),
+      ...await porLista('asignacion', '_sanic_cm_as_cuentaid_value', cuenta), ...deReg('asignacion')]),
+    carga: uniq([
+      ...await porLista('carga', 'sanic_cm_cd_clavepan', clavesPan, true),
+      ...await porLista('carga', '_sanic_cm_cd_cuenta_value', cuenta), ...deReg('carga')]),
+    boveda: uniq([
+      ...await porLista('boveda', 'sanic_cm_cp_clavepan', clavesPan, true),
+      ...await porLista('boveda', '_sanic_cm_cp_cuentaid_value', cuenta), ...deReg('boveda')]),
+    cuenta,
+    telefono: uniq([
+      ...await porLista('telefono', 'sanic_cm_tl_cif', cifs, true),
+      ...await porLista('telefono', '_sanic_cm_tl_clienteid_value', cliente), ...deReg('telefono')]),
+    direccion: uniq([
+      ...await porLista('direccion', 'sanic_cm_dr_cif', cifs, true),
+      ...await porLista('direccion', '_sanic_cm_dr_clienteid_value', cliente), ...deReg('direccion')]),
+    cliente,
   };
 }
 
@@ -177,7 +208,7 @@ async function limpiar() {
       catch (e) { res[tipo].errores.push(`${id}: ${e.message.slice(0, 160)}`); }
     }
   }
-  // Verificación: el barrido por prefijo debe dar CERO en todas las tablas.
+  // Verificación: el inventario de la corrida debe dar CERO en todas las tablas.
   const despues = await inventarioQA();
   const restantes = {};
   for (const [t, ids] of Object.entries(despues)) {
@@ -218,6 +249,6 @@ async function restaurarMembresias(foto) {
 }
 
 module.exports = {
-  ES, mascara, sembrar, crearEspecialPendiente, crearCargaHoy, registrar, leerRegistro, inventarioQA, limpiar,
+  ES, mascara, sembrar, crearEspecialPendiente, crearCargaHoy, registrar, registrarClave, leerRegistro, inventarioQA, limpiar,
   membresias, agregarATeam, quitarDeTeam, restaurarMembresias,
 };

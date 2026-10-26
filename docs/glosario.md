@@ -46,7 +46,7 @@ Los términos de Cobranza Móvil, para quien usa las apps y para quien mantiene 
 | **Retiro** | Monto que el localizador tiene que traer en una gestión Especial. | `ct_retironio`/`usd` (archivo), `as_retironio`/`usd` (Especial) |
 | **Producto** | El tipo de tarjeta o préstamo. | Tabla `producto` |
 | **Fiador** | La persona que garantiza la deuda. | Tabla `fiador` |
-| **Datos maestros** | Clientes, direcciones, teléfonos, productos, fiadores y agentes. Los trae la carga diaria. El Admin puede crear o editar clientes, direcciones y teléfonos en la pantalla de maestros (los agentes, en «Agentes y usuarios»), pero la carga siguiente pisa lo que traiga el banco. | Pantalla [`scrMaestros.pa.yaml`](../apps/backoffice-canvas/Src/scrMaestros.pa.yaml) |
+| **Datos maestros** | Clientes, direcciones, teléfonos, productos, fiadores y agentes. Los trae la carga diaria. El Admin puede crear o editar clientes, direcciones y teléfonos en la pantalla de maestros (los agentes, en «Localizadores y usuarios»), pero la carga siguiente pisa lo que traiga el banco. | Pantalla [`scrMaestros.pa.yaml`](../apps/backoffice-canvas/Src/scrMaestros.pa.yaml) |
 | **Alta de cuenta** | Crear a mano una cuenta que no vino en el archivo. El Admin la carga en un formulario y el sistema la importa como si fuera una fila más del archivo del banco. | Pantalla [`scrAltaCuenta.pa.yaml`](../apps/backoffice-canvas/Src/scrAltaCuenta.pa.yaml), Custom API [`AltaCuenta.cs`](../plugins/Sanic.CobranzaMovil.Plugins/AltaCuenta.cs) |
 
 ## Número de tarjeta

@@ -30,7 +30,7 @@ Screens:
           Properties:
             Height: =If(nfMovil, gblE.AltoBarra + 84, 84)
             Subtitulo: ="Ligá cada localizador a su usuario. Sin usuario = no entra a la app del celular."
-            Titulo: ="Agentes y usuarios"
+            Titulo: ="Localizadores y usuarios"
             Width: =Parent.Width - Self.X
             X: =If(nfMovil, 0, gblE.AnchoNav)
       - conContenidoAge:
@@ -80,13 +80,13 @@ Screens:
                   Height: =gblE.AltoBoton
                   HoverFill: =ColorFade(gblC.teal, 10%)
                   OnSelect: |-
-                    =// Abre el panel de alta. No escribe nada: la escritura ocurre solo con "Crear agente".
+                    =// Abre el panel de alta. No escribe nada: la escritura ocurre solo con "Crear localizador".
                     Set(varUsrNueAge, Blank());
                     Reset(txtNombreNueAge);
                     Reset(txtBuscarUsrNueAge);
                     Set(varNuevoAge, true)
                   Size: =10
-                  Text: ="＋ Nuevo agente"
+                  Text: ="＋ Nuevo localizador"
                   Visible: ="Admin" in gblRol
                   Width: =170
                   X: =btnActualizarAge.X - Self.Width - gblE.PadSm
@@ -129,7 +129,7 @@ Screens:
                           ="⚠ " &
                               CountIf('CM | TBL | Agentes',
                                   '[AG] Activo' && 'Email Usuario' = Blank()) &
-                              " agente(s) activo(s) sin usuario vinculado"
+                              " localizador(es) activo(s) sin usuario vinculado"
                         Width: =Parent.Width - 2*gblE.Pad
                         Wrap: =false
                         X: =gblE.Pad
@@ -176,7 +176,7 @@ Screens:
                       Control: Gallery@2.15.0
                       Variant: Vertical
                       Properties:
-                        AccessibleLabel: ="Lista de agentes"
+                        AccessibleLabel: ="Lista de localizadores"
                         FocusedBorderColor: =gblC.teal
                         FocusedBorderThickness: =2
                         Height: =Parent.Height - 2*gblE.PadSm
@@ -409,7 +409,7 @@ Screens:
                         Icono: |-
                           ="🏍️"
                         Mensaje: ="El import diario todavía no creó localizadores."
-                        Titulo: ="Sin agentes"
+                        Titulo: ="Sin localizadores"
                         Visible: =CountRows(colAgentesAge) = 0
                         Width: =Min(420, Parent.Width - 2*gblE.Pad)
                         X: =(Parent.Width - Self.Width) / 2
@@ -425,7 +425,7 @@ Screens:
                   PaddingLeft: =0
                   Size: =9
                   Text: |-
-                    ="Desactivar un agente bloquea al localizador en la app (no puede registrar visitas ni pagos), pero NO cierra ni mueve sus asignaciones: reasignalas en Reasignar."
+                    ="Desactivar un localizador lo bloquea en la app (no puede registrar visitas ni pagos), pero NO cierra ni mueve sus asignaciones: reasignalas en Reasignar."
                   Width: =Parent.Width
                   Y: =conListaAge.Y + conListaAge.Height + gblE.PadSm
       - recScrimAge:
@@ -761,7 +761,7 @@ Screens:
                   FontWeight: =FontWeight.Bold
                   Height: =28
                   PaddingLeft: =0
-                  Text: ="Nuevo agente"
+                  Text: ="Nuevo localizador"
                   Width: =Parent.Width - 2*gblE.Pad - 32
                   Wrap: =false
                   X: =gblE.Pad
@@ -793,7 +793,7 @@ Screens:
                   Height: =18
                   PaddingLeft: =0
                   Size: =9
-                  Text: ="Nombre del agente *"
+                  Text: ="Nombre del localizador *"
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
                   X: =gblE.Pad
@@ -801,7 +801,7 @@ Screens:
             - txtNombreNueAge:
                 Control: Classic/TextInput@2.3.2
                 Properties:
-                  AccessibleLabel: ="Nombre del agente"
+                  AccessibleLabel: ="Nombre del localizador"
                   BorderColor: =gblC.borde
                   Default: =""
                   Fill: =gblC.card
@@ -844,7 +844,7 @@ Screens:
                         PaddingLeft: =0
                         Size: =9
                         Text: |-
-                          ="⚠ Escribí el nombre EXACTO con el que el banco lo manda en el CSV; si no coincide, la próxima carga crea otro agente."
+                          ="⚠ Escribí el nombre EXACTO con el que el banco lo manda en el CSV; si no coincide, la próxima carga crea otro localizador."
                         VerticalAlign: =VerticalAlign.Top
                         Width: =Parent.Width - 2*gblE.PadSm
                         X: =gblE.PadSm
@@ -1080,8 +1080,8 @@ Screens:
                   Size: =9
                   Text: |-
                     =If(IsBlank(varUsrNueAge),
-                        "Sin usuario, el agente se crea igual pero no entra a la app del celular hasta que lo vincules.",
-                        "El correo del agente lo completa el servidor a partir del usuario elegido.")
+                        "Sin usuario, el localizador se crea igual pero no entra a la app del celular hasta que lo vincules.",
+                        "El correo del localizador lo completa el servidor a partir del usuario elegido.")
                   VerticalAlign: =VerticalAlign.Top
                   Width: =Parent.Width - 2*gblE.Pad
                   X: =gblE.Pad
@@ -1134,9 +1134,9 @@ Screens:
                     // IfError: si el Patch falla, detalle y el panel queda abierto (sin éxito).
                     If(
                         Len(Trim(txtNombreNueAge.Text)) = 0,
-                        Notify("Escribí el nombre del agente.", NotificationType.Warning),
+                        Notify("Escribí el nombre del localizador.", NotificationType.Warning),
                         !IsBlank(LookUp('CM | TBL | Agentes', '[AG] Nombre' = Trim(txtNombreNueAge.Text))),
-                        Notify("Ya existe un agente llamado «" & Trim(txtNombreNueAge.Text) & "». No se creó otro.",
+                        Notify("Ya existe un localizador llamado «" & Trim(txtNombreNueAge.Text) & "». No se creó otro.",
                             NotificationType.Error),
                         IfError(
                             Patch('CM | TBL | Agentes', Defaults('CM | TBL | Agentes'),
@@ -1146,9 +1146,9 @@ Screens:
                                     '[AG] Usuario': varUsrNueAge
                                 }
                             ),
-                            Notify("No se pudo crear el agente " & Trim(txtNombreNueAge.Text) & ": " & FirstError.Message,
+                            Notify("No se pudo crear el localizador " & Trim(txtNombreNueAge.Text) & ": " & FirstError.Message,
                                 NotificationType.Error),
-                            Notify("✓ Agente " & Trim(txtNombreNueAge.Text) & " creado" &
+                            Notify("✓ Localizador " & Trim(txtNombreNueAge.Text) & " creado" &
                                 If(IsBlank(varUsrNueAge), " sin usuario", " y vinculado a " & Lower(varUsrNueAge.'Primary Email')),
                                 NotificationType.Success, 2500);
                             Set(varNuevoAge, false);
@@ -1159,7 +1159,7 @@ Screens:
                         )
                     )
                   Size: =10
-                  Text: ="Crear agente"
+                  Text: ="Crear localizador"
                   Width: =btnCancelarNueAge.Width
                   X: =btnCancelarNueAge.X + btnCancelarNueAge.Width + gblE.Pad
                   Y: =btnCancelarNueAge.Y

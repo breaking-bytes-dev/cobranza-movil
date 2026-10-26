@@ -24,7 +24,30 @@ Screens:
             Set(varNCtasMon, CountIf('CM | TBL | Cuentas', true)),
             Set(varNCliMon, CountIf('CM | TBL | Clientes', true))
         );
-        Set(varHayCargaMon, nfUltimaCarga >= Today())
+        Set(varHayCargaMon, nfUltimaCarga >= Today());
+        // Cuentas de la última carga en manos de agentes desactivados. Los agentes inactivos son pocos: por cada uno,
+        // un CountIf delegable (lookup por id, booleano y fecha) sobre las asignaciones activas de ese día.
+        // 'Última carga' es DateOnly: día contra día, igual que en Reconciliación.
+        Set(varRevAgMon, true);
+        If(IsBlank(nfUltimaCarga),
+            Clear(colAgInactMon),
+            Set(varCorteMon, Date(Year(nfUltimaCarga), Month(nfUltimaCarga), Day(nfUltimaCarga)));
+            ClearCollect(colAgInactMon,
+                Filter(
+                    ForAll(Filter('CM | TBL | Agentes', '[AG] Activo' = false) As A,
+                        {
+                            nombreMon: A.'[AG] Nombre',
+                            nCtasMon: CountIf('CM | TBL | Asignacions',
+                                '[AS] Agente'.'CM | TBL | Agente' = A.'CM | TBL | Agente'
+                                && '[AS] Estado' = true
+                                && 'Última carga' = varCorteMon)
+                        }
+                    ),
+                    nCtasMon > 0
+                )
+            )
+        );
+        Set(varRevAgMon, false)
     Children:
       - cmpEncMon:
           Control: CanvasComponent
@@ -177,6 +200,65 @@ Screens:
                         Wrap: =false
                         X: =gblE.Pad
                         Y: =lblEstadoAlertaUltimaMon.Y + lblEstadoAlertaUltimaMon.Height
+            # Aviso de localizadores desactivados: mientras revisa muestra «Revisando localizadores…»; después, solo si hay cuentas.
+            - conAgInactMon:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Fill: =gblC.pendBg
+                  Height: =If(varRevAgMon, lblAgInactTituloMon.Y + lblAgInactTituloMon.Height, lblAgInactAccionMon.Y + lblAgInactAccionMon.Height) + gblE.PadSm
+                  RadiusBottomLeft: =gblE.Radio
+                  RadiusBottomRight: =gblE.Radio
+                  RadiusTopLeft: =gblE.Radio
+                  RadiusTopRight: =gblE.Radio
+                  Visible: =varRevAgMon || CountRows(colAgInactMon) > 0
+                  Width: =Parent.Width
+                  Y: =conEstadoOkMon.Y + conEstadoOkMon.Height + gblE.Pad
+                Children:
+                  - recBordeAgInactMon:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.pendInk
+                        Height: =Parent.Height
+                        Width: =4
+                  - lblAgInactTituloMon:
+                      Control: Label@2.5.1
+                      Properties:
+                        AutoHeight: =true
+                        Color: =gblC.pendInk
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =If(varRevAgMon, FontWeight.Normal, FontWeight.Bold)
+                        PaddingLeft: =0
+                        Size: =If(varRevAgMon, 9, 11)
+                        Text: |-
+                          =If(varRevAgMon,
+                              "⏳ Revisando localizadores…",
+                              "⚠ La última carga asignó " & Text(Sum(colAgInactMon, nCtasMon), "#,##0")
+                                  & " cuenta(s) a localizador(es) desactivado(s): " & Concat(colAgInactMon, nombreMon, ", ") & ".")
+                        Width: =Parent.Width - 2*gblE.Pad
+                        X: =gblE.Pad
+                        Y: =gblE.PadSm
+                  - lblAgInactAccionMon:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblC.ink2
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =22
+                        PaddingLeft: =0
+                        Size: =9
+                        Text: ="Reasignalas en «Reasignar» o reactivá el localizador en «Localizadores y usuarios»."
+                        Visible: =!varRevAgMon
+                        Width: =Parent.Width - 2*gblE.Pad
+                        X: =gblE.Pad
+                        Y: =lblAgInactTituloMon.Y + lblAgInactTituloMon.Height
             - cmpKpiFilasMon:
                 Control: CanvasComponent
                 ComponentName: cmpKpi
@@ -187,7 +269,10 @@ Screens:
                   Height: =96
                   Valor: =Text(varNCargaHoyMon, "#,##0")
                   Width: =If(nfMovil, Parent.Width, (Parent.Width - 2*gblE.Pad) / 3)
-                  Y: =conEstadoOkMon.Y + conEstadoOkMon.Height + gblE.Pad
+                  Y: |-
+                    =If(conAgInactMon.Visible,
+                        conAgInactMon.Y + conAgInactMon.Height,
+                        conEstadoOkMon.Y + conEstadoOkMon.Height) + gblE.Pad
             - cmpKpiCuentasMon:
                 Control: CanvasComponent
                 ComponentName: cmpKpi
@@ -271,6 +356,29 @@ Screens:
                     // nfUltimaCarga es fórmula con nombre: se reevalúa tras el Refresh de arriba;
                     // varHayCargaMon es variable normal, por eso el Set sigue siendo necesario.
                     Set(varHayCargaMon, nfUltimaCarga >= Today());
+                    // Cuentas de la última carga en manos de agentes desactivados. Los agentes inactivos son pocos: por cada uno,
+                    // un CountIf delegable (lookup por id, booleano y fecha) sobre las asignaciones activas de ese día.
+                    // 'Última carga' es DateOnly: día contra día, igual que en Reconciliación.
+                    Set(varRevAgMon, true);
+                    If(IsBlank(nfUltimaCarga),
+                        Clear(colAgInactMon),
+                        Set(varCorteMon, Date(Year(nfUltimaCarga), Month(nfUltimaCarga), Day(nfUltimaCarga)));
+                        ClearCollect(colAgInactMon,
+                            Filter(
+                                ForAll(Filter('CM | TBL | Agentes', '[AG] Activo' = false) As A,
+                                    {
+                                        nombreMon: A.'[AG] Nombre',
+                                        nCtasMon: CountIf('CM | TBL | Asignacions',
+                                            '[AS] Agente'.'CM | TBL | Agente' = A.'CM | TBL | Agente'
+                                            && '[AS] Estado' = true
+                                            && 'Última carga' = varCorteMon)
+                                    }
+                                ),
+                                nCtasMon > 0
+                            )
+                        )
+                    );
+                    Set(varRevAgMon, false);
                     // Cada Set guardó el error de su lectura (si la hubo): se lee aparte (ver scrCargaArchivo).
                     IfError(
                         varNCargaHoyMon + varNCtasMon + varNCliMon >= 0 && (varHayCargaMon || true),
