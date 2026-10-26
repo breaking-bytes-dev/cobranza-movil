@@ -7,8 +7,9 @@ Produce DOS archivos consistentes (día 1 y día 2) para probar el ciclo complet
 - Día 2 (cobranza-mock-1000-dia2.csv, FechaCarga 2026-06-21) = el "día siguiente" del día 1.
 
 El día 2 ejercita lo más jugoso del modelo:
-- `cuenta` se PISA (upsert por NumeroCuenta): mismas cuentas con DiasMora+1, saldos y agente actualizados.
-- `cargadiaria` ACUMULA (alt key NumeroCuenta+FechaCarga): tras importar ambos días -> 2000 snapshots.
+- `cuenta` se PISA (upsert por la clave HMAC del NumeroCuenta, sanic_cm_ct_clavepan): mismas cuentas con DiasMora+1,
+  saldos y agente actualizados.
+- `cargadiaria` ACUMULA (clave alternativa HMAC del NumeroCuenta + FechaCarga): tras importar ambos días -> 2000 fotos.
 - `asignacion`: ~10% de las Diarias se reasignan a otro agente (prueba el cambio de owner).
 
 Todas las FECHAS en formato ISO **yyyy-mm-dd** (Smelter las parsea sin DATEPARSE).

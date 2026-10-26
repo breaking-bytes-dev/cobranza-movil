@@ -18,6 +18,8 @@ APLICAR = '--aplicar' in sys.argv
 SOL = {'MSCRM.SolutionUniqueName': 'cm_core_cobranzamovil'}
 T = 'sanic_cm_tbl_opcionlista'
 ES = 'sanic_cm_tbl_opcionlistas'
+# Descripción de la tabla (paso24_descripciones.py la lee de aquí para corregir el ambiente).
+DESC_TABLA = 'Opciones de las listas de las apps (tipo de Especial, motivos de cierre, mensajes rápidos). Las edita el Admin.'
 def L(t): return {'LocalizedLabels': [{'Label': t, 'LanguageCode': 1033}]}
 def existe_entidad(n): return rq('GET', f"EntityDefinitions(LogicalName='{n}')?$select=LogicalName")[0] == 200
 def existe_attr(e, a): return rq('GET', f"EntityDefinitions(LogicalName='{e}')/Attributes(LogicalName='{a}')?$select=LogicalName")[0] == 200
@@ -41,7 +43,7 @@ if not existe_entidad(T):
     hacer(f'tabla {T} (OrganizationOwned, auditoría, change tracking)', 'POST', 'EntityDefinitions', {
         '@odata.type': 'Microsoft.Dynamics.CRM.EntityMetadata', 'SchemaName': T,
         'DisplayName': L('CM | TBL | Opción de lista'), 'DisplayCollectionName': L('CM | TBL | Opciones de lista'),
-        'Description': L('APP-49: opciones de las listas de las apps (tipo de Especial, motivos de cierre, mensajes rápidos). Las edita el Admin.'),
+        'Description': L(DESC_TABLA),
         'OwnershipType': 'OrganizationOwned', 'HasActivities': False, 'HasNotes': False, 'IsActivity': False,
         'ChangeTrackingEnabled': True, 'IsAuditEnabled': {'Value': True},
         'Attributes': [{'@odata.type': 'Microsoft.Dynamics.CRM.StringAttributeMetadata', 'SchemaName': 'sanic_cm_ol_texto',

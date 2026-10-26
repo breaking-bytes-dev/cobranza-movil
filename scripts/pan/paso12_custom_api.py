@@ -41,7 +41,7 @@ APIS = [
     dict(
         api='sanic_cm_SolicitarEspecial', tipo='SolicitarEspecial', version=(1, 0, 7),
         definicion=definicion('sanic_cm_SolicitarEspecial', 'CM - Solicitar Especial',
-                              'DAT-14: crea, reactiva o avisa que ya existe la asignacion Especial de una cuenta. '
+                              'Crea, reactiva o avisa que ya existe la asignacion Especial de una cuenta. '
                               'Valida el rol del llamador y que pueda leer la cuenta.'),
         parametros=[  # (nombre, tipo, opcional, descripcion)
             ('CuentaId', GUID, False, 'Id de la cuenta (sanic_cm_tbl_cuenta)'),
@@ -58,7 +58,7 @@ APIS = [
     dict(
         api='sanic_cm_AltaCuenta', tipo='AltaCuenta', version=(1, 0, 8),
         definicion=definicion('sanic_cm_AltaCuenta', 'CM - Alta de cuenta',
-                              'DAT-20: el Admin da de alta una cuenta como una importacion de una fila con la plantilla '
+                              'El Admin da de alta una cuenta como una importacion de una fila con la plantilla '
                               '"Cobranza movil" de Smelter. Devuelve el Import Job sin estado (la app lo pone En cola).'),
         parametros=[
             ('CIF', TEXTO, False, 'CIF del cliente (hasta 20 caracteres)'),
@@ -90,7 +90,7 @@ APIS = [
             ('RetiroNIO', DECIMAL, True, 'Retiro en cordobas'),
             ('RetiroUSD', DECIMAL, True, 'Retiro en dolares'),
             ('TipoEspecial', TEXTO, True, 'Tipo de Especial'),
-            ('Nota', TEXTO, True, 'Nota (sin numeros de tarjeta; hasta 2000 caracteres)'),
+            ('Nota', TEXTO, True, 'Nota (sin numeros de tarjeta; hasta 400 caracteres)'),
             ('TipoAsignacion', TEXTO, False, 'Diaria, Incobrable o Especial'),
             ('EsPrueba', BOOLEANO, False, 'true = prueba en seco de Smelter; false = carga real'),
         ],
@@ -106,7 +106,7 @@ APIS = [
         parametros=[
             ('JobId', GUID, False, 'Id del Import Job (sanic_tbl_smlt_importjob) de la carga real, sin estado y con archivo'),
             ('Partes', ENTERO, False, 'Cantidad de partes pedidas (1 a 4; con menos de 300 filas se hace una sola)'),
-            ('SoloValidar', BOOLEANO, True, 'Opcional (1.0.9.9): true = solo mide el largo de los valores, sin escribir (prueba en seco y carga en serie)'),
+            ('SoloValidar', BOOLEANO, True, 'true = solo mide el largo de los valores, sin escribir (prueba en seco y carga en serie)'),
         ],
         respuesta=[
             ('PadresJobId', GUID, 'Id del job de padres (el mismo JobId, ya convertido)'),
@@ -119,7 +119,7 @@ APIS = [
     dict(
         api='sanic_cm_CerrarFueraDeCartera', tipo='CerrarFueraDeCartera', version=(1, 0, 10, 5),
         definicion=definicion('sanic_cm_CerrarFueraDeCartera', 'CM - Cerrar fuera de cartera',
-                              'APP-48: Reconciliacion. Cierra por lotes, en el servidor, las Diarias activas cuya ultima carga es '
+                              'Reconciliacion. Cierra por lotes, en el servidor, las Diarias activas cuya ultima carga es '
                               'anterior al dia de la ultima carga diaria (motivo "fuera de cartera"). Solo el Admin.'),
         parametros=[
             ('Corte', TEXTO, False, 'Dia de la ultima carga que vio la pantalla, aaaa-mm-dd (si cambio, no cierra)'),

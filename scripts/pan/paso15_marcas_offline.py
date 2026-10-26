@@ -18,6 +18,9 @@ from dvlib import rq
 APLICAR = '--aplicar' in sys.argv
 SOL = {'MSCRM.SolutionUniqueName': 'cm_core_cobranzamovil'}
 P = 'sanic_cm_tbl_'
+# Descripciones de las columnas (paso24_descripciones.py las lee de aquí para corregir el ambiente).
+DESC_SINVINCULAR = 'La actualización llegó del teléfono sin su interacción. La marca el servidor; se vincula sola al llegar la interacción.'
+DESC_RECIBOREPETIDO = 'El número de recibo ya existía en otro pago. La marca el servidor; BackOffice lo revisa.'
 def L(t): return {'LocalizedLabels': [{'Label': t, 'LanguageCode': 1033}]}
 def existe_attr(e, a): return rq('GET', f"EntityDefinitions(LogicalName='{e}')/Attributes(LogicalName='{a}')?$select=LogicalName")[0] == 200
 def hacer(desc, metodo, ruta, cuerpo):
@@ -37,10 +40,8 @@ def booleana(entidad, schema, etiqueta, descripcion):
         'DefaultValue': False, 'IsAuditEnabled': {'Value': True},
         'OptionSet': {'TrueOption': {'Value': 1, 'Label': L('Sí')}, 'FalseOption': {'Value': 0, 'Label': L('No')}}})
 
-booleana(P + 'actualizaciondatos', 'sanic_cm_ad_sinvincular', '[AD] Sin vincular',
-         'La actualización llegó del teléfono sin su interacción. La pone el servidor (F8); se vincula sola al llegar la interacción.')
-booleana(P + 'pago', 'sanic_cm_pg_reciborepetido', '[PG] Recibo repetido',
-         'El número de recibo ya existía en otro pago. La pone el servidor (F6); BackOffice lo revisa.')
+booleana(P + 'actualizaciondatos', 'sanic_cm_ad_sinvincular', '[AD] Sin vincular', DESC_SINVINCULAR)
+booleana(P + 'pago', 'sanic_cm_pg_reciborepetido', '[PG] Recibo repetido', DESC_RECIBOREPETIDO)
 CLAVE = 'sanic_cm_ak_pg_recibo_cuenta_moneda'
 st, b = rq('GET', f"EntityDefinitions(LogicalName='{P}pago')/Keys?$select=LogicalName,SchemaName")
 if st >= 300: raise SystemExit(f'✗ {st}: {b}')

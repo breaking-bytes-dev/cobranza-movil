@@ -1,10 +1,12 @@
-"""Solo DEV: carga K en la tabla protegida de Smelter sanic_tbl_smlt_hmackey bajo el nombre "cm-pan".
+"""Carga K en la tabla protegida de Smelter sanic_tbl_smlt_hmackey bajo el nombre "cm-pan".
+K vive en esa tabla en TODOS los ambientes, producción incluida (no se usa Azure Key Vault): Smelter calcula el HMAC
+y lee la clave de su propia tabla.
 - Le quita a System Customizer los privilegios automáticos sobre esa tabla (la plataforma se los da a toda tabla nueva).
   Quedan System Administrator y roles de Microsoft que no se pueden editar: Service Reader/Writer y Support User
   ("The Support User Role cannot be modified"; lo usa el soporte de Microsoft con consentimiento).
-- K se lee de PAN_HMAC_KEY_FILE (por defecto ~/.config/cobranza-movil/pan_hmac_dev.key): la MISMA que usó el backfill.
+- K se lee de PAN_HMAC_KEY_FILE (por defecto ~/.config/cobranza-movil/pan_hmac_dev.key; en cada ambiente apuntar al
+  archivo de SU K, 32 bytes en hexadecimal). Tiene que ser la misma con la que se calcularon las claves ya guardadas.
   Nunca se imprime: la verificación compara en memoria y solo informa "coincide".
-- En PROD esto NO se usa: K va en Key Vault con la identidad administrada de Power Platform.
 Uso: python3 scripts/pan/paso6_clave_k.py [--aplicar]"""
 import hmac, os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'seguridad'))

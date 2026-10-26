@@ -12,6 +12,9 @@ APLICAR = '--aplicar' in sys.argv
 SOL = {'MSCRM.SolutionUniqueName': 'cm_core_cobranzamovil'}
 P = 'sanic_cm_tbl_'
 AD = P + 'actualizaciondatos'
+# Descripciones de las columnas (paso24_descripciones.py las lee de aquí para corregir el ambiente).
+DESC_CUENTAID = 'Cuenta de la visita. La pone el teléfono; el servidor la usa para vincular la interacción.'
+DESC_FECHACAPTURA = 'Misma fecha de captura que la interacción (la pone el teléfono). El servidor la usa para vincular la interacción.'
 def L(t): return {'LocalizedLabels': [{'Label': t, 'LanguageCode': 1033}]}
 def existe_attr(e, a): return rq('GET', f"EntityDefinitions(LogicalName='{e}')/Attributes(LogicalName='{a}')?$select=LogicalName")[0] == 200
 def hacer(desc, metodo, ruta, cuerpo):
@@ -31,14 +34,14 @@ else:
         'ReferencedEntity': P + 'cuenta', 'ReferencingEntity': AD, 'CascadeConfiguration': REFERENCIAL,
         'Lookup': {'@odata.type': 'Microsoft.Dynamics.CRM.LookupAttributeMetadata', 'SchemaName': 'sanic_cm_ad_cuentaid',
                    'DisplayName': L('[AD] Cuenta'), 'RequiredLevel': {'Value': 'None'},
-                   'Description': L('Cuenta de la visita. La pone el teléfono; el servidor la usa para vincular la interacción (F7).')}})
+                   'Description': L(DESC_CUENTAID)}})
 # 2) Fecha de captura (mismo formato y comportamiento que sanic_cm_in_fechacaptura)
 if existe_attr(AD, 'sanic_cm_ad_fechacaptura'): print('YA EXISTE columna sanic_cm_ad_fechacaptura')
 else:
     hacer(f'columna {AD}.sanic_cm_ad_fechacaptura', 'POST', f"EntityDefinitions(LogicalName='{AD}')/Attributes", {
         '@odata.type': 'Microsoft.Dynamics.CRM.DateTimeAttributeMetadata', 'SchemaName': 'sanic_cm_ad_fechacaptura',
         'DisplayName': L('[AD] Fecha de captura'), 'RequiredLevel': {'Value': 'None'},
-        'Description': L('Misma fecha de captura que la interacción (la pone el teléfono). El servidor la usa para vincular la interacción (F7).'),
+        'Description': L(DESC_FECHACAPTURA),
         'Format': 'DateAndTime', 'DateTimeBehavior': {'Value': 'UserLocal'}, 'IsAuditEnabled': {'Value': True}})
 if APLICAR:
     st, b = rq('POST', 'PublishXml', {'ParameterXml': f'<importexportxml><entities><entity>{AD}</entity><entity>{P}cuenta</entity></entities></importexportxml>'})

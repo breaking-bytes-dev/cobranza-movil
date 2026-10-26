@@ -6,7 +6,8 @@ crear un fiador vacio por fila y comparten UN solo fiador "(sin fiador)" (upsert
 NO toca el Column Mapping de la Cuenta (sanic_cm_ct_fiador: lookup a fiador por nombre, fuente NombreFianza): con la fila vacia
 el lookup no encuentra nada y la cuenta queda sin fiador. Es solo CONFIGURACION de la plantilla; no toca codigo de Smelter.
 Busca el mapeo por plantilla + tabla destino + columna fuente/destino (no por id), asi sirve igual en PROD.
-Respaldo previo: local/_backups/smelter-plantilla-cobranza_*.json. Revertir: --revertir (deja el default en null).
+No guarda respaldo: antes de cambiar imprime el default actual del Column Mapping. Revertir: --revertir (deja el
+default en null).
 Idempotente. Uso: python3 scripts/pan/paso13_fiador_sin_nombre.py [--aplicar] [--revertir]"""
 import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'seguridad'))

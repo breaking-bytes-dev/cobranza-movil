@@ -18,6 +18,8 @@ SOLUCION = 'cm_core_cobranzamovil'
 ROL = 'SR | CM | Cartera sin cobrador'
 PRIVILEGIOS = [('prvReadsanic_cm_tbl_asignacion', 'Basic')]
 COMPONENTE_ROL = 20
+# Descripción del equipo (paso24_descripciones.py la lee de aquí para corregir el ambiente).
+DESC_EQUIPO = 'Dueño de las asignaciones cuyo agente no tiene usuario o que no tienen agente. SIN miembros.'
 
 ap = argparse.ArgumentParser()
 ap.add_argument('--entorno', required=True, help='sufijo del nombre del equipo, como los demás equipos de CM (DEV, PRD)')
@@ -82,7 +84,7 @@ if equipos:
 elif APLICAR:
     st, b = rq('POST', 'teams', {'name': EQUIPO, 'teamtype': 0, 'businessunitid@odata.bind': f'/businessunits({raiz})',
                                  'administratorid@odata.bind': f'/systemusers({yo})',
-                                 'description': 'Dueño de las asignaciones cuyo agente no tiene usuario (DAT-07/08). SIN miembros.'},
+                                 'description': DESC_EQUIPO},
                headers={'Prefer': 'return=representation'})
     ok(st, b, 'crear equipo'); equipo = b['teamid']; print(f'equipo "{EQUIPO}": creado')
 else:
