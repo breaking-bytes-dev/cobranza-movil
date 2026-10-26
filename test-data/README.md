@@ -19,10 +19,10 @@ Formato: UTF-8 sin BOM, coma como separador, CRLF, encabezado en la primera fila
 | Caso | Cómo |
 |---|---|
 | Cliente con varias cuentas | 528 clientes para 1.000 cuentas (hasta 6 por cliente) |
-| Catálogos con dedup | 7 productos, 18 agentes, 8 fiadores |
-| Fila sin fiador | 262 filas con `NombreFianza` vacío |
+| Catálogos con dedup | 7 productos, 18 agentes y 8 fiadores con nombre |
+| Fila sin fiador | 262 filas con `NombreFianza` vacío: la tabla de fiadores recibe un único registro «(sin fiador)» (valor por defecto del mapeo) y esas cuentas quedan sin fiador |
 | Dos monedas | ~70 % en NIO, ~30 % en USD |
-| Tres tipos de asignación | 801 Diarias, 152 Incobrables, 47 Especiales |
+| Tres tipos de asignación | 801 Diarias, 152 Incobrables, 47 Especiales (las Especiales entran Pendientes de aprobación) |
 | *Upsert* de la cuenta | El día 2 trae las mismas cuentas con `DiasMora + 1` y saldos nuevos: la cuenta se actualiza, no se duplica |
 | Carga diaria acumulada | Una foto por cuenta y día: después de los dos días hay 2.000 filas de carga diaria |
 | Pagos parciales | ~15 % de las cuentas del día 2 con saldo reducido y `FechaUltimoPago` = día 1 |

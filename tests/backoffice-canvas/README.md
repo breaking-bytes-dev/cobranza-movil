@@ -13,14 +13,13 @@ npm install
 npx playwright install chromium
 ```
 
-Necesita el archivo de secretos del Service Principal (`BO_SECRETS_FILE`) y las sesiones `sesion-user1.json` … `sesion-user4.json` en `BO_SESIONES_DIR`.
+Necesita el archivo de secretos del Service Principal (`BO_SECRETS_FILE`) y, en `BO_SESIONES_DIR`, una sesión `sesion-<clave>.json` por cada usuario de prueba de `cfg.usuarios` (uno por rol: Admin, BackOffice, Solicitante y Supervisor). Cómo generarlas: [Pruebas](../../docs/tecnica/10-pruebas.md#usuarios-de-prueba).
 
 ## Uso
 
 ```bash
 node run.js                     # fases A, B, C, D, E, F, G, H, X
-node run.js --fases A,X         # algunas fases (B → C → F → G dependen entre sí; H depende de D)
-node run.js --solo-limpieza     # borra restos QA de corridas anteriores
+node run.js --fases A,X         # algunas fases (B → C → F → G dependen entre sí; H depende de D)node run.js --solo-limpieza     # borra restos QA de corridas anteriores
 BO_HEADED=1 node run.js         # con el navegador visible
 ```
 

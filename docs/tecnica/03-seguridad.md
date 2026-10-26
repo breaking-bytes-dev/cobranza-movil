@@ -37,7 +37,7 @@ Los roles de CM se reconocen por el prefijo `SR | CM | ` y viven en la unidad de
 | `SR \| CM \| Solicitante` | Quien pide asignaciones Especiales | Buscar cualquier cuenta y pedir una Especial |
 | `SR \| CM \| Supervisor` | Responsable de los localizadores | Aprobar Especiales, reasignar, mirar carteras |
 | `SR \| CM \| Admin` | Administrador funcional de CM | Carga diaria, reconciliación, alta de cuentas, agentes, datos maestros y listas |
-| `SR \| CM \| Servicio - Cobranza` | Identidad no humana (*application user*: usuario de Dataverse que representa a una aplicación registrada en Entra ID) | Procesos automáticos de CM; los *plugins* la tratan igual que al Admin |
+| `SR \| CM \| Servicio - Cobranza` | Identidad no humana (*application user*: usuario de Dataverse que representa a una aplicación registrada en Entra ID) | Procesos automáticos de CM; los *plugins* la tratan como al Admin, con una diferencia: puede crear Diarias e Incobrables, que al Admin se le rechazan ([`AprobacionEspecial.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/AprobacionEspecial.cs)) |
 | `SR \| CM \| Cartera sin cobrador` | Solo el equipo «Cartera sin cobrador», nunca una persona | Permitir que ese equipo sea dueño de asignaciones (ver más abajo) |
 
 [`RolesCm.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/RolesCm.cs) obtiene los roles de CM del usuario que llama, tanto los asignados directamente como los heredados por un equipo. Los *plugins* lo usan así:
@@ -54,18 +54,18 @@ Privilegios efectivos después de aplicar los scripts de seguridad. Notación: *
 |---|---|---|---|---|---|---|
 | `sanic_cm_tbl_cuenta` «CM \| TBL \| Cuenta» | R(B) T(G) | R(G) | R A T(G) | R(G) | Todo (G) | C R W A T(G) |
 | `sanic_cm_tbl_cliente` «CM \| TBL \| Cliente» | R(B) T(G) | R(G) | R A T(G) | R(G) | Todo (G) | C R W A T(G) |
-| `sanic_cm_tbl_direccion` «CM \| TBL \| Dirección» | R(B) | R(G) | R A T(G) | R(G) | Todo (G) | C R W A T(G) |
-| `sanic_cm_tbl_telefono` «CM \| TBL \| Teléfono» | R(B) | R(G) | R A T(G) | R(G) | Todo (G) | C R W A T(G) |
+| `sanic_cm_tbl_direccion` «CM \| TBL \| Direccion» | R(B) | R(G) | R A T(G) | R(G) | Todo (G) | C R W A T(G) |
+| `sanic_cm_tbl_telefono` «CM \| TBL \| Telefono» | R(B) | R(G) | R A T(G) | R(G) | Todo (G) | C R W A T(G) |
 | `sanic_cm_tbl_fiador` «CM \| TBL \| Fiador» | R(B) T(G) | R(G) | R T(G) | R T(G) | Todo (G) | C R W A T(G) |
-| `sanic_cm_tbl_asignacion` «CM \| TBL \| Asignación» | R W A T(B) | R(G) | C A T(G), R W(B) | R W A T(G) | Todo (G) | C R W A T S(G) |
-| `sanic_cm_tbl_interaccion` «CM \| TBL \| Interacción» | C R A T(B) | R W A(G) | — | R(G) | Todo (G) | — |
+| `sanic_cm_tbl_asignacion` «CM \| TBL \| Asignacion» | R W A T(B) | R(G) | C A T(G), R W(B) | R W A T(G) | Todo (G) | C R W A T S(G) |
+| `sanic_cm_tbl_interaccion` «CM \| TBL \| Interaccion» | C R A T(B) | R W A(G) | — | R(G) | Todo (G) | — |
 | `sanic_cm_tbl_pago` «CM \| TBL \| Pago» | C R A T(B) | R(G) | — | R(G) | Todo (G) | — |
-| `sanic_cm_tbl_actualizaciondatos` «CM \| TBL \| Actualización de datos» | C R A T(B) | R(G) | — | — | Todo (G) | — |
+| `sanic_cm_tbl_actualizaciondatos` «CM \| TBL \| Actualizacion de dato» | C R A T(B) | R(G) | — | — | Todo (G) | — |
 | `sanic_cm_tbl_agente` «CM \| TBL \| Agente» | R T(G) | R(G) | R T(G) | R T(G) | Todo (G) | C R W A T(G) |
 | `sanic_cm_tbl_producto` «CM \| TBL \| Producto» | R T(G) | R(G) | R T(G) | R T(G) | Todo (G) | C R W A T(G) |
 | `sanic_cm_tbl_cargadiaria` «CM \| TBL \| Carga diaria» | — | R(G) | — | — | Todo (G) | C R W A T(G) |
 | `sanic_cm_tbl_cuentapan` «CM \| TBL \| PAN de cuenta» (bóveda) | R(B) | R(G) | — | — | — | — |
-| `sanic_cm_tbl_opcionlista` «CM \| TBL \| Opciones de lista» | R(G) | R(G) | R(G) | R(G) | C R W A T(G) | C R W A T(G) |
+| `sanic_cm_tbl_opcionlista` «CM \| TBL \| Opción de lista» | R(G) | R(G) | R(G) | R(G) | C R W A T(G) | C R W A T(G) |
 
 «Todo (G)» = C R W D A T S H con profundidad Global. El rol «Cartera sin cobrador» tiene solo R(B) sobre la asignación.
 
@@ -96,7 +96,7 @@ La matriz que las pruebas exigen, celda por celda y con el motivo de cada una, e
 |---|---|---|
 | Asignación activa con agente vinculado a un usuario | El usuario del localizador | El Solicitante que pidió la Especial (compartido en solo lectura) |
 | Asignación activa sin agente, o con agente sin usuario | Equipo «Cartera sin cobrador» | Nadie de la operación por fila (los roles con lectura Global la ven igual) |
-| Cuenta, cliente, fiador | SYSTEM (los crea la carga) | El localizador de cada asignación activa: compartido de lectura |
+| Cuenta, cliente, fiador | SYSTEM cuando los crea la carga (también en `AltaCuenta`); el Admin, si crea un cliente desde Datos maestros | El localizador de cada asignación activa: compartido de lectura |
 | Bóveda, direcciones, teléfonos | Heredan el acceso de su padre | La relación cuenta → bóveda y cliente → dirección/teléfono comparte en cascada (*cascade*: la acción sobre el padre se repite en los hijos) |
 | Interacción, pago, actualización de datos | Quien la creó (el localizador) | Roles con lectura Global |
 
@@ -113,7 +113,7 @@ Además, [`InteraccionDelCobrador.cs`](../../plugins/Sanic.CobranzaMovil.Plugins
 
 ### Roles heredados por equipos de Entra ID
 
-Los roles pueden asignarse a un equipo de Dataverse de tipo *Microsoft Entra ID security group* (equipo cuyos miembros son los de un grupo de Entra ID) en lugar de a cada usuario. `RolesCm` reconoce ambos casos. Para el rol Localizador, que trabaja con profundidad Basic, la propiedad del rol **Member's privilege inheritance** tiene que estar en *Direct User (Basic) access level and Team privileges*: con *Team privileges only*, el usuario solo podría usar los privilegios Basic sobre registros cuyo dueño es el equipo, y no vería las asignaciones de las que es dueño.
+Los roles pueden asignarse a un equipo de Dataverse de tipo *Microsoft Entra ID security group* (equipo cuyos miembros son los de un grupo de Entra ID) en lugar de a cada usuario. `RolesCm` reconoce ambos casos. Para el rol Localizador, que trabaja con profundidad Basic, la propiedad del rol **Member's privilege inheritance** tiene que estar en *Direct User (Basic) access level and Team privileges*: con *Team privileges only*, el usuario solo podría usar los privilegios Basic sobre registros cuyo dueño es el equipo, y no vería las asignaciones de las que es dueño. Esta propiedad no figura en la definición del rol de [`solutions/unpacked/Roles/`](../../solutions/unpacked/Roles/) ni la fija ningún script: ⚠️ A confirmar en cada ambiente, después de importar, en la configuración del rol.
 
 ### Protección del número de tarjeta (PAN)
 
@@ -122,19 +122,20 @@ Los roles pueden asignarse a un equipo de Dataverse de tipo *Microsoft Entra ID 
 | Bóveda | El PAN completo vive solo en `sanic_cm_tbl_cuentapan` (columna `sanic_cm_cp_pan`), una fila por cuenta. El resto de las tablas guarda `****1234` y los últimos 4 | [`paso1_esquema.py`](../../scripts/pan/paso1_esquema.py) |
 | Quién lee la bóveda | BackOffice en Global (para transcribir al *core*). El Localizador en Basic: solo el PAN de las cuentas de su cartera, por la cascada desde la cuenta, para el botón «Ver número». Nadie más, tampoco el Admin | [`paso4_roles.py`](../../scripts/pan/paso4_roles.py), [`scrDetalleCuenta.pa.yaml`](../../apps/localizador-canvas/Src/scrDetalleCuenta.pa.yaml), [`scrTranscripcion.pa.yaml`](../../apps/backoffice-canvas/Src/scrTranscripcion.pa.yaml) |
 | Clave sustituta | Las tablas se unen por `clavepan` = HMAC-SHA256 del PAN con la clave K, en hexadecimal. Permite identificar la tarjeta sin guardarla | [`ClaveDesdeCuenta.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ClaveDesdeCuenta.cs), [`IdentidadEnInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/IdentidadEnInteraccion.cs) |
-| Bloqueo en columnas de identificación | `PanGuard` rechaza 5 o más dígitos seguidos (con espacios o guiones entre medio) en el nombre de cuenta, carga diaria y bóveda, y cualquier valor en las columnas de número en desuso | [`PanGuard.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PanGuard.cs), [`PanDetector.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PanDetector.cs) |
+| Bloqueo en columnas de identificación | `PanGuard` rechaza 5 o más dígitos seguidos (con espacios o guiones entre medio) en el número enmascarado de cuenta (`sanic_cm_ct_numerodecuenta`) y de carga diaria (`sanic_cm_cd_numerocuenta`) y en el nombre de la bóveda (`sanic_cm_cp_name`). Sus seis pasos (Create y Update de las tres tablas) tienen que estar **activos** | [`PanGuard.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PanGuard.cs), [`PanDetector.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PanDetector.cs) |
 | Bloqueo en textos libres | `SolicitarEspecial` rechaza notas con 13 o más dígitos seguidos; `AltaCuenta` rechaza campos libres con 13 o más | [`SolicitarEspecial.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/SolicitarEspecial.cs), [`AltaCuenta.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/AltaCuenta.cs) |
 | Trazas sin datos | Los *plugins* trazan solo nombres de tablas, columnas, pasos y cantidades. Los mensajes de error nombran la columna, nunca el valor | [`PluginBase.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PluginBase.cs) |
-| Archivo de carga | El CSV de origen trae los PAN completos; se borra del trabajo de importación al terminar | [`paso10_purgar_archivos.py`](../../scripts/pan/paso10_purgar_archivos.py) |
+| Archivo de carga | El CSV de origen trae los PAN completos y queda guardado en el trabajo de importación (*Import Job*) de Smelter. **No se borra solo**: hay que correr el script de purga, que borra el archivo de los trabajos de la plantilla «Cobranza movil» y conserva los trabajos (contadores y registros). ⚠️ Hoy no purga los trabajos de las plantillas «Cobranza movil · padres» y «· partes» de la carga paralela: esos archivos siguen con los PAN completos | [`paso10_purgar_archivos.py`](../../scripts/pan/paso10_purgar_archivos.py) |
 
 `PanDetector` usa el umbral de 5 dígitos en columnas de identificación porque ahí solo cabe un valor enmascarado (`****1234`, 4 dígitos). En textos libres usa 13 (el largo mínimo de un PAN) para no rechazar montos, fechas o teléfonos.
 
 #### La clave K
 
 - **Dónde está.** En la tabla protegida de Smelter (herramienta de importación de terceros que corre dentro del ambiente) `sanic_tbl_smlt_hmackey`, en la fila activa con nombre `cm-pan`, como 32 bytes en hexadecimal. La lee SYSTEM durante la carga. Ningún rol de CM tiene privilegios sobre esa tabla, y [`paso6_clave_k.py`](../../scripts/pan/paso6_clave_k.py) le quita a *System Customizer* los que la plataforma le da automáticamente.
-- **Por qué no es una *environment variable*.** Una *environment variable* (valor de configuración que viaja con la *solution*) de tipo secreto, respaldada por Azure Key Vault, solo llega a *flows*, Copilot Studio y conectores personalizados; un *plugin* no puede leerla.
+- **Por qué en esa tabla.** Quien calcula el HMAC es Smelter, y Smelter lee la clave de su propia tabla. Ni CM ni Smelter tienen código que la lea de una *environment variable* (valor de configuración que viaja con la *solution*) ni de Azure Key Vault.
 - **Quién la usa.** Solo Smelter, al calcular el HMAC durante la carga diaria y durante `AltaCuenta` (que es una importación de una fila con la misma plantilla). **Ningún *plugin* de CM conoce K**: `ClaveDesdeCuenta` e `IdentidadEnInteraccion` copian el HMAC ya calculado en la cuenta.
-- **Cómo se carga.** `paso6_clave_k.py` la lee de un archivo local indicado por `PAN_HMAC_KEY_FILE`, nunca la imprime y verifica que la guardada coincida. Tiene que ser la misma K con la que se calcularon las claves existentes.
+- **Cómo se carga.** `paso6_clave_k.py` la lee de un archivo local indicado por `PAN_HMAC_KEY_FILE`, nunca la imprime y verifica que la guardada coincida. Tiene que ser la misma K con la que se calcularon las claves existentes. Si hay más de una fila activa `cm-pan`, el script se detiene (Smelter fallaría).
+- **No usa Azure Key Vault.** K vive en esta tabla en todos los ambientes, incluido el de producción; es una decisión firme del proyecto. ⚠️ El comentario inicial de `paso6_clave_k.py` dice que en producción K iría en Key Vault y que el script es solo para desarrollo: está desactualizado.
 - **Cómo se rota.** No hay un script de rotación. Rotar K obliga a recalcular, desde el PAN de la bóveda, `sanic_cm_ct_clavepan`, `sanic_cm_cp_clavepan`, `sanic_cm_as_clavepan` y `sanic_cm_cd_clavepan`, con la carga detenida, y después reemplazar la fila `cm-pan`. `sanic_cm_in_clavepan` de interacciones cuya cuenta ya se borró no se puede recalcular (la bóveda se borra con la cuenta): esas interacciones solo se pueden identificar con la K anterior, o por últimos 4 y CIF.
 
 ⚠️ K está en la misma base que las claves que protege. Un *System Administrator* puede leerla y viaja en los respaldos y copias del ambiente. Con K y las claves se pueden recuperar PAN por fuerza bruta. Conviene limitar los *System Administrators* y documentar quién custodia K.
@@ -197,7 +198,7 @@ Para dar de baja a un localizador, se quita el usuario del agente (sus asignacio
 
 1. Copiar uno de los scripts de [`scripts/seguridad/`](../../scripts/seguridad/) basados en [`roles_cm.py`](../../scripts/seguridad/roles_cm.py) y declarar la lista `(rol, privilegio, profundidad original)`.
 2. Actualizar la celda en [`esperado.js`](../../tests/integral/seguridad/esperado.js) con el motivo.
-3. Si el cambio toca columnas y no tablas, modificar el diccionario `Permitidas` de `ColumnasAsignacion` o `ColumnasGrabacion` de `GrabacionInteraccion`, y sus pruebas.
+3. Si el cambio toca columnas y no tablas, modificar el diccionario `Permitidas` de `ColumnasAsignacion` o el arreglo `ColumnasGrabacion` de `GrabacionInteraccion`, y sus pruebas (xUnit con Moq, ver [Pruebas](10-pruebas.md)).
 4. Correr la matriz de seguridad (ver [Pruebas](10-pruebas.md)).
 
 ### Agregar un rol nuevo
@@ -209,12 +210,13 @@ Para dar de baja a un localizador, se quita el usuario del agente (sus asignacio
 ## Trampas y errores conocidos
 
 - ⚠️ **El teléfono conserva lo que ya bajó.** Quitar un privilegio o revocar un compartido no cambia el registro, y la sincronización incremental solo baja lo que cambió. El localizador anterior conserva la fila hasta una sincronización completa o la reinstalación de la app (ver [App del localizador](05-app-localizador.md)).
-- ⚠️ **Durante la importación de la *solution* el reparto no corre.** La importación apaga los pasos de *plugin*; los cambios de asignación de ese intervalo no se reparten. Después de cada despliegue hay que correr [`paso3_reconciliar.py`](../../scripts/seguridad/paso3_reconciliar.py) `--aplicar` (ver [Instalación y despliegue](09-instalacion-y-despliegue.md)).
+- ⚠️ **Durante la importación de la *solution* el reparto no corre.** La importación cambia el estado de los pasos de *plugin* (puede apagarlos, o encender `PanGuard` si se importa con `--activate-plugins`); [`paso7_desplegar.py`](../../scripts/pan/paso7_desplegar.py) restaura los estados al terminar, pero los cambios de asignación de ese intervalo no se reparten. Después de cada despliegue hay que correr [`paso3_reconciliar.py`](../../scripts/seguridad/paso3_reconciliar.py) `--aplicar` (ver [Instalación y despliegue](09-instalacion-y-despliegue.md)).
 - **La *solution* desempaquetada no refleja todos los ajustes.** Los scripts de rol cambian privilegios en el ambiente. Después de importar en un ambiente nuevo, correr cada script de rol en modo plan para confirmar que no queda nada por aplicar.
 - **Orden de instalación.** El equipo «Cartera sin cobrador» tiene que existir antes de registrar los *plugins* de reparto; si no, cada reparto sin localizador termina en error. Los compartidos (reparto y reconciliación) tienen que existir antes de bajar la lectura del Localizador a Basic, o los teléfonos se quedan sin cartera.
 - **Asignar como dueño a un usuario sin rol falla.** Dataverse exige que el nuevo dueño pueda leer la tabla: vincular a un agente un usuario sin el rol Localizador hace fallar el reparto.
 - **Sin rol de CM, sin controles.** Los *plugins* no frenan a quien no tiene ningún rol de CM (por ejemplo, un *System Administrator*), porque así distinguen la carga (SYSTEM) de las personas.
 - **Roles por equipo de Entra ID.** Los miembros de un grupo de Entra ID se incorporan al equipo de Dataverse la primera vez que entran al ambiente; hasta entonces `RolesCm` no les encuentra el rol.
+- **Sobrante a retirar: el *flow* «Cloud Flow | CM | Cambio de Owner en Asignaciones».** Sigue en la *solution* ([`solutions/unpacked/Workflows/`](../../solutions/unpacked/Workflows/)), **apagado**, y ninguna app lo usa: el dueño de la asignación lo pone `RepartoAsignacion`. No encenderlo; si se enciende, competiría con el reparto por el dueño.
 - **Comentarios de la interacción.** Ningún *plugin* revisa si el comentario o los textos de la actualización de datos contienen un PAN.
 - **Nivel de trazas.** Es de toda la organización. En el ambiente de producción va en *Exception*; para diagnosticar se sube a *All* un rato y se vuelve a bajar (ver [Mantenimiento](11-mantenimiento.md)).
 

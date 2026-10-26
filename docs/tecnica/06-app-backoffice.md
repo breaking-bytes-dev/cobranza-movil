@@ -13,7 +13,7 @@ Este documento describe la *canvas app* web que usa la oficina: BackOffice, Soli
 | Supervisor | Aprobar o rechazar Especiales, reasignar, mirar la cartera de cada localizador y el historial de Especiales |
 | Admin | Carga diaria, monitoreo, reconciliación, alta de cuentas, cierres, agentes, datos maestros y listas |
 
-La app es de escritorio (1366 × 768) y se adapta a pantallas angostas: `nfMovil = App.ActiveScreen.Width < 920` oculta el menú lateral y muestra una barra con botón de menú. Su nombre interno es `sanic_appcmbackofficecanvas_d0162`. No usa perfil *offline*: trabaja siempre conectada.
+La app es de escritorio (1366 × 768) y se adapta a pantallas angostas: `nfMovil = App.ActiveScreen.Width < 920` oculta el menú lateral y muestra una barra con botón de menú. Su nombre interno es `sanic_appcmbackofficecanvas_d0162` y su nombre visible «App - CM - Backoffice Canvas». No usa perfil *offline*: trabaja siempre conectada. Todas sus fuentes de Dataverse tienen límite de 2.000 filas (`MaxGetRowsCount` en el `.msapr`).
 
 ### Cómo se determina el rol del usuario
 
@@ -59,14 +59,14 @@ El menú vive en [`cmpNavLateral`](../../apps/backoffice-canvas/Src/Components/c
 
 #### Inicio — [`scrInicio`](../../apps/backoffice-canvas/Src/scrInicio.pa.yaml)
 
-Indicadores y accesos según el rol. Los conteos van directo al origen con `CountIf` y `Sum`, que delegan en Dataverse y son exactos hasta 50.000 filas; una colección con `CountRows` se cortaría en el límite de filas.
+Indicadores y accesos según el rol (`cmpKpi`). Los conteos van directo al origen con `CountIf` y `Sum`, que delegan en Dataverse y son exactos hasta 50.000 filas; una colección con `CountRows` se cortaría en el límite de filas.
 
 | Rol | Indicadores |
 |---|---|
-| BackOffice | Pendientes de transcribir, pendientes con pago, transcritas hoy por el usuario |
+| BackOffice | En cola (pendientes de transcribir), con pago, transcritas hoy por el usuario |
 | Solicitante | Sus Especiales pendientes, aprobadas y rechazadas |
 | Supervisor | Especiales pendientes de aprobación |
-| Admin | Carga de hoy, Diarias fuera de cartera, agentes activos sin usuario |
+| Admin | Carga de hoy, Diarias fuera de cartera, agentes activos sin usuario (sin correo derivado) |
 
 El cobrado de hoy solo se calcula para BackOffice, Admin y Supervisor: el Solicitante no tiene lectura de Pagos y la consulta daría error 403.
 
@@ -74,14 +74,14 @@ El cobrado de hoy solo se calcula para BackOffice, Admin y Supervisor: el Solici
 
 Cola FIFO de interacciones pendientes de grabar en el *core*, con filtro por localizador. Por cada interacción muestra cliente, CIF, producto, número de tarjeta, comentario, ubicación, pagos (con aviso «⚠ REPETIDO» si `sanic_cm_pg_reciborepetido`) y la actualización de datos con el «antes» (teléfonos y direcciones actuales) y el «nuevo».
 
-- La persona escribe el código de grabación del *core* y toca Grabar. El único `Patch` pone Estado de grabación = Grabado y el código.
+- La persona escribe el código de grabación del *core* y toca Grabar (`btnGrabarTrx`). El único `Patch` pone Estado de grabación = Grabado y el código en mayúsculas. Si falla, la interacción no sale de la cola.
 - [`GrabacionInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/GrabacionInteraccion.cs) pone la fecha y el usuario de grabación, exige el código y rechaza grabar una interacción que otra persona ya grabó.
 - La actualización de datos se busca primero vinculada a la interacción y, si no está, entre las que entraron sin vincular (`sanic_cm_ad_sinvincular`) de la misma cuenta. Si tampoco, avisa que los datos no llegaron.
 - Enter en el código no graba: Power Apps no distingue Enter, Tab ni clic afuera, así que el `OnChange` solo pasa el foco al botón Grabar.
 
 #### Transcritas — [`scrTranscritas`](../../apps/backoffice-canvas/Src/scrTranscritas.pa.yaml)
 
-Arqueo de un día: lo grabado por cualquier BackOffice, por defecto hoy y el usuario actual. Filtros por quién grabó y búsqueda por CIF, cliente, localizador, últimos dígitos o número de interacción. Los pagos del día se traen por tramos (ver [Patrones](#patrones)). Solo lectura.
+Arqueo de un día: lo grabado por cualquier BackOffice, por defecto hoy y el usuario actual. Filtros por quién grabó y búsqueda por CIF, cliente, localizador, últimos dígitos o número de interacción (en memoria). Los pagos del día se traen por tramos (ver [Patrones](#patrones)); las interacciones grabadas del día, en una sola consulta. Solo lectura.
 
 #### Nueva solicitud — [`scrNuevaSolicitud`](../../apps/backoffice-canvas/Src/scrNuevaSolicitud.pa.yaml)
 
@@ -269,7 +269,7 @@ If(IsBlank(varErr), /* éxito */, Notify("No se pudo …: " & varErr, Notificati
 
 #### Interruptores de funciones del servidor
 
-`App.Formulas` tiene tres interruptores: `nfCargaParalela`, `nfCierreServidor` y `nfValidarLargo`. Cada uno habilita una fórmula que llama a una *Custom API* o a un parámetro nuevo. Existen porque la fuente `Environment` del `.msapr` guarda una foto de las *Custom APIs*: si no conoce la API, la fórmula queda inerte sin aviso. Con el interruptor en `false`, la pantalla usa el camino anterior (un solo trabajo, o un `Patch` masivo desde la app).
+`App.Formulas` tiene tres interruptores: `nfCargaParalela`, `nfCierreServidor` y `nfValidarLargo`, los tres en `true`. Cada uno habilita una fórmula que llama a una *Custom API* o a un parámetro nuevo. Existen porque la fuente `Environment` del `.msapr` guarda una foto de las *Custom APIs*: si no conoce la API, la fórmula queda inerte sin aviso. Con el interruptor en `false`, la pantalla usa el camino sin API: la carga real en un solo trabajo, el cierre con un `Patch` masivo desde la app (cortado en 2.000 filas) o la carga sin medir antes el largo de los valores.
 
 ## Piezas y archivos
 
@@ -279,7 +279,8 @@ If(IsBlank(varErr), /* éxito */, Notify("No se pudo …: " & varErr, Notificati
 | Fuentes de datos y recursos | [`sanic_appcmbackofficecanvas_d0162_DocumentUri.msapr`](../../apps/backoffice-canvas/sanic_appcmbackofficecanvas_d0162_DocumentUri.msapr) |
 | Rol, tokens, funciones e interruptores | [`App.pa.yaml`](../../apps/backoffice-canvas/Src/App.pa.yaml) |
 | Menú por rol | [`cmpNavLateral.pa.yaml`](../../apps/backoffice-canvas/Src/Components/cmpNavLateral.pa.yaml) |
-| *Custom APIs* que llama la app | [`SolicitarEspecial.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/SolicitarEspecial.cs), [`AltaCuenta.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/AltaCuenta.cs), [`PartirCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PartirCarga.cs), [`CerrarFueraDeCartera.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/CerrarFueraDeCartera.cs) |
+| *Custom APIs* que llama la app (`sanic_cm_SolicitarEspecial` en Nueva solicitud, `sanic_cm_AltaCuenta` en Alta de cuenta, `sanic_cm_PartirCarga` en Cargar archivo, `sanic_cm_CerrarFueraDeCartera` en Reconciliación) | [`SolicitarEspecial.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/SolicitarEspecial.cs), [`AltaCuenta.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/AltaCuenta.cs), [`PartirCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PartirCarga.cs), [`CerrarFueraDeCartera.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/CerrarFueraDeCartera.cs) |
+| Sobrantes que la app **no** usa (a retirar) | La función *low-code* `sanic_PlugInCMMarcarinteraccioncomograbadaenCORE` y el *flow* apagado «Cloud Flow \| CM \| Cambio de Owner en Asignaciones». La grabación la hace el `Patch` de Por transcribir con `GrabacionInteraccion`, y el dueño de la asignación lo pone `RepartoAsignacion` |
 | *Plugins* que reaccionan a sus escrituras | [`GrabacionInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/GrabacionInteraccion.cs), [`AprobacionEspecial.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/AprobacionEspecial.cs), [`ColumnasAsignacion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ColumnasAsignacion.cs), [`RepartoAsignacion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/RepartoAsignacion.cs), [`RepartoPorAgente.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/RepartoPorAgente.cs), [`EmailDesdeUsuario.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/EmailDesdeUsuario.cs) |
 | Tabla de listas | [`paso23_listas.py`](../../scripts/pan/paso23_listas.py) |
 | Fuentes de datos y despliegue | [`paso7_fuentes.py`](../../scripts/pan/paso7_fuentes.py), [`paso7_esquema.py`](../../scripts/pan/paso7_esquema.py), [`paso7_desplegar.py`](../../scripts/pan/paso7_desplegar.py) |
@@ -310,7 +311,7 @@ El paso a paso de empaquetado, la explicación del `.msapr` y el ejemplo de YAML
 
 3. Usarla en el `.pa.yaml` y desplegar. Sin el paso 2, la fórmula queda inerte sin aviso; [`paso7_esquema.py`](../../scripts/pan/paso7_esquema.py) lo detecta antes de importar.
 
-El script conserva el límite de filas (`MaxGetRowsCount`) de una fuente que ya existe; una tabla nueva toma el mayor de la app.
+El script conserva el límite de filas (`MaxGetRowsCount`) de una fuente que ya existe; una tabla nueva toma el mayor de las fuentes de Dataverse que ya tiene la app (500 si no hay ninguna).
 
 ### Agregar o cambiar una Custom API
 
@@ -333,7 +334,7 @@ Agregar el valor al *choice* `[OL] Lista` de la tabla (la definición está en [
 
 ## Trampas y errores conocidos
 
-- ⚠️ **El ComboBox clásico no muestra registros de Dataverse en esta app** (filas en blanco, también con `Users`) y al abrir puede disparar su `OnChange`. Para elegir un registro se usa buscador + galería; para listas fijas, `Classic/DropDown` con una colección de textos.
+- ⚠️ **El ComboBox clásico no muestra registros de Dataverse en esta app** (filas en blanco, también con `Users`) y al abrir puede disparar su `OnChange`. Para elegir un registro se usa buscador + galería; los `Classic/ComboBox` y `Classic/DropDown` que hay se usan solo sobre tablas de textos (tipo de Especial, motivos de cierre, tipos de teléfono y dirección).
 - ⚠️ **Fórmula inerte sin aviso.** Una columna que la foto del esquema no conoce, una *Custom API* que la fuente `Environment` no conoce o una comparación de tipos incompatibles (por ejemplo, un lookup contra un registro guardado en una variable) dejan inerte la fórmula, y a veces todo el `OnVisible`, sin error visible. Studio la marcaría en rojo; `pac` la empaqueta igual.
 - **Límite de filas:** 2.000 por consulta copiada a una colección. `AllItemsCount` de una galería cuenta solo la página cargada; sirve para saber si hay cero resultados, no para totales.
 - **Fechas DateOnly:** `'Última carga'` se compara día contra día. `[CD] FechaCarga` comparada contra `Today()` viaja como `ge <hoy>T06:00Z` y da 0 el día de la carga; Monitoreo usa `DateAdd(Today(), -TimeZoneOffset(Today()), TimeUnit.Minutes)`.

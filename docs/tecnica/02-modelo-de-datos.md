@@ -10,7 +10,7 @@ El modelo tiene tres zonas:
 
 | Zona | Tablas | Quién escribe |
 |---|---|---|
-| **Datos del banco** (se pisan en cada carga) | `cliente`, `direccion`, `telefono`, `producto`, `fiador`, `agente`, `cuenta`, `cuentapan`, `cargadiaria` | La carga diaria a través de Smelter (la herramienta de importación que corre dentro del ambiente) |
+| **Datos del banco** (la carga los crea o los pisa; el agente solo se crea, y la carga diaria agrega una fila por día) | `cliente`, `direccion`, `telefono`, `producto`, `fiador`, `agente`, `cuenta`, `cuentapan`, `cargadiaria` | La carga diaria a través de Smelter (la herramienta de importación que corre dentro del ambiente) |
 | **Cartera** (lo que cada localizador tiene que cobrar) | `asignacion` | La carga, el Solicitante (Especiales) y el Supervisor o el Admin (aprobar, reasignar, cerrar) |
 | **Lo que registra el localizador** (crece; nunca se pisa) | `interaccion`, `pago`, `actualizaciondatos` | La app del localizador, con o sin señal |
 
@@ -125,15 +125,15 @@ El registro que representa a un **localizador**. La carga lo crea solo con el no
 | Columna | Visible | Para qué |
 |---|---|---|
 | `sanic_cm_ag_nombre` | [AG] Nombre | Nombre tal como viene en el archivo. Clave alternativa. |
-| `sanic_cm_ag_usuarioid` | [AG] Usuario | Usuario de Entra ID del localizador. Sin él, sus asignaciones van al equipo de cartera sin dueño. |
+| `sanic_cm_ag_usuarioid` | [AG] Usuario | Usuario de Entra ID del localizador. Sin él, sus asignaciones quedan a nombre del equipo «CM · Cartera sin cobrador · \<entorno\>» (nombre histórico: «cobrador» es el localizador), que no tiene miembros. |
 | `sanic_cm_ag_emailusuario` | Email Usuario | UPN del usuario en minúsculas. Lo escribe [`EmailDesdeUsuario`](../../plugins/Sanic.CobranzaMovil.Plugins/EmailDesdeUsuario.cs): la app del teléfono encuentra su agente con `Lower(User().Email)`. |
-| `sanic_cm_ag_activo` | [AG] Activo | Baja lógica. Un agente inactivo no puede registrar interacciones. |
+| `sanic_cm_ag_activo` | [AG] Activo | Baja lógica. Por defecto, Sí. Un agente inactivo no puede registrar interacciones ([`InteraccionDelCobrador`](../../plugins/Sanic.CobranzaMovil.Plugins/InteraccionDelCobrador.cs)) ni recibir un alta de cuenta ([`AltaCuenta`](../../plugins/Sanic.CobranzaMovil.Plugins/AltaCuenta.cs)). |
 
 Clave alternativa: `sanic_cm_pk_agente_nombre` (`ag_nombre`). Si el banco cambia el nombre del agente en el archivo, la carga crea **otro** agente y hay que volver a vincular el usuario. La plantilla de Smelter no actualiza agentes existentes (solo crea los que faltan).
 
 ### `sanic_cm_tbl_cuenta` — «CM | TBL | Cuenta»
 
-La cuenta en mora: el grano del modelo. Guarda el estado **actual**; la carga la pisa cada día y la historia queda en `cargadiaria`.
+La cuenta en mora: el grano del modelo. Guarda el estado **actual**; la carga la pisa cada día y la foto de cada día queda en `cargadiaria` (solo los últimos 7 días).
 
 | Columna | Visible | Para qué |
 |---|---|---|
@@ -143,9 +143,9 @@ La cuenta en mora: el grano del modelo. Guarda el estado **actual**; la carga la
 | `sanic_cm_ct_clienteid`, `_productoid`, `_fiador`, `_agenteid` | [CT] … | *Lookups*. `ct_agenteid` lo escribe la carga y ninguna app lo lee: el localizador de la cuenta es el de la **asignación**. |
 | `sanic_cm_ct_cifcliente`, `_nombrecliente`, `_nombrefiador`, `_direccionfiador` | CIF Cliente, Nombre Cliente… | Copias en texto. El teléfono solo resuelve un nivel de *lookup* sin señal, así que las pantallas leen estas copias. |
 | `sanic_cm_ct_tipoproducto` | Tipo Producto | Copia de `pr_tipo`; la escribe [`TipoDesdeProducto`](../../plugins/Sanic.CobranzaMovil.Plugins/TipoDesdeProducto.cs). |
-| Saldos, pago mínimo, retiro, contagiado (`_saldovencidonio`, `_retirousd`, `_totalsaldovencido`…) | [CT] … | Montos del día (*Decimal*, no *Money*: cada columna tiene su moneda en el nombre). |
+| Saldos, pago mínimo, contagiado (`_saldovencidonio`, `_saldovencidousd`, `_pagominimonio`, `_pagominimousd`, `_totalsaldovencido`, `_contagiadousd`) | [CT] … | Montos del día (*Decimal*, no *Money*: cada columna tiene su moneda en el nombre). |
 | `sanic_cm_ct_diasmora`, `_nivelmora`, `_ciclo` | [CT] … | Mora. |
-| Último pago | [CT] Último pago | Fecha sin zona horaria (*DateOnly*). |
+| `sanic_cm_ct_ultimopago` | [CT] Último pago | Fecha del último pago que informa el banco, sin zona horaria (*DateOnly*). |
 | `sanic_cm_ct_fechapago` | [CT] Fecha Pago | **Texto**, tal como llega del banco. |
 | `sanic_cm_ct_tipoespecial`, `_nota`, `_retironio`, `_retirousd` | [CT] … | Datos de una Especial que manda el banco. [`EspecialDesdeCuenta`](../../plugins/Sanic.CobranzaMovil.Plugins/EspecialDesdeCuenta.cs) los copia a la asignación, que es donde los leen las apps. |
 | `sanic_cm_ct_tramo` | [CT] Tramo | 0 a 19. Ver «Tramo» más abajo. |
@@ -167,7 +167,7 @@ Claves alternativas: `sanic_cm_ak_cp_clavepan` (`cp_clavepan`) y `sanic_cm_ak_cp
 
 ### `sanic_cm_tbl_cargadiaria` — «CM | TBL | Carga diaria»
 
-Una foto por cuenta y por día con los montos y la mora de esa fecha. La escribe solo la carga; la reconciliación la usa para saber cuál fue la última carga.
+Una foto por cuenta y por día con los montos y la mora de esa fecha. La escribe solo la carga; la reconciliación la usa para saber cuál fue la última carga. Se conserva 7 días: la borra un trabajo de *bulk delete* (ver [Ciclo de vida](08-ciclo-de-vida.md)).
 
 | Columna | Visible | Para qué |
 |---|---|---|
@@ -194,7 +194,7 @@ Qué cuenta tiene que cobrar qué localizador, de qué tipo y en qué estado. Es
 | `sanic_cm_as_estado` | [AS] Estado | Sí/No: **Sí = Activa**, No = Cerrada. Por defecto, Activa. |
 | `sanic_cm_as_estadoaprobacion` | [AS] Estado de aprobacion | Solo tiene sentido en las Especiales. |
 | `sanic_cm_as_orden` | [AS] Orden | Orden de visita que elige el localizador. Es lo único que el localizador puede cambiar. |
-| `sanic_cm_as_ultimacarga` | Última carga | Fecha de la última carga que trajo la asignación. La reconciliación cierra las Diarias cuya última carga es anterior a la carga del día. |
+| `sanic_cm_as_ultimacarga` | Última carga | Fecha de la última carga que trajo la asignación (*DateOnly*). Solo la escribe la carga. La reconciliación cierra las Diarias cuya última carga es anterior a la carga del día. |
 | `sanic_cm_as_fechaasignada` | [AS] Fecha asignada | Día en que se asignó (*DateOnly*). La carga no la pisa si ya tenía valor. |
 | `sanic_cm_as_motivo`, `_fechacierre` | [AS] Motivo, Fecha de cierre | Por qué y cuándo se cerró. |
 | `sanic_cm_as_notas`, `_retironio`, `_retirousd` | Notas, Retiro NIO/USD | Datos de la Especial. Las notas guardan `"Tipo — nota"`. |
@@ -317,7 +317,7 @@ Una clave alternativa (*alternate key*) es una combinación de columnas que Data
 | cargadiaria | `sanic_cm_ak_cd_clavepan_fecha` | `cd_clavepan`, `cd_fechacarga` |
 | asignacion | `sanic_cm_ak_as_clavepan_tipo` | `as_clavepan`, `as_tipo` |
 
-`interaccion`, `pago`, `actualizaciondatos` y `opcionlista` no tienen: nacen en las apps con su GUID. Las claves sobre la clave HMAC las crea [`paso1_esquema.py`](../../scripts/pan/paso1_esquema.py) (bóveda) y [`paso3b_claves.py`](../../scripts/pan/paso3b_claves.py) (cuenta, carga diaria y asignación).
+`interaccion`, `pago`, `actualizaciondatos` y `opcionlista` no tienen: nacen en las apps con su GUID. Las claves sobre la clave HMAC las crea [`paso1_esquema.py`](../../scripts/pan/paso1_esquema.py) (bóveda) y [`paso3b_claves.py`](../../scripts/pan/paso3b_claves.py) (cuenta y carga diaria; la de asignación solo con `--incluir-asignacion`, una vez resueltos los duplicados por clave y tipo). Las demás vienen en la *solution*. Todas tienen que estar en estado `Active`; la de asignación lo está en el ambiente de desarrollo.
 
 ## Option sets y estados
 
@@ -344,7 +344,7 @@ Los motivos de cierre que pone el sistema son texto fijo: `fuera de cartera` (re
 | Pieza | Archivo | Qué define |
 |---|---|---|
 | Nombres lógicos | [`Esquema.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/Esquema.cs) | Constantes de tablas, columnas y valores de option sets que usan los plugins. |
-| Solución desempaquetada | [`solutions/unpacked/Entities/`](../../solutions/unpacked/Entities/) | Metadata de las tablas. ⚠️ Puede estar atrasada: no incluye `cuentapan`, `opcionlista` ni las columnas agregadas por scripts. |
+| Solución desempaquetada | [`solutions/unpacked/Entities/`](../../solutions/unpacked/Entities/) | Metadata de las tablas. ⚠️ Está atrasada: no incluye `cuentapan`, `opcionlista` ni las columnas agregadas por scripts, y todavía muestra columnas y claves que ya no existen (por ejemplo, `as_numerocuenta`, `as_fechasignacion`, `ct_fechaultimopago` y las claves viejas sobre el número). Para la verdad del esquema, mandan los scripts de esta tabla. |
 | Bóveda, claves HMAC, *lookup* pago → cuenta | [`paso1_esquema.py`](../../scripts/pan/paso1_esquema.py) | Tabla `cuentapan`, columnas `*_clavepan`, `ct_ultimos4`, `pg_cuentaid`. |
 | Claves alternativas HMAC | [`paso3b_claves.py`](../../scripts/pan/paso3b_claves.py) | Claves de cuenta, carga diaria y asignación. |
 | Cascadas y auditoría | [`paso1_cascadas_auditoria.py`](../../scripts/seguridad/paso1_cascadas_auditoria.py) | Corta Share/Unshare/Reparent, pone los `Restrict` y enciende la auditoría. |
@@ -353,6 +353,7 @@ Los motivos de cierre que pone el sistema son texto fijo: `fuera de cartera` (re
 | Identidad en la interacción | [`paso17_identidad_interaccion.py`](../../scripts/pan/paso17_identidad_interaccion.py) | `in_ultimos4`, `in_cifcliente`, `in_clavepan`. |
 | Tramos | [`paso18_tramo_cartera.py`](../../scripts/pan/paso18_tramo_cartera.py) | `as_tramo`, `ct_tramo`, `pg_tramo`. |
 | Listas editables | [`paso23_listas.py`](../../scripts/pan/paso23_listas.py) | Tabla `opcionlista`, privilegios y opciones iniciales. |
+| Columnas retiradas | [`paso8_contraer.py`](../../scripts/pan/paso8_contraer.py) | Borra `as_numerocuenta`, `in_numerocuenta`, `pg_numerocuenta` y las claves viejas sobre el número. |
 | Precisión GPS | [`precision_gps.py`](../../scripts/localizador/precision_gps.py) | `in_latitud` y `in_longitud` con 6 decimales. |
 | Perfil sin señal | [`paso7_perfil_offline.py`](../../scripts/pan/paso7_perfil_offline.py) | Qué tablas y filas bajan al teléfono. |
 
@@ -382,8 +383,8 @@ Crearla **después** de que la columna tenga datos sin duplicados: un duplicado 
 
 ## Trampas y errores conocidos
 
-- ⚠️ **El servidor no exige `ApplicationRequired`.** Las obligatorias reales las imponen los plugins (`InteraccionDelCobrador`, `CuentaDesdeInteraccion`, `ActualizacionConInteraccion`).
-- ⚠️ **Lo que viene del teléfono no se rechaza: se marca.** El runtime sin señal descarta en silencio lo que el servidor rechaza y no lo reintenta. Por eso no hay clave alternativa en `pago` y existen `pg_reciborepetido` y `ad_sinvincular`. Cualquier validación nueva sobre `interaccion`, `pago` o `actualizaciondatos` tiene que seguir esta regla.
+- ⚠️ **El servidor no exige `ApplicationRequired`.** Las obligatorias reales las imponen los plugins: `InteraccionDelCobrador` (cuenta y agente de la interacción) y `CuentaDesdeInteraccion` (interacción del pago). `ActualizacionConInteraccion` no rechaza una actualización sin interacción al crearla: la acepta marcada como sin vincular.
+- ⚠️ **Lo que viene del teléfono no se rechaza: se marca.** El runtime sin señal descarta en silencio lo que el servidor rechaza y no lo reintenta. Por eso no hay clave alternativa en `pago` y existen `pg_reciborepetido` y `ad_sinvincular`. Cualquier validación nueva sobre `interaccion`, `pago` o `actualizaciondatos` tiene que seguir esta regla. Las únicas excepciones son las reglas de seguridad de `InteraccionDelCobrador` (cuenta y agente obligatorios, solo cuentas de la cartera propia), que sí rechazan.
 - ⚠️ **Sin señal solo funciona un nivel de *lookup*.** Por eso la cuenta guarda copias en texto (`ct_nombrecliente`, `ct_cifcliente`…) y el pago guarda su propia cuenta (`pg_cuentaid`).
 - ⚠️ **El número enmascarado no es único.** Dos cuentas pueden terminar en los mismos 4 dígitos. Nunca usar `ct_numerodecuenta` ni `ct_ultimos4` para unir datos: usar el *lookup* o `ct_clavepan`.
 - ⚠️ **Nunca escribir el número completo fuera de `cp_pan`.** `PanGuard` rechaza 5 o más dígitos seguidos en `ct_numerodecuenta`, `cd_numerocuenta` y `cp_name`, pero no vigila otras columnas.
@@ -392,4 +393,5 @@ Crearla **después** de que la columna tenga datos sin duplicados: un duplicado 
 - **`as_tipo` vale Especial por defecto.** Un alta por API sin tipo crea una Especial que queda pendiente de aprobación.
 - **Renombrar el agente en el archivo crea otro agente.** Hay que volver a vincular el usuario.
 - **La carga pisa los datos maestros.** Lo que el Admin edite en un cliente, dirección o teléfono lo reemplaza la próxima carga.
-- **Límite de 2.000 filas por consulta** de una canvas app: por eso existen los tramos. Una tabla nueva que la app tenga que traer completa necesita el mismo tratamiento.
+- **Límite de 2.000 filas por consulta** de una canvas app: por eso existen los tramos. Una tabla nueva que la app tenga que traer completa necesita el mismo tratamiento. ⚠️ A confirmar: en el paquete de la app del localizador, `References/DataSources.json` declara `MaxGetRowsCount` 500 por fuente y `Properties.json`, 2.000 para la app; no está confirmado cuál rige.
+- **Columnas borradas que el código todavía nombra.** `sanic_cm_as_numerocuenta`, `sanic_cm_in_numerocuenta` y `sanic_cm_pg_numerocuenta` ya no existen, pero [`Esquema.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/Esquema.cs) conserva sus constantes y `PanGuard` tiene reglas para asignación, interacción y pago que nunca corren (sus pasos solo están registrados en cuenta, carga diaria y bóveda). Son sobrantes: no recrear esas columnas.

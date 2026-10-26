@@ -17,7 +17,7 @@ La descripción de cada plugin y cada Custom API (mensaje, etapa, qué hace y po
 
 ## Cómo se compila
 
-No se compila ni se registra desde una máquina local. Lo hace el workflow [`pan-plugin-cm.yml`](../../.github/workflows/pan-plugin-cm.yml) en un runner Windows: las pruebas corren en net462, el mismo runtime del *sandbox*, y la clave de firma solo existe como secreto del repositorio.
+La compilación firmada y el registro los hace el workflow [`pan-plugin-cm.yml`](../../.github/workflows/pan-plugin-cm.yml): prueba y compila en un runner Windows (las pruebas corren en net462, el mismo runtime del *sandbox*) y registra desde un runner Linux. La clave de firma solo existe como secreto del repositorio.
 
 Actions → **pan-plugin-cm** → *Run workflow*:
 
@@ -26,6 +26,8 @@ Actions → **pan-plugin-cm** → *Run workflow*:
 | `registrar = false` (defecto) | Corre las pruebas. No toca Dataverse |
 | `registrar = true` | Además compila firmado y registra ensamblado y pasos en el ambiente de los secretos |
 | `activar_panguard` / `desactivar_panguard` | Activa o desactiva los pasos de `PanGuard`. Excluyentes; requieren `registrar = true` |
+
+⚠️ Los pasos de `PanGuard` tienen que quedar **activos**. Sin `activar_panguard`, un paso nuevo se crea desactivado y uno existente conserva su estado: en un ambiente nuevo, registrar con `activar_panguard = true`.
 
 Secretos: `DATAVERSE_URL`, `PP_CLIENT_ID`, `PP_CLIENT_SECRET`, `PP_TENANT_ID` (un *service principal* con rol System Customizer o System Administrator) y, solo para registrar, `PLUGIN_SNK_BASE64`.
 

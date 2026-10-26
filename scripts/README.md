@@ -9,25 +9,27 @@ python3 scripts/<carpeta>/<script>.py            # muestra el plan (solo lectura
 python3 scripts/<carpeta>/<script>.py --aplicar  # aplica
 ```
 
-- Se corren **desde la raíz del repositorio**.
+- Se corren **desde la raíz del repositorio** (algunos escriben respaldos en `local/_backups/` con ruta relativa).
+- Excepciones a «plan por defecto»: los scripts de prueba de la sección 4 (`paso6_prueba.py`, `paso2_prueba.py`) crean datos apenas se corren; `paso7_esquema.py` y `paso7_fuentes.py` reciben rutas como argumentos.
 - Credenciales: `DATAVERSE_URL`, `PP_CLIENT_ID`, `PP_CLIENT_SECRET` y `PP_TENANT_ID` en `pp_secrets.env` (raíz, fuera de git) o en el archivo que indique `PP_SECRETS`. `paso5_plugins.py` y `paso12_custom_api.py` aceptan además variables de entorno; el resto, solo el archivo.
 - La clave K se lee del archivo indicado en `PAN_HMAC_KEY_FILE`. Nunca se imprime.
 - Los nombres `paso*` reflejan el orden en que se construyó la solución, no el orden de instalación.
 
 ## 1. Necesarios para instalar
 
-En el orden en que se corren, después de importar la *solution*:
+En el orden en que se corren, después de importar la *solution*. Todos son idempotentes. Los pasos manuales intercalados (crear los equipos, crear la plantilla principal y asignarla al equipo de carga) están en la receta de [Instalación y despliegue](../docs/tecnica/09-instalacion-y-despliegue.md#instalación-paso-a-paso).
 
 | Script | Qué hace |
 |---|---|
-| [`pan/paso5_plugins.py`](pan/paso5_plugins.py) | Registra o actualiza el ensamblado de *plugins* y sus pasos; deja todos activos (`--activar-panguard` incluido). Requiere la dll firmada con la misma `.snk` |
-| [`pan/paso12_custom_api.py`](pan/paso12_custom_api.py) | Registra o verifica las cuatro *Custom APIs* |
-| [`seguridad/paso5_cartera_sin_cobrador.py`](seguridad/paso5_cartera_sin_cobrador.py) | Equipo «CM · Cartera sin cobrador · `<ENV>`» y su rol. Antes de la primera carga |
-| [`pan/paso6_clave_k.py`](pan/paso6_clave_k.py) | Carga K en la tabla protegida de Smelter y le quita privilegios a System Customizer |
-| [`pan/paso23_listas.py`](pan/paso23_listas.py) | Tabla de listas editables, sus privilegios y las opciones iniciales |
-| [`pan/paso13_fiador_sin_nombre.py`](pan/paso13_fiador_sin_nombre.py) | Ajuste de la plantilla principal de Smelter: fiador vacío → «(sin fiador)» |
+| [`pan/paso5_plugins.py`](pan/paso5_plugins.py) `--dll … --version … --public-key-token … --activar-panguard` | Registra o actualiza el ensamblado de *plugins* y sus pasos; con `--activar-panguard` deja todos activos. Requiere la dll firmada con la misma `.snk` |
+| [`pan/paso12_custom_api.py`](pan/paso12_custom_api.py) | Registra o verifica las cuatro *Custom APIs*. Después de `paso5_plugins.py` |
+| [`seguridad/paso5_cartera_sin_cobrador.py`](seguridad/paso5_cartera_sin_cobrador.py) `--entorno <ENV>` | Equipo «CM · Cartera sin cobrador · `<ENV>`» y su rol. Antes de la primera carga. Los demás equipos se crean a mano en este momento |
+| [`pan/paso6_clave_k.py`](pan/paso6_clave_k.py) | Carga K (del archivo de `PAN_HMAC_KEY_FILE`) en la tabla protegida de Smelter y le quita privilegios sobre ella a System Customizer. Se usa en todos los ambientes, producción incluida: su comentario inicial, que habla de Key Vault, está desactualizado |
+| [`pan/paso4_roles.py`](pan/paso4_roles.py) | Privilegios de la bóveda del número de tarjeta y quita los que System Customizer recibe sobre ella |
+| [`pan/paso23_listas.py`](pan/paso23_listas.py) | Tabla de listas editables, sus privilegios y las opciones iniciales. Antes del *offline profile* |
+| [`pan/paso13_fiador_sin_nombre.py`](pan/paso13_fiador_sin_nombre.py) | Ajuste de la plantilla principal de Smelter: fiador vacío → «(sin fiador)». La plantilla principal tiene que existir |
 | [`pan/paso19_agente_sin_update.py`](pan/paso19_agente_sin_update.py) | Ajuste de la plantilla principal: la carga no reescribe agentes existentes |
-| [`pan/paso20_plantillas_paralelas.py`](pan/paso20_plantillas_paralelas.py) | Genera las plantillas «Cobranza movil · padres» y «· partes» a partir de la principal |
+| [`pan/paso20_plantillas_paralelas.py`](pan/paso20_plantillas_paralelas.py) | Genera las plantillas «Cobranza movil · padres» y «· partes» a partir de la principal, con su mismo dueño (el equipo de carga) |
 | [`pan/paso7_perfil_offline.py`](pan/paso7_perfil_offline.py) | Crea o verifica y publica el *offline profile* de la app del localizador |
 | [`seguridad/paso10_borrado_programado.py`](seguridad/paso10_borrado_programado.py) | Programa los trabajos diarios de *bulk delete* |
 
@@ -58,7 +60,6 @@ Aplicaron un cambio de esquema o un arreglo de datos en el ambiente donde se con
 | [`pan/paso2_auditoria.py`](pan/paso2_auditoria.py) | Auditoría de columna apagada en columnas que guardaban el número |
 | [`pan/paso3_backfill.py`](pan/paso3_backfill.py) | Pasó los números existentes a la bóveda y calculó sus HMAC |
 | [`pan/paso3b_claves.py`](pan/paso3b_claves.py) | Claves alternativas sobre el HMAC (en la *solution*) |
-| [`pan/paso4_roles.py`](pan/paso4_roles.py) | Privilegios de la bóveda (en los roles de la *solution*; útil como verificación) |
 | [`pan/paso6_plantilla.py`](pan/paso6_plantilla.py) | Pasó la plantilla de Smelter a claves HMAC |
 | [`pan/paso7_opcionales.py`](pan/paso7_opcionales.py) | Columnas viejas de número pasadas a opcionales |
 | [`pan/paso8_contraer.py`](pan/paso8_contraer.py) | Enmascaró los números fuera de la bóveda y borró las columnas viejas |

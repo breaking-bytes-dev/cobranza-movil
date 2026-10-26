@@ -17,7 +17,7 @@ flowchart LR
         subgraph DV["Dataverse"]
             T[("14 tablas sanic_cm_tbl_*")]
             PL{{"Plugins y Custom APIs<br/>Sanic.CobranzaMovil.Plugins"}}
-            BD["Trabajos de bulk delete<br/>(uno por día)"]
+            BD["Trabajos de bulk delete<br/>(diarios)"]
         end
     end
     BANCO -->|"el Admin sube el archivo"| BO
@@ -56,13 +56,13 @@ sequenceDiagram
     actor BKO as BackOffice
     ADM->>BO: Cargar archivo (CSV del banco)
     BO->>DV: Custom API PartirCarga (padres y partes)
-    BO->>SM: Import Jobs En cola
+    BO->>SM: job de padres En cola y, al terminar, las partes
     SM->>DV: upsert por clave HMAC (cliente, cuenta, bóveda, asignación, carga diaria)
     DV->>DV: RepartoAsignacion asíncrono (dueño y compartidos)
     LOC->>DV: sincroniza su cartera (perfil offline)
     Note over LOC: sin señal registra interacciones, pagos y actualizaciones
     LOC->>DV: sube lo capturado al recuperar señal
-    DV->>DV: plugins validan, completan y marcan
+    DV->>DV: plugins validan, completan y marcan (o rechazan, ver Trampas)
     BKO->>DV: lee interacciones Pendientes y el PAN de la bóveda
     BKO->>BKO: transcribe al core
     BKO->>DV: marca Grabada con el código del core
@@ -71,11 +71,11 @@ sequenceDiagram
     Note over DV: el bulk delete diario borra lo vencido
 ```
 
-1. **Carga.** El Admin sube el CSV en [`scrCargaArchivo.pa.yaml`](../../apps/backoffice-canvas/Src/scrCargaArchivo.pa.yaml). La Custom API [`PartirCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PartirCarga.cs) parte el archivo en un job de «padres» (producto, fiador, agente) y hasta 4 jobs de «partes» por cliente, para que la carga corra en paralelo. Smelter hace *upsert* (crear o actualizar según una clave) por *alternate key* (clave alternativa: columnas únicas distintas del id) y escribe como el usuario SYSTEM.
-2. **Reparto de asignaciones.** Por cada asignación, el plugin asíncrono [`RepartoAsignacion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/RepartoAsignacion.cs) pone como dueño al usuario del agente y le comparte en lectura la cuenta, el cliente y el fiador. Sin usuario, el dueño pasa al equipo «CM · Cartera sin cobrador», que no tiene miembros.
+1. **Carga.** El Admin sube el CSV en [`scrCargaArchivo.pa.yaml`](../../apps/backoffice-canvas/Src/scrCargaArchivo.pa.yaml). La Custom API [`PartirCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PartirCarga.cs) parte el archivo en un job de «padres» (producto, fiador, agente) y varios jobs de «partes» repartidos por cliente (la API acepta de 1 a 4; la app pide 3), para que la carga corra en paralelo. Las partes se ponen en cola recién cuando el job de padres termina. Smelter hace *upsert* (crear o actualizar según una clave) por *alternate key* (clave alternativa: columnas únicas distintas del id) y escribe como el usuario SYSTEM.
+2. **Reparto de asignaciones.** Por cada asignación, el plugin asíncrono [`RepartoAsignacion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/RepartoAsignacion.cs) pone como dueño al usuario del agente y le comparte en lectura la cuenta, el cliente y el fiador. Sin agente o sin usuario, el dueño pasa al equipo «CM · Cartera sin cobrador», que no tiene miembros. Una Especial que todavía no aprobó el Supervisor no se reparte.
 3. **Sincronización y trabajo offline.** El teléfono baja lo que el localizador puede leer: sus asignaciones activas y 90 días de historial ([`paso7_perfil_offline.py`](../../scripts/pan/paso7_perfil_offline.py)). Sin señal, registra interacciones, pagos y actualizaciones de datos en la base local.
 4. **Subida.** Al recuperar señal, el runtime offline sube lo pendiente con la identidad del localizador. Los plugins exigen cuenta y agente, ponen el agente del usuario, completan lookups (*lookup*: columna que apunta a otra fila) y marcan lo dudoso.
-5. **Transcripción.** El BackOffice abre [`scrTranscripcion.pa.yaml`](../../apps/backoffice-canvas/Src/scrTranscripcion.pa.yaml), lee el número completo de la bóveda, lo graba en el core y marca la interacción **grabada**. [`GrabacionInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/GrabacionInteraccion.cs) impide grabarla dos veces y pone la fecha y el usuario.
+5. **Transcripción.** El BackOffice abre [`scrTranscripcion.pa.yaml`](../../apps/backoffice-canvas/Src/scrTranscripcion.pa.yaml), lee el número completo de la bóveda, transcribe la interacción al core y la marca **grabada** con el código que devuelve el core. [`GrabacionInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/GrabacionInteraccion.cs) impide grabarla dos veces y pone la fecha y el usuario.
 6. **Reconciliación y cierres.** El Admin cierra en [`scrReconciliacion.pa.yaml`](../../apps/backoffice-canvas/Src/scrReconciliacion.pa.yaml) las Diarias que no vinieron en la última carga (Custom API [`CerrarFueraDeCartera.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/CerrarFueraDeCartera.cs)) y en [`scrCierres.pa.yaml`](../../apps/backoffice-canvas/Src/scrCierres.pa.yaml) las Incobrables y Especiales. Cada cierre dispara el reparto, que revoca el acceso; la asignación desaparece del teléfono en la siguiente sincronización.
 7. **Borrado programado.** Los trabajos de [`paso10_borrado_programado.py`](../../scripts/seguridad/paso10_borrado_programado.py) borran la carga diaria a los 7 días, las cuentas 14 días después de salir de cartera y lo que capturó el teléfono a los 2 años.
 
@@ -90,8 +90,8 @@ sequenceDiagram
 
 - **El servidor es la única fuente confiable.** Lo que manda el teléfono (agente, fecha de captura, cuenta) se puede manipular o llegar tarde; el plugin pone el agente del usuario aunque la app mande otro ([`InteraccionDelCobrador.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/InteraccionDelCobrador.cs)).
 - **Corre para todos los caminos.** Las reglas de negocio de formulario no corren en canvas ni en la API; un plugin corre igual desde las dos apps, desde Smelter y desde la Web API.
-- **Lo que viene del teléfono no se rechaza: se marca.** El runtime offline descarta en silencio lo que el servidor rechaza y no lo reintenta. Por eso un recibo repetido entra con `sanic_cm_pg_reciborepetido` ([`ReciboRepetido.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ReciboRepetido.cs)) y una actualización sin interacción entra con `sanic_cm_ad_sinvincular` ([`ActualizacionConInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ActualizacionConInteraccion.cs)). Las únicas excepciones deliberadas están en [Trampas](#trampas-y-errores-conocidos).
-- **Nunca trazan valores.** [`PluginBase.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PluginBase.cs) solo traza nombres de columnas y tipos de excepción, para que ninguna traza ni mensaje de error contenga un PAN.
+- **Lo que viene del teléfono, por regla general, no se rechaza: se marca.** El runtime offline descarta en silencio lo que el servidor rechaza y no lo reintenta. Por eso un recibo repetido entra con `sanic_cm_pg_reciborepetido` ([`ReciboRepetido.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ReciboRepetido.cs)) y una actualización que llega sin interacción entra con `sanic_cm_ad_sinvincular` ([`ActualizacionConInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ActualizacionConInteraccion.cs)). Hay rechazos deliberados que son excepciones a esta regla; están listados en [Trampas](#trampas-y-errores-conocidos) y en [Decisiones](12-decisiones.md#12-lo-que-viene-del-teléfono-no-se-rechaza-se-marca).
+- **Nunca trazan valores.** Cada plugin traza solo nombres de columnas y conteos. [`PluginBase.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PluginBase.cs) convierte cualquier excepción inesperada en un mensaje genérico y traza solo su tipo, para que ninguna traza ni mensaje de error contenga un PAN.
 
 ### Cómo se protege el número de tarjeta (PAN)
 
@@ -101,8 +101,8 @@ El número de cuenta del archivo del banco es el PAN real, así que la solución
 |---|---|
 | Almacenamiento | El PAN completo vive solo en la bóveda `sanic_cm_tbl_cuentapan`, 1:1 con la cuenta. Las demás tablas guardan `****1234` y los últimos 4 |
 | Claves | Las uniones y el upsert usan una clave sustituta HMAC-SHA256 del PAN (`*_clavepan`), que calcula Smelter con una clave secreta K. Ningún plugin conoce K |
-| Acceso | La bóveda se protege con seguridad por fila (no por columna): el localizador la ve por el compartido en *cascade* (propagación automática de padre a hijo) desde la cuenta; el BackOffice la lee entera; Solicitante y Supervisor no tienen privilegios |
-| Red de seguridad | [`PanGuard.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PanGuard.cs) rechaza 5 o más dígitos seguidos en las columnas de número visibles |
+| Acceso | La bóveda se protege con seguridad por fila (no por columna): el localizador la ve por el compartido en *cascade* (propagación automática de padre a hijo) desde la cuenta; el BackOffice la lee entera; Admin, Solicitante y Supervisor no tienen privilegios; nadie la crea ni la edita salvo la carga ([`paso4_roles.py`](../../scripts/pan/paso4_roles.py)) |
+| Red de seguridad | [`PanGuard.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PanGuard.cs) rechaza 5 o más dígitos seguidos (aunque estén separados por espacios o guiones) en el nombre principal de la cuenta, la carga diaria y la bóveda, en Create y Update |
 | Pantalla | Enmascarado por defecto; «Ver número» en el teléfono durante 30 s; el PAN no se guarda en colecciones ni en `SaveData` |
 
 ## Piezas y archivos
@@ -139,10 +139,17 @@ El número de cuenta del archivo del banco es el PAN real, así que la solución
 
 ## Trampas y errores conocidos
 
-- ⚠️ **Los rechazos del servidor pierden datos offline.** Hay rechazos deliberados que pueden descartar una captura hecha sin señal: una interacción en una cuenta que ya no es del localizador fuera de la tolerancia de 48 h, o de un localizador desactivado ([`InteraccionDelCobrador.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/InteraccionDelCobrador.cs)), y un pago sin interacción ([`CuentaDesdeInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/CuentaDesdeInteraccion.cs)). Cualquier rechazo nuevo sobre interacción, pago o actualización de datos amplía esa pérdida.
+- ⚠️ **Los rechazos del servidor pierden datos offline.** Hay rechazos deliberados que descartan una captura hecha sin señal:
+  - [`InteraccionDelCobrador.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/InteraccionDelCobrador.cs), en el Create de la interacción: sin cuenta o sin agente (para cualquier rol); y, si la crea un localizador, cuenta que no es de su cartera ni lo era a la fecha de captura (tolerancia de 48 h hacia atrás y 5 min hacia adelante), usuario sin agente vinculado o con dos agentes, o agente desactivado. Los pagos de esa visita dependen de la interacción rechazada, así que también se pierden.
+  - [`CuentaDesdeInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/CuentaDesdeInteraccion.cs), en el Create del pago: pago sin interacción.
+  - [`ActualizacionConInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ActualizacionConInteraccion.cs): una actualización que trae interacción la rechaza si esa interacción no tiene cuenta o es de otra cuenta (sin interacción no rechaza: la marca).
+  - Cualquier error inesperado dentro de un plugin síncrono también es un rechazo: [`PluginBase.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PluginBase.cs) lo convierte en error genérico.
+
+  Cualquier rechazo nuevo sobre interacción, pago o actualización de datos amplía esa pérdida.
 - ⚠️ **2 minutos por plugin.** Smelter escribe en trozos de 100 filas dentro de un solo mensaje; un plugin síncrono lento sobre una tabla de la carga puede hacer que se deshaga el trozo entero. Por eso el reparto es asíncrono y falla cerrado si se lo registra síncrono.
-- **2.000 filas.** Cada copia a una colección de canvas se corta en 2.000 filas. La cartera, la reasignación y los pagos del día se traen por los 20 tramos de [`TramoCartera.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/TramoCartera.cs); el cierre masivo va al servidor por lotes.
+- **2.000 filas.** Cada copia a una colección de canvas se corta en 2.000 filas. La cartera (en el teléfono y en la oficina), la reasignación, los cierres y los pagos del día en la oficina se traen por los 20 tramos de [`TramoCartera.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/TramoCartera.cs), más una consulta para lo que todavía no tiene tramo; el cierre de la reconciliación va al servidor por lotes. ⚠️ A confirmar: en el paquete de la app del localizador cada fuente declara un límite de 500 filas y la app uno de 2.000; no está confirmado cuál rige.
 - **Sin roles de CM no hay restricción.** Los plugins que miran roles tratan a quien no tiene ningún rol `SR | CM | ` como SYSTEM o administrador del entorno y no lo frenan ([`RolesCm.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/RolesCm.cs)). En producción, ninguna persona de la operación debe quedar sin rol de CM.
 - **Quitar un permiso no limpia el teléfono hasta la próxima sincronización.** Una cuenta revocada sigue en el dispositivo hasta que sincroniza.
-- **El archivo del banco queda en el job de Smelter** con los PAN completos. Se borra con [`paso10_purgar_archivos.py`](../../scripts/pan/paso10_purgar_archivos.py); no hay un borrado automático en el código de este repositorio.
-- **La app de la oficina deduce el rol del nombre del equipo** «CM · <perfil> · <entorno>» ([`App.pa.yaml`](../../apps/backoffice-canvas/Src/App.pa.yaml)). Renombrar un equipo deja a sus miembros sin pantallas.
+- ⚠️ **El archivo del banco queda en el job de Smelter** con los PAN completos, y no hay borrado automático. [`paso10_purgar_archivos.py`](../../scripts/pan/paso10_purgar_archivos.py) se corre a mano y solo borra el archivo de los jobs de la plantilla principal «Cobranza movil». En la carga paralela `PartirCarga` pasa el job original a «Cobranza movil · padres» y crea las partes con «Cobranza movil · partes», así que esos archivos hoy no se purgan. Ver [Mantenimiento](11-mantenimiento.md).
+- **La app de la oficina deduce el rol del nombre del equipo** «CM · <perfil> · <entorno>» cuando el rol llega por equipo (también lee los roles directos `SR | CM | *`) ([`App.pa.yaml`](../../apps/backoffice-canvas/Src/App.pa.yaml)). Renombrar un equipo deja a sus miembros sin pantallas.
+- **Sobrantes en el ambiente.** Existen la función low-code `sanic_PlugInCMMarcarinteraccioncomograbadaenCORE` y el *flow* «Cloud Flow \| CM \| Cambio de Owner en Asignaciones» (apagado). Ninguna app los usa y no forman parte del diseño: hay que retirarlos. El dueño de la asignación lo pone `RepartoAsignacion`, no un *flow*.

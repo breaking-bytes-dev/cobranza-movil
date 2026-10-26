@@ -12,7 +12,7 @@ La fuente de verdad del registro es [`paso5_plugins.py`](../../scripts/pan/paso5
 
 | Plugin | Tabla | Mensaje | Etapa y modo | Para qué |
 |---|---|---|---|---|
-| [PanGuard](#panguard) | 6 tablas (ver ficha) | Create, Update | Pre, síncrono | Rechaza un número de tarjeta en claro |
+| [PanGuard](#panguard) | cuenta, carga diaria y bóveda (ver ficha) | Create, Update | Pre, síncrono | Rechaza un número de tarjeta en claro |
 | [ClaveDesdeCuenta](#clavedesdecuenta) | `sanic_cm_tbl_asignacion` «CM \| TBL \| Asignacion» | Create, Update | Pre, síncrono | Copia la clave HMAC de la cuenta a la asignación |
 | [AprobacionEspecial](#aprobacionespecial) | `sanic_cm_tbl_asignacion` | Create, Update | Pre, síncrono | Solo Supervisor aprueba Especiales; solo la carga crea Diarias e Incobrables |
 | [ColumnasAsignacion](#columnasasignacion) | `sanic_cm_tbl_asignacion` | Update | Pre, síncrono | Cada rol escribe solo sus columnas |
@@ -86,15 +86,15 @@ Dentro de la etapa PreOperation todos tienen el mismo *rank*, por lo que el orde
 
 | | |
 |---|---|
-| Tablas y columna vigilada | `sanic_cm_tbl_cuenta` (`sanic_cm_ct_numerodecuenta`), `sanic_cm_tbl_cargadiaria` «CM \| TBL \| Carga diaria» (`sanic_cm_cd_numerocuenta`), `sanic_cm_tbl_cuentapan` «CM \| TBL \| PAN de cuenta» (`sanic_cm_cp_name`); columnas en desuso `sanic_cm_as_numerocuenta`, `sanic_cm_in_numerocuenta`, `sanic_cm_pg_numerocuenta` |
+| Tablas y columna vigilada | `sanic_cm_tbl_cuenta` (`sanic_cm_ct_numerodecuenta`), `sanic_cm_tbl_cargadiaria` «CM \| TBL \| Carga diaria» (`sanic_cm_cd_numerocuenta`), `sanic_cm_tbl_cuentapan` «CM \| TBL \| PAN de cuenta» (`sanic_cm_cp_name`) |
 | Mensaje | Create y Update (Update filtrado por la columna vigilada) |
 | Etapa y modo | PreOperation, síncrono |
 | Código / prueba | [`PanGuard.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PanGuard.cs) · [`PanGuardTests.cs`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/PanGuardTests.cs) |
 
-- En las tres columnas de texto rechaza 5 o más dígitos seguidos (tolera espacio, guion o espacio duro entre dígitos). El valor enmascarado `****1234` pasa.
-- En las columnas en desuso rechaza cualquier valor no vacío.
+- En las tres columnas rechaza 5 o más dígitos seguidos (tolera espacio, guion o espacio duro entre dígitos). El valor enmascarado `****1234` pasa.
+- El código y `paso5_plugins.py` todavía declaran tres columnas en desuso (`sanic_cm_as_numerocuenta`, `sanic_cm_in_numerocuenta`, `sanic_cm_pg_numerocuenta`) que ya no existen en el esquema: el script no registra esos pasos (y retira el paso si existiera) y las constantes de `Esquema.cs` son sobrantes.
 - **Por qué:** es la red de seguridad PCI: el número completo solo vive en la bóveda `sanic_cm_tbl_cuentapan` (ver [03 · Seguridad](03-seguridad.md)). El mensaje nombra la columna, nunca el valor.
-- ⚠️ El script crea sus pasos **desactivados** y conserva su estado en cada corrida; se activan con `--activar-panguard` (en la CI, la entrada `activar_panguard`). Si la columna en desuso ya no existe en la tabla, el script retira el paso en lugar de registrarlo.
+- ⚠️ Los seis pasos (Create y Update de las tres tablas) tienen que estar **activos**. El script crea un paso nuevo **desactivado** y, en cada corrida, conserva el estado de los que ya existen; en un ambiente nuevo hay que correrlo con `--activar-panguard` (en la CI, la entrada `activar_panguard`). Verificar el estado después de cada importación.
 
 ### ClaveDesdeCuenta
 
@@ -271,8 +271,8 @@ Nombre histórico: en el código el localizador aparece como «cobrador».
 | Etapa y modo | PreOperation, síncrono |
 | Código / prueba | [`GrabacionInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/GrabacionInteraccion.cs) · [`GrabacionInteraccionTests.cs`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/GrabacionInteraccionTests.cs) |
 
-- Una interacción grabada (ya transcrita) no se vuelve a grabar ni cambia su código: si dos personas tienen la misma abierta en [`scrTranscripcion`](../../apps/backoffice-canvas/Src/scrTranscripcion.pa.yaml), la segunda recibe un error.
-- Pasar a Grabado exige el código; la fecha y el usuario de grabación los pone el servidor.
+- Una interacción grabada (ya transcrita) no se vuelve a grabar ni cambia su código: si dos personas tienen la misma abierta en [`scrTranscripcion`](../../apps/backoffice-canvas/Src/scrTranscripcion.pa.yaml), la segunda recibe un error. Este control se aplica a los roles con restricción; Admin, Servicio y quien no tiene roles de CM sí pueden corregir una grabación.
+- Pasar a Grabado exige el código (a todos); la fecha y el usuario de grabación los pone el servidor, y fuera de una grabación descarta lo que una persona mande en esas dos columnas.
 - BackOffice escribe solo las cuatro columnas de grabación; ningún otro rol de CM, salvo Admin y Servicio, escribe la interacción.
 - **Por qué:** el permiso de escritura de BackOffice no debe tocar lo que capturó el localizador. Límite conocido: dos grabaciones en el mismo milisegundo podrían pasar las dos.
 
@@ -362,7 +362,7 @@ Pide una asignación Especial para una cuenta. Plugin: [`SolicitarEspecial.cs`](
 | `EstadoAprobacion` | Entero | 2 = Pendiente, 3 = Aprobado, 4 = Rechazada |
 
 - Quién puede: Solicitante, Admin o Servicio (o sin roles de CM), y además tiene que poder leer la cuenta con sus propios permisos.
-- Si hay una Especial activa, no la toca e informa quién la pidió. Si hay una cerrada, la reactiva a nombre del llamador y le quita el compartido al solicitante anterior. Si no hay, la crea con los permisos del llamador.
+- Si hay una Especial activa, no la toca e informa quién la pidió. Si hay una cerrada, la reactiva con el servicio del sistema a nombre del llamador (dueño y «Solicitado por»), pendiente de aprobación y sin agente, y le quita el compartido al solicitante anterior. Si no hay, la crea con los permisos del llamador.
 - **Por qué una API y no un `Patch`:** el Solicitante solo ve sus propias asignaciones y no podría encontrar una Especial cerrada de otra persona.
 
 ### sanic_cm_AltaCuenta
@@ -372,18 +372,20 @@ El Admin da de alta una cuenta como una importación de Smelter de **una fila**.
 | Entrada | Tipo | Obligatorio | Descripción |
 |---|---|---|---|
 | `CIF` | Texto | Sí | Hasta 20 caracteres |
-| `NumeroCuenta` | Texto | Sí | 13 a 19 dígitos, dígito verificador Luhn. Nunca se guarda en tablas de CM |
-| `SaldoVencidoNIO`, `SaldoVencidoUSD`, `TotalSaldoVencido` | Decimal | Sí | Saldos |
+| `NumeroCuenta` | Texto | Sí | 13 a 19 dígitos (acepta espacios o guiones), dígito verificador Luhn. Nunca se guarda en tablas de CM |
+| `SaldoVencidoNIO`, `SaldoVencidoUSD`, `TotalSaldoVencido` | Decimal | Sí | Saldos, 0 a 1.000.000.000 |
 | `DiasMora`, `NivelMora` | Entero | Sí | 0 a 100.000 |
 | `ProductoId` | Guid | Sí | Producto existente |
 | `AgenteId` | Guid | Sí | Agente existente y activo |
 | `TipoAsignacion` | Texto | Sí | `Diaria`, `Incobrable` o `Especial` |
 | `EsPrueba` | Booleano | Sí | `true` = prueba en seco de Smelter |
-| `Cliente` | Texto | Si el cliente es nuevo | Nombre del cliente |
-| `DireccionCasa`, `DireccionEC`, `DireccionTrabajo`, `Departamento`, `Distrito`, `Trabajo`, `NumeroCelular`, `NumeroCasa` | Texto | No | Datos del cliente nuevo |
-| `ContagiadoUSD`, `PagoMinimoNIO`, `PagoMinimoUSD`, `RetiroNIO`, `RetiroUSD` | Decimal | No | Montos opcionales |
+| `Cliente` | Texto | Para la plataforma no; el plugin lo exige si el cliente es nuevo | Nombre del cliente, hasta 200 caracteres |
+| `DireccionCasa`, `DireccionEC`, `DireccionTrabajo`, `Departamento`, `Distrito`, `Trabajo`, `NumeroCelular`, `NumeroCasa` | Texto | No | Datos del cliente nuevo (si el cliente existe, se usan los de Dataverse). Direcciones y trabajo hasta 200 caracteres; departamento y distrito, 100; teléfonos, 20 |
+| `ContagiadoUSD`, `PagoMinimoNIO`, `PagoMinimoUSD`, `RetiroNIO`, `RetiroUSD` | Decimal | No | Montos opcionales, 0 a 1.000.000.000 |
 | `FechaUltimoPago`, `FechaPago` | Texto | No | `aaaa-mm-dd` |
-| `Ciclo`, `NombreFianza`, `DireccionFianza`, `TipoEspecial`, `Nota` | Texto | No | Sin comillas, saltos de línea ni 13 o más dígitos seguidos |
+| `Ciclo`, `NombreFianza`, `DireccionFianza`, `TipoEspecial`, `Nota` | Texto | No | Ciclo hasta 10 caracteres; nota, 400; el resto, 200 |
+
+Ningún texto admite comillas ni saltos de línea (la fila va a un CSV), y ninguno salvo `CIF` admite 13 o más dígitos seguidos. Los largos máximos son los de la columna más corta a la que va cada valor: con uno mayor la prueba en seco de Smelter da bien y la carga falla después.
 
 | Salida | Tipo | Descripción |
 |---|---|---|
@@ -402,7 +404,7 @@ Parte un *Import Job* de la carga real para cargarlo en paralelo, o solo valida 
 | Entrada | Tipo | Obligatorio | Descripción |
 |---|---|---|---|
 | `JobId` | Guid | Sí | Job de la plantilla «Cobranza movil», sin estado y con archivo |
-| `Partes` | Entero | Sí, salvo con `SoloValidar` | 1 a 4; con menos de 300 filas se hace una sola |
+| `Partes` | Entero | Sí | 1 a 4; con menos de 300 filas se hace una sola. Dataverse lo exige siempre; con `SoloValidar` se ignora (la app manda 1) |
 | `SoloValidar` | Booleano | No | `true` = solo mide el largo de cada valor contra su columna, sin escribir |
 
 | Salida | Tipo | Descripción |
@@ -439,9 +441,14 @@ Cierra por lotes las Diarias activas que quedaron fuera de la última carga. Plu
 - La app llama en bucle mientras `Restantes` sea mayor que cero.
 - **Por qué:** una lista de canvas app no pasa de 2.000 filas y un lote grande excedería los 2 minutos de un plugin.
 
-### Otra API en la solución desempaquetada
+### Sobrantes a retirar
 
-[`solutions/unpacked/customapis/`](../../solutions/unpacked/customapis/) contiene `sanic_PlugInCMMarcarinteraccioncomograbadaenCORE`, una función *low-code* (Power Fx) con entradas `TargetRecord` y `EntraUserID`. Ninguna app la llama: la transcripción se controla con [`GrabacionInteraccion`](#grabacioninteraccion). Las cuatro APIs anteriores no están en esa carpeta; se registran con el script.
+No forman parte del diseño; siguen en la *solution* y conviene retirarlos:
+
+- **`sanic_PlugInCMMarcarinteraccioncomograbadaenCORE`** ([`solutions/unpacked/customapis/`](../../solutions/unpacked/customapis/)): una función *low-code* con entradas `TargetRecord` y `EntraUserID`. Ninguna app la llama: la transcripción se controla con [`GrabacionInteraccion`](#grabacioninteraccion).
+- **«Cloud Flow | CM | Cambio de Owner en Asignaciones»** ([`solutions/unpacked/Workflows/`](../../solutions/unpacked/Workflows/)): *flow* apagado que, encendido, cambia el dueño de la asignación cuando cambia el agente. Eso lo hace [`RepartoAsignacion`](#repartoasignacion); no encenderlo.
+
+Las cuatro Custom APIs de CM no están en esa carpeta de la *solution* desempaquetada: se registran con `paso12_custom_api.py`.
 
 ## Clases de apoyo
 
@@ -499,7 +506,7 @@ new NuevoPlugin().Execute(h.Provider.Object);
 
 ### 3. Compilar en la CI
 
-No se compila ni se registra desde una máquina local: lo hace [`pan-plugin-cm.yml`](../../.github/workflows/pan-plugin-cm.yml) en un runner Windows, porque las pruebas corren en net462 (el mismo runtime del *sandbox* de Dataverse) y la clave de firma solo existe como secreto.
+La compilación firmada y el registro los hace [`pan-plugin-cm.yml`](../../.github/workflows/pan-plugin-cm.yml): prueba y compila en un runner Windows, porque las pruebas corren en net462 (el mismo runtime del *sandbox* de Dataverse), y registra desde un runner Linux con `paso5_plugins.py`. La clave de firma solo existe como secreto. El workflow no registra las Custom APIs (ver el paso 4).
 
 | Entrada del workflow | Efecto |
 |---|---|
@@ -549,5 +556,5 @@ En un tenant nuevo se genera una clave una sola vez y se guarda en el gestor de 
 - **Equipo «Cartera sin cobrador».** `RepartoAsignacion` y `RepartoPorAgente` fallan sin tocar nada si no existe un único equipo dueño con ese prefijo. Se crea con [`paso5_cartera_sin_cobrador.py`](../../scripts/seguridad/paso5_cartera_sin_cobrador.py).
 - **Plantillas de Smelter para `PartirCarga`.** Las plantillas «· padres» y «· partes» tienen que ser copia exacta de «Cobranza movil»; si se cambia la principal, volver a correr [`paso20_plantillas_paralelas.py`](../../scripts/pan/paso20_plantillas_paralelas.py).
 - **Custom API nueva o parámetro nuevo en la app.** La canvas app guarda una foto de las Custom APIs: después de registrar, hay que refrescar la fuente «Environment» en Studio. Mientras tanto la fórmula que la llama queda inerte. Los interruptores `nfCargaParalela`, `nfCierreServidor` y `nfValidarLargo` de [`App.pa.yaml`](../../apps/backoffice-canvas/Src/App.pa.yaml) existen para eso.
-- **Importar la solución puede apagar pasos.** `paso5_plugins.py` vuelve a activar todos los pasos que no son de `PanGuard` en cada corrida; los de `PanGuard` conservan su estado salvo que se pida activarlos o desactivarlos.
+- **Importar la solución cambia el estado de los pasos.** Sin `--activate-plugins` puede apagar pasos (por ejemplo, `ClaveDesdeCuenta`); con esa opción enciende todos, `PanGuard` incluido. [`paso7_desplegar.py`](../../scripts/pan/paso7_desplegar.py) restaura los estados al terminar. `paso5_plugins.py` vuelve a activar todos los pasos que no son de `PanGuard` en cada corrida; los de `PanGuard` conservan su estado salvo que se pida activarlos o desactivarlos.
 - **Imagen previa que no cambia.** Dataverse no permite editar una imagen de paso (`PATCH` devuelve `0x80040216`) y sigue usando la vieja hasta que el paso cambia; el script la borra, la crea y toca la descripción del paso.

@@ -16,7 +16,7 @@ flowchart LR
     REC --> REP
 ```
 
-Todos los scripts muestran el plan sin cambiar nada y aplican solo con `--aplicar`. Se corren desde la raíz del repositorio, con las credenciales descritas en [Instalación y despliegue](09-instalacion-y-despliegue.md#configuración-que-leen-los-scripts).
+Los scripts de operación muestran el plan sin cambiar nada y aplican solo con `--aplicar` (los de prueba, como `paso6_prueba.py`, crean datos apenas se corren; ver [`scripts/README.md`](../../scripts/README.md)). Se corren desde la raíz del repositorio, con las credenciales descritas en [Instalación y despliegue](09-instalacion-y-despliegue.md#configuración-que-leen-los-scripts).
 
 ## Tareas recurrentes
 
@@ -33,7 +33,7 @@ Todos los scripts muestran el plan sin cambiar nada y aplican solo con `--aplica
 | Revisar trabajos asíncronos fallidos | Semanal | Trabajos del sistema (`asyncoperations`) con estado fallido, de los pasos `RepartoAsignacion`, `RepartoPorAgente` y `TramoCartera`. Los del reparto que terminan bien se borran solos, así que lo que queda merece revisión |
 | Respaldo de la clave `.snk` y de K | Al rotar personal | Que ambas estén en el gestor de secretos del equipo. Sin la `.snk` no se pueden actualizar los *plugins* |
 
-⚠️ `paso10_purgar_archivos.py` solo busca trabajos cuya plantilla es «Cobranza movil». En la carga paralela, `PartirCarga` pasa el trabajo original a la plantilla «Cobranza movil · padres» y crea las partes con «Cobranza movil · partes», cada una con su archivo ([`PartirCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PartirCarga.cs)). Esos archivos no los borra. ⚠️ A confirmar: ampliar el filtro del script a las tres plantillas. Mientras tanto, borrar los archivos de esos trabajos desde las tablas de Smelter.
+⚠️ `paso10_purgar_archivos.py` solo busca trabajos cuya plantilla es «Cobranza movil». En la carga paralela, `PartirCarga` pasa el trabajo original a la plantilla «Cobranza movil · padres» y crea las partes con «Cobranza movil · partes», cada una con su archivo ([`PartirCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PartirCarga.cs)). Esos archivos **no** los borra: siguen con los números completos. Pendiente en el código: ampliar el filtro del script a las tres plantillas. Mientras tanto, borrar a mano el archivo (columna `sanic_smlt_ij_sourcefile`) de esos trabajos en la tabla de trabajos de Smelter.
 
 ### Alta y baja de un localizador
 
@@ -62,9 +62,9 @@ No hay un script de rotación. Rotar K obliga a recalcular todas las claves HMAC
 
 | Causa probable | Cómo se ve | Qué hacer |
 |---|---|---|
-| El *offline profile* no está publicado o le falta una tabla | La app no abre o falla al sincronizar una tabla | `python3 scripts/pan/paso7_perfil_offline.py` sin `--aplicar`: tiene que decir que no hay cambios. Con `--aplicar` lo vuelve a publicar y comprueba que se regeneren las consultas |
+| El *offline profile* no está publicado o le falta una tabla | La app no abre o falla al sincronizar una tabla | `python3 scripts/pan/paso7_perfil_offline.py` sin `--aplicar`: no tiene que listar tablas por agregar o ajustar (el plan no revisa si está publicado). Con `--aplicar` lo vuelve a publicar siempre y comprueba que se regeneren las consultas |
 | La app usa una tabla que no está en el perfil | Una pantalla vacía sin señal | Agregar la tabla a `TABLAS` en [`paso7_perfil_offline.py`](../../scripts/pan/paso7_perfil_offline.py), correrlo con `--aplicar` y desplegar |
-| El servidor rechazó un registro | Un pago o una interacción no llega y el teléfono no avisa | El *runtime* *offline* descarta en silencio lo que el servidor rechaza. Revisar las trazas del momento. Por eso los *plugins* que reciben registros del teléfono marcan en vez de rechazar (ver [Plugins y Custom APIs](04-plugins-y-custom-apis.md)) |
+| El servidor rechazó un registro | Un pago o una interacción no llega y el teléfono no avisa | El *runtime* *offline* descarta en silencio lo que el servidor rechaza. Revisar las trazas del momento. Por eso, donde se puede, los *plugins* marcan en vez de rechazar (`ReciboRepetido`, `VincularActualizacionPendiente`); `InteraccionDelCobrador` sí rechaza una visita a una cuenta que no es de la cartera del localizador (ver [Plugins y Custom APIs](04-plugins-y-custom-apis.md)) |
 | Sin licencia o sin la app compartida | No aparece la app | Revisar la licencia y que la app esté compartida con el equipo de localizadores |
 | Error en la publicación de la app | La app se abre con una versión vieja | Comparar el sello de versión que muestra la app con `local/version-desplegada.json` del último despliegue |
 
@@ -144,14 +144,14 @@ Hay dos tipos de lista:
 | **Editable** (tabla `sanic_cm_tbl_opcionlista`) | Tipo de Especial, motivos de cierre, mensajes rápidos | El Admin, en **Listas**. Sin despliegue. Un valor no se borra: se desactiva. La asignación o la interacción guardan el texto, así que renombrar no cambia el historial |
 | **Choice** (lista fija de la *solution*, con valor numérico) | Tipo de asignación, moneda, estado de aprobación, estado de grabación | Agregar la opción al *choice* en la *solution*; refrescar con `paso7_fuentes.py` las tablas que lo usan en cada app; buscar en `plugins/` y en `apps/*/Src` los valores numéricos del *choice* (los *plugins* comparan números); desplegar |
 
-Para agregar una **lista editable** nueva: sumarla al *choice* local `sanic_cm_ol_lista` y a `LISTAS` e `INICIALES` de [`paso23_listas.py`](../../scripts/pan/paso23_listas.py), correrlo con `--aplicar` y usar el valor nuevo en la app.
+Para agregar una **lista editable** nueva: agregar la opción al *choice* local `sanic_cm_ol_lista` en la *solution* (el script no modifica una columna que ya existe), sumarla a `LISTAS` e `INICIALES` de [`paso23_listas.py`](../../scripts/pan/paso23_listas.py) para que la próxima instalación la cree, correrlo con `--aplicar` (crea las opciones iniciales que falten), refrescar la tabla con `paso7_fuentes.py` y usar el valor nuevo en la app.
 
 ### Cambiar un plazo de borrado
 
 1. Cambiar la constante en [`paso10_borrado_programado.py`](../../scripts/seguridad/paso10_borrado_programado.py): `CARGA_DIAS`, `GRACIA_DIAS`, `APP_DIAS`, `INTERACCION_DIAS` o `RECIEN_DIAS`.
 2. Retirar el trabajo viejo. El script reconoce los trabajos **por nombre** y no actualiza uno que ya existe:
    - Si el nombre incluye el plazo («`CM - Carga diaria de mas de 7 dias`»), el nombre nuevo es otro: agregar el **nombre viejo** a `RETIRADOS`, y el script lo cancela.
-   - Si no lo incluye («`CM - Pagos de mas de 2 anos`»), cancelar el trabajo viejo a mano en el centro de administración (o agregar su nombre a `RETIRADOS` y sacarlo después). Si no, el script ve el viejo como «ya programado» y no crea el nuevo.
+   - Si no lo incluye («`CM - Pagos de mas de 2 anos`»), cancelar el trabajo viejo a mano en el centro de administración. Si no, el script ve el viejo como «ya programado» y no crea el nuevo. (Agregar ese nombre a `RETIRADOS` también funciona: en la misma corrida cancela el viejo y crea el nuevo; hay que sacarlo de `RETIRADOS` enseguida, porque cada corrida posterior volvería a cancelar y recrear el trabajo.)
 3. Correr sin `--aplicar` para ver cuántos registros cumple hoy cada trabajo y, después, con `--aplicar`.
 4. Mantener `INTERACCION_DIAS` unos días mayor que `APP_DIAS`: una interacción no se puede borrar mientras tenga pagos o actualizaciones (*Restrict*).
 

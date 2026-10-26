@@ -9,7 +9,7 @@ Configuración, usuarios de prueba, cómo adaptarlas a otro ambiente y trampas c
 ## Requisitos
 
 - Las dependencias instaladas en [`tests/backoffice-canvas/`](../backoffice-canvas/).
-- El archivo de secretos del Service Principal y la sesión `sesion-user5.json` del localizador de prueba.
+- El archivo de secretos del Service Principal y la sesión `sesion-<clave>.json` del usuario localizador de prueba (la clave por defecto está en [`lib/app.js`](lib/app.js)). Ver [Pruebas](../../docs/tecnica/10-pruebas.md#usuarios-de-prueba).
 - Las carteras QA del localizador, creadas con [`scripts/pan/fixture_telefonos.py`](../../scripts/pan/fixture_telefonos.py). `grupo2.js` tiene fijos valores de esas carteras: ajustarlos al ambiente.
 
 ## Uso

@@ -11,7 +11,8 @@ python3 scripts/seguridad/<script>.py --aplicar  # aplica
 
 - Se corren desde la raíz del repositorio.
 - Las credenciales salen de `pp_secrets.env` en la raíz (o del archivo indicado en `PP_SECRETS`), con `DATAVERSE_URL`, `PP_CLIENT_ID`, `PP_CLIENT_SECRET` y `PP_TENANT_ID`. [`dvlib.py`](dvlib.py) **no** lee variables de entorno.
-- Los que tocan roles aceptan `--revertir`.
+- `paso4_rol_basic.py`, `paso6_cobrador_solo_crea.py`, `paso7_sin_flows.py` y `paso8_sin_trazas.py` aceptan `--revertir` (devuelve los privilegios originales). `paso5_cartera_sin_cobrador.py` no lo acepta y exige `--entorno <ENV>`.
+- `paso2_prueba.py` (retirado) no tiene modo plan: crea datos al correr.
 
 ## Scripts
 

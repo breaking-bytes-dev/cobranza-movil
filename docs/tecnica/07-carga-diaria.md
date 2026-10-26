@@ -30,20 +30,20 @@ sequenceDiagram
     SM-->>P: padres Terminada
     P->>SM: partes En cola (en paralelo)
     SM->>DV: cliente, direcciones, teléfonos, cuenta, bóveda, asignación, carga diaria
-    DV->>DV: plugins síncronos en la misma operación; RepartoAsignacion asíncrono
+    DV->>DV: plugins síncronos en la misma operación, RepartoAsignacion asíncrono
 ```
 
 ### Formato del archivo del banco
 
 | Aspecto | Regla | Dónde se impone |
 |---|---|---|
-| Tipo | Un solo archivo `.csv`, hasta 128 MB en la pantalla (50 MB si se parte, ver Trampas) | [`scrCargaArchivo.pa.yaml`](../../apps/backoffice-canvas/Src/scrCargaArchivo.pa.yaml), [`PartirCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PartirCarga.cs) |
-| Codificación | UTF-8, con o sin BOM. UTF-16 y UTF-32 se rechazan | [`ArchivoCsv.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ArchivoCsv.cs) |
-| Separador | El delimitador de la plantilla principal (coma en la configuración de referencia). Tiene que ser un carácter ASCII | `PartirCarga.LeerArchivo` |
+| Tipo | Un solo archivo `.csv`, hasta 128 MB en la pantalla y 50 MB en `sanic_cm_PartirCarga`, que lo lee tanto para partir como para validar el largo (ver Trampas) | [`scrCargaArchivo.pa.yaml`](../../apps/backoffice-canvas/Src/scrCargaArchivo.pa.yaml), [`PartirCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PartirCarga.cs) |
+| Codificación | UTF-8, con o sin BOM. Un archivo con BOM de UTF-16 o UTF-32 se rechaza | [`ArchivoCsv.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ArchivoCsv.cs) |
+| Separador | El delimitador de la plantilla principal (coma en la configuración de referencia; vacío se toma como coma). Tiene que ser un solo carácter ASCII distinto de comillas y saltos de línea | `PartirCarga.LeerArchivo`, `ArchivoCsv.Leer` |
 | Comillas | RFC 4180, como lo lee Smelter (CsvHelper): un valor con separador, comillas o salto de línea va entre comillas dobles y la comilla interna se duplica | [`FilaDeCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/FilaDeCarga.cs), `ArchivoCsv` |
 | Fin de línea | CRLF, LF o CR. Las líneas vacías se ignoran | `ArchivoCsv` |
 | Encabezado | Obligatorio. Los nombres de columna se comparan sin distinguir mayúsculas | `ArchivoCsv.Indice` |
-| Espacios | Los valores se recortan al leer | `ArchivoCsv.Campo` |
+| Espacios | Los espacios y tabuladores de los extremos de cada valor se recortan al leer | `ArchivoCsv.Campo` |
 | Fechas | `aaaa-mm-dd` en los archivos de ejemplo | [`test-data/`](../../test-data/) |
 
 Las 33 columnas, en este orden (`FilaDeCarga.Encabezado`):
@@ -96,7 +96,7 @@ El temporizador tiene `AutoPause = false`: sigue andando si el Admin cambia de p
 | ✕ Descartar partes | Los padres fallaron, terminaron con errores o nunca se pusieron en cola (más de 10 min sin estado) | Marca las partes (y los padres sin estado) como Falló |
 | ✕ Descartar carga | Un job de la plantilla principal lleva más de 10 min sin estado | Lo marca Falló |
 
-Marcar Falló no procesa nada (el orquestador solo arranca con En cola) y libera **Reconciliación**, que se bloquea mientras haya jobs reales sin estado, en cola o procesando de las últimas 12 h.
+Marcar Falló no procesa nada (el orquestador solo arranca con En cola) y libera **Reconciliación**, que se bloquea mientras haya jobs reales (no pruebas en seco) de las tres plantillas en cola o procesando, o sin estado y creados en las últimas 12 h.
 
 ### Validaciones
 
@@ -104,9 +104,9 @@ Marcar Falló no procesa nada (el orquestador solo arranca con En cola) y libera
 |---|---|---|
 | Extensión `.csv`, un solo archivo | Pantalla | Botones deshabilitados |
 | Plantilla visible | Pantalla | Si el usuario no ve «Cobranza movil», no está en el equipo de carga: mensaje y botones deshabilitados |
-| Estructura del CSV | `ArchivoCsv.Leer` | Rechaza archivo vacío, UTF-16/32, comillas sin cerrar y filas con **más** columnas que el encabezado (señal de una comilla suelta que juntó dos filas) |
+| Estructura del CSV | `ArchivoCsv.Leer`, `PartirCarga.LeerArchivo` | Rechaza archivo vacío o sin filas de datos, BOM de UTF-16/32, comillas sin cerrar y filas con **más** columnas que el encabezado (señal de una comilla suelta que juntó dos filas). También exige que la plantilla principal tenga fila de encabezado |
 | **Largo de los valores** | `PartirCarga.ExigirLargos` | Mide cada valor contra el `MaxLength` de su columna de texto en la metadata. Solo columnas con fuente en el archivo y sin transformación. Un valor más largo hace fallar la fila en Smelter y su prueba en seco **no** lo detecta. El error cita fila, columna y largos (hasta 5 casos), nunca el valor |
-| **Solo validar** | `sanic_cm_PartirCarga` con `SoloValidar = true` | Corre en la prueba en seco y en la carga en serie. Mide largos y no escribe nada. Si falla, la pantalla marca el job Falló y no lo pone en cola |
+| **Solo validar** | `sanic_cm_PartirCarga` con `SoloValidar = true` | Corre en la prueba en seco y en la carga en serie (con `nfValidarLargo = true`). Lee el archivo (mismo tope de 50 MB), mide largos y no escribe nada. Si falla, la pantalla marca el job Falló y no lo pone en cola |
 | Errores por fila | Smelter | Se cuentan en el job (`[IJ] Fail Count`). El detalle por fila (Import Job Log) es de SYSTEM: lo ve soporte en Smelter, no la pantalla |
 | Número largo en un mensaje | Pantalla | Si un error trae 13 dígitos seguidos, no se muestra («el detalle traía un número largo») |
 
@@ -193,7 +193,7 @@ Todos los registros están en [Plugins y Custom APIs](04-plugins-y-custom-apis.m
 | [`AprobacionEspecial`](../../plugins/Sanic.CobranzaMovil.Plugins/AprobacionEspecial.cs) | Asignación, PreOperation | Las Diarias e Incobrables nacen en **Borrador**; una Especial del CSV nace **Pendiente** y entra en la cola del Supervisor. Solo la carga (SYSTEM) puede crear Diarias e Incobrables |
 | [`ColumnasAsignacion`](../../plugins/Sanic.CobranzaMovil.Plugins/ColumnasAsignacion.cs) | Asignación, PreOperation | No frena a SYSTEM: la carga escribe cualquier columna. Por eso «Última carga» solo la escribe la carga |
 | [`TramoCartera`](../../plugins/Sanic.CobranzaMovil.Plugins/TramoCartera.cs) | Asignación (Pre), cuenta (Post asíncrono) | Pone el tramo 0–19 que usan las apps para leer la cartera por partes |
-| [`PanGuard`](../../plugins/Sanic.CobranzaMovil.Plugins/PanGuard.cs) | Varias, PreOperation | Rechaza 5 o más dígitos seguidos en las columnas visibles (por ejemplo, el nombre de la carga diaria) |
+| [`PanGuard`](../../plugins/Sanic.CobranzaMovil.Plugins/PanGuard.cs) | Cuenta, carga diaria y bóveda; PreOperation, Create y Update | Rechaza la fila si el número visible (`sanic_cm_ct_numerodecuenta`, `sanic_cm_cd_numerocuenta`, `sanic_cm_cp_name`) trae 5 o más dígitos seguidos (aunque estén separados por espacios o guiones): si la plantilla dejara de enmascarar, la carga falla en vez de guardar el número completo |
 | [`RepartoAsignacion`](../../plugins/Sanic.CobranzaMovil.Plugins/RepartoAsignacion.cs) | Asignación, PostOperation **asíncrono** | Pasa el dueño al localizador y comparte cuenta, cliente y fiador. Es asíncrono a propósito: dentro del lote de Smelter sumaría tiempo al límite de 2 minutos y, si se pasa, se deshace el lote entero |
 
 Productos, fiadores y agentes que se actualizan:
@@ -206,7 +206,7 @@ Productos, fiadores y agentes que se actualizan:
 
 [`scrMonitoreo.pa.yaml`](../../apps/backoffice-canvas/Src/scrMonitoreo.pa.yaml) responde «¿llegó el archivo de hoy y cuadra el volumen?». Muestra si `nfUltimaCarga` (la `FechaCarga` más nueva de la carga diaria) es de hoy y tres conteos exactos con `CountIf` (delega hasta 50.000): filas de carga diaria de hoy, cuentas y clientes totales.
 
-`[CD] FechaCarga` es *DateOnly* (solo fecha, sin zona horaria). Comparar contra `Today()` viajaría como `ge <hoy>T06:00Z` y contaría 0 el día de la carga; por eso la pantalla compara contra `DateAdd(Today(), -TimeZoneOffset(Today()), TimeUnit.Minutes)`, que es medianoche UTC y sigue siendo delegable.
+`[CD] FechaCarga` es *DateOnly* (solo fecha, sin zona horaria). Comparar contra `Today()` viajaría como la medianoche local convertida a UTC (por ejemplo, `ge <hoy>T06:00Z` en UTC−6) y contaría 0 el día de la carga; por eso la pantalla compara contra `DateAdd(Today(), -TimeZoneOffset(Today()), TimeUnit.Minutes)`, que es medianoche UTC y sigue siendo delegable.
 
 ## Piezas y archivos
 
@@ -257,8 +257,8 @@ Volver a cargar el mismo archivo es seguro: cada tabla se deduplica por su clave
 
 ## Trampas y errores conocidos
 
-- ⚠️ **50 MB contra 128 MB.** La pantalla acepta hasta 128 MB, pero `PartirCarga` rechaza archivos de más de 50 MB. Un archivo entre esos tamaños solo entra con `nfCargaParalela = false`. Un CSV de 6.000 filas pesa unos 3 MB.
-- ⚠️ **El archivo del job conserva el número completo.** Quedan en `sanic_smlt_ij_sourcefile` de cada job. El borrado está en [Ciclo de vida](08-ciclo-de-vida.md).
+- ⚠️ **50 MB contra 128 MB.** La pantalla acepta hasta 128 MB, pero `sanic_cm_PartirCarga` rechaza archivos de más de 50 MB tanto al partir como en `SoloValidar` (los dos bajan el archivo a la memoria del *sandbox*). Con los interruptores de referencia, un archivo de entre 50 y 128 MB ya falla en la prueba en seco. Para cargarlo hay que poner `nfValidarLargo = false` (se pierde la validación de largo) **y** `nfCargaParalela = false` (carga en serie). Un CSV de 6.000 filas pesa unos 3 MB.
+- ⚠️ **El archivo del job conserva el número completo.** Queda en `sanic_smlt_ij_sourcefile` de cada job, también en los de padres y partes. No hay borrado automático: [`paso10_purgar_archivos.py`](../../scripts/pan/paso10_purgar_archivos.py) se corre a mano y solo purga los jobs de la plantilla principal; los de «· padres» y «· partes» hoy no se purgan (ver [Ciclo de vida](08-ciclo-de-vida.md)).
 - **Prueba en seco incompleta.** No detecta valores más largos que su columna; por eso existe `SoloValidar`.
 - **Fórmulas inertes.** `btnPartirCar` y `btnRevisarLargoCar` llaman a la Custom API a través de la fuente `Environment`. Si la foto de esa fuente en la app no conoce la API o el parámetro, la fórmula queda inerte sin error. Después de instalar o cambiar una Custom API, refrescar `Environment` en Studio antes de activar los interruptores.
 - **Las plantillas se buscan por nombre.** `PartirCarga`, la pantalla y Reconciliación buscan «Cobranza movil», «Cobranza movil · padres» y «Cobranza movil · partes» por nombre exacto (constantes en [`Esquema.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/Esquema.cs)). Renombrar una rompe la carga; dos con el mismo nombre también.

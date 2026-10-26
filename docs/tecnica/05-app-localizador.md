@@ -19,7 +19,7 @@ La app es de tipo teléfono (640 × 1136, vertical). Su nombre interno es `sanic
 | [`scrInicio`](../../apps/localizador-canvas/Src/scrInicio.pa.yaml) | Pantalla de arranque. Cobrado hoy (C$ y US$), cantidad de pagos, interacciones, cuentas y clientes visitados; desglose de las interacciones del día por cliente o por cuenta. Si el agente está desactivado muestra un bloqueo |
 | [`scrCartera`](../../apps/localizador-canvas/Src/scrCartera.pa.yaml) | La cartera agrupada por cliente: saldo vencido total, filtros por tipo (Todos, Diaria, Incobrable, Especial), búsqueda por nombre o últimos 4, aviso de si la carga diaria del teléfono es la de hoy, y orden manual (▲▼) que se guarda en la asignación |
 | [`scrCliente`](../../apps/localizador-canvas/Src/scrCliente.pa.yaml) | Ficha del cliente con dos pestañas: **Cuentas** (teléfonos con llamada directa, direcciones con enlace a mapas, cuentas a cobrar) e **Interacciones** de todas sus cuentas |
-| [`scrDetalleCuenta`](../../apps/localizador-canvas/Src/scrDetalleCuenta.pa.yaml) | Detalle de una cuenta: saldos, pago mínimo, mora, fechas, fiador, datos de la Especial (tipo, retiro pedido, nota), botón «Ver número» y las interacciones de la cuenta. Desde acá se registra la visita |
+| [`scrDetalleCuenta`](../../apps/localizador-canvas/Src/scrDetalleCuenta.pa.yaml) | Detalle de una cuenta: saldos, pago mínimo, mora, fechas, fiador, datos de la Especial (tipo, retiro pedido, nota), botón «Ver número» y las interacciones de la cuenta. El botón «＋ Registrar interacción» abre `scrInteraccion` |
 | [`scrInteraccion`](../../apps/localizador-canvas/Src/scrInteraccion.pa.yaml) | Registrar visita: comentario con mensajes rápidos, productos del cliente a los que aplica, pagos (monto, moneda, recibo), actualización de datos y ubicación GPS |
 | [`scrPagos`](../../apps/localizador-canvas/Src/scrPagos.pa.yaml) | Pagos e interacciones de un día elegido (hoy por defecto, hasta 89 días atrás) con calendario y búsqueda |
 | [`scrSincronizacion`](../../apps/localizador-canvas/Src/scrSincronizacion.pa.yaml) | Estado de la sincronización, capturas pendientes de subir, capturas de hoy con su estado y la versión desplegada de la app |
@@ -37,6 +37,8 @@ La app es de tipo teléfono (640 × 1136, vertical). Su nombre interno es `sanic
 - **Funciones de usuario**: `Moneda()` (texto bimoneda), `PanMasc()` (`•••• 1234`), `EspTipo()` y `EspNota()` (separan tipo y nota de la Especial en el texto `Tipo — nota`).
 - **`OnStart`**: preferencias guardadas, los temas `gblDay` / `gblNight` (tokens de color en `gblC`) y los tamaños de letra `gblT`, que escalan con `gblScale`.
 
+La app no llama ninguna *Custom API*: todo lo que escribe va con `Patch()` / `UpdateIf()` sobre las tablas (lo que funciona *offline*), y las reglas las aplican los *plugins* al subir.
+
 El agente se identifica con `LookUp('CM | TBL | Agentes', 'Email Usuario' = Lower(User().Email))`. El correo del agente (`sanic_cm_ag_emailusuario`) lo deriva el servidor del UPN del usuario vinculado, en minúsculas ([`EmailDesdeUsuario.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/EmailDesdeUsuario.cs)); la app compara en minúsculas porque offline la comparación la hace la base local.
 
 ### Navegación
@@ -49,7 +51,7 @@ flowchart LR
     CAR["scrCartera"] -->|"tarjeta del cliente"| CLI
     CLI -->|"cuenta"| DET
     PAG -->|"pago o interacción"| CLI
-    DET -->|"Registrar visita"| INT["scrInteraccion"]
+    DET -->|"Registrar interacción"| INT["scrInteraccion"]
     INT -->|"guardado: Back()"| DET
     NAV["cmpNav"] -.-> INI
     NAV -.-> CAR
@@ -96,11 +98,11 @@ Power Fx no tiene ninguna función que baje datos del servidor: la sincronizaci�
 
 `gblSync` traduce `Connection.Sync` a `ok`, `sync`, `pend`, `warn`, `error` u `off`. En el navegador no hay sincronización (`Connection.Sync` vacío) y solo distingue con o sin conexión.
 
-La cartera es una copia en colecciones (`colAsig`, `colClientes`). El temporizador `tmrSync_Cart` de [`scrCartera`](../../apps/localizador-canvas/Src/scrCartera.pa.yaml) revisa `gblSync` cada 5 s (con `AutoPause = false`, sigue andando en otras pantallas) y, cuando una sincronización termina, rearma la cartera. Si el localizador movió clientes y no guardó el orden, no la rearma para no perderlo: la marca para rearmar al volver.
+La cartera es una copia en colecciones (`colAsig`, `colClientes`). El temporizador `tmrSync_Cart` de [`scrCartera`](../../apps/localizador-canvas/Src/scrCartera.pa.yaml) revisa `gblSync` cada 5 s (con `AutoPause = false`, sigue andando en otras pantallas). Cuando una sincronización termina, rearma la cartera si el localizador está en la Cartera y no tiene cambios de orden sin guardar; si no, la marca (`varRecargarCartera`) para rearmarla al volver, así no se pierde el orden. Al entrar, `scrCartera` también la rearma si la cantidad de asignaciones de la base local cambió.
 
 ### La cartera se trae por tramos
 
-Cada copia de Dataverse a una colección se corta en el límite de filas de la app. Para no cortar la cartera, el *plugin* [`TramoCartera.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/TramoCartera.cs) le pone a cada cuenta, asignación y pago un **tramo** de 0 a 19 (hash FNV-1a del id de la cuenta; el pago usa el de su interacción). El botón oculto `btnCargarCartera` trae la cartera en 20 consultas más una para lo que todavía no tiene tramo:
+Cada copia de Dataverse a una colección se corta en el límite de filas de la app (la app asume 2.000: `varCarteraIncompleta` compara contra ese número). Para no cortar la cartera, el *plugin* [`TramoCartera.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/TramoCartera.cs) le pone a cada cuenta, asignación y pago un **tramo** de 0 a 19 (hash FNV-1a del id de la cuenta; el pago usa el de su interacción). El botón oculto `btnCargarCartera` trae asignaciones y cuentas tramo por tramo (20 vueltas) y después una consulta más para lo que todavía no tiene tramo (por ejemplo, una cuenta recién creada):
 
 ```
 ForAll(Sequence(20, 0) As T,
@@ -118,7 +120,7 @@ El botón Guardar de [`scrInteraccion`](../../apps/localizador-canvas/Src/scrInt
 
 | Captura | Qué escribe la app | Qué completa o decide el servidor al subir |
 |---|---|---|
-| Interacción | Cuenta, agente, comentario, marcas de pago y datos, latitud y longitud, `Fecha de captura` (`Now()` del teléfono) | [`InteraccionDelCobrador.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/InteraccionDelCobrador.cs) pone el agente del usuario y exige que la cuenta sea de su cartera, con tolerancia por fecha de captura (no más de 5 min adelantada, hasta 48 h atrás) si se la reasignaron mientras estaba sin señal. [`IdentidadEnInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/IdentidadEnInteraccion.cs) copia últimos 4, CIF y clave HMAC de la cuenta. El número `IN-xxxx` lo asigna el servidor |
+| Interacción | Cuenta, agente, nombre del agente, comentario, marcas de pago y datos, latitud y longitud, `Fecha de captura` (`Now()` del teléfono) | [`InteraccionDelCobrador.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/InteraccionDelCobrador.cs) pone el agente del usuario, deja la interacción pendiente de grabar (descarta estado y datos de grabación que vengan del teléfono) y exige que la cuenta sea de su cartera, con tolerancia por fecha de captura (no más de 5 min adelantada, hasta 48 h atrás) si se la reasignaron mientras estaba sin señal (lo comprueba con la auditoría de la asignación). [`IdentidadEnInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/IdentidadEnInteraccion.cs) copia últimos 4, CIF y clave HMAC de la cuenta. El número `IN-xxxx` lo asigna el servidor |
 | Pago | Interacción (lookup), cuenta, monto, moneda, recibo, `Fecha del pago` | [`CuentaDesdeInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/CuentaDesdeInteraccion.cs) completa la cuenta y el número de interacción. [`ReciboRepetido.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ReciboRepetido.cs) **marca** `sanic_cm_pg_reciborepetido` si el recibo ya existe en cualquier cartera. `TramoCartera` pone el tramo |
 | Actualización de datos | Interacción (lookup), cuenta (`sanic_cm_ad_cuentaid`), la misma fecha de captura (`sanic_cm_ad_fechacaptura`), teléfonos, direcciones y correo | Offline el lookup a la interacción recién creada llega vacío. [`ActualizacionConInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ActualizacionConInteraccion.cs) la vincula por localizador, cuenta y fecha de captura; si no la encuentra, la acepta **marcada** con `sanic_cm_ad_sinvincular`. [`VincularActualizacionPendiente.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/VincularActualizacionPendiente.cs) la cuelga cuando llega la interacción |
 | Orden de la cartera | `'[AS] Orden'` de cada asignación, solo del tramo de clientes movidos, al salir de la Cartera o al tocar ↻ | [`ColumnasAsignacion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ColumnasAsignacion.cs) solo deja al localizador escribir esa columna |
@@ -177,7 +179,7 @@ La lista de apps de Power Apps toma el ícono de la *solution* (`CanvasApps/<app
 |---|---|
 | Fuentes de la app (pantallas, componentes, `App`) | [`apps/localizador-canvas/Src/`](../../apps/localizador-canvas/Src/) |
 | Fuentes de datos, perfil *offline* vinculado y recursos | [`sanic_appcobranzamovil_c4e67_DocumentUri.msapr`](../../apps/localizador-canvas/sanic_appcobranzamovil_c4e67_DocumentUri.msapr) |
-| Notas de mantenimiento de la app | [`apps/localizador-canvas/README.md`](../../apps/localizador-canvas/README.md) |
+| Resumen de la carpeta de la app | [`apps/localizador-canvas/README.md`](../../apps/localizador-canvas/README.md) |
 | Perfil *offline* | [`paso7_perfil_offline.py`](../../scripts/pan/paso7_perfil_offline.py) |
 | Agregar o refrescar fuentes de datos | [`paso7_fuentes.py`](../../scripts/pan/paso7_fuentes.py) |
 | Chequeo de columnas antes de desplegar | [`paso7_esquema.py`](../../scripts/pan/paso7_esquema.py) |
@@ -272,6 +274,7 @@ Reemplazar `icono/icono.png` (y su fuente `icono.svg`) y, si cambia el color de 
 
 ### Límites de filas
 
+- ⚠️ A confirmar: cuál es el límite que rige. El `.msapr` declara `MaxGetRowsCount` 500 por fuente en `References/DataSources.json` y 2.000 a nivel app en `Properties.json`; la app está escrita suponiendo 2.000.
 - Cada copia a una colección se corta en el límite de filas: la cartera se trae por tramos. Si la cartera de un localizador crece tanto que un tramo llega al límite, la app avisa y hay que subir la cantidad de tramos: la constante `TramosCartera` de [`Esquema.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/Esquema.cs), la constante `TRAMOS` de [`paso18_tramo_cartera.py`](../../scripts/pan/paso18_tramo_cartera.py) y el `Sequence(20, 0)` de esta app y de las pantallas de la oficina que usan tramos; después, rellenar con `paso18_tramo_cartera.py --rellenar`.
 - Las demás pantallas no copian tablas enteras: leen cada dirección, teléfono o cuenta de la base local cuando la muestran.
 

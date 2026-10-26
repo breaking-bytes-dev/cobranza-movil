@@ -30,12 +30,21 @@ Las decisiones están agrupadas por área:
 
 - **Decisión:** los plugins que procesan lo que crea el teléfono completan o marcan en lugar de rechazar: recibo repetido (`sanic_cm_pg_reciborepetido`), actualización sin vincular (`sanic_cm_ad_sinvincular`), identidad de la cuenta en la interacción, tramo. El pago **no tiene** *alternate key* sobre recibo, cuenta y moneda.
 - **Por qué:** el runtime offline descarta en silencio lo que el servidor rechaza y no lo reintenta. Un rechazo es un pago perdido sin aviso. Una *alternate key* se valida antes que los plugins, así que tampoco sirve.
-- **Alternativa descartada:** clave alternativa `(número de recibo, cuenta, moneda)` en el pago; quedó retirada en [`clave_recibo_pago.py`](../../scripts/localizador/clave_recibo_pago.py) y la quitó [`paso15_marcas_offline.py`](../../scripts/pan/paso15_marcas_offline.py).
-- **Qué se rompe si se cambia:** cualquier `throw` nuevo en un plugin de Create de interacción, pago o actualización de datos convierte un dato dudoso en un dato perdido. Las únicas excepciones vigentes son las de [2.3](#23-el-localizador-solo-registra-en-su-cartera) y el pago sin interacción ([`CuentaDesdeInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/CuentaDesdeInteraccion.cs)).
+- **Alternativa descartada:** clave alternativa `(número de recibo, cuenta, moneda)` en el pago. El script que la crea, [`clave_recibo_pago.py`](../../scripts/localizador/clave_recibo_pago.py), está retirado (termina sin hacer nada) y [`paso15_marcas_offline.py`](../../scripts/pan/paso15_marcas_offline.py) la quita si existe.
+- **Qué se rompe si se cambia:** cualquier `throw` nuevo en un plugin de Create de interacción, pago o actualización de datos convierte un dato dudoso en un dato perdido.
+- **Excepciones vigentes (rechazos deliberados):**
+
+  | Plugin | Qué rechaza | Por qué se acepta perder la captura |
+  |---|---|---|
+  | [`InteraccionDelCobrador.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/InteraccionDelCobrador.cs) (PreOperation, Create de interacción) | Para cualquier rol: interacción sin cuenta o sin agente. Si la crea un localizador: cuenta fuera de su cartera pasada la tolerancia, usuario sin agente vinculado, usuario con dos agentes (y la app no mandó uno de ellos), agente desactivado | Es una regla de seguridad: nadie registra a nombre de otro ni en cuentas ajenas. Ver [2.3](#23-el-localizador-solo-registra-en-su-cartera). Los pagos de esa visita cuelgan de la interacción rechazada y también se pierden |
+  | [`CuentaDesdeInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/CuentaDesdeInteraccion.cs) (PreOperation, Create de pago) | Pago sin interacción | Un pago suelto no se puede transcribir ni ubicar en una cuenta; la app siempre crea el pago desde una interacción |
+  | [`ActualizacionConInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ActualizacionConInteraccion.cs) (PreOperation, Create y Update de actualización de datos) | Actualización que **trae** interacción, cuando esa interacción no tiene cuenta o es de otra cuenta. En Update, quitarle la interacción | Es un dato inconsistente, no dudoso: no se sabe de qué cliente es. Si llega **sin** interacción no rechaza: la marca `sanic_cm_ad_sinvincular` |
+
+  Además, [`PluginBase.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PluginBase.cs) convierte cualquier error inesperado en un rechazo genérico: un plugin nuevo de Create sobre estas tablas tiene que tolerar datos faltantes (dejar pasar y trazar, como [`IdentidadEnInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/IdentidadEnInteraccion.cs)).
 
 ### 1.3 Un solo nivel de lookup en lo que se filtra offline
 
-- **Decisión:** el pago tiene su propio *lookup* a la cuenta (`sanic_cm_pg_cuentaid`) y la actualización de datos también (`sanic_cm_ad_cuentaid`), aunque se podrían deducir de la interacción. Los completa el servidor.
+- **Decisión:** el pago tiene su propio *lookup* a la cuenta (`sanic_cm_pg_cuentaid`) y la actualización de datos también (`sanic_cm_ad_cuentaid`), aunque se podrían deducir de la interacción. La app los manda; si faltan, el servidor los completa desde la interacción.
 - **Por qué:** offline, `Filter` y `LookUp` solo resuelven un nivel de lookup; pago → interacción → cuenta no funciona sin señal. Además, offline el lookup a una interacción recién creada llega vacío.
 - **Alternativa descartada:** llegar a la cuenta navegando desde la interacción.
 - **Qué se rompe si se cambia:** las pantallas de pagos del teléfono dejan de encontrar la cuenta sin señal, y las actualizaciones capturadas offline quedan sin vincular. Ver [`CuentaDesdeInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/CuentaDesdeInteraccion.cs) y [`ActualizacionConInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ActualizacionConInteraccion.cs).
@@ -53,7 +62,7 @@ Las decisiones están agrupadas por área:
 
 - **Decisión:** aprobación de Especiales, columnas que puede escribir cada rol, grabación en el core, agente de la interacción, reparto y reconciliación se imponen en plugins y Custom APIs. Las pantallas solo ayudan.
 - **Por qué:** el servidor es la única fuente confiable. Las reglas de negocio de formulario no corren en canvas ni en la Web API, y cualquiera con un rol puede escribir por la API sin pasar por la pantalla.
-- **Alternativa descartada:** reglas de negocio de formulario y validación en la app; un *flow* de Power Automate para el dueño de la asignación (corría con una identidad personal y su historial guardaba la fila completa).
+- **Alternativa descartada:** reglas de negocio de formulario y validación en la app; un *flow* de Power Automate para el dueño de la asignación (correría con una identidad personal y su historial de ejecuciones guardaría la fila completa). El *flow* «Cloud Flow \| CM \| Cambio de Owner en Asignaciones» y la función low-code `sanic_PlugInCMMarcarinteraccioncomograbadaenCORE` todavía existen en el ambiente (el *flow*, apagado), pero ninguna app los usa: son sobrantes a retirar, no parte del diseño.
 - **Qué se rompe si se cambia:** mover una validación a la pantalla la deja sin efecto para la API, Smelter y la otra app. Ver [Plugins y Custom APIs](04-plugins-y-custom-apis.md).
 
 ### 2.2 Restricción de columnas por plugin, no por seguridad de columna
@@ -65,7 +74,7 @@ Las decisiones están agrupadas por área:
 
 ### 2.3 El localizador solo registra en su cartera
 
-- **Decisión:** una interacción de un localizador entra solo si la cuenta tiene una asignación activa cuyo dueño es su usuario, o si lo era a la fecha de captura (hasta 48 h atrás y no más de 5 min adelantada), según la auditoría de la asignación. El servidor pone el agente vinculado al usuario y rechaza si el agente está desactivado ([`InteraccionDelCobrador.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/InteraccionDelCobrador.cs)).
+- **Decisión:** una interacción de un localizador entra solo si la cuenta tiene una asignación activa cuyo dueño es su usuario, o si lo era a la fecha de captura (hasta 48 h atrás y no más de 5 min adelantada), según la auditoría de dueño y estado de la asignación (si la auditoría no se puede leer, rige la regla estricta). El servidor pone el agente vinculado al usuario (con dos agentes vinculados, vale el que mandó la app si es uno de ellos) y rechaza si el usuario no tiene agente o si el agente está desactivado. También fuerza el estado de grabación a Pendiente y descarta código, fecha y usuario de grabación. Aplica a quien tiene el rol Localizador sin Admin ni Servicio ([`InteraccionDelCobrador.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/InteraccionDelCobrador.cs)).
 - **Por qué:** el rol Localizador tiene `AppendTo` global sobre la cuenta (lo exige el lookup), así que ver la cuenta no prueba que sea suya. La tolerancia cubre la cuenta reasignada mientras el teléfono estaba sin señal.
 - **Alternativa descartada:** confiar en el agente que manda la app.
 - **Qué se rompe si se cambia:** apagar la auditoría de `ownerid` y `sanic_cm_as_estado` en la asignación anula la tolerancia y las capturas offline de cuentas reasignadas se pierden. Este rechazo es una excepción deliberada a [1.2](#12-lo-que-viene-del-teléfono-no-se-rechaza-se-marca).
@@ -75,12 +84,12 @@ Las decisiones están agrupadas por área:
 - **Decisión:** los plugins leen los roles `SR | CM | ` del llamador, directos y por equipo ([`RolesCm.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/RolesCm.cs)). Quien no tiene ninguno se trata como SYSTEM (la carga) o administrador del entorno y no se frena.
 - **Por qué:** Smelter escribe como SYSTEM, sin roles, y no se puede frenar la carga. Para no consultar roles en cada fila, SYSTEM se reconoce una vez por organización ([`UsuarioSistema.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/UsuarioSistema.cs)).
 - **Alternativa descartada:** una lista de identidades permitidas.
-- **Qué se rompe si se cambia:** renombrar los roles o quitar el prefijo `SR | CM | ` deja a todas las personas «sin restricción». La app de la oficina, además, deduce el rol del nombre del equipo «CM · <perfil> · <entorno>»: renombrar un equipo la deja sin pantallas ([`App.pa.yaml`](../../apps/backoffice-canvas/Src/App.pa.yaml)).
+- **Qué se rompe si se cambia:** renombrar los roles o quitar el prefijo `SR | CM | ` deja a todas las personas «sin restricción». La app de la oficina, además, deduce el rol del nombre del equipo «CM · <perfil> · <entorno>» cuando el rol llega por equipo: renombrar un equipo deja a sus miembros sin pantallas ([`App.pa.yaml`](../../apps/backoffice-canvas/Src/App.pa.yaml)).
 
 ### 2.5 La interacción grabada es terminal y la controla el servidor
 
 - **Decisión:** una interacción **grabada** no se vuelve a grabar ni cambia su código; pasar a grabada exige el código del core; la fecha y el usuario de grabación los pone el servidor ([`GrabacionInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/GrabacionInteraccion.cs)). El localizador crea interacciones, pagos y actualizaciones pero no los edita ([`paso6_cobrador_solo_crea.py`](../../scripts/seguridad/paso6_cobrador_solo_crea.py)).
-- **Por qué:** dos personas del BackOffice con la misma interacción abierta se pisaban el código; y un localizador con permiso de escritura podía bajar el monto de un pago ya grabado.
+- **Por qué:** sin esto, dos personas del BackOffice con la misma interacción abierta se pisarían el código; y un localizador con permiso de escritura podría bajar el monto de un pago ya grabado.
 - **Alternativa descartada:** controlarlo en la pantalla de transcripción.
 - **Qué se rompe si se cambia:** devolverle `Write` al localizador abre la edición de pagos ya transcritos. **Límite conocido:** dos grabaciones en el mismo milisegundo pueden pasar las dos.
 
@@ -88,7 +97,7 @@ Las decisiones están agrupadas por área:
 
 ### 3.1 El PAN vive en una bóveda con seguridad por fila
 
-- **Decisión:** el número completo solo está en `sanic_cm_tbl_cuentapan` («CM | TBL | PAN de cuenta»), 1:1 con la cuenta, sin seguridad de columna. El localizador la ve por el compartido en *cascade* desde la cuenta; el BackOffice la lee entera; Solicitante y Supervisor no tienen privilegios.
+- **Decisión:** el número completo solo está en `sanic_cm_tbl_cuentapan` («CM | TBL | PAN de cuenta»), 1:1 con la cuenta, sin seguridad de columna. El localizador la ve por el compartido en *cascade* desde la cuenta; el BackOffice la lee entera; Admin, Solicitante y Supervisor no tienen privilegios, y ningún rol la crea ni la edita: la escribe solo la carga ([`paso4_roles.py`](../../scripts/pan/paso4_roles.py)).
 - **Por qué:** tres límites de la plataforma: el nombre principal no admite seguridad de columna; una *alternate key* no puede incluir una columna protegida; el modo offline no respeta la seguridad de columna. La seguridad por fila sí funciona offline.
 - **Alternativa descartada:** una columna con seguridad de columna en la cuenta.
 - **Qué se rompe si se cambia:** cambiar a «sin cascada» la relación cuenta → bóveda deja al localizador sin «Ver número»; darle lectura de la bóveda a otro rol amplía el alcance PCI. Ver [Seguridad](03-seguridad.md).
@@ -113,8 +122,8 @@ Las decisiones están agrupadas por área:
 
 - **Decisión:** [`RepartoAsignacion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/RepartoAsignacion.cs) pone como dueño de la asignación al usuario del agente, le comparte en lectura cuenta, cliente y fiador, y revoca al dueño anterior lo que ninguna otra asignación activa suya justifique. Corre asíncrono, en PostOperation, con el servicio del sistema. El rol Localizador tiene lectura de alcance usuario.
 - **Por qué:** un cliente puede tener cuentas en carteras distintas, así que no puede tener un dueño único; el compartido da acceso fila por fila. Asíncrono porque, síncrono, correría dentro del trozo de 100 filas de Smelter con su límite de 2 minutos y un exceso deshace el trozo entero.
-- **Alternativa descartada:** lectura global de los datos maestros con filtro en la app (el teléfono bajaba el padrón completo) y el *flow* de Power Automate.
-- **Qué se rompe si se cambia:** registrarlo síncrono hace fallar el plugin a propósito. Un trabajo fallido deja accesos de más o de menos: se completa con [`paso3_reconciliar.py`](../../scripts/seguridad/paso3_reconciliar.py). Los compartidos hacen crecer la tabla de accesos (POA); es un costo aceptado.
+- **Alternativa descartada:** lectura global de los datos maestros con filtro en la app (el teléfono bajaría el padrón completo) y el *flow* de Power Automate.
+- **Qué se rompe si se cambia:** registrarlo síncrono hace fallar el plugin a propósito. Un trabajo fallido deja accesos de más o de menos: [`paso3_reconciliar.py`](../../scripts/seguridad/paso3_reconciliar.py) agrega los compartidos que faltan y, con `--revocar`, quita los sobrantes. Los compartidos hacen crecer la tabla de accesos (POA); es un costo aceptado.
 
 ### 4.2 Cambiar el usuario de un agente reescribe sus asignaciones
 
@@ -133,7 +142,7 @@ Las decisiones están agrupadas por área:
 ### 4.4 Cascadas cortadas donde filtraban acceso
 
 - **Decisión:** *Share*, *Unshare* y *Reparent* en `NoCascade` en cliente → cuenta, cliente → carga diaria y cuenta → asignación; *Assign* en `NoCascade` en cuenta → asignación. Siguen en *cascade* cuenta → bóveda y cliente → dirección y teléfono. *Delete* en `Restrict` en interacción → pago, interacción → actualización de datos y cliente → carga diaria ([`paso1_cascadas_auditoria.py`](../../scripts/seguridad/paso1_cascadas_auditoria.py)).
-- **Por qué:** con *Reparent* en cascada, cada carga que reescribía una cuenta le daba al localizador lectura heredada de todas las cuentas de sus clientes, con su número completo, aunque no fueran suyas. Donde la audiencia es la misma (bóveda, direcciones, teléfonos) la cascada es justo lo que se quiere.
+- **Por qué:** con *Reparent* en cascada, cada carga que reescribe una cuenta le daría a quien tiene acceso al cliente lectura heredada de la cuenta, su bóveda y sus asignaciones: el localizador vería todas las cuentas de sus clientes, con su número completo, aunque no fueran suyas. Donde la audiencia es la misma (bóveda, direcciones, teléfonos) la cascada es justo lo que se quiere.
 - **Alternativa descartada:** las cascadas por defecto de Dataverse.
 - **Qué se rompe si se cambia:** volver a *Cascade* en esas relaciones expone PAN ajenos al localizador, y el acceso heredado no se pierde al cerrar la asignación. En un ambiente nuevo hay que aplicarlo **antes** de la primera carga.
 
@@ -193,14 +202,14 @@ Las decisiones están agrupadas por área:
 ### 6.2 Carga paralela: padres primero, partes por cliente
 
 - **Decisión:** [`PartirCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PartirCarga.cs) convierte el job en uno de «padres» (última fila de cada producto, fiador y agente) y crea hasta 4 jobs de «partes» donde las filas que escriben un mismo registro van juntas ([`ParticionCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ParticionCarga.cs)). La app usa 3 partes (`nfPartesCarga`). El archivo se parte a nivel de bytes ([`ArchivoCsv.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ArchivoCsv.cs)).
-- **Por qué:** en un solo job las filas se procesan en serie y una carga grande tardaba más de una hora. 3 y no 4 por el límite de protección del servicio de Dataverse (1.200 s de ejecución cada 5 minutos por usuario). Dos partes escribiendo el mismo registro a la vez chocarían.
+- **Por qué:** en un solo job las filas se procesan en serie, en lotes que rozan el límite de 120 s por operación, y una carga grande tarda mucho. 3 y no 4 por el límite de protección del servicio de Dataverse (1.200 s de ejecución cada 5 minutos por usuario): cada parte consume unos 100 s por lote y con 4 se queda al borde ([`App.pa.yaml`](../../apps/backoffice-canvas/Src/App.pa.yaml)). Con menos de 300 filas la API hace una sola parte. Dos partes escribiendo el mismo registro a la vez chocarían.
 - **Alternativa descartada:** un solo job; partir por número de fila.
-- **Qué se rompe si se cambia:** las plantillas «Cobranza movil · padres» y «· partes» las genera [`paso20_plantillas_paralelas.py`](../../scripts/pan/paso20_plantillas_paralelas.py) desde la principal: editarlas a mano hace que `PartirCarga` se niegue a partir. Un *Relationship Mapping* en la principal no se puede repartir y detiene el script.
+- **Qué se rompe si se cambia:** las plantillas «Cobranza movil · padres» y «· partes» las genera [`paso20_plantillas_paralelas.py`](../../scripts/pan/paso20_plantillas_paralelas.py) desde la principal: editarlas a mano hace que `PartirCarga` se niegue a partir. Un *Relationship Mapping* en la principal no se puede repartir y detiene el script. Con la carga paralela el job original pasa a la plantilla «· padres», así que [`paso10_purgar_archivos.py`](../../scripts/pan/paso10_purgar_archivos.py), que solo mira la plantilla principal, no borra los archivos de esa carga (ver [Mantenimiento](11-mantenimiento.md)).
 
 ### 6.3 El alta manual de una cuenta es una importación de una fila
 
 - **Decisión:** [`AltaCuenta.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/AltaCuenta.cs) arma en el servidor un CSV de una fila con el formato del banco ([`FilaDeCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/FilaDeCarga.cs)) y crea un Import Job con la plantilla principal.
-- **Por qué:** así el HMAC, la bóveda y el enmascarado los hace Smelter y K sigue en un solo lugar. La fila la arma el servidor para evitar trampas del upsert: la fecha de carga es la de la última carga (con la de hoy, todas las Diarias del banco quedarían «fuera de cartera»), y agente y producto se escriben con sus valores de Dataverse (un error de tipeo crearía uno nuevo).
+- **Por qué:** así el HMAC, la bóveda y el enmascarado los hace Smelter y K sigue en un solo lugar. La fila la arma el servidor para evitar trampas del upsert: la fecha de carga es la más nueva de la carga diaria (con la de hoy, todas las Diarias del banco quedarían «fuera de cartera»), y agente y producto se escriben con sus valores de Dataverse (un error de tipeo crearía uno nuevo).
 - **Alternativa descartada:** crear la cuenta con `Patch` desde la app (tendría que conocer K o dejar la cuenta sin clave).
 - **Qué se rompe si se cambia:** agregar una columna al archivo del banco exige agregarla al `Encabezado` de `FilaDeCarga`.
 
@@ -209,14 +218,14 @@ Las decisiones están agrupadas por área:
 ### 7.1 Tramos por hash del id de la cuenta
 
 - **Decisión:** [`TramoCartera.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/TramoCartera.cs) pone un tramo de 0 a 19 en asignación y cuenta (calculado del id de la cuenta) y en pago (del id de la interacción). Las apps traen la cartera, la reasignación y los pagos del día con 20 consultas, una por tramo.
-- **Por qué:** cada copia a una colección de canvas se corta en 2.000 filas. El tramo sale de la cuenta para que sea estable aunque la carga vuelva a crear la asignación, y usa FNV-1a porque los ids de Dataverse son secuenciales y sus primeros bytes reparten mal.
+- **Por qué:** cada copia a una colección de canvas se corta en 2.000 filas (⚠️ A confirmar: el paquete de la app del localizador declara 500 por fuente y 2.000 para la app; no está confirmado cuál rige). El tramo sale de la cuenta para que sea estable aunque la carga vuelva a crear la asignación, y usa FNV-1a porque los ids de Dataverse son secuenciales y sus primeros bytes reparten mal.
 - **Alternativa descartada:** paginar por fecha u orden; tramo por id de la asignación.
 - **Qué se rompe si se cambia:** cambiar `TramosCartera` o la función de hash deja las filas existentes en tramos que la app ya no consulta; hay que recalcularlas. Las apps también consultan el tramo vacío para lo que todavía no lo tiene.
 
 ### 7.2 Las fechas del banco son días, no instantes
 
 - **Decisión:** `sanic_cm_as_ultimacarga` y `sanic_cm_as_fechaasignada` son columnas de solo fecha; `sanic_cm_cd_fechacarga` es independiente de la zona horaria. Las tres guardan el día tal como viene del banco.
-- **Por qué:** guardadas como medianoche UTC se veían como el día anterior en la zona horaria local, y la reconciliación compara días.
+- **Por qué:** guardadas como medianoche UTC se verían como el día anterior en la zona horaria local, y la reconciliación compara días.
 - **Alternativa descartada:** fecha y hora en UTC.
 - **Qué se rompe si se cambia:** el comportamiento de fecha de una columna no se puede revertir. En consultas de *bulk delete*, `last-x-hours` no vale en columnas de solo fecha.
 
@@ -225,7 +234,7 @@ Las decisiones están agrupadas por área:
 ### 8.1 Borrado programado con identidad conservada en la interacción
 
 - **Decisión:** trabajos diarios de *bulk delete* ([`paso10_borrado_programado.py`](../../scripts/seguridad/paso10_borrado_programado.py)): carga diaria a los 7 días; cuentas 14 días después de salir de cartera y sin interacciones pendientes (por cascada, su bóveda y asignaciones); clientes y fiadores sin cuentas; pagos y actualizaciones a los 730 días; interacciones a los 735. Al crearse, la interacción copia últimos 4, CIF y clave HMAC de su cuenta ([`IdentidadEnInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/IdentidadEnInteraccion.cs)).
-- **Por qué:** los datos del cliente no deben vivir más que la gestión; lo que capturó el localizador se conserva 2 años y sigue identificable en el core sin el número completo. La interacción va 5 días después porque `Restrict` impide borrarla mientras tenga pagos.
+- **Por qué:** los datos del cliente no deben vivir más que la gestión; lo que capturó el localizador se conserva 2 años y sigue identificable en el core sin el número completo. La interacción va 5 días después porque `Restrict` impide borrarla mientras tenga pagos o actualizaciones de datos.
 - **Alternativa descartada:** no borrar nunca; borrar la interacción junto con la cuenta.
 - **Qué se rompe si se cambia:** borrar una cuenta con interacciones sin grabar deja al BackOffice sin la bóveda para transcribirlas. El nombre del cliente no se copia a la interacción, por decisión del dueño del producto. Detalle en [Ciclo de vida](08-ciclo-de-vida.md).
 

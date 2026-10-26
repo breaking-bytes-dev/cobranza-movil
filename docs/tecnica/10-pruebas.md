@@ -59,7 +59,7 @@ dotnet test plugins/Sanic.CobranzaMovil.Plugins.Tests/Sanic.CobranzaMovil.Plugin
 
 - Requieren **Windows**: compilan para `net462`, el mismo runtime del *sandbox* de Dataverse.
 - En la CI corren en [`pan-plugin-cm.yml`](../../.github/workflows/pan-plugin-cm.yml), job `construir-y-probar` (`windows-latest`). El resultado `.trx` queda como artefacto `resultados-pruebas`.
-- El workflow se dispara a mano (*Run workflow*, con `registrar` en `false` solo prueba) o con un *push* a la rama configurada en `on.push.branches` que toque `plugins/**`. Al adoptar la solución conviene cambiar esa rama por la de trabajo del equipo.
+- El workflow se dispara a mano (*Run workflow*, con `registrar` en `false` solo prueba) o con un *push* a la rama configurada en `on.push.branches` que toque `plugins/**` o el propio workflow. *Run workflow* solo aparece si el archivo está en la rama por defecto del repositorio. Al adoptar la solución conviene llevarlo a esa rama y cambiar `on.push.branches` por la rama de trabajo del equipo.
 
 ### Cómo se agrega una prueba
 
@@ -113,15 +113,17 @@ Las variables `BO_*` las lee [`config.js`](../../tests/backoffice-canvas/lib/con
 
 ### Usuarios de prueba
 
-Cada suite abre la app con la sesión guardada de un usuario de prueba. Las sesiones se identifican por una **clave** fija en el código:
+Hace falta **un usuario de prueba por rol**, con licencia, y cada suite abre la app con la sesión guardada de ese usuario. Cada sesión se identifica por una **clave** que asocia el usuario con su rol en el código:
 
-| Clave | Rol | Lo usan |
+| Rol del usuario de prueba | Dónde se define su clave | Lo usan |
 |---|---|---|
-| `user1` | BackOffice | oficina, integral |
-| `user2` | Solicitante | oficina, integral |
-| `user3` | Supervisor | oficina, integral |
-| `user4` | Admin (con el rol de Smelter que habilita la carga) | oficina, integral |
-| `user5` | Localizador, con su **agente** vinculado | integral, localizador |
+| BackOffice | `cfg.usuarios` de [`config.js`](../../tests/backoffice-canvas/lib/config.js) | oficina, integral |
+| Solicitante | `cfg.usuarios` de `config.js` | oficina, integral |
+| Supervisor | `cfg.usuarios` de `config.js` | oficina, integral |
+| Admin (en el equipo de carga, con el rol de Smelter que habilita la carga) | `cfg.usuarios` de `config.js` | oficina, integral |
+| Localizador, con su **agente** vinculado | `usuario` por defecto de `abrirUnaVez` en [`localizador-canvas/lib/app.js`](../../tests/localizador-canvas/lib/app.js), y su id en [`integral/lib/ctx.js`](../../tests/integral/lib/ctx.js) | integral, localizador |
+
+Los escenarios y las fases abren la app pasando esa clave; si se cambian las claves de `cfg.usuarios`, hay que cambiarlas también en las llamadas a `abrir(...)` y `abrirBackoffice(...)` de los escenarios y de las fases.
 
 - Cada usuario tiene que estar **solo** en el equipo (*owner team*) de su rol y con licencia. La suite de la oficina toma una foto de las membresías al empezar, la compara con lo esperado y la restaura al final.
 - La sesión de un administrador del sistema está **prohibida**: [`config.js`](../../tests/backoffice-canvas/lib/config.js) rechaza cualquier clave que contenga `admin`. Un administrador ve todo y la prueba de roles no probaría nada.
@@ -129,9 +131,9 @@ Cada suite abre la app con la sesión guardada de un usuario de prueba. Las sesi
 
   ```bash
   cd tests/backoffice-canvas
-  npx playwright codegen --save-storage=sesion-user1.json "<url-de-reproduccion-de-la-app>"
-  # iniciar sesión, esperar a que cargue la app, cerrar el navegador
-  mv sesion-user1.json ../../local/ && chmod 600 ../../local/sesion-user1.json
+  npx playwright codegen --save-storage=sesion-<clave>.json "<url-de-reproduccion-de-la-app>"
+  # iniciar sesión con el usuario de ese rol, esperar a que cargue la app, cerrar el navegador
+  mv sesion-<clave>.json ../../local/ && chmod 600 ../../local/sesion-<clave>.json
   ```
 
 - Las sesiones vencen. Si una suite falla al abrir la app con una pantalla de inicio de sesión, hay que regenerar esa sesión.
@@ -142,14 +144,14 @@ Cada suite abre la app con la sesión guardada de un usuario de prueba. Las sesi
 
 | Fase | Rol | Qué verifica |
 |---|---|---|
-| A | Admin | Navegación del rol, KPIs de Inicio en la primera carga, Monitoreo, Agentes (abre y cancela, nunca desvincula), búsquedas delegadas |
+| A | Admin | Navegación del rol, KPIs de Inicio en la primera carga, Monitoreo, Reconciliación, Agentes (abre y cancela, nunca desvincula), búsquedas delegadas, Datos maestros (alta de un cliente QA y aviso de duplicado) |
 | B | Solicitante | Nueva solicitud, aviso de duplicado, error controlado de escritura, reactivación de una Especial cerrada, que no consulte tablas ajenas |
 | C | Supervisor | Aprobar eligiendo localizador, cambio de dueño por el *plugin* de reparto (hasta 3 minutos), rechazar |
 | D | BackOffice | Transcribir con el rol BackOffice solo |
 | E | BackOffice + Admin | Usuario con dos roles: se lo agrega al equipo Admin, se prueba y se lo quita |
 | F | Admin | Cierre de una Especial y carga de hoy en Reconciliación (el cierre en lote nunca se pulsa) |
 | G | Solicitante | Seguimiento y nueva solicitud tras el ciclo completo |
-| H | Todos | Protección del número de tarjeta: solo BackOffice lee la bóveda; ninguna otra pantalla muestra 13 o más dígitos |
+| H | Todos los de oficina | Protección del número de tarjeta: entre los roles de la oficina solo BackOffice lee la bóveda (por API, suplantando a cada rol) y la muestra en Transcritas; ninguna otra pantalla muestra 13 o más dígitos ni consulta la bóveda |
 | X | Admin | Diseño adaptable a 800×900 |
 | — | Todas | Análisis de toda la red capturada: consultas sin filtro a tablas grandes, N+1 y errores de lectura |
 
@@ -243,14 +245,14 @@ Las suites se construyeron contra un ambiente concreto y tienen valores fijos en
 |---|---|---|
 | [`backoffice-canvas/lib/config.js`](../../tests/backoffice-canvas/lib/config.js) | URL de reproducción y id de la app; por cada clave de usuario, su UPN e id de usuario; ids de los cuatro equipos de rol; un usuario ajeno que ya estaba en el equipo Admin | Cargar los del ambiente nuevo (la URL también por `BO_PLAYER_URL`). Si `cfg.ajenos` no aplica, vaciarlo |
 | [`localizador-canvas/lib/app.js`](../../tests/localizador-canvas/lib/app.js) | Id y URL de la app del localizador (sin variable de entorno) | Reemplazarlos |
-| [`integral/lib/ctx.js`](../../tests/integral/lib/ctx.js) | Id de usuario del localizador; nombre del agente vinculado a él | Reemplazar el id y crear ese agente (o cambiar el nombre) vinculado al usuario localizador |
+| [`integral/lib/ctx.js`](../../tests/integral/lib/ctx.js) · [`integral/run.js`](../../tests/integral/run.js) | Id de usuario del localizador; nombre del agente vinculado a él (`AGENTE` en `ctx.js` y el filtro `SEL_AG` de `run.js`) | Reemplazar el id y crear ese agente (o cambiar el nombre en los dos archivos) vinculado al usuario localizador |
 | [`integral/run.js`](../../tests/integral/run.js) | `intocables()`: números de asignación, interacción y recibo de datos QA del ambiente original que el chequeo F11-05 exige que existan | Apuntar a registros del ambiente nuevo o quitar ese chequeo; si no, F11-05 falla siempre |
 | [`localizador-canvas/grupo2.js`](../../tests/localizador-canvas/grupo2.js) | Id del localizador; clientes, CIF, números de asignación y últimos 4 dígitos de su cartera QA; un pago y una Especial en borrador concretos | Crear las carteras con `fixture_telefonos.py` y reemplazar esos valores por los generados |
 | [`scripts/pan/fixture_telefonos.py`](../../scripts/pan/fixture_telefonos.py) | Busca a los usuarios localizadores por el comienzo de su correo | Ajustar el filtro a los usuarios del ambiente nuevo |
 | [`backoffice-canvas/lib/datosqa.js`](../../tests/backoffice-canvas/lib/datosqa.js) | Código de producto que tiene que existir; usa un agente activo con usuario vinculado | Cargar al menos un archivo diario (crea productos) y tener un agente activo vinculado |
-| [`integral/lib/smelter.js`](../../tests/integral/lib/smelter.js) · [`seguridad/matriz.js`](../../tests/integral/seguridad/matriz.js) | Nombre de la plantilla de Smelter | Usar el nombre con que se instaló la plantilla |
+| [`integral/lib/smelter.js`](../../tests/integral/lib/smelter.js) · [`seguridad/matriz.js`](../../tests/integral/seguridad/matriz.js) | Nombre de la plantilla de Smelter («Cobranza movil») | Nada: los *plugins* exigen ese nombre exacto ([`Esquema.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/Esquema.cs)), así que la plantilla se instala con él |
 | [`backoffice-canvas/lib/verdad.js`](../../tests/backoffice-canvas/lib/verdad.js) · [`player.js`](../../tests/backoffice-canvas/lib/player.js) · [`localizador-canvas/lib/app.js`](../../tests/localizador-canvas/lib/app.js) · [`grupo2.js`](../../tests/localizador-canvas/grupo2.js) | Zona horaria del negocio (`America/Managua`; `grupo2.js` resta 6 horas a mano) | Cambiarla si el banco opera en otra zona: «hoy» en las apps depende de ella |
-| [`seguridad/matriz.js`](../../tests/integral/seguridad/matriz.js) | Escribe su informe en `docs/auditoria/matriz-roles.md` | Correrla con `--sin-informe` o cambiar la ruta de `INFORME` |
+| [`seguridad/matriz.js`](../../tests/integral/seguridad/matriz.js) | Escribe su informe en `docs/auditoria/matriz-roles.md`, una carpeta que ya no existe en el repositorio: sin `--sin-informe`, la escritura falla al final | Correrla con `--sin-informe` o cambiar la ruta de `INFORME` |
 
 ## Cómo se extiende
 

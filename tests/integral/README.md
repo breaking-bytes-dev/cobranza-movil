@@ -9,14 +9,14 @@ Configuración, usuarios de prueba, fases, cómo adaptarla a otro ambiente y tra
 ## Requisitos
 
 - Las dependencias instaladas en [`tests/backoffice-canvas/`](../backoffice-canvas/) (de ahí el `NODE_PATH`).
-- El archivo de secretos del Service Principal y las sesiones `sesion-user1.json` … `sesion-user5.json`.
+- El archivo de secretos del Service Principal y una sesión `sesion-<clave>.json` por cada usuario de prueba (uno por rol: Admin, BackOffice, Solicitante, Supervisor y Localizador). Ver [Pruebas](../../docs/tecnica/10-pruebas.md#usuarios-de-prueba).
 - El agente del localizador de prueba vinculado a su usuario y la plantilla de Smelter instalada.
 
 ## Uso
 
 ```bash
 cd tests/integral
-NODE_PATH=../backoffice-canvas/node_modules node run.js                 # F0 a F10 y limpieza
+NODE_PATH=../backoffice-canvas/node_modules node run.js                 # F0 a F10 y limpieza (F11)
 NODE_PATH=../backoffice-canvas/node_modules node run.js --hasta F5      # hasta una fase, limpia igual
 NODE_PATH=../backoffice-canvas/node_modules node run.js --carga-ui      # la carga por la pantalla Cargar archivo
 NODE_PATH=../backoffice-canvas/node_modules node run.js --solo-limpieza
