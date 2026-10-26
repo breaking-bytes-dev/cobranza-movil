@@ -293,7 +293,7 @@ Screens:
                 Control: Gallery@2.15.0
                 Variant: Vertical
                 Properties:
-                  AlignInContainer: =AlignInContainer.Stretch
+                  Width: =conMaster_4.Width - conMaster_4.PaddingLeft - conMaster_4.PaddingRight
                   FillPortions: =0
                   Height: |-
                     =// APP-49: grilla de 2 columnas que crece con la cantidad de mensajes (antes: horizontal de 3 filas fijas y el
@@ -557,6 +557,7 @@ Screens:
                         PaddingRight: =12
                         PaddingTop: =2
                         Visible: =tpPago.Value
+                        Width: =conMaster_4.Width - conMaster_4.PaddingLeft - conMaster_4.PaddingRight - 16
                       Children:
                         - lblPagoTit:
                             Control: Label@2.5.1
