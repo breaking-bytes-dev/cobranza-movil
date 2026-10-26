@@ -15,14 +15,6 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             new object[] { "sanic_cm_tbl_cuentapan", "sanic_cm_cp_name" },
         };
 
-        // Columnas denormalizadas viejas: cualquier valor no vacio se rechaza.
-        public static readonly object[][] ColumnasLegacy =
-        {
-            new object[] { "sanic_cm_tbl_asignacion", "sanic_cm_as_numerocuenta" },
-            new object[] { "sanic_cm_tbl_interaccion", "sanic_cm_in_numerocuenta" },
-            new object[] { "sanic_cm_tbl_pago", "sanic_cm_pg_numerocuenta" },
-        };
-
         public static System.Collections.Generic.IEnumerable<object[]> PanPorMensaje()
         {
             foreach (var msg in new[] { "Create", "Update" })
@@ -31,21 +23,10 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
                         yield return new object[] { msg, col[0], col[1], valor };
         }
 
-        public static System.Collections.Generic.IEnumerable<object[]> LegacyPorMensaje()
-        {
-            foreach (var msg in new[] { "Create", "Update" })
-                foreach (var col in ColumnasLegacy)
-                    foreach (var valor in new[] { "4111111111111111", "****1234", "ZZ" })
-                        yield return new object[] { msg, col[0], col[1], valor };
-        }
-
         public static System.Collections.Generic.IEnumerable<object[]> EntidadColumna()
         {
             foreach (var msg in new[] { "Create", "Update" })
-            {
                 foreach (var col in ColumnasPan) yield return new object[] { msg, col[0], col[1] };
-                foreach (var col in ColumnasLegacy) yield return new object[] { msg, col[0], col[1] };
-            }
         }
 
         private static Harness Preparar(string mensaje, string entidad, string columna, object valor)
@@ -68,19 +49,6 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             Assert.Contains(columna, ex.Message);
             AfirmarSinValor(ex.Message, pan);
             AfirmarSinValor(h.TodoElTexto(), pan);
-        }
-
-        [Theory]
-        [MemberData(nameof(LegacyPorMensaje))]
-        public void Rechaza_cualquier_valor_no_vacio_en_las_columnas_denormalizadas_viejas(string mensaje, string entidad, string columna, string valor)
-        {
-            var h = Preparar(mensaje, entidad, columna, valor);
-
-            var ex = Assert.Throws<InvalidPluginExecutionException>(() => h.Ejecutar(new PanGuard()));
-
-            Assert.Contains(columna, ex.Message);
-            AfirmarSinValor(ex.Message, valor);
-            AfirmarSinValor(h.TodoElTexto(), valor);
         }
 
         [Fact]
@@ -128,22 +96,6 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
                     h.Ejecutar(new PanGuard()); // no debe lanzar
 
                     Assert.Equal(valor, h.Target.GetAttributeValue<string>((string)col[1]));
-                }
-            }
-        }
-
-        [Theory]
-        [InlineData("")]
-        [InlineData(null)]
-        public void Permite_vacio_o_nulo_en_las_columnas_denormalizadas_viejas(string valor)
-        {
-            foreach (var msg in new[] { "Create", "Update" })
-            {
-                foreach (var col in ColumnasLegacy)
-                {
-                    var h = Preparar(msg, (string)col[0], (string)col[1], valor);
-
-                    h.Ejecutar(new PanGuard());
                 }
             }
         }

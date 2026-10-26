@@ -34,7 +34,7 @@ namespace Sanic.CobranzaMovil.Plugins
             if (target.Contains(Esquema.AsignacionFechaAsignada) && previa.GetAttributeValue<DateTime?>(Esquema.AsignacionFechaAsignada) != null)
             {
                 target.Attributes.Remove(Esquema.AsignacionFechaAsignada);
-                local.Trace("DAT-31: se conserva la fecha asignada.");
+                local.Trace("se conserva la fecha asignada.");
             }
 
             if (target.Contains(Esquema.AsignacionEstado) || previa.GetAttributeValue<bool?>(Esquema.AsignacionEstado) != false)
@@ -56,7 +56,7 @@ namespace Sanic.CobranzaMovil.Plugins
             target[Esquema.AsignacionEstado] = true;
             target[Esquema.AsignacionMotivo] = null;
             target[Esquema.AsignacionFechaCierre] = null;
-            local.Trace("DAT-10: volvio en la carga; se reabre.");
+            local.Trace("volvio en la carga; se reabre.");
         }
 
         private static bool CerradaPorElSistema(string motivo)

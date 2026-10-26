@@ -8,10 +8,7 @@ from dvlib import rq, get
 
 REVERTIR = '--revertir' in sys.argv; APLICAR = '--aplicar' in sys.argv or REVERTIR
 P = 'sanic_cm_tbl_'
-COLS = [(P + 'cuenta', 'sanic_cm_ct_numerodecuenta'), (P + 'cargadiaria', 'sanic_cm_cd_numerocuenta'),
-        (P + 'asignacion', 'sanic_cm_as_numerocuenta'), (P + 'interaccion', 'sanic_cm_in_numerocuenta'),
-        (P + 'pago', 'sanic_cm_pg_numerocuenta')]
-if REVERTIR: COLS = COLS[:2]  # solo las que quedan enmascaradas; las demás se eliminan en el paso 8
+COLS = [(P + 'cuenta', 'sanic_cm_ct_numerodecuenta'), (P + 'cargadiaria', 'sanic_cm_cd_numerocuenta')]
 destino = REVERTIR
 for e, a in COLS:
     m = get(f"EntityDefinitions(LogicalName='{e}')/Attributes(LogicalName='{a}')/Microsoft.Dynamics.CRM.StringAttributeMetadata")

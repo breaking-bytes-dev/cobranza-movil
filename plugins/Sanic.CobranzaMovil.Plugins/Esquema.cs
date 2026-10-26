@@ -26,10 +26,11 @@ namespace Sanic.CobranzaMovil.Plugins
         public const string CargaDiariaNumero = "sanic_cm_cd_numerocuenta";
         public const string CuentaPanNombre = "sanic_cm_cp_name";
 
-        // Columnas denormalizadas viejas: deben quedar vacias
-        public const string AsignacionNumeroLegacy = "sanic_cm_as_numerocuenta";
-        public const string InteraccionNumeroLegacy = "sanic_cm_in_numerocuenta";
-        public const string PagoNumeroLegacy = "sanic_cm_pg_numerocuenta";
+        // Textos libres donde un PAN se enmascara en lugar de rechazarse (PanEnTextoLibre): vienen del telefono
+        public const string InteraccionComentario = "sanic_cm_in_comentario";
+        public const string ActualizacionDireccionCasa = "sanic_cm_ad_direccioncasa";
+        public const string ActualizacionDireccionEc = "sanic_cm_ad_direccionec";
+        public const string ActualizacionDireccionTrabajo = "sanic_cm_ad_direcciontrabajo";
 
         // Clave sustituta (HMAC) y lookups
         public const string CuentaClavePan = "sanic_cm_ct_clavepan";
@@ -173,6 +174,15 @@ namespace Sanic.CobranzaMovil.Plugins
         public const string JobSmelterEsPrueba = "sanic_smlt_ij_isdryrun";
         public const string JobSmelterArchivo = "sanic_smlt_ij_sourcefile";
         public const string JobSmelterEstado = "sanic_smlt_ij_status";
+        public const string JobSmelterId = "sanic_tbl_smlt_importjobid";
+        public const string JobSmelterArchivoNombre = "sanic_smlt_ij_sourcefile_name";
+        // Estados terminales del job (sanic_smlt_ij_status): Smelter ya no vuelve a leer el archivo
+        public const int JobEstadoCompletado = 2;
+        public const int JobEstadoConErrores = 3;
+        public const int JobEstadoFallido = 4;
+        // Purga del archivo de carga (PurgaArchivoCarga): barrido de lo viejo, acotado por corrida
+        public const int DiasConservarArchivoCarga = 7;
+        public const int MaximoPurgasPorCorrida = 50;
         public const string PlantillaSmelterDelimitador = "sanic_smlt_it_delimiter";
         public const string PlantillaSmelterEncabezado = "sanic_smlt_it_hasheaderrow";
         public const string PlantillaSmelterLote = "sanic_smlt_it_chunksize";

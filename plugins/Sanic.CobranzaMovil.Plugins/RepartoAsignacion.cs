@@ -100,7 +100,7 @@ namespace Sanic.CobranzaMovil.Plugins
             var esEspecial = tipo != null && tipo.Value == Esquema.TipoEspecial;
             if (esEspecial && (aprobacion == null || aprobacion.Value != Esquema.AprobacionAprobado))
             {
-                local.Trace("Especial sin aprobar (S-6): no se reparte.");
+                local.Trace("Especial sin aprobar: no se reparte.");
                 return;
             }
 

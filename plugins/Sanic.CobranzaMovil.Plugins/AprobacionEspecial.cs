@@ -83,7 +83,7 @@ namespace Sanic.CobranzaMovil.Plugins
             var aprobacion = target.GetAttributeValue<OptionSetValue>(Esquema.AsignacionEstadoAprobacion);
             if (aprobacion != null && aprobacion.Value != Esquema.AprobacionPendiente) return;
             target[Esquema.AsignacionEstadoAprobacion] = new OptionSetValue(Esquema.AprobacionBorrador);
-            local.Trace("DAT-28: Diaria o Incobrable nace en Borrador.");
+            local.Trace("Diaria o Incobrable nace en Borrador.");
         }
 
         /// <summary>

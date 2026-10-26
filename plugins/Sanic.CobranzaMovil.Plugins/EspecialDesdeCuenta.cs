@@ -64,7 +64,7 @@ namespace Sanic.CobranzaMovil.Plugins
             }
             copiadas += Copiar(target, faltaNio, fila, Esquema.CuentaRetiroNio, Esquema.AsignacionRetiroNio);
             copiadas += Copiar(target, faltaUsd, fila, Esquema.CuentaRetiroUsd, Esquema.AsignacionRetiroUsd);
-            local.Trace("F3: {0} dato(s) de la Especial copiados de la cuenta.", copiadas);
+            local.Trace("{0} dato(s) de la Especial copiados de la cuenta.", copiadas);
         }
 
         /// <summary>"Tipo — nota" (o solo la nota si no hay tipo); null si la cuenta no trae ninguno.</summary>

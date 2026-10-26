@@ -54,7 +54,7 @@ namespace Sanic.CobranzaMovil.Plugins
             var fila = local.ServicioSistema.Retrieve(Esquema.Producto, producto.Id, new ColumnSet(Esquema.ProductoTipo));
             var tipo = fila == null ? null : fila.GetAttributeValue<string>(Esquema.ProductoTipo);
             target[Esquema.CuentaTipoProducto] = string.IsNullOrWhiteSpace(tipo) ? null : tipo.Trim();
-            local.Trace("O3: tipo de producto copiado a la cuenta ({0}).", string.IsNullOrWhiteSpace(tipo) ? "vacio" : "con valor");
+            local.Trace("tipo de producto copiado a la cuenta ({0}).", string.IsNullOrWhiteSpace(tipo) ? "vacio" : "con valor");
         }
     }
 }
