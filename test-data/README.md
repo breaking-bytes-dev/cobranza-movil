@@ -2,7 +2,7 @@
 
 Archivos de carga de ejemplo con el formato del archivo diario del banco, para probar la plantilla de Smelter y la pantalla **Cargar archivo** sin datos reales. El formato completo (columnas, separador, codificación) y cómo se carga están en [Carga diaria](../docs/tecnica/07-carga-diaria.md).
 
-⚠️ Este directorio **nunca** lleva datos reales: ni números de tarjeta, ni CIF, ni nombres, ni teléfonos de clientes. Todo lo que hay aquí es sintético y se regenera con el script.
+⚠️ Este directorio **nunca** lleva datos reales: ni números de tarjeta, ni CIF, ni nombres, ni teléfonos de clientes. Todo lo que hay aquí es **sintético**: los números de tarjeta son ficticios y los nombres, CIF, direcciones y teléfonos, inventados. Nunca cargar estos archivos en producción.
 
 ## Archivos
 
@@ -10,9 +10,10 @@ Archivos de carga de ejemplo con el formato del archivo diario del banco, para p
 |---|---|---|
 | [`cobranza-mock-1000.csv`](cobranza-mock-1000.csv) | `2026-06-20` | Día 1: 1.000 cuentas, 33 columnas |
 | [`cobranza-mock-1000-dia2.csv`](cobranza-mock-1000-dia2.csv) | `2026-06-21` | Día 2: las mismas cuentas al día siguiente |
-| [`generar-mock.py`](generar-mock.py) | — | Generador de los dos archivos |
 
 Formato: UTF-8 sin BOM, coma como separador, CRLF, encabezado en la primera fila, fechas `aaaa-mm-dd` y decimales con punto.
+
+La `FechaCarga` es fija. Para que una carga cuente como «de hoy» (Monitoreo y Reconciliación comparan contra la fecha de hoy), reemplazar esa columna en todas las filas con un editor de texto. ⚠️ No abrir ni guardar estos archivos con Excel: convierte los números largos a notación científica, cambia las fechas al formato regional y puede cambiar la codificación o el separador.
 
 ## Qué ejercitan
 
@@ -29,15 +30,15 @@ Formato: UTF-8 sin BOM, coma como separador, CRLF, encabezado en la primera fila
 | Reasignación | ~10 % de las Diarias del día 2 cambian de agente |
 | Idempotencia | Volver a cargar el mismo archivo no cambia los conteos |
 
-## Cómo se generan
+Sirven para pruebas de **volumen** e idempotencia. Sus agentes no están vinculados a ningún usuario de prueba, así que no sirven para recorrer los flujos de las apps.
 
-Desde la raíz del repositorio (el script escribe en `test-data/` con ruta relativa):
+## Armar un archivo a mano
 
-```bash
-python3 test-data/generar-mock.py         # 1.000 filas por archivo
-python3 test-data/generar-mock.py 5000    # otra cantidad
-```
+Para los flujos de las apps conviene un archivo chico, armado a mano con un editor de texto: cinco filas alcanzan. La guía de [Pruebas](../docs/tecnica/10-pruebas.md#datos-de-prueba-el-archivo-de-carga-sintético) trae dos archivos listos para copiar y las reglas para armar uno propio:
 
-La semilla es fija: el mismo comando produce los mismos archivos, así que la prueba de idempotencia se puede repetir. Los nombres de salida son siempre `cobranza-mock-1000*.csv`, aunque se pida otra cantidad.
+- números de tarjeta ficticios que pasen el dígito verificador Luhn, con un prefijo que no emita ningún banco (los de ejemplo empiezan con `9999`);
+- `FechaCarga` igual a la fecha de hoy en la zona horaria del negocio;
+- `Agente` con el nombre exacto de un agente vinculado a un usuario de prueba;
+- CIF y nombres inventados.
 
-Si cambia el formato del archivo del banco, actualizar `COLS` en el generador junto con `FilaDeCarga.Encabezado` (ver [Carga diaria](../docs/tecnica/07-carga-diaria.md#agregar-o-cambiar-una-columna-del-archivo)).
+Si cambia el formato del archivo del banco (ver [Carga diaria](../docs/tecnica/07-carga-diaria.md#agregar-o-cambiar-una-columna-del-archivo)), estos archivos de ejemplo quedan desactualizados: hay que agregarles la columna nueva o armar uno nuevo.

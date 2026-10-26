@@ -141,19 +141,19 @@ Reglas de la partición:
 - **Permisos.** Solo Admin, Servicio o un usuario sin roles de CM. Los jobs se crean con los permisos del llamador: el rol de Smelter llega por el equipo y «Creado por» es la persona.
 - **PCI.** El archivo solo vive en memoria. Las trazas y los errores citan columnas y conteos, nunca valores.
 
-Antes de partir, la API exige que la plantilla principal deduplique el cliente por `sanic_cm_cl_cif` desde una columna del archivo, y que las plantillas derivadas estén activas y sean **copia exacta** de su parte de la principal (configuración y firma de cada mapeo). Si no coinciden, falla sin tocar nada y pide correr el script de plantillas.
+Antes de partir, la API exige que la plantilla principal deduplique el cliente por `sanic_cm_cl_cif` desde una columna del archivo, y que las plantillas derivadas estén activas y sean **copia exacta** de su parte de la principal (configuración y firma de cada mapeo). Si no coinciden, falla sin tocar nada y nombra la plantilla que no coincide. La corrección es re-sincronizar las derivadas a mano ([Instalación, paso 8.2](09-instalacion-y-despliegue.md#82-plantillas-derivadas)). ⚠️ El texto del error, en [`PartirCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PartirCarga.cs), pide regenerar las plantillas con una herramienta del repositorio que no forma parte de la instalación: ignorar esa indicación y corregir a mano.
 
 ### Plantillas de Smelter
 
-Tres plantillas (`sanic_tbl_smlt_importtemplate`). Las tres son del equipo de carga (`CM · Admin y Carga · <ENV>`), que tiene el rol **Smelter Operador** junto con `SR | CM | Admin`: alcanza para ver las plantillas y correr jobs, no para editarlas. Editar mapeos requiere el rol **Smelter Configurador** (un administrador).
+Tres plantillas (`sanic_tbl_smlt_importtemplate`). Las tres son del equipo de carga (nombre libre; se crea en [Instalación, paso 6](09-instalacion-y-despliegue.md#6-equipo-de-carga)), que tiene el rol **Smelter Operador** y cuyos miembros son los Admin: alcanza para ver las plantillas y correr jobs, no para editarlas. Editar mapeos requiere el rol **Smelter Configurador** (un administrador).
 
 | Plantilla | Se edita | Contenido |
 |---|---|---|
 | «Cobranza movil» (principal) | **A mano, solo esta** | Todos los *Table Mappings*. La usan la prueba en seco, la carga en serie y el alta de cuenta del Admin (`AltaCuenta` arma un CSV de una fila con `FilaDeCarga`) |
-| «Cobranza movil · padres» | Nunca: la genera el script | Solo los mapeos de `sanic_cm_tbl_producto`, `sanic_cm_tbl_fiador` y `sanic_cm_tbl_agente` |
-| «Cobranza movil · partes» | Nunca: la genera el script | Todos los demás mapeos |
+| «Cobranza movil · padres» | Nunca por su cuenta: es copia exacta de su parte de la principal | Solo los mapeos de `sanic_cm_tbl_producto`, `sanic_cm_tbl_fiador` y `sanic_cm_tbl_agente` |
+| «Cobranza movil · partes» | Nunca por su cuenta: es copia exacta de su parte de la principal | Todos los demás mapeos |
 
-[`paso20_plantillas_paralelas.py`](../../scripts/pan/paso20_plantillas_paralelas.py) re-sincroniza las derivadas: copia delimitador, encabezado, tamaño de lote, origen, estado y dueño, y crea, corrige o **borra** *Table Mappings* y *Column Mappings* hasta que coincidan. Se detiene si la principal tiene *Relationship Mappings* (no los sabe copiar) o mapeos repetidos.
+Cada cambio en la principal se repite a mano, en las pantallas de Smelter, en la derivada que corresponde: delimitador, encabezado, tamaño de lote, origen, estado y dueño de la plantilla, y cada *Table Mapping* y *Column Mapping* con los mismos valores; lo que ya no esté en la principal se **borra** de la derivada. El paso a paso está en [Instalación, paso 8.2](09-instalacion-y-despliegue.md#82-plantillas-derivadas). La principal no puede tener *Relationship Mappings* ni mapeos repetidos.
 
 Modelo de configuración de Smelter que usa la plantilla:
 
@@ -168,8 +168,8 @@ Tablas que escribe la plantilla y su clave de dedup (detalle de las claves alter
 | Tabla | Dedup | Notas de configuración |
 |---|---|---|
 | `sanic_cm_tbl_producto` | código | Padres |
-| `sanic_cm_tbl_fiador` | nombre | Padres. `NombreFianza` tiene valor por defecto `(sin fiador)` ([`paso13_fiador_sin_nombre.py`](../../scripts/pan/paso13_fiador_sin_nombre.py)): las filas sin fiador comparten un solo registro en vez de crear uno vacío por fila. El *lookup* de la cuenta no lleva ese valor: con el nombre vacío la cuenta queda sin fiador |
-| `sanic_cm_tbl_agente` | nombre | Padres. `UpdateIfExists = false` ([`paso19_agente_sin_update.py`](../../scripts/pan/paso19_agente_sin_update.py)): el agente existente no se reescribe (su única columna es la clave) y aparece como «omitida» en los contadores |
+| `sanic_cm_tbl_fiador` | nombre | Padres. `NombreFianza` tiene valor por defecto `(sin fiador)` ([Instalación, paso 8.1](09-instalacion-y-despliegue.md#81-plantilla-principal)): las filas sin fiador comparten un solo registro en vez de crear uno vacío por fila. El *lookup* de la cuenta no lleva ese valor: con el nombre vacío la cuenta queda sin fiador |
+| `sanic_cm_tbl_agente` | nombre | Padres. `UpdateIfExists = false` ([Instalación, paso 8.1](09-instalacion-y-despliegue.md#81-plantilla-principal)): el agente existente no se reescribe (su única columna es la clave) y aparece como «omitida» en los contadores |
 | `sanic_cm_tbl_cliente` | `sanic_cm_cl_cif` | Partes |
 | `sanic_cm_tbl_direccion` (×3), `sanic_cm_tbl_telefono` (×2) | CIF + tipo | Un *Table Mapping* por columna del archivo, diferenciados por el valor por defecto del tipo |
 | `sanic_cm_tbl_cuenta` | `sanic_cm_ct_clavepan` = `HMAC(NumeroCuenta, "cm-pan")` | Número guardado como `CONCAT("****", RIGHT(TRIM(NumeroCuenta), 4))` |
@@ -177,7 +177,7 @@ Tablas que escribe la plantilla y su clave de dedup (detalle de las claves alter
 | `sanic_cm_tbl_asignacion` | HMAC + tipo | Una asignación por cuenta y tipo |
 | `sanic_cm_tbl_cargadiaria` | HMAC + `FechaCarga` | Una foto por cuenta y día |
 
-Los scripts que construyeron la plantilla ([`paso6_plantilla.py`](../../scripts/pan/paso6_plantilla.py), [`paso8_contraer.py`](../../scripts/pan/paso8_contraer.py), `paso13`, `paso19`, `paso20`) buscan los mapeos por plantilla y tabla destino, no por id, y guardan un respaldo antes de aplicar. Sirven de referencia para recrear la configuración en otro ambiente (ver [Instalación y despliegue](09-instalacion-y-despliegue.md)).
+Cómo se crean las tres plantillas en un ambiente nuevo: [Instalación, paso 8](09-instalacion-y-despliegue.md#8-plantillas-de-smelter).
 
 ### Qué hacen los plugins sobre la carga
 
@@ -199,7 +199,7 @@ Todos los registros están en [Plugins y Custom APIs](04-plugins-y-custom-apis.m
 
 Productos, fiadores y agentes que se actualizan:
 
-- **Producto.** El job de padres lo actualiza con la última fila. Cambiar el tipo de un producto **no** se propaga a sus cuentas existentes (`TipoDesdeProducto` solo copia al crear la cuenta o cambiar su producto); para rellenarlas se corre [`paso21_tipo_producto.py`](../../scripts/pan/paso21_tipo_producto.py).
+- **Producto.** El job de padres lo actualiza con la última fila. Cambiar el tipo de un producto **no** se propaga a sus cuentas existentes (`TipoDesdeProducto` solo copia al crear la cuenta o cambiar su producto); para rellenarlas hay que corregir `ct_tipoproducto` en las cuentas existentes de ese producto. ⚠️ A confirmar el procedimiento gráfico (por ejemplo, editar las filas de «CM | TBL | Cuenta» desde **Tables** en `make.powerapps.com`, o **Export data** / **Import data from Excel** de esa tabla filtrada por producto).
 - **Fiador.** Se actualiza su dirección con la última fila.
 - **Agente.** Solo se crea si no existe. Vincularle un usuario es tarea del Admin (ver [Seguridad](03-seguridad.md)).
 
@@ -218,11 +218,11 @@ Productos, fiadores y agentes que se actualizan:
 | Interruptores y `nfUltimaCarga` | [`App.pa.yaml`](../../apps/backoffice-canvas/Src/App.pa.yaml) |
 | Custom API de partición y validación | [`PartirCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PartirCarga.cs), [`ParticionCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ParticionCarga.cs), [`ArchivoCsv.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ArchivoCsv.cs) |
 | Formato de una fila (alta de cuenta) | [`FilaDeCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/FilaDeCarga.cs), [`AltaCuenta.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/AltaCuenta.cs) |
-| Registro de las Custom APIs | [`paso12_custom_api.py`](../../scripts/pan/paso12_custom_api.py) |
-| Plantillas derivadas | [`paso20_plantillas_paralelas.py`](../../scripts/pan/paso20_plantillas_paralelas.py) |
-| Purga del archivo del trabajo | [`PurgaArchivoCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PurgaArchivoCarga.cs); a mano, [`paso10_purgar_archivos.py`](../../scripts/pan/paso10_purgar_archivos.py) |
+| Registro de las Custom APIs | Viajan en la *solution* ([Instalación, paso 3](09-instalacion-y-despliegue.md#3-revisar-lo-importado)) |
+| Plantillas (principal y derivadas) | Registros de Smelter; se crean a mano ([Instalación, paso 8](09-instalacion-y-despliegue.md#8-plantillas-de-smelter)) |
+| Purga del archivo del trabajo | [`PurgaArchivoCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PurgaArchivoCarga.cs) |
 | Pruebas unitarias | [`PurgaArchivoCargaTests.cs`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/PurgaArchivoCargaTests.cs), [`PartirCargaTests.cs`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/PartirCargaTests.cs), [`ParticionCargaTests.cs`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/ParticionCargaTests.cs), [`ArchivoCsvTests.cs`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/ArchivoCsvTests.cs), [`CargaSobreAsignacionTests.cs`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/CargaSobreAsignacionTests.cs), [`CargaComoSistemaTests.cs`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/CargaComoSistemaTests.cs) |
-| Archivos de ejemplo y generador | [`test-data/`](../../test-data/README.md) |
+| Archivos de ejemplo | [`test-data/`](../../test-data/README.md) y el archivo sintético de [Pruebas](10-pruebas.md#datos-de-prueba-el-archivo-de-carga-sintético) |
 
 ## Cómo se modifica
 
@@ -230,8 +230,8 @@ Productos, fiadores y agentes que se actualizan:
 
 1. Crear la columna en Dataverse (ver [Modelo de datos](02-modelo-de-datos.md)).
 2. Agregar el *Column Mapping* en la plantilla **principal** «Cobranza movil», nunca en las derivadas.
-3. Correr `python3 scripts/pan/paso20_plantillas_paralelas.py` (muestra el plan) y después con `--aplicar`. Sin esto, `PartirCarga` se niega a partir.
-4. Si la columna es nueva en el CSV, agregarla a `FilaDeCarga.Encabezado` para que el alta de cuenta del Admin la siga mandando, y al generador de [`test-data/`](../../test-data/README.md).
+3. Repetir el cambio en la derivada que corresponde («· padres» para producto, fiador y agente; «· partes» para el resto), como explica [Instalación, paso 8.2](09-instalacion-y-despliegue.md#82-plantillas-derivadas). Sin esto, `PartirCarga` se niega a partir.
+4. Si la columna es nueva en el CSV, agregarla a `FilaDeCarga.Encabezado` para que el alta de cuenta del Admin la siga mandando, y a los archivos de prueba ([Pruebas](10-pruebas.md#datos-de-prueba-el-archivo-de-carga-sintético)).
 5. Probar con una prueba en seco de un archivo de ejemplo.
 
 ### Cambiar la cantidad de partes
@@ -240,7 +240,7 @@ Editar `nfPartesCarga` en `App.pa.yaml`. No conviene pasar de 3: Dataverse limit
 
 ### Volver a la carga en serie
 
-`nfCargaParalela = false`. La carga real va en un job con la plantilla principal. Útil si las plantillas derivadas quedaron desincronizadas y no se puede correr el script.
+`nfCargaParalela = false`. La carga real va en un job con la plantilla principal. Útil si las plantillas derivadas quedaron desincronizadas y no se pueden corregir antes de la carga. Como el interruptor está en la app, cambiarlo es publicar una versión nueva ([App de la oficina](06-app-backoffice.md#cómo-modificar-la-app)).
 
 ### Qué hacer si la carga falla
 
@@ -248,7 +248,7 @@ Editar `nfPartesCarga` en `App.pa.yaml`. No conviene pasar de 3: Dataverse limit
 |---|---|---|
 | «No se ve la plantilla» | El usuario no está en el equipo de carga | Agregarlo al equipo (ver [Seguridad](03-seguridad.md)) |
 | La revisión rechaza el archivo por largo | Un valor no entra en su columna | Corregir el archivo en las filas citadas, o ampliar la columna en Dataverse |
-| «No coincide con Cobranza movil» | Se editó la principal sin re-sincronizar | Correr `paso20_plantillas_paralelas.py --aplicar` |
+| «No coincide con Cobranza movil» | Se editó la principal sin re-sincronizar | Re-sincronizar la derivada a mano ([Instalación, paso 8.2](09-instalacion-y-despliegue.md#82-plantillas-derivadas)) |
 | Prueba en seco con fallos | Errores por fila en Smelter | Revisar el Import Job Log en Smelter (rol Configurador o soporte) |
 | Padres con errores o fallidos | Producto, fiador o agente inválido | Las partes no se lanzan y no se carga ninguna cuenta. Corregir y volver a cargar el archivo entero |
 | Partes «Sin lanzar» | Se cerró la app antes de tiempo | «▶ Relanzar partes» en *Mis últimas cargas* |
@@ -264,7 +264,7 @@ Volver a cargar el mismo archivo es seguro: cada tabla se deduplica por su clave
 - **Prueba en seco incompleta.** No detecta valores más largos que su columna; por eso existe `SoloValidar`.
 - **Fórmulas inertes.** `btnPartirCar` y `btnRevisarLargoCar` llaman a la Custom API a través de la fuente `Environment`. Si la foto de esa fuente en la app no conoce la API o el parámetro, la fórmula queda inerte sin error. Después de instalar o cambiar una Custom API, refrescar `Environment` en Studio antes de activar los interruptores.
 - **Las plantillas se buscan por nombre.** `PartirCarga`, la pantalla y Reconciliación buscan «Cobranza movil», «Cobranza movil · padres» y «Cobranza movil · partes» por nombre exacto (constantes en [`Esquema.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/Esquema.cs)). Renombrar una rompe la carga; dos con el mismo nombre también.
-- **Relationship Mappings.** La plantilla principal no tiene. Si se agrega uno, `paso20` se detiene: un mapeo de relación con el padre en otra plantilla deja el *lookup* vacío en silencio.
+- **Relationship Mappings.** La plantilla principal no tiene. No agregarlos: un mapeo de relación con el padre en otra plantilla deja el *lookup* vacío en silencio.
 - **2 minutos por operación.** Los *plugins* síncronos corren dentro de cada lote de Smelter. Un *plugin* síncrono lento nuevo sobre cuenta o asignación puede hacer que el lote supere el límite y se deshaga entero.
 - **SYSTEM no tiene roles.** Los *plugins* que frenan a personas (por rol) no frenan la carga. Un cambio de reglas que deba aplicarse también a la carga tiene que contemplar al usuario SYSTEM ([`UsuarioSistema.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/UsuarioSistema.cs)).
 - **Lo que edita el Admin en un cliente lo pisa la carga siguiente**, porque la plantilla actualiza el cliente por CIF.

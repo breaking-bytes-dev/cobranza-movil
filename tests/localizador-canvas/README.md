@@ -1,24 +1,16 @@
 # Pruebas web de la app del localizador
 
-Prueban en el reproductor web de Power Apps lo que no necesita el teléfono: Inicio, Cliente, Cartera, formulario de interacción y accesibilidad. El reproductor corre la app **en línea**, sin base local ni sincronización: lo *offline* se prueba en el teléfono.
+Suite automatizada **para desarrolladores** que recorre en el reproductor web de Power Apps lo que no necesita el teléfono: Inicio, Cliente, Cartera, formulario de interacción y accesibilidad. El reproductor corre la app **en línea**, sin base local ni sincronización: lo *offline* se prueba en el teléfono.
 
-> ⚠️ `grupo2.js` crea y borra interacciones del localizador de prueba. Correrlas **solo en un ambiente de prueba**.
+No hace falta para instalar, operar ni verificar un ambiente. La verificación de un ambiente se hace a mano con la guía de [Pruebas](../../docs/tecnica/10-pruebas.md): los casos de esta suite están ahí como casos manuales del área [Localizador](../../docs/tecnica/10-pruebas.md#5-localizador-cartera-y-visita-offline-loc).
 
-Configuración, usuarios de prueba, cómo adaptarlas a otro ambiente y trampas conocidas: **[docs/tecnica/10-pruebas.md](../../docs/tecnica/10-pruebas.md)**.
+> ⚠️ `grupo2.js` crea y borra interacciones del localizador de prueba. Correrla **solo en un ambiente de prueba**.
 
-## Requisitos
+## Qué necesita
 
-- Las dependencias instaladas en [`tests/backoffice-canvas/`](../backoffice-canvas/).
-- El archivo de secretos del Service Principal y la sesión `sesion-<clave>.json` del usuario localizador de prueba (la clave por defecto está en [`lib/app.js`](lib/app.js)). Ver [Pruebas](../../docs/tecnica/10-pruebas.md#usuarios-de-prueba).
-- Las carteras QA del localizador, creadas con [`scripts/pan/fixture_telefonos.py`](../../scripts/pan/fixture_telefonos.py). `grupo2.js` tiene fijos valores de esas carteras: ajustarlos al ambiente.
-
-## Uso
-
-```bash
-cd tests/localizador-canvas
-NODE_PATH=../backoffice-canvas/node_modules node humo.js     # abre la app y saca una captura
-NODE_PATH=../backoffice-canvas/node_modules node grupo2.js   # pantallas y formularios
-```
+- El arnés de [`tests/backoffice-canvas/`](../backoffice-canvas/) (esta suite usa sus dependencias y su configuración, [`config.js`](../backoffice-canvas/lib/config.js)).
+- Una sesión de navegador guardada del usuario localizador de prueba (la clave del usuario por defecto está en [`lib/app.js`](lib/app.js)).
+- `grupo2.js`, además, lee y escribe filas en Dataverse con el acceso que configura [`dataverse.js`](../backoffice-canvas/lib/dataverse.js), y tiene fijos valores de las carteras de prueba de un ambiente concreto: hay que ajustarlos al ambiente donde se corra.
 
 Resultados y capturas en `resultados/`.
 

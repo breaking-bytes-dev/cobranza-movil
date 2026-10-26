@@ -8,12 +8,12 @@ La documentación completa (pantallas, sincronización, perfil *offline*, valida
 
 | Pieza | Qué es |
 |---|---|
-| [`Src/`](Src/) | Fuentes de la app en formato *SourceCode* de `pac canvas`: `App.pa.yaml`, una `scr*.pa.yaml` por pantalla y `Components/` |
-| [`sanic_appcobranzamovil_c4e67_DocumentUri.msapr`](sanic_appcobranzamovil_c4e67_DocumentUri.msapr) | Fuentes de datos, id del perfil *offline* y recursos. Se modifica solo con scripts (`scripts/pan/paso7_fuentes.py`, `scripts/pan/paso7_perfil_offline.py`) |
-| [`icono/`](icono/) | Ícono de la app (`icono.svg` fuente, `icono.png` el que se despliega) |
+| [`Src/`](Src/) | Código fuente de la app en formato `.pa.yaml`: `App.pa.yaml`, una `scr*.pa.yaml` por pantalla y `Components/`. Sirve para leer, revisar y comparar las fórmulas |
+| [`sanic_appcobranzamovil_c4e67_DocumentUri.msapr`](sanic_appcobranzamovil_c4e67_DocumentUri.msapr) | Fuentes de datos, id del perfil *offline* y recursos de la app. No se edita a mano |
+| [`icono/`](icono/) | Ícono de la app (`icono.svg` fuente, `icono.png` el que se usa) |
 
-⚠️ La carpeta de fuentes se llama `Src`, con mayúscula: con otro nombre, `pac canvas pack` empaqueta la app sin fórmulas y no avisa.
+## Instalación y cambios
 
-## Despliegue
+La app viaja dentro de la *solution* `cm_core_cobranzamovil` y se instala al importarla: [Instalación y despliegue](../../docs/tecnica/09-instalacion-y-despliegue.md). Se comparte **solo** con los localizadores ([paso 9](../../docs/tecnica/09-instalacion-y-despliegue.md#9-asignar-roles-a-las-personas-y-compartir-las-apps)).
 
-Se despliega desde el repositorio con [`paso7_desplegar.py`](../../scripts/pan/paso7_desplegar.py) (sin `--aplicar` solo arma el paquete). No publicar desde Studio ni usar los *workflows* `import-app` / `import-backoffice`. Ver [Instalación y despliegue](../../docs/tecnica/09-instalacion-y-despliegue.md#apps-canal-habitual).
+Los cambios se hacen en el ambiente de desarrollo, abriendo la app en Power Apps Studio desde la *solution*, y llegan a los demás ambientes con una versión nueva de la *solution* ([Actualizar a una versión nueva](../../docs/tecnica/09-instalacion-y-despliegue.md#actualizar-a-una-versión-nueva)). Una tabla nueva que use el teléfono se agrega antes al *offline profile*: ver [Mantenimiento](../../docs/tecnica/11-mantenimiento.md#agregar-una-columna-y-mostrarla-en-una-app). ⚠️ A confirmar el procedimiento para mantener `Src/` sincronizada con la app editada en Studio.

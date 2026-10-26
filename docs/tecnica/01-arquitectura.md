@@ -39,7 +39,7 @@ flowchart LR
 | Ensamblado de plugins | Un *plugin* es código C# que Dataverse ejecuta dentro de la operación de guardado. Una *Custom API* es un mensaje propio de Dataverse, respaldado por un plugin, que las apps llaman como una función | Toda la lógica que no se puede delegar al teléfono ni a la pantalla. Detalle en [Plugins y Custom APIs](04-plugins-y-custom-apis.md) |
 | Smelter | Herramienta de importación de terceros que corre en el mismo ambiente. Se configura con plantillas; no se modifica su código | Convierte el CSV del banco en registros de Dataverse. Detalle en [Carga diaria](07-carga-diaria.md) |
 | Trabajos de *bulk delete* | Trabajos programados nativos de Dataverse que borran en masa las filas que cumplen una consulta | Retención: nada vive más de lo necesario. Detalle en [Ciclo de vida](08-ciclo-de-vida.md) |
-| Roles y equipos | Roles `SR \| CM \| <perfil>` asignados por equipo, más el *owner team* (equipo que puede ser dueño de registros) «CM · Cartera sin cobrador» | Quién ve y escribe qué. Detalle en [Seguridad](03-seguridad.md) |
+| Roles y equipos | Roles `SR \| CM \| <perfil>` asignados directamente a la persona o a través de cualquier equipo, más el *owner team* (equipo que puede ser dueño de registros) «CM · Cartera sin cobrador» | Quién ve y escribe qué. Detalle en [Seguridad](03-seguridad.md) |
 
 Las 14 tablas: `sanic_cm_tbl_cliente`, `sanic_cm_tbl_cuenta`, `sanic_cm_tbl_cuentapan` (bóveda del número de tarjeta), `sanic_cm_tbl_cargadiaria`, `sanic_cm_tbl_asignacion`, `sanic_cm_tbl_interaccion`, `sanic_cm_tbl_pago`, `sanic_cm_tbl_actualizaciondatos`, `sanic_cm_tbl_agente`, `sanic_cm_tbl_producto`, `sanic_cm_tbl_fiador`, `sanic_cm_tbl_direccion`, `sanic_cm_tbl_telefono` y `sanic_cm_tbl_opcionlista`.
 
@@ -73,11 +73,11 @@ sequenceDiagram
 
 1. **Carga.** El Admin sube el CSV en [`scrCargaArchivo.pa.yaml`](../../apps/backoffice-canvas/Src/scrCargaArchivo.pa.yaml). La Custom API [`PartirCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PartirCarga.cs) parte el archivo en un job de «padres» (producto, fiador, agente) y varios jobs de «partes» repartidos por cliente (la API acepta de 1 a 4; la app pide 3), para que la carga corra en paralelo. Las partes se ponen en cola recién cuando el job de padres termina. Cuando cada job termina, el plugin asíncrono [`PurgaArchivoCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PurgaArchivoCarga.cs) borra su CSV, que trae los PAN completos. Smelter hace *upsert* (crear o actualizar según una clave) por *alternate key* (clave alternativa: columnas únicas distintas del id) y escribe como el usuario SYSTEM.
 2. **Reparto de asignaciones.** Por cada asignación, el plugin asíncrono [`RepartoAsignacion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/RepartoAsignacion.cs) pone como dueño al usuario del agente y le comparte en lectura la cuenta, el cliente y el fiador. Sin agente o sin usuario, el dueño pasa al equipo «CM · Cartera sin cobrador», que no tiene miembros. Una Especial que todavía no aprobó el Supervisor no se reparte.
-3. **Sincronización y trabajo offline.** El teléfono baja lo que el localizador puede leer: sus asignaciones activas y 90 días de historial ([`paso7_perfil_offline.py`](../../scripts/pan/paso7_perfil_offline.py)). Sin señal, registra interacciones, pagos y actualizaciones de datos en la base local.
+3. **Sincronización y trabajo offline.** El teléfono baja lo que el localizador puede leer: sus asignaciones activas y 90 días de historial (*offline profile* «Cobranza Movil - Cobrador», que viaja en la *solution*; ver [Instalación, paso 3](09-instalacion-y-despliegue.md#3-revisar-lo-importado)). Sin señal, registra interacciones, pagos y actualizaciones de datos en la base local.
 4. **Subida.** Al recuperar señal, el runtime offline sube lo pendiente con la identidad del localizador. Los plugins exigen cuenta y agente, ponen el agente del usuario, completan lookups (*lookup*: columna que apunta a otra fila) y marcan lo dudoso.
 5. **Transcripción.** El BackOffice abre [`scrTranscripcion.pa.yaml`](../../apps/backoffice-canvas/Src/scrTranscripcion.pa.yaml), lee el número completo de la bóveda, transcribe la interacción al core y la marca **grabada** con el código que devuelve el core. [`GrabacionInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/GrabacionInteraccion.cs) impide grabarla dos veces y pone la fecha y el usuario.
 6. **Reconciliación y cierres.** El Admin cierra en [`scrReconciliacion.pa.yaml`](../../apps/backoffice-canvas/Src/scrReconciliacion.pa.yaml) las Diarias que no vinieron en la última carga (Custom API [`CerrarFueraDeCartera.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/CerrarFueraDeCartera.cs)) y en [`scrCierres.pa.yaml`](../../apps/backoffice-canvas/Src/scrCierres.pa.yaml) las Incobrables y Especiales. Cada cierre dispara el reparto, que revoca el acceso; la asignación desaparece del teléfono en la siguiente sincronización.
-7. **Borrado programado.** Los trabajos de [`paso10_borrado_programado.py`](../../scripts/seguridad/paso10_borrado_programado.py) borran la carga diaria a los 7 días, las cuentas 14 días después de salir de cartera y lo que capturó el teléfono a los 2 años.
+7. **Borrado programado.** Siete trabajos diarios de *bulk delete*, creados a mano en cada ambiente ([Instalación, paso 11](09-instalacion-y-despliegue.md#11-borrado-programado)), borran la carga diaria a los 7 días, las cuentas 14 días después de salir de cartera y lo que capturó el teléfono a los 2 años.
 
 ### Por qué una canvas app offline en el teléfono
 
@@ -101,7 +101,7 @@ El número de cuenta del archivo del banco es el PAN real, así que la solución
 |---|---|
 | Almacenamiento | El PAN completo vive solo en la bóveda `sanic_cm_tbl_cuentapan`, 1:1 con la cuenta. Las demás tablas guardan `****1234` y los últimos 4 |
 | Claves | Las uniones y el upsert usan una clave sustituta HMAC-SHA256 del PAN (`*_clavepan`), que calcula Smelter con una clave secreta K. Ningún plugin conoce K |
-| Acceso | La bóveda se protege con seguridad por fila (no por columna): el localizador la ve por el compartido en *cascade* (propagación automática de padre a hijo) desde la cuenta; el BackOffice la lee entera; Admin, Solicitante y Supervisor no tienen privilegios; nadie la crea ni la edita salvo la carga ([`paso4_roles.py`](../../scripts/pan/paso4_roles.py)) |
+| Acceso | La bóveda se protege con seguridad por fila (no por columna): el localizador la ve por el compartido en *cascade* (propagación automática de padre a hijo) desde la cuenta; el BackOffice la lee entera; Admin, Solicitante y Supervisor no tienen privilegios; nadie la crea ni la edita salvo la carga. Los privilegios viajan con los roles en la *solution* ([Instalación, paso 4.2](09-instalacion-y-despliegue.md#42-revisar-los-privilegios-de-la-bóveda)) |
 | Red de seguridad | [`PanGuard.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PanGuard.cs) rechaza 5 o más dígitos seguidos (aunque estén separados por espacios o guiones) en el nombre principal de la cuenta, la carga diaria y la bóveda, en Create y Update. [`PanEnTextoLibre.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PanEnTextoLibre.cs) enmascara (sin rechazar) un número de tarjeta escrito en el comentario de la interacción o en las direcciones de la actualización de datos |
 | Archivo de carga | [`PurgaArchivoCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PurgaArchivoCarga.cs) borra el CSV del job de Smelter al terminar y barre los de más de 7 días |
 | Pantalla | Enmascarado por defecto; «Ver número» en el teléfono durante 30 s; el PAN no se guarda en colecciones ni en `SaveData` |
@@ -114,14 +114,13 @@ El número de cuenta del archivo del banco es el PAN real, así que la solución
 | App de la oficina | [`apps/backoffice-canvas/Src/`](../../apps/backoffice-canvas/Src/) — fórmulas globales e interruptores en [`App.pa.yaml`](../../apps/backoffice-canvas/Src/App.pa.yaml) |
 | Plugins y Custom APIs | [`plugins/Sanic.CobranzaMovil.Plugins/`](../../plugins/Sanic.CobranzaMovil.Plugins/) — nombres de tablas y columnas en [`Esquema.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/Esquema.cs) |
 | Pruebas de plugins | [`plugins/Sanic.CobranzaMovil.Plugins.Tests/`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/) |
-| Registro de plugins y Custom APIs | [`paso5_plugins.py`](../../scripts/pan/paso5_plugins.py), [`paso12_custom_api.py`](../../scripts/pan/paso12_custom_api.py) |
-| Perfil offline | [`paso7_perfil_offline.py`](../../scripts/pan/paso7_perfil_offline.py) |
-| Plantillas de Smelter | [`paso6_plantilla.py`](../../scripts/pan/paso6_plantilla.py), [`paso20_plantillas_paralelas.py`](../../scripts/pan/paso20_plantillas_paralelas.py) |
-| Cascadas y auditoría | [`paso1_cascadas_auditoria.py`](../../scripts/seguridad/paso1_cascadas_auditoria.py) |
-| Equipo «Cartera sin cobrador» | [`paso5_cartera_sin_cobrador.py`](../../scripts/seguridad/paso5_cartera_sin_cobrador.py) |
-| Borrado programado | [`paso10_borrado_programado.py`](../../scripts/seguridad/paso10_borrado_programado.py); archivo de carga: [`PurgaArchivoCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PurgaArchivoCarga.cs) |
+| Pasos de plugins, Custom APIs, *offline profile*, cascadas y auditoría por tabla | Viajan en la *solution* `cm_core_cobranzamovil`; se revisan después de importar ([Instalación, paso 3](09-instalacion-y-despliegue.md#3-revisar-lo-importado)). La auditoría del ambiente se enciende a mano ([paso 12](09-instalacion-y-despliegue.md#12-ajustes-del-ambiente)) |
+| Plantillas de Smelter | Registros de Smelter, se crean a mano en cada ambiente ([Instalación, paso 8](09-instalacion-y-despliegue.md#8-plantillas-de-smelter)); nombres fijos en [`Esquema.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/Esquema.cs) |
+| Equipo «Cartera sin cobrador» | Se crea a mano ([Instalación, paso 5](09-instalacion-y-despliegue.md#5-equipo-cartera-sin-cobrador)); lo busca [`CarteraSinCobrador.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/CarteraSinCobrador.cs) |
+| Perfiles de la app de la oficina | Custom API `sanic_cm_MisRoles` ([`MisRoles.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/MisRoles.cs)), llamada desde [`scrCarga.pa.yaml`](../../apps/backoffice-canvas/Src/scrCarga.pa.yaml) |
+| Borrado programado | Siete trabajos de *bulk delete* creados a mano ([Instalación, paso 11](09-instalacion-y-despliegue.md#11-borrado-programado)); archivo de carga: [`PurgaArchivoCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PurgaArchivoCarga.cs) |
 | Solución desempaquetada | [`solutions/unpacked/`](../../solutions/unpacked/) (puede estar atrasada respecto del ambiente) |
-| Pruebas de punta a punta | [`tests/`](../../tests/) — ver [Pruebas](10-pruebas.md) |
+| Pruebas | Casos manuales por interfaz en [Pruebas](10-pruebas.md); las suites automatizadas de [`tests/`](../../tests/) son solo para desarrolladores |
 
 ## Cómo se modifica
 
@@ -130,13 +129,13 @@ El número de cuenta del archivo del banco es el PAN real, así que la solución
 1. Crear la clase heredando de [`PluginBase.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PluginBase.cs) y llamar a `ExigirRegistro` con tabla, etapa y mensaje, para que un registro mal hecho falle cerrado.
 2. Si la regla toca algo que crea el teléfono, **marcar en vez de rechazar**.
 3. Si corre en cada fila de la carga, evitar consultas: usar `RolesCm.DelLlamadorSalvoSistema` y filtros de columnas en el paso.
-4. Registrar el paso en [`paso5_plugins.py`](../../scripts/pan/paso5_plugins.py) y subir la versión del ensamblado. Detalle en [Plugins y Custom APIs](04-plugins-y-custom-apis.md).
+4. Subir la versión del ensamblado, registrar el paso en el ambiente de desarrollo, agregarlo a la *solution* y exportar una versión nueva. Detalle en [Plugins y Custom APIs](04-plugins-y-custom-apis.md#4-registrar-el-paso).
 
-**Agregar una tabla que el teléfono necesite.** Agregarla a la solución, darle privilegios al rol Localizador, sumarla a `TABLAS` (y a `FILTROS` si hace falta acotarla) en [`paso7_perfil_offline.py`](../../scripts/pan/paso7_perfil_offline.py) y refrescar las fuentes de la app. Detalle en [App del localizador](05-app-localizador.md).
+**Agregar una tabla que el teléfono necesite.** Agregarla a la solución, darle privilegios al rol Localizador, sumarla (con un filtro de filas si hace falta acotarla) al *offline profile* «Cobranza Movil - Cobrador» en el admin center → ambiente → **Settings** → **Users + permissions** → **Mobile configuration**, publicar el perfil y refrescar las fuentes de la app. Detalle en [App del localizador](05-app-localizador.md).
 
-**Agregar una columna al archivo del banco.** Se edita solo la plantilla principal «Cobranza movil» y después se corre [`paso20_plantillas_paralelas.py`](../../scripts/pan/paso20_plantillas_paralelas.py); `PartirCarga` se niega a partir si las plantillas derivadas no coinciden. Detalle en [Carga diaria](07-carga-diaria.md).
+**Agregar una columna al archivo del banco.** Se edita la plantilla principal «Cobranza movil» y se repite el cambio a mano en la derivada que corresponde («· padres» o «· partes»), como indica [Instalación, paso 8.2](09-instalacion-y-despliegue.md#82-plantillas-derivadas); `PartirCarga` se niega a partir si las plantillas derivadas no coinciden. Detalle en [Carga diaria](07-carga-diaria.md).
 
-**Instalar en otro ambiente.** El orden importa (cascadas antes de la primera carga, equipo sin cobrador antes del reparto). Ver [Instalación y despliegue](09-instalacion-y-despliegue.md).
+**Instalar en otro ambiente.** El orden importa (equipo «Cartera sin cobrador», clave K y plantillas antes de la primera carga). Ver [Instalación y despliegue](09-instalacion-y-despliegue.md).
 
 ## Trampas y errores conocidos
 
@@ -152,4 +151,4 @@ El número de cuenta del archivo del banco es el PAN real, así que la solución
 - **Sin roles de CM no hay restricción.** Los plugins que miran roles tratan a quien no tiene ningún rol `SR | CM | ` como SYSTEM o administrador del entorno y no lo frenan ([`RolesCm.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/RolesCm.cs)). En producción, ninguna persona de la operación debe quedar sin rol de CM.
 - **Quitar un permiso no limpia el teléfono hasta la próxima sincronización.** Una cuenta revocada sigue en el dispositivo hasta que sincroniza.
 - ⚠️ **El archivo del banco queda en el job de Smelter hasta que el job termina.** `PurgaArchivoCarga` lo borra al llegar a un estado terminal en las tres plantillas de CM. Una parte sin estado que nadie relanza ni descarta, o una carga sin estado que nadie cierra, conserva su archivo con los PAN completos. Ver [Ciclo de vida](08-ciclo-de-vida.md#archivo-de-carga-de-smelter).
-- **La app de la oficina deduce el rol del nombre del equipo** «CM · <perfil> · <entorno>» cuando el rol llega por equipo (también lee los roles directos `SR | CM | *`) ([`App.pa.yaml`](../../apps/backoffice-canvas/Src/App.pa.yaml)). Renombrar un equipo deja a sus miembros sin pantallas.
+- **La app de la oficina toma el rol de la *Custom API* `sanic_cm_MisRoles`** (roles efectivos `SR | CM | *`, directos y por equipo) al abrir ([`scrCarga.pa.yaml`](../../apps/backoffice-canvas/Src/scrCarga.pa.yaml)). Renombrar un rol de CM deja a sus miembros sin pantallas; renombrar un equipo, no.

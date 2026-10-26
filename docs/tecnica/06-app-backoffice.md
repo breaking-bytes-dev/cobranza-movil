@@ -17,17 +17,13 @@ La app es de escritorio (1366 × 768) y se adapta a pantallas angostas: `nfMovil
 
 ### Cómo se determina el rol del usuario
 
-El rol se calcula en [`App.pa.yaml`](../../apps/backoffice-canvas/Src/App.pa.yaml) a partir de la seguridad real de Dataverse, sin tabla propia:
+El rol sale de la seguridad real de Dataverse, sin tabla propia ni nombres de equipos:
 
-1. `gblUsuarioDV` busca al usuario en `Users` por `'Azure AD Object ID' = User().EntraObjectId`. Se usa el id de Entra y no el correo porque `User().Email` devuelve el UPN, que puede no coincidir con el correo principal.
-2. `gblRol` junta dos fuentes, separadas por `|`:
-   - **Roles directos** con prefijo `SR | CM | `: `SR | CM | Admin` → `Admin`.
-   - **Roles por equipo**: equipos cuyo nombre sigue el patrón `CM · <perfil> · <sufijo del ambiente>`. El segmento del medio se traduce: `Backoffice` → `BackOffice`, `Solicitantes` → `Solicitante`, `Supervisores` → `Supervisor`, `Admin y Carga` → `Admin`. El sufijo se ignora.
-3. Un usuario con varios roles queda, por ejemplo, `BackOffice|Admin`. Las comprobaciones usan `"Admin" in gblRol`, que no distingue mayúsculas.
+1. `gblUsuarioDV` (fórmula con nombre en [`App.pa.yaml`](../../apps/backoffice-canvas/Src/App.pa.yaml)) busca al usuario en `Users` por `'Azure AD Object ID' = User().EntraObjectId`. Se usa el id de Entra y no el correo porque `User().Email` devuelve el UPN, que puede no coincidir con el correo principal.
+2. `gblRol` es una variable que pone el `OnVisible` de la pantalla inicial [`scrCarga`](../../apps/backoffice-canvas/Src/scrCarga.pa.yaml) con la *Custom API* [`sanic_cm_MisRoles`](04-plugins-y-custom-apis.md#sanic_cm_misroles): los roles efectivos del usuario (directos y de cualquier equipo, también de grupo de Entra ID) sin el prefijo `SR | CM | ` y separados por `|`, por ejemplo `Admin|BackOffice`. `Servicio - Cobranza` no cuenta como perfil.
+3. Las comprobaciones usan `"Admin" in gblRol`, que no distingue mayúsculas.
 
-Por qué se lee el nombre del equipo: Power Fx no deja navegar Equipo → Roles dentro de un `ForAll`. ⚠️ Renombrar un equipo de CM o un rol de CM cambia el resultado: el nombre es parte del contrato con la app.
-
-`gblUsuarioDV` y `gblRol` son fórmulas con nombre, no `Set` en `OnStart`, para que estén disponibles aunque una pantalla corra antes de que termine el arranque. La pantalla inicial [`scrCarga`](../../apps/backoffice-canvas/Src/scrCarga.pa.yaml) muestra «Cargando…» y, con el temporizador `tmrCarga` (cada 0,5 s), pasa a Inicio cuando el rol resolvió; si el usuario existe pero no tiene rol, a los 3 s; como tope, a los 15 s. Sin rol, [`scrInicio`](../../apps/backoffice-canvas/Src/scrInicio.pa.yaml) muestra «Sin acceso».
+Mientras la API no responde, `gblRolListo` es falso: `scrCarga` muestra «Cargando tus permisos…» y el temporizador `tmrCarga` (cada 0,5 s) pasa a Inicio recién cuando resolvió, así el `OnVisible` de [`scrInicio`](../../apps/backoffice-canvas/Src/scrInicio.pa.yaml) calcula los KPIs con el rol. Como tope, a los 30 s entra igual con error. En Inicio, «Cargando tus permisos…» mientras no resolvió; «Sin acceso» si resolvió vacío; «No se pudo verificar tu acceso» con el detalle (`gblRolError`) si la API falló. El menú muestra «Cargando…» en el lugar del rol.
 
 ### Menú por rol
 
@@ -195,7 +191,7 @@ La pantalla [`scrListas`](../../apps/backoffice-canvas/Src/scrListas.pa.yaml) ed
 - **No hay borrado, se desactiva.** Lo elegido se guarda como texto en la asignación o la interacción: renombrar o desactivar no cambia el historial. Nadie tiene privilegio Delete sobre la tabla.
 - No deja una lista sin ninguna activa: la app mostraría los valores de respaldo y confundiría.
 - Subir y bajar intercambian el `[OL] Orden` con la vecina; una opción nueva va al final (máximo + 10).
-- Solo Admin y Servicio tienen Create y Write ([`paso23_listas.py`](../../scripts/pan/paso23_listas.py)).
+- Solo Admin y Servicio tienen Create y Write (privilegios de los roles, que viajan en la *solution*; ver [Seguridad](03-seguridad.md#matriz-de-privilegios-por-tabla)).
 
 ### Patrones
 
@@ -279,42 +275,38 @@ If(IsBlank(varErr), /* éxito */, Notify("No se pudo …: " & varErr, Notificati
 | Fuentes de datos y recursos | [`sanic_appcmbackofficecanvas_d0162_DocumentUri.msapr`](../../apps/backoffice-canvas/sanic_appcmbackofficecanvas_d0162_DocumentUri.msapr) |
 | Rol, tokens, funciones e interruptores | [`App.pa.yaml`](../../apps/backoffice-canvas/Src/App.pa.yaml) |
 | Menú por rol | [`cmpNavLateral.pa.yaml`](../../apps/backoffice-canvas/Src/Components/cmpNavLateral.pa.yaml) |
-| *Custom APIs* que llama la app (`sanic_cm_SolicitarEspecial` en Nueva solicitud, `sanic_cm_AltaCuenta` en Alta de cuenta, `sanic_cm_PartirCarga` en Cargar archivo, `sanic_cm_CerrarFueraDeCartera` en Reconciliación) | [`SolicitarEspecial.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/SolicitarEspecial.cs), [`AltaCuenta.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/AltaCuenta.cs), [`PartirCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PartirCarga.cs), [`CerrarFueraDeCartera.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/CerrarFueraDeCartera.cs) |
+| *Custom APIs* que llama la app (`sanic_cm_MisRoles` en la pantalla de carga, `sanic_cm_SolicitarEspecial` en Nueva solicitud, `sanic_cm_AltaCuenta` en Alta de cuenta, `sanic_cm_PartirCarga` en Cargar archivo, `sanic_cm_CerrarFueraDeCartera` en Reconciliación) | [`MisRoles.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/MisRoles.cs), [`SolicitarEspecial.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/SolicitarEspecial.cs), [`AltaCuenta.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/AltaCuenta.cs), [`PartirCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PartirCarga.cs), [`CerrarFueraDeCartera.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/CerrarFueraDeCartera.cs) |
 | *Plugins* que reaccionan a sus escrituras | [`GrabacionInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/GrabacionInteraccion.cs), [`AprobacionEspecial.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/AprobacionEspecial.cs), [`ColumnasAsignacion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ColumnasAsignacion.cs), [`RepartoAsignacion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/RepartoAsignacion.cs), [`RepartoPorAgente.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/RepartoPorAgente.cs), [`EmailDesdeUsuario.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/EmailDesdeUsuario.cs) |
-| Tabla de listas | [`paso23_listas.py`](../../scripts/pan/paso23_listas.py) |
-| Fuentes de datos y despliegue | [`paso7_fuentes.py`](../../scripts/pan/paso7_fuentes.py), [`paso7_esquema.py`](../../scripts/pan/paso7_esquema.py), [`paso7_desplegar.py`](../../scripts/pan/paso7_desplegar.py) |
+| Tabla de listas | `sanic_cm_tbl_opcionlista`, en la *solution* ([Modelo de datos](02-modelo-de-datos.md#sanic_cm_tbl_opcionlista--cm--tbl--opción-de-lista)); opciones iniciales en [Instalación, paso 10](09-instalacion-y-despliegue.md#10-opciones-iniciales-de-las-listas) |
+| Despliegue | Importar la *solution* ([Instalación y despliegue](09-instalacion-y-despliegue.md#actualizar-a-una-versión-nueva)) |
 | Pruebas de punta a punta | [`tests/backoffice-canvas/`](../../tests/backoffice-canvas/) ([Pruebas](10-pruebas.md)) |
 
 ## Cómo se modifica
 
 ### Cómo modificar la app
 
-Igual que la app del localizador: las fuentes `.pa.yaml` viven en el repositorio, las fuentes de datos en el `.msapr` y el `.msapp` lo arma `pac canvas pack` en cada despliegue. Pasos:
+Igual que la app del localizador: se edita en **Power Apps Studio** dentro de la *solution* `cm_core_cobranzamovil` del ambiente de desarrollo y llega a los demás ambientes con una versión nueva de la *solution* ([Instalación y despliegue](09-instalacion-y-despliegue.md#actualizar-a-una-versión-nueva)). Pasos:
 
-1. Editar el `.pa.yaml`. Una fórmula que contiene `: ` va en bloque `|-` (en una sola línea, YAML la parte en otro par clave-valor y Studio no abre la app).
-2. Respetar lo que `pac` no valida: nombres de control únicos en toda la app, `Radius*` solo en `GroupContainer`, sin `AccessibleLabel` en `Classic/Button`.
-3. Desplegar con [`paso7_desplegar.py`](../../scripts/pan/paso7_desplegar.py): sella la versión, revisa el YAML y la foto del esquema, empaqueta (mínimo 17 `.pa.yaml`), actualiza las referencias de tablas en la *solution*, importa y restaura el estado de los pasos de *plugin* y los *flows*. `--parche` despliega solo lo que contiene la *solution* de parche ([`paso22_parche.py`](../../scripts/pan/paso22_parche.py)), más rápido. Detalle en [Instalación y despliegue](09-instalacion-y-despliegue.md).
-4. Verificar en el pie del menú que «Versión» muestre el commit desplegado.
+1. `make.powerapps.com`, ambiente de desarrollo → **Solutions** → `cm_core_cobranzamovil` → **Apps** → «App - CM - Backoffice Canvas» → **Edit**.
+2. Hacer el cambio. Respetar: nombres de control únicos en toda la app, `Radius*` solo en `GroupContainer`, sin `AccessibleLabel` en `Classic/Button`. No publicar con fórmulas marcadas en rojo.
+3. Actualizar `nfVersion` en `App.Formulas` con la versión nueva.
+4. **Save** y **Publish**.
+5. Verificar en el pie del menú que «Versión» muestre el valor nuevo ([Pruebas](10-pruebas.md), PRE-07).
+6. Exportar la *solution* e importarla en el destino ([Instalación, pasos 1 y 2](09-instalacion-y-despliegue.md#1-conseguir-el-paquete-de-la-solution)).
 
-El paso a paso de empaquetado, la explicación del `.msapr` y el ejemplo de YAML están en [App del localizador](05-app-localizador.md#cómo-modificar-la-app).
+La relación entre Studio y las fuentes `.pa.yaml` del repositorio, y el ejemplo de YAML, están en [App del localizador](05-app-localizador.md#cómo-modificar-la-app).
 
 ### Agregar una columna o una tabla
 
-1. Crear la columna o tabla en Dataverse ([Modelo de datos](02-modelo-de-datos.md)).
-2. Refrescar o agregar la fuente:
+1. Crear la columna o tabla en Dataverse, dentro de la *solution* ([Modelo de datos](02-modelo-de-datos.md#agregar-una-columna)).
+2. En Studio, panel **Data** → la tabla → **⋯** → **Refresh** para una columna nueva, o **Add data** para una tabla nueva. Sin este paso, la fórmula que nombra la columna no la encuentra.
+3. Usarla, guardar y publicar.
 
-   ```bash
-   python3 scripts/pan/paso7_fuentes.py apps/backoffice-canvas/sanic_appcmbackofficecanvas_d0162_DocumentUri.msapr \
-       --tablas sanic_cm_tbl_asignacion --aplicar
-   ```
-
-3. Usarla en el `.pa.yaml` y desplegar. Sin el paso 2, la fórmula queda inerte sin aviso; [`paso7_esquema.py`](../../scripts/pan/paso7_esquema.py) lo detecta antes de importar.
-
-El script conserva el límite de filas (`MaxGetRowsCount`) de una fuente que ya existe; una tabla nueva toma el mayor de las fuentes de Dataverse que ya tiene la app (500 si no hay ninguna).
+Las pantallas de esta app cuentan con un límite de 2.000 filas por consulta; en Studio se ve en **Settings** → **General** → **Data row limit** (Límite de filas de datos).
 
 ### Agregar o cambiar una Custom API
 
-`paso7_fuentes.py` refresca tablas, no la fuente `Environment`. Para que la app conozca una *Custom API* nueva o un parámetro nuevo hay que abrir la app en Studio y refrescar `Environment`, guardar y traer el `.msapr` actualizado al repositorio. Mientras tanto, proteger la fórmula con un interruptor en `App.Formulas`, como `nfCierreServidor`. Los id van como texto: la fuente `Environment` declara los `Guid` de la API como texto (`Text(varCtaNva.'CM | TBL | Cuenta')`).
+Las *Custom APIs* se llaman a través de la fuente `Environment`, que guarda una foto de las APIs y sus parámetros. Para que la app conozca una API nueva o un parámetro nuevo, en Studio, **Data** → `Environment` → **⋯** → **Refresh**, guardar y publicar. Mientras la API no esté instalada en todos los ambientes, proteger la fórmula con un interruptor en `App.Formulas`, como `nfCierreServidor`. Los id van como texto: la fuente `Environment` declara los `Guid` de la API como texto (`Text(varCtaNva.'CM | TBL | Cuenta')`).
 
 ### Agregar una pantalla al menú
 
@@ -325,21 +317,21 @@ El script conserva el límite de filas (`MaxGetRowsCount`) de una fuente que ya 
 
 ### Agregar un rol
 
-Sumar el nombre a la fila del menú (`Roles`) y, si se asigna por equipo, el segmento del nombre del equipo al `Switch` de `gblRol` en `App.pa.yaml`. Ver [Seguridad](03-seguridad.md#agregar-un-rol-nuevo).
+Crear el rol `SR | CM | <perfil>` y sumar `<perfil>` a la fila del menú (`Roles`). `sanic_cm_MisRoles` lo devuelve solo, sea directo o por equipo. Ver [Seguridad](03-seguridad.md#agregar-un-rol-nuevo).
 
 ### Agregar una lista administrable
 
-Agregar el valor al *choice* `[OL] Lista` de la tabla (la definición está en [`paso23_listas.py`](../../scripts/pan/paso23_listas.py)), refrescar la fuente en las dos apps con `paso7_fuentes.py`, sumar la entrada a `colListasLst` y al `Switch` de `varEnumLst` en `scrListas`, y leerla en la pantalla que la usa con valores de respaldo.
+Agregar el valor al *choice* `[OL] Lista` de la tabla `sanic_cm_tbl_opcionlista` (en la *solution*: **Tables** → la tabla → **Columns** → `[OL] Lista` → agregar la opción), refrescar la fuente en las dos apps desde Studio (**Data** → la tabla → **⋯** → **Refresh**), sumar la entrada a `colListasLst` y al `Switch` de `varEnumLst` en `scrListas`, y leerla en la pantalla que la usa con valores de respaldo.
 
 ## Trampas y errores conocidos
 
 - ⚠️ **El ComboBox clásico no muestra registros de Dataverse en esta app** (filas en blanco, también con `Users`) y al abrir puede disparar su `OnChange`. Para elegir un registro se usa buscador + galería; los `Classic/ComboBox` y `Classic/DropDown` que hay se usan solo sobre tablas de textos (tipo de Especial, motivos de cierre, tipos de teléfono y dirección).
-- ⚠️ **Fórmula inerte sin aviso.** Una columna que la foto del esquema no conoce, una *Custom API* que la fuente `Environment` no conoce o una comparación de tipos incompatibles (por ejemplo, un lookup contra un registro guardado en una variable) dejan inerte la fórmula, y a veces todo el `OnVisible`, sin error visible. Studio la marcaría en rojo; `pac` la empaqueta igual.
+- ⚠️ **Fórmula inerte sin aviso.** Una columna que la foto del esquema no conoce, una *Custom API* que la fuente `Environment` no conoce o una comparación de tipos incompatibles (por ejemplo, un lookup contra un registro guardado en una variable) dejan inerte la fórmula, y a veces todo el `OnVisible`, sin error visible. Studio la marca en rojo: revisar que no quede ninguna antes de publicar.
 - **Límite de filas:** 2.000 por consulta copiada a una colección. `AllItemsCount` de una galería cuenta solo la página cargada; sirve para saber si hay cero resultados, no para totales.
 - **Fechas DateOnly:** `'Última carga'` se compara día contra día. `[CD] FechaCarga` comparada contra `Today()` viaja como `ge <hoy>T06:00Z` y da 0 el día de la carga; Monitoreo usa `DateAdd(Today(), -TimeZoneOffset(Today()), TimeUnit.Minutes)`.
 - **Corte por día, no por fecha y hora:** en Reconciliación, una Diaria cargada segundos antes del último registro no está fuera de cartera.
 - **Escrituras por fuera de la app:** lo que escriben las *Custom APIs* o Smelter no aparece hasta hacer `Refresh` de la fuente.
 - **Los temporizadores mueren al cerrar la app.** Si el Admin cierra Cargar archivo antes de que terminen los padres, las partes quedan sin estado; el historial de la pantalla ofrece relanzarlas o descartarlas, y mientras tanto conservan su archivo (con los números completos) y Reconciliación las cuenta como carga en curso durante 12 h.
-- **El nombre de los equipos y roles es parte del contrato** con `gblRol` (ver [Cómo se determina el rol](#cómo-se-determina-el-rol-del-usuario)).
+- **El nombre de los roles es parte del contrato** con `gblRol` (prefijo `SR | CM | ` y perfil; ver [Cómo se determina el rol](#cómo-se-determina-el-rol-del-usuario)). El nombre de los equipos no.
 - **`DropDown` aplica `Default` una sola vez:** si sus opciones se cargan después, hay que hacer `Reset()` del control.
-- No publicar desde Studio y no usar los *workflows* `import-app` / `import-backoffice`: ver [App del localizador](05-app-localizador.md#despliegue) e [Instalación y despliegue](09-instalacion-y-despliegue.md).
+- Editar solo en el ambiente de desarrollo, dentro de la *solution*, y llevar el cambio con una versión nueva de la *solution*: ver [App del localizador](05-app-localizador.md#despliegue) e [Instalación y despliegue](09-instalacion-y-despliegue.md#actualizar-a-una-versión-nueva).

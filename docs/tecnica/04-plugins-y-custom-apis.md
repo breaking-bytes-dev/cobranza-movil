@@ -2,13 +2,13 @@
 
 Este documento describe cada *plugin* (código C# que Dataverse ejecuta dentro de su propio proceso al crear o modificar un registro) y cada *Custom API* (un mensaje propio de Dataverse que las apps invocan como si fuera una función) de Cobranza Móvil: dónde se registra, qué hace, por qué existe y dónde está su código y su prueba. Está pensado para quien tiene que cambiar una regla de negocio del servidor o diagnosticar un error que devuelve Dataverse.
 
-Todo el código vive en un solo ensamblado, [`Sanic.CobranzaMovil.Plugins`](../../plugins/Sanic.CobranzaMovil.Plugins/), y sus pruebas (665, xUnit y Moq) en [`Sanic.CobranzaMovil.Plugins.Tests`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/). La versión del ensamblado (1.0.10.7) está en [`Sanic.CobranzaMovil.Plugins.csproj`](../../plugins/Sanic.CobranzaMovil.Plugins/Sanic.CobranzaMovil.Plugins.csproj). El modelo de datos se explica en [02 · Modelo de datos](02-modelo-de-datos.md) y los roles en [03 · Seguridad](03-seguridad.md); aquí solo se cita lo necesario.
+Todo el código vive en un solo ensamblado, [`Sanic.CobranzaMovil.Plugins`](../../plugins/Sanic.CobranzaMovil.Plugins/), y sus pruebas (665, xUnit y Moq) en [`Sanic.CobranzaMovil.Plugins.Tests`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/). La versión del ensamblado (1.0.10.8) está en [`Sanic.CobranzaMovil.Plugins.csproj`](../../plugins/Sanic.CobranzaMovil.Plugins/Sanic.CobranzaMovil.Plugins.csproj). El modelo de datos se explica en [02 · Modelo de datos](02-modelo-de-datos.md) y los roles en [03 · Seguridad](03-seguridad.md); aquí solo se cita lo necesario.
 
 ## Resumen
 
 ### Plugins con pasos registrados
 
-La fuente de verdad del registro es [`paso5_plugins.py`](../../scripts/pan/paso5_plugins.py) (función `definir_pasos`). «Pre» = *PreOperation* (etapa 20, dentro de la transacción, antes de escribir; puede modificar el registro). «Post» = *PostOperation* (etapa 40, después de escribir).
+El ensamblado y sus pasos viajan en la *solution* `cm_core_cobranzamovil`; se ven en el portal de Power Apps → **Solutions** → la *solution* → **Plug-in steps** ([Instalación, paso 3](09-instalacion-y-despliegue.md#3-revisar-lo-importado)). Cada *plugin* comprueba su propio registro con `ExigirRegistro` (ver [Convenciones](#convenciones-comunes-a-todos-los-plugins)). «Pre» = *PreOperation* (etapa 20, dentro de la transacción, antes de escribir; puede modificar el registro). «Post» = *PostOperation* (etapa 40, después de escribir).
 
 | Plugin | Tabla | Mensaje | Etapa y modo | Para qué |
 |---|---|---|---|---|
@@ -36,7 +36,7 @@ La fuente de verdad del registro es [`paso5_plugins.py`](../../scripts/pan/paso5
 
 ### Custom APIs
 
-Las cuatro son globales (sin tabla asociada), de tipo acción y sin pasos personalizados. Las define [`paso12_custom_api.py`](../../scripts/pan/paso12_custom_api.py).
+Las cinco son globales (sin tabla asociada), de tipo acción y sin pasos personalizados. Viajan en la *solution* como objetos de tipo *Custom API*.
 
 | Custom API | Plugin | Pantalla que la llama | Quién puede |
 |---|---|---|---|
@@ -44,6 +44,7 @@ Las cuatro son globales (sin tabla asociada), de tipo acción y sin pasos person
 | [`sanic_cm_AltaCuenta`](#sanic_cm_altacuenta) | [`AltaCuenta.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/AltaCuenta.cs) | [`scrAltaCuenta`](../../apps/backoffice-canvas/Src/scrAltaCuenta.pa.yaml) | Admin, Servicio + equipo de carga |
 | [`sanic_cm_PartirCarga`](#sanic_cm_partircarga) | [`PartirCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PartirCarga.cs) | [`scrCargaArchivo`](../../apps/backoffice-canvas/Src/scrCargaArchivo.pa.yaml) | Admin, Servicio + equipo de carga |
 | [`sanic_cm_CerrarFueraDeCartera`](#sanic_cm_cerrarfueradecartera) | [`CerrarFueraDeCartera.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/CerrarFueraDeCartera.cs) | [`scrReconciliacion`](../../apps/backoffice-canvas/Src/scrReconciliacion.pa.yaml) | Admin, Servicio |
+| [`sanic_cm_MisRoles`](#sanic_cm_misroles) | [`MisRoles.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/MisRoles.cs) | [`scrCarga`](../../apps/backoffice-canvas/Src/scrCarga.pa.yaml) | Cualquier usuario (solo ve lo suyo) |
 
 «Quién puede» lo decide el código de cada plugin: ninguna Custom API tiene privilegio de ejecución propio. En todos los casos también pasa quien no tiene ningún rol de CM (la identidad del sistema o un administrador del ambiente), como se explica en [Clases de apoyo](#clases-de-apoyo).
 
@@ -54,7 +55,7 @@ Las cuatro son globales (sin tabla asociada), de tipo acción y sin pasos person
 - **Base común.** Todos heredan de [`PluginBase`](../../plugins/Sanic.CobranzaMovil.Plugins/PluginBase.cs): traza inicio, mensaje, etapa y profundidad, y convierte cualquier excepción inesperada en un error genérico. Así el usuario nunca ve un mensaje interno que podría citar un valor del registro.
 - **Fallan cerrado si están mal registrados.** Cada plugin llama a `ExigirRegistro(tabla, etapa, mensajes)` y, si no coincide, lanza un error. Un paso en la etapa equivocada no se ignora en silencio. Hay dos excepciones a propósito: `PanEnTextoLibre` nunca lanza (corre sobre lo que llega del teléfono, que no se puede rechazar) y `PurgaArchivoCarga` registrado como síncrono no hace nada (no debe frenar la actualización de estado de Smelter); los dos dejan el problema en la traza.
 - **Dos identidades.** `local.Service` usa los permisos del usuario que llama (mínimo privilegio). `local.ServicioSistema` usa la identidad del sistema y se reserva para lo que un rol de persona no debe poder hacer: leer roles, buscar en registros ajenos, dar y quitar acceso.
-- **Pasos.** Todos con *rank* 1, despliegue solo en servidor y ejecución como el usuario que llama. El nombre del paso es `<Tipo>: <Mensaje> of <tabla>` y es la clave con la que el script lo encuentra para actualizarlo.
+- **Pasos.** Todos con *rank* 1, despliegue solo en servidor y ejecución como el usuario que llama. El nombre del paso es `<Tipo>: <Mensaje> of <tabla>`; un paso nuevo tiene que seguir la misma convención para encontrarlo en la lista de pasos.
 - **Trazas sin datos.** Ninguna traza ni mensaje de error contiene el valor de una columna: solo nombres de columna, cantidades y códigos de error.
 
 ### Qué pasa al escribir una asignación
@@ -95,7 +96,7 @@ Dentro de la etapa PreOperation todos tienen el mismo *rank*, por lo que el orde
 
 - En las tres columnas rechaza 5 o más dígitos seguidos (tolera espacio, guion o espacio duro entre dígitos). El valor enmascarado `****1234` pasa.
 - **Por qué:** es la red de seguridad PCI: el número completo solo vive en la bóveda `sanic_cm_tbl_cuentapan` (ver [03 · Seguridad](03-seguridad.md)). El mensaje nombra la columna, nunca el valor.
-- ⚠️ Los seis pasos (Create y Update de las tres tablas) tienen que estar **activos**. El script crea un paso nuevo **desactivado** y, en cada corrida, conserva el estado de los que ya existen; en un ambiente nuevo hay que correrlo con `--activar-panguard` (en la CI, la entrada `activar_panguard`). Verificar el estado después de cada importación.
+- ⚠️ Los seis pasos (Create y Update de las tres tablas) tienen que estar **activos** (**On**) desde el primer día. La importación puede dejarlos apagados: verificar su estado en **Plug-in steps** después de cada importación ([Instalación, paso 3](09-instalacion-y-despliegue.md#3-revisar-lo-importado)).
 
 ### PanEnTextoLibre
 
@@ -194,7 +195,7 @@ Dentro de la etapa PreOperation todos tienen el mismo *rank*, por lo que el orde
 
 - Pone un tramo de 0 a 19: la asignación, el de su cuenta; la cuenta, el de su propio id; el pago, el de su interacción. Es un hash FNV-1a del id (los ids de Dataverse son secuenciales y reparten mal por sí solos).
 - **Por qué:** una colección de una canvas app se corta en 2.000 filas; las apps traen la cartera de a un tramo por vez (ver [05 · App del localizador](05-app-localizador.md)). La cuenta va asíncrona porque su id recién existe después de crearla y así no frena la carga.
-- El método público `Tramo(Guid)` es el mismo cálculo que debe usar cualquier script de relleno.
+- El método público `Tramo(Guid)` es el mismo cálculo que debe usar cualquier relleno de datos.
 
 ### Reclasificacion
 
@@ -478,7 +479,21 @@ Cierra por lotes las Diarias activas que quedaron fuera de la última carga. Plu
 - La app llama en bucle mientras `Restantes` sea mayor que cero.
 - **Por qué:** una lista de canvas app no pasa de 2.000 filas y un lote grande excedería los 2 minutos de un plugin.
 
-Las cuatro Custom APIs de CM no están en la *solution* desempaquetada ([`solutions/unpacked/customapis/`](../../solutions/unpacked/customapis/)): se registran con `paso12_custom_api.py`.
+### sanic_cm_MisRoles
+
+Devuelve los perfiles de CM del usuario que llama, para el menú y los permisos de la app de la oficina. Plugin: [`MisRoles.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/MisRoles.cs) · prueba: [`MisRolesTests.cs`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/MisRolesTests.cs). Pantalla: [`scrCarga`](../../apps/backoffice-canvas/Src/scrCarga.pa.yaml).
+
+Sin entradas.
+
+| Salida | Tipo | Descripción |
+|---|---|---|
+| `Roles` | Texto | Perfiles sin el prefijo `SR \| CM \| `, ordenados y separados por `\|` (por ejemplo `Admin\|BackOffice`); vacío si no tiene ninguno |
+
+- Quién puede: cualquier usuario; solo devuelve lo suyo. Lee los roles con el servicio del sistema (`RolesCm`), directos y de cualquier equipo del que sea miembro, también los de grupo de Entra ID.
+- `Servicio - Cobranza` no se devuelve: es la identidad de las integraciones, no un perfil de la app.
+- **Por qué:** canvas no deja navegar Equipo → Roles dentro de un `ForAll`; sin esta API la app tendría que deducir el perfil del nombre del equipo.
+
+La copia desempaquetada del repositorio ([`solutions/unpacked/customapis/`](../../solutions/unpacked/customapis/)) está atrasada y no tiene las cinco *Custom APIs* de CM: viajan en la *solution* exportada del ambiente de desarrollo y se revisan después de importar ([Instalación, paso 3](09-instalacion-y-despliegue.md#3-revisar-lo-importado)). ⚠️ A confirmar que el paquete incluya `sanic_cm_MisRoles`: sin ella, la app de la oficina abre sin perfiles («Sin acceso») para todos.
 
 ## Clases de apoyo
 
@@ -534,46 +549,37 @@ new NuevoPlugin().Execute(h.Provider.Object);
 - **Por qué Moq y no FakeXrmEasy:** FakeXrmEasy v3 exige licencia comercial y una clave en la CI, y las pruebas necesitan afirmar qué columnas se consultan y cuántas veces. La lógica está aislada, así que se podría portar sin tocar los plugins.
 - Cubrir siempre: el caso feliz, cada rechazo, que el mensaje y las trazas no contienen el valor, y el registro incorrecto.
 
-### 3. Compilar en la CI
+### 3. Compilar y firmar
 
-La compilación firmada y el registro los hace [`pan-plugin-cm.yml`](../../.github/workflows/pan-plugin-cm.yml): prueba y compila en un runner Windows, porque las pruebas corren en net462 (el mismo runtime del *sandbox* de Dataverse), y registra desde un runner Linux con `paso5_plugins.py`. La clave de firma solo existe como secreto. El workflow no registra las Custom APIs (ver el paso 4).
+El ensamblado se compila en Release, firmado con la clave de nombre seguro (ver [el paso 5](#5-firma-del-ensamblado)). El proyecto firma solo si recibe la propiedad `AssemblyOriginatorKeyFile` con la ruta al `.snk`; la clave nunca se guarda en el repositorio.
 
-| Entrada del workflow | Efecto |
-|---|---|
-| `registrar = false` (defecto) | Compila y corre las pruebas. No toca Dataverse |
-| `registrar = true` | Compila firmado y registra ensamblado y pasos con `paso5_plugins.py --aplicar` |
-| `activar_panguard` / `desactivar_panguard` | Activa o desactiva los pasos de `PanGuard`. Excluyentes; requieren `registrar` |
+Antes de compilar, subir el número de versión en [`Sanic.CobranzaMovil.Plugins.csproj`](../../plugins/Sanic.CobranzaMovil.Plugins/Sanic.CobranzaMovil.Plugins.csproj) (`AssemblyVersion`, `FileVersion`, `Version`). Cambiar solo los dos últimos números: Dataverse trata un cambio de versión mayor o menor como otro ensamblado.
 
-Antes de registrar, subir el número de versión en [`Sanic.CobranzaMovil.Plugins.csproj`](../../plugins/Sanic.CobranzaMovil.Plugins/Sanic.CobranzaMovil.Plugins.csproj) (`AssemblyVersion`, `FileVersion`, `Version`). Cambiar solo los dos últimos números: Dataverse trata un cambio de versión mayor o menor como otro ensamblado.
+La integración continua ([`pan-plugin-cm.yml`](../../.github/workflows/pan-plugin-cm.yml)) corre las pruebas en cada cambio, en un runner Windows porque las pruebas corren en net462 (el mismo runtime del *sandbox* de Dataverse). Es una ayuda para desarrolladores: la instalación y la operación no la usan.
 
 ### 4. Registrar el paso
 
-Agregar el paso a `definir_pasos()` en [`paso5_plugins.py`](../../scripts/pan/paso5_plugins.py):
+Los pasos se registran **solo en el ambiente de desarrollo** y llegan a los demás dentro de la *solution*. La herramienta gráfica es **Plug-in Registration Tool**, la aplicación de escritorio de Microsoft para Windows (se descarga desde NuGet, paquete `Microsoft.CrmSdk.XrmTooling.PluginRegistrationTool`):
 
-```python
-pasos.append(dict(
-    tipo=NS + 'NuevoPlugin', mensaje='Create', entidad=P + 'pago', panguard=False, filtro=[],
-    columnas=['sanic_cm_pg_cuentaid'], legacy=False, imagen=None,
-    descripcion='Qué hace, en una línea'))
-```
+1. Conectarse al ambiente de desarrollo con un usuario *System Administrator*.
+2. Seleccionar el ensamblado `Sanic.CobranzaMovil.Plugins` → **Update** (Actualizar) → elegir la DLL firmada nueva → **Update Selected Plugins**. El *public key token* tiene que coincidir con el registrado.
+3. Sobre el tipo del *plugin* nuevo, **Register New Step** (Registrar paso nuevo):
+   - **Message** y **Primary Entity**: mensaje y tabla.
+   - **Filtering Attributes**: columnas que disparan un Update (Create no admite filtro).
+   - **Event Pipeline Stage of Execution**: *PreOperation* (por defecto en CM) o *PostOperation*; **Execution Mode**: *Synchronous* o *Asynchronous*.
+   - **Step Name**: `<Tipo>: <Mensaje> of <tabla>`; **Description**: qué hace, en una línea.
+   - Despliegue **Server**, *rank* 1 y ejecución como el usuario que llama, como los demás pasos.
+4. Si el *plugin* usa `ObtenerImagenPrevia`, sobre el paso: **Register New Image** → tipo *Pre Image*, nombre `PreImage` y solo las columnas que lee.
+5. En el portal de Power Apps → **Solutions** → `cm_core_cobranzamovil` → **Add existing** (Agregar existente) → **More** (Más) → **Developer** (Desarrollador) → **Plug-in step** (Paso de complemento), y agregar el paso nuevo. Un paso que no está en la *solution* no viaja.
+6. Exportar una versión nueva de la *solution* e instalarla en los demás ambientes ([Instalación, actualizar a una versión nueva](09-instalacion-y-despliegue.md#actualizar-a-una-versión-nueva)).
 
-- `filtro`: columnas que disparan un Update (Create no admite filtro). `columnas`: el script verifica que existan antes de registrar.
-- `imagen`: `dict(nombre='PreImage', atributos=[...])` si el plugin usa `ObtenerImagenPrevia`.
-- `etapa=ETAPA_POSTOPERATION, modo=MODO_ASINCRONO` para un paso asíncrono; por defecto es PreOperation síncrono.
-- El script es idempotente: busca cada paso por nombre, actualiza filtro, descripción e imagen, y vuelve a crear el paso si cambió etapa, modo, mensaje o tabla. Sin `--aplicar` solo muestra el plan.
-
-Para una Custom API nueva, agregar la entrada en `APIS` de [`paso12_custom_api.py`](../../scripts/pan/paso12_custom_api.py) y correrlo **después** de registrar el ensamblado. Dataverse no permite cambiar el tipo ni la opcionalidad de un parámetro ya creado: hay que borrarlo y recrearlo. El orden completo de instalación está en [09 · Instalación y despliegue](09-instalacion-y-despliegue.md).
+Para una *Custom API* nueva, después de actualizar el ensamblado: portal de Power Apps → **Solutions** → `cm_core_cobranzamovil` → **New** (Nuevo) → **More** → **Other** (Otro) → **Custom API**, con el *plugin* en **Plugin Type**; sus parámetros se crean igual, con **Custom API Request Parameter** y **Custom API Response Property**. Dataverse no permite cambiar el tipo ni la opcionalidad de un parámetro ya creado: hay que borrarlo y recrearlo. El orden completo de instalación está en [09 · Instalación y despliegue](09-instalacion-y-despliegue.md).
 
 ### 5. Firma del ensamblado
 
-Dataverse exige un ensamblado firmado con nombre seguro y **rechaza actualizarlo con otra clave**. La clave (`.snk`) no está en el repositorio: la CI la toma del secreto `PLUGIN_SNK_BASE64` y `paso5_plugins.py` se detiene si el *public key token* no coincide con el registrado.
+Dataverse exige un ensamblado firmado con nombre seguro y **rechaza actualizarlo con otra clave**. La clave (`.snk`) no está en el repositorio: se guarda en el gestor de secretos del equipo, y la integración continua la toma del secreto `PLUGIN_SNK_BASE64`.
 
-```powershell
-sn -k 2048 Sanic.CobranzaMovil.Plugins.snk
-[Convert]::ToBase64String([IO.File]::ReadAllBytes("Sanic.CobranzaMovil.Plugins.snk")) | gh secret set PLUGIN_SNK_BASE64
-```
-
-En un tenant nuevo se genera una clave una sola vez y se guarda en el gestor de secretos del equipo. Si se pierde, hay que eliminar el ensamblado registrado (con sus pasos) y registrarlo de nuevo.
+En un tenant nuevo que vaya a mantener su propia copia del código se genera una clave una sola vez (por ejemplo, desde las propiedades del proyecto en Visual Studio, opción de firma con nombre seguro; ⚠️ A confirmar el menú exacto en la versión de Visual Studio que se use) y se guarda en ese gestor. Si se pierde, hay que eliminar el ensamblado registrado (con sus pasos) y registrarlo de nuevo.
 
 ## Trampas y errores conocidos
 
@@ -582,9 +588,9 @@ En un tenant nuevo se genera una clave una sola vez y se guarda en el gestor de 
 - ⚠️ **Lo que viene *offline* no se rechaza, se marca.** El teléfono descarta un registro rechazado y no lo reintenta: el dato se pierde. Por eso `ActualizacionConInteraccion` marca `sanic_cm_ad_sinvincular`, `ReciboRepetido` marca `sanic_cm_pg_reciborepetido`, `IdentidadEnInteraccion` y `PanEnTextoLibre` nunca rechazan y `VincularActualizacionPendiente` es asíncrono. Un plugin nuevo sobre interacción, pago o actualización de datos debe seguir la misma regla. `InteraccionDelCobrador` sí rechaza (cuenta ajena, agente inactivo) porque es una regla de seguridad; la app lo informa en [05 · App del localizador](05-app-localizador.md).
 - ⚠️ **Trazas sin datos personales.** Nunca poner en `Trace` ni en un mensaje de error el valor de una columna: ni números de tarjeta, ni CIF, ni nombres, ni ids de registro. `PluginBase` traza solo el tipo de una excepción inesperada, porque su mensaje podría citar valores.
 - **La identidad del sistema no tiene roles de CM.** Los controles por rol la dejan pasar a propósito: la carga de Smelter escribe con esa identidad. Un administrador del ambiente sin roles de CM tampoco se frena.
-- **Pasos asíncronos fallidos.** Los que terminan bien se borran solos; los fallidos quedan en `asyncoperations` (trabajos del sistema) con nombre `Sanic.CobranzaMovil.Plugins.<Plugin>…` (por ejemplo `…RepartoAsignacion` o `…PurgaArchivoCarga`). Un archivo que `PurgaArchivoCarga` no pudo borrar lo toma el barrido de una corrida posterior. Los compartidos que el reparto no pudo dar o quitar los corrige [`paso3_reconciliar.py`](../../scripts/seguridad/paso3_reconciliar.py) (no cambia dueños: para eso se vuelve a escribir el agente de la asignación). Ver [11 · Mantenimiento](11-mantenimiento.md).
-- **Equipo «Cartera sin cobrador».** `RepartoAsignacion` y `RepartoPorAgente` fallan sin tocar nada si no existe un único equipo dueño con ese prefijo. Se crea con [`paso5_cartera_sin_cobrador.py`](../../scripts/seguridad/paso5_cartera_sin_cobrador.py).
-- **Plantillas de Smelter para `PartirCarga`.** Las plantillas «· padres» y «· partes» tienen que ser copia exacta de «Cobranza movil»; si se cambia la principal, volver a correr [`paso20_plantillas_paralelas.py`](../../scripts/pan/paso20_plantillas_paralelas.py).
+- **Pasos asíncronos fallidos.** Los que terminan bien se borran solos; los fallidos quedan en `asyncoperations` (trabajos del sistema) con nombre `Sanic.CobranzaMovil.Plugins.<Plugin>…` (por ejemplo `…RepartoAsignacion` o `…PurgaArchivoCarga`). Un archivo que `PurgaArchivoCarga` no pudo borrar lo toma el barrido de una corrida posterior. Para volver a repartir las asignaciones de un agente, quitar y volver a poner su usuario en **Agentes y usuarios** de la app de la oficina: dispara `RepartoPorAgente`. ⚠️ A confirmar: no hay una pantalla que reconcilie todos los compartidos de una vez. Ver [11 · Mantenimiento](11-mantenimiento.md).
+- **Equipo «Cartera sin cobrador».** `RepartoAsignacion` y `RepartoPorAgente` fallan sin tocar nada si no existe un único equipo dueño con ese prefijo. Se crea a mano ([Instalación, paso 5](09-instalacion-y-despliegue.md#5-equipo-cartera-sin-cobrador)); es el único equipo de CM con nombre obligatorio.
+- **Plantillas de Smelter para `PartirCarga`.** Las plantillas «· padres» y «· partes» tienen que ser copia exacta de «Cobranza movil»; si se cambia la principal, hay que repetir el cambio a mano en la derivada que corresponde ([Instalación, paso 8.2](09-instalacion-y-despliegue.md#82-plantillas-derivadas)).
 - **Custom API nueva o parámetro nuevo en la app.** La canvas app guarda una foto de las Custom APIs: después de registrar, hay que refrescar la fuente «Environment» en Studio. Mientras tanto la fórmula que la llama queda inerte. Los interruptores `nfCargaParalela`, `nfCierreServidor` y `nfValidarLargo` de [`App.pa.yaml`](../../apps/backoffice-canvas/Src/App.pa.yaml) existen para eso.
-- **Importar la solución cambia el estado de los pasos.** Sin `--activate-plugins` puede apagar pasos (por ejemplo, `ClaveDesdeCuenta`); con esa opción enciende todos, `PanGuard` incluido. [`paso7_desplegar.py`](../../scripts/pan/paso7_desplegar.py) restaura los estados al terminar. `paso5_plugins.py` vuelve a activar todos los pasos que no son de `PanGuard` en cada corrida; los de `PanGuard` conservan su estado salvo que se pida activarlos o desactivarlos.
-- **Imagen previa que no cambia.** Dataverse no permite editar una imagen de paso (`PATCH` devuelve `0x80040216`) y sigue usando la vieja hasta que el paso cambia; el script la borra, la crea y toca la descripción del paso.
+- **Importar la solución cambia el estado de los pasos.** Sin **Enable Plugin steps and flows included in the solution**, los pasos que llegan inactivos quedan inactivos (por ejemplo, `ClaveDesdeCuenta`); con esa opción quedan todos encendidos, `PanGuard` incluido, que es lo esperado. Después de cada importación, revisar **Plug-in steps** y encender lo que haya quedado **Off** ([Instalación, paso 3](09-instalacion-y-despliegue.md#3-revisar-lo-importado)).
+- **Imagen previa que no cambia.** Dataverse no permite editar una imagen de paso por la API (`PATCH` devuelve `0x80040216`) y sigue usando la vieja hasta que el paso cambia. Para cambiarla, en Plug-in Registration Tool borrarla y registrarla de nuevo, y después tocar el paso (por ejemplo, su descripción). ⚠️ A confirmar si la herramienta permite editarla en el lugar.

@@ -67,7 +67,7 @@ Un *offline profile* (perfil sin conexión) define qué tablas y filas de Datave
 - El autogenerado lo rearma el servicio en cada publicación de la app y puede quedar trabado al publicarse; en ese caso la app no abre en el teléfono.
 - El autogenerado no soporta ALM (llevar los cambios de un ambiente a otro) y no viaja en la *solution* (el paquete con el que se traslada la personalización entre ambientes); un ambiente de producción necesita uno propio.
 
-Lo crea y publica [`paso7_perfil_offline.py`](../../scripts/pan/paso7_perfil_offline.py), que además lo agrega a la *solution* `cm_core_cobranzamovil` y escribe su id en `ManualOfflineProfileId` del `.msapr` de la app.
+El perfil viaja en la *solution* `cm_core_cobranzamovil` y la app lo tiene seleccionado (Studio → **Settings** → **General** → **Can be used offline**; su id queda en `ManualOfflineProfileId` del `.msapr`). Se revisa después de importar en el admin center → ambiente → **Settings** → **Users + permissions** → **Mobile configuration** ([Instalación, paso 3](09-instalacion-y-despliegue.md#3-revisar-lo-importado)).
 
 | Tabla | Fuente en la app | Qué filas bajan |
 |---|---|---|
@@ -110,7 +110,7 @@ ForAll(Sequence(20, 0) As T,
     Collect(colCuentas, Filter('CM | TBL | Cuentas', '[CT] Tramo' = T.Value)));
 ```
 
-Asignación y cuenta caen en el mismo tramo porque las dos usan el id de la cuenta. Si algún tramo (o la consulta de lo que no tiene tramo) llega a 500 filas, `varCarteraIncompleta` muestra un error («Tu cartera es más grande de lo que la app puede mostrar…»): sincronizar no lo arregla. El umbral es 500 a propósito: la consulta pudo cortarse con cualquiera de los dos límites posibles. El relleno de tramos para datos existentes está en [`paso18_tramo_cartera.py`](../../scripts/pan/paso18_tramo_cartera.py).
+Asignación y cuenta caen en el mismo tramo porque las dos usan el id de la cuenta. Si algún tramo (o la consulta de lo que no tiene tramo) llega a 500 filas, `varCarteraIncompleta` muestra un error («Tu cartera es más grande de lo que la app puede mostrar…»): sincronizar no lo arregla. El umbral es 500 a propósito: la consulta pudo cortarse con cualquiera de los dos límites posibles. `TramoCartera` calcula el tramo solo al crear el registro: los registros que ya existían antes de instalar el *plugin* no lo tienen y entran por la consulta de lo que no tiene tramo.
 
 Las Especiales solo aparecen aprobadas: toda consulta de asignaciones del localizador lleva `'[AS] Tipo' <> Especial || '[AS] Estado de aprobacion' = Aprobado`.
 
@@ -125,7 +125,7 @@ El botón Guardar de [`scrInteraccion`](../../apps/localizador-canvas/Src/scrInt
 | Actualización de datos | Interacción (lookup), cuenta (`sanic_cm_ad_cuentaid`), la misma fecha de captura (`sanic_cm_ad_fechacaptura`), teléfonos, direcciones y correo | Offline el lookup a la interacción recién creada llega vacío. [`ActualizacionConInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ActualizacionConInteraccion.cs) la vincula por localizador, cuenta y fecha de captura; si no la encuentra, la acepta **marcada** con `sanic_cm_ad_sinvincular`. [`VincularActualizacionPendiente.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/VincularActualizacionPendiente.cs) la cuelga cuando llega la interacción |
 | Orden de la cartera | `'[AS] Orden'` de cada asignación, solo del tramo de clientes movidos, al salir de la Cartera o al tocar ↻ | [`ColumnasAsignacion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ColumnasAsignacion.cs) solo deja al localizador escribir esa columna |
 
-**Por qué se marca en lugar de rechazar:** el reproductor *offline* descarta en silencio lo que el servidor rechaza y no lo reintenta. Un recibo repetido o una actualización sin interacción se aceptan marcados y el BackOffice los ve al transcribir ([App de la oficina](06-app-backoffice.md)). Las columnas de marca las crea [`paso15_marcas_offline.py`](../../scripts/pan/paso15_marcas_offline.py).
+**Por qué se marca en lugar de rechazar:** el reproductor *offline* descarta en silencio lo que el servidor rechaza y no lo reintenta. Un recibo repetido o una actualización sin interacción se aceptan marcados y el BackOffice los ve al transcribir ([App de la oficina](06-app-backoffice.md)). Las columnas de marca (`sanic_cm_pg_reciborepetido`, `sanic_cm_ad_sinvincular`) viajan en la *solution*.
 
 El guardado es **reintentable sin duplicar**: el rol del localizador no puede borrar, así que la pantalla recuerda qué ya se guardó (`locIntCreada`, `colPagosGuardados`, `locADGuardada`, `colIntGuardadas`) y al tocar Guardar de nuevo solo escribe lo que falta.
 
@@ -157,7 +157,7 @@ Los botones que agregan texto al comentario salen de la lista administrable `san
 - Si la tabla está vacía en el teléfono (todavía no sincronizó), se usan seis valores de respaldo escritos en el `OnVisible`.
 - El texto elegido se guarda dentro del comentario: renombrar o desactivar una opción no cambia el historial.
 
-La tabla y sus opciones iniciales las crea [`paso23_listas.py`](../../scripts/pan/paso23_listas.py).
+La tabla viaja en la *solution*; las opciones iniciales se crean a mano después de instalar ([Instalación, paso 10](09-instalacion-y-despliegue.md#10-opciones-iniciales-de-las-listas)).
 
 ### Número de tarjeta (PAN)
 
@@ -171,10 +171,10 @@ Si el localizador escribe un número de tarjeta en el comentario, la etiqueta `l
 |---|---|
 | Ícono (fuente vectorial) | [`icono/icono.svg`](../../apps/localizador-canvas/icono/icono.svg) |
 | Ícono que se despliega | [`icono/icono.png`](../../apps/localizador-canvas/icono/icono.png) |
-| Color de fondo del ícono | `RGBA(15,107,107,1)`, en `ICONOS` de [`paso7_desplegar.py`](../../scripts/pan/paso7_desplegar.py) |
+| Color de fondo del ícono | `RGBA(15,107,107,1)`, en Studio → **Settings** → **General** |
 | Nombre de la app | `App - Cobranza Movil` (`Name` de `msapp/Properties.json` dentro del `.msapr`) |
 
-La lista de apps de Power Apps toma el ícono de la *solution* (`CanvasApps/<app>_BackgroundImageUri` y `<BackgroundColor>` del `<CanvasApp>`), no del `.msapp`. Por eso `paso7_desplegar.py` reemplaza esas dos piezas en cada despliegue. Para Studio, el `.msapr` lleva su propia copia en `Resources/PublishInfo.json` (`LogoFileName`).
+La lista de apps de Power Apps toma el ícono y el color de la app publicada en la *solution*, así que viajan con ella.
 
 ## Piezas y archivos
 
@@ -183,10 +183,8 @@ La lista de apps de Power Apps toma el ícono de la *solution* (`CanvasApps/<app
 | Fuentes de la app (pantallas, componentes, `App`) | [`apps/localizador-canvas/Src/`](../../apps/localizador-canvas/Src/) |
 | Fuentes de datos, perfil *offline* vinculado y recursos | [`sanic_appcobranzamovil_c4e67_DocumentUri.msapr`](../../apps/localizador-canvas/sanic_appcobranzamovil_c4e67_DocumentUri.msapr) |
 | Resumen de la carpeta de la app | [`apps/localizador-canvas/README.md`](../../apps/localizador-canvas/README.md) |
-| Perfil *offline* | [`paso7_perfil_offline.py`](../../scripts/pan/paso7_perfil_offline.py) |
-| Agregar o refrescar fuentes de datos | [`paso7_fuentes.py`](../../scripts/pan/paso7_fuentes.py) |
-| Chequeo de columnas antes de desplegar | [`paso7_esquema.py`](../../scripts/pan/paso7_esquema.py) |
-| Despliegue | [`paso7_desplegar.py`](../../scripts/pan/paso7_desplegar.py) |
+| Perfil *offline* | Viaja en la *solution*; se ve en el admin center → **Mobile configuration** ([Instalación, paso 3](09-instalacion-y-despliegue.md#3-revisar-lo-importado)) |
+| Despliegue | Importar la *solution* ([Instalación y despliegue](09-instalacion-y-despliegue.md#actualizar-a-una-versión-nueva)) |
 | Ícono | [`apps/localizador-canvas/icono/`](../../apps/localizador-canvas/icono/) |
 | Pruebas de punta a punta | [`tests/localizador-canvas/`](../../tests/localizador-canvas/) ([Pruebas](10-pruebas.md)) |
 | *Plugins* que reciben lo que sube el teléfono | [`InteraccionDelCobrador.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/InteraccionDelCobrador.cs), [`IdentidadEnInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/IdentidadEnInteraccion.cs), [`CuentaDesdeInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/CuentaDesdeInteraccion.cs), [`ReciboRepetido.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ReciboRepetido.cs), [`ActualizacionConInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ActualizacionConInteraccion.cs), [`VincularActualizacionPendiente.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/VincularActualizacionPendiente.cs), [`TramoCartera.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/TramoCartera.cs), [`ColumnasAsignacion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ColumnasAsignacion.cs) |
@@ -195,68 +193,48 @@ La lista de apps de Power Apps toma el ícono de la *solution* (`CanvasApps/<app
 
 ### Cómo modificar la app
 
-Las fuentes viven en el repositorio y se editan como texto; Studio sirve para revisar, no para publicar.
+La app se modifica en **Power Apps Studio**, siempre **dentro de la *solution*** `cm_core_cobranzamovil` del ambiente de desarrollo, y llega a los demás ambientes con una versión nueva de la *solution*: se exporta e importa como explica [Instalación y despliegue](09-instalacion-y-despliegue.md#actualizar-a-una-versión-nueva). En producción la *solution* es administrada y la app no se edita.
 
-| Pieza | Qué contiene | Cómo se cambia |
-|---|---|---|
-| `Src/*.pa.yaml` y `Src/Components/*.pa.yaml` | Pantallas, controles y fórmulas (formato *SourceCode* de `pac canvas`) | Editar el YAML |
-| `.msapr` (zip) | Fuentes de datos (`msapp/References/DataSources.json`, `msapp/Properties.json`, `msapp/References/QualifiedValues.json`), id del perfil *offline* y recursos | Con scripts, nunca a mano |
-| `.msapp` | El paquete que importa Power Apps | Lo arma `pac canvas pack` desde la carpeta de la app (el `.msapr` más `Src/`) en cada despliegue; no se guarda en el repositorio |
+1. En `make.powerapps.com`, ambiente de desarrollo → **Solutions** → `cm_core_cobranzamovil` → **Apps** → seleccionar «App - Cobranza Movil» → **Edit** (Editar). Se abre Studio.
+2. Hacer el cambio. Respetar: nombres de control únicos en toda la app, `Radius*` solo en `GroupContainer` (no en `Label` ni `Classic/Icon`) y `AccessibleLabel` nunca en `Classic/Button`. Una fórmula con error aparece marcada en rojo en Studio: no publicar con errores pendientes.
+3. Actualizar `nfVersion` en `App.Formulas` (por ejemplo, con el número de versión que va a llevar la *solution*), para poder comprobar después qué versión sirve el reproductor.
+4. **Save** (Guardar) y **Publish** (Publicar) → **Publish this version** (Publicar esta versión).
+5. Probar en el ambiente de desarrollo: en la pantalla Sincronización, «Versión de la app» tiene que mostrar el valor nuevo ([Pruebas](10-pruebas.md), PRE-07).
+6. Exportar la *solution* e importarla en el ambiente de destino ([Instalación, pasos 1 y 2](09-instalacion-y-despliegue.md#1-conseguir-el-paquete-de-la-solution) y [Actualizar a una versión nueva](09-instalacion-y-despliegue.md#actualizar-a-una-versión-nueva)).
 
-Pasos para un cambio de pantalla:
+Las fuentes de la carpeta [`apps/localizador-canvas/Src/`](../../apps/localizador-canvas/Src/) (`*.pa.yaml`, formato de código de Power Apps) son una copia legible de pantallas, controles y fórmulas, útil para revisar y buscar. El `.msapr` guarda las fuentes de datos, el id del perfil *offline* y los recursos. Studio muestra el mismo YAML de cada control con **View code** (Ver código). ⚠️ A confirmar cómo se mantiene esa copia al día con lo publicado (por ejemplo, con la integración de Git de las *solutions* de Power Platform): un cambio hecho en Studio no actualiza el repositorio solo.
 
-1. Editar el `.pa.yaml`. Una fórmula que contiene `: ` (dos puntos y espacio) va en bloque `|-`:
+Si se pega YAML en Studio, una fórmula que contiene `: ` (dos puntos y espacio) va en bloque `|-`:
 
-   ```yaml
-   # Rompe: YAML interpreta ": " como otro par clave-valor
-   Text: ="Estado: " & gblSync
-   # Correcto
-   Text: |-
-     ="Estado: " & gblSync
-   ```
-
-2. Respetar las reglas que `pac` no valida y Studio sí: nombres de control únicos en toda la app, `Radius*` solo en `GroupContainer` (no en `Label` ni `Classic/Icon`), y `AccessibleLabel` nunca en `Classic/Button`.
-3. Desplegar con [`paso7_desplegar.py`](../../scripts/pan/paso7_desplegar.py) (sin `--aplicar` arma el paquete sin importar). Detalle en [Instalación y despliegue](09-instalacion-y-despliegue.md).
-4. Verificar en la pantalla Sincronización que «Versión de la app» muestre el commit desplegado.
-
-`paso7_desplegar.py` hace, por cada app:
-
-1. Copia la carpeta y reemplaza `nfVersion = "dev";` por `<commit>[+dirty] <fecha UTC>` (el repositorio no cambia).
-2. Frena si un `.pa.yaml` no parsea o usa una propiedad prohibida conocida (lista `PROHIBIDAS`).
-3. `pac canvas pack` y verifica que el `.msapp` tenga al menos 13 `.pa.yaml` (17 en la app de la oficina).
-4. [`paso7_esquema.py`](../../scripts/pan/paso7_esquema.py) frena si una fórmula usa una columna que la foto del esquema del `.msapr` no conoce.
-5. Exporta la *solution*, reemplaza los `.msapp`, actualiza `<DatabaseReferences>` y `<CdsDependencies>` de cada `<CanvasApp>` (sin eso la app publicada no consulta una tabla nueva) y apunta la dependencia del perfil *offline* al personalizado.
-6. Inyecta el ícono, importa con `--publish-changes` y restaura el estado previo de los pasos de *plugin* y los *flows*, que la importación altera.
+```yaml
+# Rompe: YAML interpreta ": " como otro par clave-valor
+Text: ="Estado: " & gblSync
+# Correcto
+Text: |-
+  ="Estado: " & gblSync
+```
 
 ### Agregar una columna a una pantalla
 
-1. Crear la columna en Dataverse (con un script en [`scripts/pan/`](../../scripts/pan/), ver [Modelo de datos](02-modelo-de-datos.md)).
-2. Refrescar la fuente en el `.msapr`. Las fuentes de datos **no** están en los `.pa.yaml`:
-
-   ```bash
-   python3 scripts/pan/paso7_fuentes.py apps/localizador-canvas/sanic_appcobranzamovil_c4e67_DocumentUri.msapr \
-       --tablas sanic_cm_tbl_cuenta --aplicar
-   ```
-
-   El script repite las consultas de metadatos que hace Studio con «Actualizar». `--comparar <tabla>` regenera una fuente existente y muestra las diferencias con la de Studio, para validar la réplica.
-3. Usar la columna en el `.pa.yaml` por su nombre visible (`'[CT] Dias Mora'`).
-4. Desplegar.
-
-Sin el paso 2, la fórmula queda **inerte sin aviso**: `pac` la empaqueta igual y la app no muestra error. `paso7_esquema.py` lo detecta antes de importar.
+1. Crear la columna en Dataverse, dentro de la *solution* (ver [Modelo de datos](02-modelo-de-datos.md#agregar-una-columna)).
+2. En Studio, panel **Data** (Datos) → la tabla → **⋯** → **Refresh** (Actualizar). La app guarda una copia del esquema de cada tabla: sin este paso, una fórmula que nombra la columna nueva no la encuentra.
+3. Usar la columna por su nombre visible (`'[CT] Dias Mora'`), guardar y publicar.
+4. Si la columna tiene que estar en el teléfono, revisar que el perfil *offline* la incluya (ver el punto siguiente).
 
 ### Agregar una tabla nueva a la app
 
-1. Agregarla al `.msapr` con `paso7_fuentes.py --tablas <tabla> --aplicar`.
-2. Sumarla a `TABLAS` (y a `FILTROS` si necesita un filtro propio) en [`paso7_perfil_offline.py`](../../scripts/pan/paso7_perfil_offline.py) y correrlo con `--aplicar`. Con perfil personalizado el servicio **no** la agrega solo: sin este paso, la tabla está vacía en el teléfono.
-3. Desplegar y después correr [`paso3_reconciliar.py`](../../scripts/seguridad/paso3_reconciliar.py) `--aplicar`.
+1. En Studio, **Data** → **Add data** (Agregar datos) → la tabla.
+2. Agregarla al perfil *offline* con un filtro: en Studio, **Settings** (Configuración) → **General** → con **Can be used offline** encendido, en el perfil seleccionado **⋯** → **Edit selected profile** (Editar perfil seleccionado); o en el admin center → ambiente → **Settings** → **Users + permissions** → **Mobile configuration** → «Cobranza Movil - Cobrador». Con perfil personalizado el servicio **no** la agrega solo: sin este paso, la tabla está vacía en el teléfono. Publicar el perfil y **volver a publicar la app**, que usa la versión publicada del perfil.
+3. Comprobar que la tabla y el perfil estén en la *solution* (en la *solution*, seleccionar la app → **Advanced** → **Add required objects**, Agregar objetos requeridos).
+4. Si la tabla hereda la visibilidad por compartido desde la cuenta, revisar que la relación tenga la *cascade* de Share que corresponde ([Seguridad](03-seguridad.md)). Los registros que ya existían no se comparten solos con el localizador: para un agente concreto, quitar y volver a poner su usuario en **Agentes y usuarios** de la app de la oficina re-reparte sus asignaciones ([Instalación, trampas](09-instalacion-y-despliegue.md#trampas-y-errores-conocidos)). ⚠️ A confirmar si ese re-reparto alcanza a la tabla nueva y si hace falta un procedimiento para todos los localizadores a la vez.
 
 ### Cambiar los mensajes rápidos
 
-No requiere desplegar: el Admin los edita en la pantalla Listas de la app de la oficina. Solo hay que cambiar el `.pa.yaml` para modificar los valores de respaldo o cuántos se muestran sin abrir la hoja (`FirstN(colMsjInt, 6)`).
+No requiere publicar la app: el Admin los edita en la pantalla Listas de la app de la oficina. Solo hay que cambiar la app para modificar los valores de respaldo o cuántos se muestran sin abrir la hoja (`FirstN(colMsjInt, 6)`).
 
 ### Cambiar el ícono
 
-Reemplazar `icono/icono.png` (y su fuente `icono.svg`) y, si cambia el color de fondo, el valor de `ICONOS` en `paso7_desplegar.py`. Se aplica en el próximo despliegue.
+En Studio, **Settings** → **General**: ícono de la app y color de fondo (`RGBA(15,107,107,1)`). La imagen de referencia está en [`icono/icono.png`](../../apps/localizador-canvas/icono/icono.png) (fuente vectorial [`icono.svg`](../../apps/localizador-canvas/icono/icono.svg)). Se aplica al publicar y viaja con la *solution*.
 
 ## Trampas y errores conocidos
 
@@ -278,7 +256,7 @@ Reemplazar `icono/icono.png` (y su fuente `icono.svg`) y, si cambia el color de 
 ### Límites de filas
 
 - ⚠️ A confirmar: cuál es el límite que rige. El `.msapr` declara `MaxGetRowsCount` 500 por fuente en `References/DataSources.json` y 2.000 a nivel app en `Properties.json`. Los tramos están pensados para 2.000, pero el aviso de cartera incompleta salta a las 500 filas por tramo, así que avisa con cualquiera de los dos límites.
-- Cada copia a una colección se corta en el límite de filas: la cartera se trae por tramos. Si la cartera de un localizador crece tanto que un tramo llega al límite, la app avisa y hay que subir la cantidad de tramos: la constante `TramosCartera` de [`Esquema.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/Esquema.cs), la constante `TRAMOS` de [`paso18_tramo_cartera.py`](../../scripts/pan/paso18_tramo_cartera.py) y el `Sequence(20, 0)` de esta app y de las pantallas de la oficina que usan tramos; después, rellenar con `paso18_tramo_cartera.py --rellenar`.
+- Cada copia a una colección se corta en el límite de filas: la cartera se trae por tramos. Si la cartera de un localizador crece tanto que un tramo llega al límite, la app avisa y hay que subir la cantidad de tramos: la constante `TramosCartera` de [`Esquema.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/Esquema.cs), y el `Sequence(20, 0)` de esta app y de las pantallas de la oficina que usan tramos. Después hay que recalcular el tramo de las cuentas, asignaciones y pagos existentes, porque `TramoCartera` solo lo calcula al crear. ⚠️ A confirmar: no hay una pantalla ni un procedimiento gráfico para ese recálculo (el tramo es un hash del id de la cuenta y no se puede calcular a mano).
 - Las demás pantallas no copian tablas enteras: leen cada dirección, teléfono o cuenta de la base local cuando la muestran.
 
 ### Controles Modern y clásicos
@@ -293,7 +271,8 @@ Reemplazar `icono/icono.png` (y su fuente `icono.svg`) y, si cambia el color de 
 
 ### Despliegue
 
-- ⚠️ La carpeta de fuentes se llama `Src`, con mayúscula. Con otro nombre, `pac canvas pack` en Linux empaqueta **sin** ningún `.pa.yaml` y no avisa: la app publicada no tiene fórmulas. `paso7_desplegar.py` lo frena con el mínimo de 13 archivos.
-- ⚠️ Un YAML roto (por ejemplo `: ` en una fórmula de una línea) se importa «bien», pero el reproductor sigue sirviendo la versión **anterior**. El síntoma es que «Versión de la app» no cambia.
-- ⚠️ No usar los *workflows* [`import-app.yml`](../../.github/workflows/import-app.yml) ni [`import-backoffice.yml`](../../.github/workflows/import-backoffice.yml): importan con `--activate-plugins`, que cambia el estado de los pasos de *plugin* (enciende también los que están apagados a propósito) y no lo restaura. Ver [Instalación y despliegue](09-instalacion-y-despliegue.md).
-- Abrir la app en Studio la deja como «modificada» (actualiza los controles modernos) y la bloquea unos minutos: el despliegue reintenta ante `AppLeaseConflict`. No publicar desde Studio.
+- ⚠️ **Editar solo en el ambiente de desarrollo y dentro de la *solution*.** Una app creada o editada fuera de `cm_core_cobranzamovil` no viaja al exportar. En producción la *solution* es administrada: no se edita ahí.
+- ⚠️ **Perfil *offline* y app van juntos.** Si se edita y publica el perfil, hay que volver a publicar la app. Al exportar, el perfil tiene que estar en la *solution* (dependencia de la app; **Add required objects** lo agrega).
+- ⚠️ **Versión vieja en el reproductor.** Después de publicar o importar, el teléfono puede servir la versión anterior unos minutos. El síntoma es que «Versión de la app» no cambia; si `nfVersion` no se actualizó al publicar, no hay forma de distinguir las versiones.
+- **App abierta en Studio.** Abrirla puede dejarla como «modificada» (Studio actualiza los controles modernos) y la bloquea mientras está en edición: una importación en ese ambiente falla hasta que se cierra ([Instalación, trampas](09-instalacion-y-despliegue.md#trampas-y-errores-conocidos)).
+- **La importación y los pasos de *plugin*.** Al importar, dejar marcada **Enable plug-in steps and flows included in the solution** y revisar después los pasos ([Instalación, paso 3](09-instalacion-y-despliegue.md#3-revisar-lo-importado)).

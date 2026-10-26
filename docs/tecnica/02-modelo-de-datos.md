@@ -317,7 +317,7 @@ Una clave alternativa (*alternate key*) es una combinación de columnas que Data
 | cargadiaria | `sanic_cm_ak_cd_clavepan_fecha` | `cd_clavepan`, `cd_fechacarga` |
 | asignacion | `sanic_cm_ak_as_clavepan_tipo` | `as_clavepan`, `as_tipo` |
 
-`interaccion`, `pago`, `actualizaciondatos` y `opcionlista` no tienen: nacen en las apps con su GUID. Las claves sobre la clave HMAC las crea [`paso1_esquema.py`](../../scripts/pan/paso1_esquema.py) (bóveda) y [`paso3b_claves.py`](../../scripts/pan/paso3b_claves.py) (cuenta y carga diaria; la de asignación solo con `--incluir-asignacion`, una vez resueltos los duplicados por clave y tipo). Las demás vienen en la *solution*. Todas tienen que estar en estado `Active`; la de asignación lo está en el ambiente de desarrollo.
+`interaccion`, `pago`, `actualizaciondatos` y `opcionlista` no tienen: nacen en las apps con su GUID. Todas viajan en la *solution* ([Instalación, paso 3](09-instalacion-y-despliegue.md#3-revisar-lo-importado)) y tienen que estar en estado `Active`. El estado se ve en el portal de Power Apps → **Tables** → la tabla → **Keys** (Claves). Una clave que no llega a `Active` suele indicar filas duplicadas en sus columnas (en la de asignación, dos asignaciones con la misma clave HMAC y el mismo tipo).
 
 ## Option sets y estados
 
@@ -330,7 +330,7 @@ Un *option set* (o *choice*) es una columna de lista cerrada que guarda un núme
 | `as_estado` | Sí/No local | Sí = Activa · No = Cerrada | Por defecto Activa. La carga no lo escribe; [`CargaSobreAsignacion`](../../plugins/Sanic.CobranzaMovil.Plugins/CargaSobreAsignacion.cs) reabre lo que cerró el sistema. |
 | `in_estadograbacion` | `sanic_cm_choice_estadograbacioninteraccion` (global) | 1 Pendiente · 2 Grabado | Por defecto Pendiente. Grabado es terminal: exige código y no se puede volver a grabar. |
 | `pg_moneda` | `sanic_choice_cm_monedaenpago` (global) | 1 NIO · 2 USD | Sin valor por defecto. |
-| `ol_lista` | Local de `opcionlista` | 1 Tipo de Especial · 2 Motivo de cierre Incobrable · 3 Motivo de cierre Especial · 4 Mensaje rápido | Ver [`paso23_listas.py`](../../scripts/pan/paso23_listas.py). |
+| `ol_lista` | Local de `opcionlista` | 1 Tipo de Especial · 2 Motivo de cierre Incobrable · 3 Motivo de cierre Especial · 4 Mensaje rápido | Las opciones son registros: las iniciales se cargan a mano ([Instalación, paso 10](09-instalacion-y-despliegue.md#10-opciones-iniciales-de-las-listas)). |
 | `in_actualizainfo`, `cd_aplicapago`, `ad_sinvincular`, `pg_reciborepetido`, `ag_activo`, `ol_activa` | Sí/No local | | |
 
 Los motivos de cierre que pone el sistema son texto fijo: `fuera de cartera` (reconciliación) y `Reclasificada a <tipo>` (reclasificación). `CargaSobreAsignacion` los reconoce para decidir qué reabrir, así que **no** deben cambiarse.
@@ -344,30 +344,21 @@ Los motivos de cierre que pone el sistema son texto fijo: `fuera de cartera` (re
 | Pieza | Archivo | Qué define |
 |---|---|---|
 | Nombres lógicos | [`Esquema.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/Esquema.cs) | Constantes de tablas, columnas y valores de option sets que usan los plugins. |
-| Solución desempaquetada | [`solutions/unpacked/Entities/`](../../solutions/unpacked/Entities/) | Metadata de las tablas. ⚠️ Está atrasada: no incluye `cuentapan`, `opcionlista` ni las columnas agregadas por scripts, y todavía muestra columnas y claves que ya no existen (por ejemplo, `as_numerocuenta`, `as_fechasignacion`, `ct_fechaultimopago` y las claves viejas sobre el número). Para la verdad del esquema, mandan los scripts de esta tabla. |
-| Bóveda, claves HMAC, *lookup* pago → cuenta | [`paso1_esquema.py`](../../scripts/pan/paso1_esquema.py) | Tabla `cuentapan`, columnas `*_clavepan`, `ct_ultimos4`, `pg_cuentaid`. |
-| Claves alternativas HMAC | [`paso3b_claves.py`](../../scripts/pan/paso3b_claves.py) | Claves de cuenta, carga diaria y asignación. |
-| Cascadas y auditoría | [`paso1_cascadas_auditoria.py`](../../scripts/seguridad/paso1_cascadas_auditoria.py) | Corta Share/Unshare/Reparent, pone los `Restrict` y enciende la auditoría. |
-| Actualización sin señal | [`paso14_actualizacion_offline.py`](../../scripts/pan/paso14_actualizacion_offline.py) | `ad_cuentaid`, `ad_fechacaptura`. |
-| Marcas en lugar de rechazos | [`paso15_marcas_offline.py`](../../scripts/pan/paso15_marcas_offline.py) | `ad_sinvincular`, `pg_reciborepetido`; quita la clave del recibo. |
-| Identidad en la interacción | [`paso17_identidad_interaccion.py`](../../scripts/pan/paso17_identidad_interaccion.py) | `in_ultimos4`, `in_cifcliente`, `in_clavepan`. |
-| Tramos | [`paso18_tramo_cartera.py`](../../scripts/pan/paso18_tramo_cartera.py) | `as_tramo`, `ct_tramo`, `pg_tramo`. |
-| Listas editables | [`paso23_listas.py`](../../scripts/pan/paso23_listas.py) | Tabla `opcionlista`, privilegios y opciones iniciales. |
-| Columnas retiradas | [`paso8_contraer.py`](../../scripts/pan/paso8_contraer.py) | Borra `as_numerocuenta`, `in_numerocuenta`, `pg_numerocuenta` y las claves viejas sobre el número. |
-| Precisión GPS | [`precision_gps.py`](../../scripts/localizador/precision_gps.py) | `in_latitud` y `in_longitud` con 6 decimales. |
-| Perfil sin señal | [`paso7_perfil_offline.py`](../../scripts/pan/paso7_perfil_offline.py) | Qué tablas y filas bajan al teléfono. |
-
-Todos los scripts son idempotentes y, sin `--aplicar`, solo muestran el plan.
+| Solución desempaquetada | [`solutions/unpacked/Entities/`](../../solutions/unpacked/Entities/) | Metadata de las tablas. ⚠️ Está atrasada: no incluye `cuentapan`, `opcionlista` ni varias columnas actuales, y todavía muestra columnas y claves que ya no existen (por ejemplo, `as_numerocuenta`, `as_fechasignacion`, `ct_fechaultimopago` y las claves viejas sobre el número). Para la verdad del esquema, manda la *solution* exportada del ambiente de desarrollo ([Instalación, paso 1](09-instalacion-y-despliegue.md#1-conseguir-el-paquete-de-la-solution)). |
+| Esquema completo | *Solution* `cm_core_cobranzamovil` | Las 14 tablas, sus columnas, claves alternativas, relaciones con sus cascadas y la auditoría por tabla y por columna. Se ve en el portal de Power Apps → **Solutions** → `cm_core_cobranzamovil` → **Tables**. |
+| Perfil sin señal | *Offline profile* «Cobranza Movil - Cobrador» (viaja en la *solution*) | Qué tablas y filas bajan al teléfono. Se ve en el admin center → ambiente → **Settings** → **Users + permissions** → **Mobile configuration** ([Instalación, paso 3](09-instalacion-y-despliegue.md#3-revisar-lo-importado)). |
+| Opciones de las listas | Registros de `opcionlista` | No viajan en la *solution*: [Instalación, paso 10](09-instalacion-y-despliegue.md#10-opciones-iniciales-de-las-listas). |
 
 ## Cómo se modifica
 
 ### Agregar una columna
 
-1. Crear la columna en el ambiente de desarrollo con un script idempotente (como los de la tabla anterior) o desde el diseñador, siempre dentro de la *solution* `cm_core_cobranzamovil`. Respetar el prefijo `sanic_cm_<siglas>_` y el nombre visible `[XX] Nombre`.
+1. Crear la columna en el ambiente de desarrollo desde el portal de Power Apps: **Solutions** → `cm_core_cobranzamovil` → **Tables** → la tabla → **New** (Nuevo) → **Column** (Columna), siempre dentro de esa *solution*. Respetar el prefijo `sanic_cm_<siglas>_` y el nombre visible `[XX] Nombre`.
 2. Si un plugin la usa, agregar la constante en [`Esquema.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/Esquema.cs).
-3. Si la usa una app, refrescar la fuente de datos de la app ([`paso7_fuentes.py`](../../scripts/pan/paso7_fuentes.py)). ⚠️ La app guarda una copia del esquema; una fórmula que nombra una columna que la copia no conoce queda inerte sin aviso. [`paso7_esquema.py`](../../scripts/pan/paso7_esquema.py) lo detecta antes de desplegar.
+3. Si la usa una app, abrirla en Power Apps Studio y refrescar la fuente de datos (panel **Data** → la tabla → **⋯** → **Refresh**) antes de usar la columna. ⚠️ La app guarda una copia del esquema; una fórmula que nombra una columna que la copia no conoce queda inerte. Después de refrescar, revisar el **App checker** (Comprobador de aplicaciones) de Studio antes de publicar.
 4. Si la columna tiene que viajar al teléfono, verificar que la tabla esté en el perfil sin señal.
-5. Si la escribe la carga, agregar el mapeo en la plantilla de Smelter: ver [Carga diaria](07-carga-diaria.md).
+5. Si la escribe la carga, agregar el mapeo en la plantilla de Smelter: ver [Carga diaria](07-carga-diaria.md) e [Instalación, paso 8](09-instalacion-y-despliegue.md#8-plantillas-de-smelter).
+6. Exportar una versión nueva de la *solution* e instalarla en los demás ambientes ([Instalación, actualizar a una versión nueva](09-instalacion-y-despliegue.md#actualizar-a-una-versión-nueva)).
 
 ### Agregar una opción a una lista
 
@@ -375,11 +366,11 @@ No requiere cambios de esquema: el Admin la agrega en la pantalla de listas del 
 
 ### Cambiar una cascada
 
-Editar la relación con un script como [`paso1_cascadas_auditoria.py`](../../scripts/seguridad/paso1_cascadas_auditoria.py), que lee la relación completa, cambia solo las acciones necesarias y publica. Antes de pasar algo a `Cascade` en Share o Reparent, revisar [Seguridad](03-seguridad.md): esas cascadas deciden qué ve cada localizador.
+En el ambiente de desarrollo, portal de Power Apps → **Solutions** → `cm_core_cobranzamovil` → **Tables** → la tabla padre → **Relationships** (Relaciones) → abrir la relación 1:N → **Advanced options** (Opciones avanzadas) → **Type of behavior** (Tipo de comportamiento) **Custom** (Personalizado) → cambiar solo la acción necesaria (Delete, Assign, Share, Unshare, Reparent) → **Done** y publicar. La cascada viaja con la relación en la *solution*. Antes de pasar algo a `Cascade` en Share o Reparent, revisar [Seguridad](03-seguridad.md): esas cascadas deciden qué ve cada localizador.
 
 ### Agregar una clave alternativa
 
-Crearla **después** de que la columna tenga datos sin duplicados: un duplicado real hace fallar la creación del índice (los nulos no cuentan). El índice se crea en segundo plano; su estado (`EntityKeyIndexStatus`) tiene que llegar a `Active`. No agregar claves a tablas que escribe el teléfono (ver trampas).
+Se crea en el portal de Power Apps → **Tables** → la tabla → **Keys** → **New key** (Nueva clave), dentro de la *solution*. Crearla **después** de que la columna tenga datos sin duplicados: un duplicado real hace fallar la creación del índice (los nulos no cuentan). El índice se crea en segundo plano; su estado (`EntityKeyIndexStatus`) tiene que llegar a `Active`. No agregar claves a tablas que escribe el teléfono (ver trampas).
 
 ## Trampas y errores conocidos
 

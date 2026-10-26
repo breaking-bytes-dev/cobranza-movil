@@ -1,322 +1,385 @@
 # Instalación y despliegue
 
-Este documento explica cómo instalar Cobranza Móvil en un ambiente de Dataverse nuevo, en cualquier *tenant*, y cómo publicar cambios una vez instalada. Está pensado para el administrador de Power Platform o el desarrollador que recibe la solución sin contexto. Es una receta: indica qué correr y en qué orden. Las razones de diseño están en [Arquitectura](01-arquitectura.md) y [Decisiones de diseño](12-decisiones.md).
+Este documento explica cómo instalar Cobranza Móvil (CM) en un ambiente de Dataverse nuevo, en cualquier *tenant*, y cómo actualizarla a una versión nueva. Todo se hace **a mano, desde interfaces gráficas**: el portal de Power Apps (`make.powerapps.com`), el centro de administración de Power Platform (*Power Platform admin center*, `admin.powerplatform.microsoft.com`), el centro de administración de Microsoft Entra, la configuración clásica del ambiente y las pantallas de Smelter. No hace falta instalar nada en el puesto de trabajo ni registrar aplicaciones en Entra ID. Está pensado para el administrador de Power Platform que recibe la solución sin contexto. Las razones de diseño están en [Arquitectura](01-arquitectura.md), [Seguridad](03-seguridad.md) y [Decisiones de diseño](12-decisiones.md).
+
+Los nombres de menús y botones se escriben como aparecen en la interfaz en inglés, con su traducción la primera vez. Si el portal está en español, la etiqueta es la traducción.
 
 ## Cómo funciona
 
-La instalación tiene dos mitades. Lo que es **metadato** (tablas, columnas, claves alternativas, relaciones y cascadas, roles con sus privilegios, el ensamblado de *plugins* y sus pasos, las *Custom APIs*, las dos *canvas apps* y el *offline profile*) viaja dentro de la *solution* `cm_core_cobranzamovil`. Una *solution* es el paquete de Dataverse que agrupa componentes para moverlos entre ambientes. Lo que es **dato o configuración del ambiente** no viaja en la *solution* y lo crean los scripts de [`scripts/`](../../scripts/): equipos, la clave K, las plantillas de Smelter, las opciones iniciales de las listas y los trabajos de *bulk delete* (borrado masivo programado de Dataverse).
+La instalación tiene dos mitades:
+
+- **Lo que viaja en la *solution*.** Una *solution* es el paquete de Dataverse que agrupa componentes (tablas, roles, código, apps) para moverlos entre ambientes. La de CM se llama `cm_core_cobranzamovil` y su editor (*publisher*) usa el prefijo `sanic`. Al importarla se instalan solos las tablas, columnas, claves alternativas, relaciones, roles, el ensamblado de *plugins* con sus pasos, las *Custom APIs*, las dos *canvas apps* y el *offline profile*.
+- **Lo que no viaja.** Datos y configuración propios del ambiente: equipos, la clave K, las plantillas de Smelter, las opciones iniciales de las listas, los trabajos de borrado programado, algunos ajustes de seguridad sobre roles del sistema y la asignación de roles a personas. Eso se crea a mano después de importar, en el orden de este documento.
 
 ```mermaid
 flowchart TD
-    A["Prerrequisitos<br/>licencias, Smelter, identidad de servicio"] --> B["1-2. Conseguir e importar la solution<br/>cm_core_cobranzamovil"]
-    B --> C["3. Plugins y Custom APIs<br/>registrar y activar pasos"]
-    C --> D["4. Equipos y roles<br/>incluido Cartera sin cobrador"]
-    D --> E["5. Datos de configuración<br/>clave K, bóveda, listas"]
-    E --> F["6. Plantillas de Smelter<br/>principal + padres/partes"]
-    F --> G["7. Offline profile y borrado programado"]
-    G --> H["8. Ajustes del ambiente sin script"]
-    H --> I["Verificación y primera carga"]
+    A["Requisitos previos<br/>licencias, Smelter, permisos"] --> B["1. Conseguir el paquete<br/>cm_core_cobranzamovil"]
+    B --> C["2. Importar la solution"]
+    C --> D["3. Revisar lo importado<br/>pasos de plugin, APIs, roles, perfil offline"]
+    D --> E["4. Ajustes de seguridad<br/>System Customizer, herencia de privilegios"]
+    E --> F["5. Equipo Cartera sin cobrador"]
+    F --> G["6. Equipo de carga"]
+    G --> H["7. Clave K"]
+    H --> I["8. Plantillas de Smelter"]
+    I --> J["9. Roles a personas y apps compartidas"]
+    J --> K["10. Opciones de listas"]
+    K --> L["11. Borrado programado"]
+    L --> M["12. Ajustes del ambiente"]
+    M --> N["Verificación y primera carga"]
 ```
 
-**Por qué hay scripts y no solo una *solution*.** Dataverse no transporta en una *solution* los equipos, los registros de tablas de terceros (las plantillas y la clave de Smelter), ni los trabajos de *bulk delete*. Los scripts de instalación son idempotentes: por defecto **solo muestran el plan** (hacen únicamente lecturas) y cambian algo solo con `--aplicar`. Se pueden volver a correr sin duplicar nada. Las excepciones son los scripts de prueba ([`paso6_prueba.py`](../../scripts/pan/paso6_prueba.py), [`paso2_prueba.py`](../../scripts/seguridad/paso2_prueba.py)), que crean datos apenas se corren y no forman parte de la instalación.
+## Qué viaja en la solution y qué no
 
-## Prerrequisitos
+| Componente | ¿Viaja en la *solution*? | Dónde se ve o se configura | Paso |
+|---|---|---|---|
+| 14 tablas `sanic_cm_tbl_*` (incluidas la bóveda `sanic_cm_tbl_cuentapan` y las opciones de lista `sanic_cm_tbl_opcionlista`), columnas, claves alternativas, relaciones y comportamiento de *cascade* | Sí | Portal de Power Apps → **Solutions** | 3 |
+| Auditoría por tabla y por columna | Sí | Viaja con cada tabla; solo registra si el ambiente tiene la auditoría encendida | 12 |
+| Roles `SR \| CM \| Localizador`, `BackOffice`, `Solicitante`, `Supervisor`, `Admin`, `Servicio - Cobranza` y `Cartera sin cobrador`, con sus privilegios | Sí | Admin center → **Security roles** | 3 y 4 |
+| Propiedad **Member's privilege inheritance** de cada rol | ⚠️ A confirmar | Admin center → rol → **Settings** | 4 |
+| Privilegios automáticos de *System Customizer* sobre la bóveda y sobre la tabla de la clave K | No (la plataforma los agrega al crear la tabla) | Admin center → rol *System Customizer* | 4 |
+| Ensamblado `Sanic.CobranzaMovil.Plugins` y todos sus pasos | Sí | **Solutions** → **Plug-in steps** | 3 |
+| Estado activo o inactivo de cada paso | Depende de la opción de importación | **Solutions** → **Plug-in steps** | 2 y 3 |
+| Cinco *Custom APIs* (`sanic_cm_SolicitarEspecial`, `sanic_cm_AltaCuenta`, `sanic_cm_PartirCarga`, `sanic_cm_CerrarFueraDeCartera`, `sanic_cm_MisRoles`) | Sí | **Solutions** → objetos de tipo *Custom API* | 3 |
+| *Canvas apps* de la oficina y del localizador | Sí | Portal de Power Apps → **Apps** | 3 |
+| *Offline profile* «Cobranza Movil - Cobrador» | Sí | Admin center → **Mobile configuration** | 3 |
+| Equipo «CM · Cartera sin cobrador · …» | No | Admin center → **Teams** | 5 |
+| Equipo de carga (dueño de las plantillas) y demás equipos | No | Admin center → **Teams** | 6 y 9 |
+| Clave K (fila `cm-pan` de la tabla de Smelter `sanic_tbl_smlt_hmackey`) | No | Portal de Power Apps → **Tables**, o pantalla de Smelter | 7 |
+| Plantillas de Smelter «Cobranza movil», «Cobranza movil · padres» y «Cobranza movil · partes» | No (son registros de Smelter) | Pantallas de Smelter | 8 |
+| Asignación de roles a personas y equipos; permisos de uso de las apps | No | Admin center → **Users**, **Teams**; portal → **Apps** → **Share** | 9 |
+| Opciones iniciales de las listas | No (son registros) | App de la oficina → **Listas** | 10 |
+| Siete trabajos de *bulk delete* | No | Admin center → **Bulk deletion** | 11 |
+| Nivel de trazas de *plugins*, auditoría del ambiente, DLP | No | Admin center y configuración clásica | 12 |
+| Vínculo entre cada localizador y su agente | No (es un dato) | App de la oficina → **Agentes y usuarios** | Después de la primera carga |
 
-### Plataforma
+## Requisitos previos
+
+### Plataforma y licencias
 
 | Requisito | Para qué | Notas |
 |---|---|---|
-| Ambiente de Power Platform con Dataverse | Base de datos, *plugins*, apps | Uno para desarrollo y otro para producción (ver [Publicar cambios](#publicar-cambios)) |
-| Licencias de Power Apps para todos los usuarios | Las dos apps son *canvas apps* sobre Dataverse, que es un conector *premium* | ⚠️ A confirmar el plan concreto (por usuario o por app) según el licenciamiento del cliente |
-| Auditoría encendida a nivel del ambiente | La auditoría de tablas de la *solution* solo registra si el ambiente la tiene activa | Centro de administración de Power Platform → ambiente → Configuración → Auditoría y registros |
-| Smelter instalado en el ambiente | Herramienta de importación de terceros que procesa el archivo diario (*solution* `smlt_core_smelter`) | Tiene que soportar la transformación `HMAC()` y respetar los indicadores `CreateIfNotExists` y `UpdateIfExists` de los *table mappings*. Según el comentario de [`diag-smelter.yml`](../../.github/workflows/diag-smelter.yml), los indicadores se respetan desde la versión 1.3.0.0. ⚠️ A confirmar con el proveedor la versión mínima que trae `HMAC()`. Ver [Carga diaria](07-carga-diaria.md) |
-| Aplicación Power Apps en los teléfonos | La app del localizador funciona sin señal solo dentro de la app móvil de Power Apps | Ver [App del localizador](05-app-localizador.md) |
+| Ambiente de Power Platform con base de datos Dataverse | Datos, *plugins* y apps | Lo habitual es uno de desarrollo y otro de producción |
+| Licencias de Power Apps para todas las personas que usan las apps | Las dos apps son *canvas apps* sobre Dataverse, que es un conector *premium* | ⚠️ A confirmar el plan concreto (por usuario o por app) según el licenciamiento del cliente |
+| Smelter instalado en el ambiente **antes** de importar CM | Herramienta de importación de terceros que procesa el archivo diario (su *solution* es `smlt_core_smelter`). CM registra un paso de *plugin* sobre una tabla de Smelter (`sanic_tbl_smlt_importjob`), así que la importación necesita esa tabla | Tiene que soportar la transformación `HMAC()` y respetar los indicadores *CreateIfNotExists* y *UpdateIfExists* de los *table mappings*. ⚠️ A confirmar con el proveedor la versión mínima (el proyecto registra que *UpdateIfExists* se respeta desde la 1.3.0.0; no hay registro de la versión que trae `HMAC()`). Ver [Carga diaria](07-carga-diaria.md) |
+| Aplicación Power Apps instalada en los teléfonos de los localizadores | La app del localizador funciona sin señal solo dentro de la app móvil de Power Apps | Ver [App del localizador](05-app-localizador.md) |
 
-### Identidad de servicio
+### Permisos de quien instala
 
-Los scripts y la integración continua (CI) se conectan como una **app registration** de Microsoft Entra ID con secreto de cliente (*service principal*).
-
-1. Registrar una aplicación en Entra ID del *tenant* (`<id-de-la-app>`) y crearle un secreto de cliente.
-2. En el ambiente, agregarla como **usuario de aplicación** (Centro de administración de Power Platform → ambiente → Configuración → Usuarios y permisos → Usuarios de aplicación) con el rol **System Administrator**.
-
-**Por qué System Administrator.** Los scripts crean metadatos, registran *plugins*, programan *bulk delete* y escriben la clave K en la tabla protegida de Smelter. Después de [`paso6_clave_k.py`](../../scripts/pan/paso6_clave_k.py), de los roles editables solo System Administrator conserva acceso a esa tabla (quedan además roles internos de Microsoft que la plataforma no deja modificar).
-
-### Puesto de trabajo
-
-| Herramienta | Uso |
+| Permiso | Para qué |
 |---|---|
-| Git | Clonar el repositorio. Todos los scripts se corren **desde la raíz del repositorio** (algunos escriben en `local/` con ruta relativa) |
-| Python 3 con PyYAML | Los scripts usan solo la biblioteca estándar, salvo [`paso7_desplegar.py`](../../scripts/pan/paso7_desplegar.py), que necesita `yaml` (`pip install pyyaml`). ⚠️ A confirmar la versión mínima de Python (los scripts usan f-strings y `dict` ordenado: 3.8 o superior debería alcanzar) |
-| .NET SDK 8 | Compilar los *plugins* (apuntan a .NET Framework 4.6.2, el *runtime* del *sandbox* de Dataverse) |
-| Power Platform CLI (`pac`) | Exportar e importar la *solution* y empaquetar las apps. Instalar como herramienta global de .NET: `dotnet tool install --global Microsoft.PowerApps.CLI.Tool`. `paso7_desplegar.py` lo busca en `~/.dotnet/tools/pac` |
-| Clave de nombre seguro (`.snk`) de los *plugins* | Dataverse rechaza actualizar un ensamblado firmado con otra clave. Ver [Trampas](#trampas-y-errores-conocidos) |
+| Rol **System Administrator** en el ambiente | Importar un ensamblado de *plugins* (*System Customizer* no tiene el privilegio de crear *Plug-In Assembly*), editar roles del sistema, crear trabajos de *bulk delete* y escribir en la tabla protegida de la clave K |
+| Rol de Smelter que permite editar plantillas | Crear y modificar las plantillas. En CM se lo llama **Smelter Configurador**; ⚠️ A confirmar el nombre exacto del rol en la versión instalada de Smelter |
+| Permiso para crear grupos de seguridad en Microsoft Entra ID (o alguien que lo tenga) | Solo si los roles se van a dar por equipos de grupo de Entra ID (paso 9) |
 
-## Configuración que leen los scripts
+## 1. Conseguir el paquete de la solution
 
-Ningún script guarda credenciales. Las leen así:
+El paquete es un archivo `.zip` exportado del ambiente de desarrollo donde se mantiene CM. Lo entrega el equipo de desarrollo, o lo exporta quien tenga acceso a ese ambiente:
 
-| Variable | Qué es | Quién la lee |
+1. En `make.powerapps.com`, elegir el ambiente de desarrollo y abrir **Solutions** (Soluciones) en el panel izquierdo.
+2. Seleccionar `cm_core_cobranzamovil` y, en la barra de comandos, **Export** (Exportar).
+3. En el panel **Before you export** (Antes de exportar), elegir **Publish all changes** (Publicar todos los cambios): una *solution* no administrada solo exporta lo publicado. **Next** (Siguiente).
+4. En **Export this solution** (Exportar esta solución), revisar el **Version number** (Número de versión) y elegir **Export as** (Exportar como):
+   - **Unmanaged** (No administrada, editable) para un ambiente de **desarrollo**.
+   - **Managed** (Administrada, sellada) para **producción** y cualquier ambiente donde no se vaya a modificar.
+5. **Export**. El `.zip` queda en la carpeta de descargas del navegador.
+
+⚠️ La carpeta [`solutions/unpacked/`](../../solutions/unpacked/) del repositorio está atrasada respecto del ambiente (por ejemplo, no tiene la bóveda ni las opciones de lista). No se instala desde ahí: se instala siempre desde un `.zip` exportado.
+
+## 2. Importar la solution
+
+1. En `make.powerapps.com`, elegir el ambiente **de destino** (selector de ambiente arriba a la derecha) y abrir **Solutions**.
+2. En la barra de comandos, **Import solution** (Importar solución).
+3. En **Import a solution**, elegir **This device** (Este dispositivo) → **Browse** (Examinar), seleccionar el `.zip` y **Next**.
+4. En **Advanced settings** (Configuración avanzada), dejar marcada **Enable Plugin steps and flows included in the solution** (Habilitar los pasos de *plugin* y los flujos incluidos en la solución). Si se desmarca, los pasos que vienen inactivos quedan inactivos.
+5. Si aparece una lista de **dependencias faltantes**, cancelar: lo más probable es que falte Smelter o que su versión sea anterior. Instalar o actualizar Smelter y volver a empezar.
+6. **Import** (Importar). La importación corre en segundo plano y puede tardar varios minutos. Si falla, la página de soluciones muestra una notificación con **Download Log File** (Descargar archivo de registro), un XML que se abre con Excel.
+7. **Solo si se importó la no administrada:** los cambios quedan en borrador. Abrir la *solution* y elegir **Publish all customizations** (Publicar todas las personalizaciones). Una administrada se importa ya publicada.
+
+## 3. Revisar lo importado
+
+Abrir la *solution* `cm_core_cobranzamovil` en **Solutions** y revisar el panel **Objects** (Objetos):
+
+| Qué | Dónde | Resultado esperado |
 |---|---|---|
-| `DATAVERSE_URL` | `<url-del-ambiente>` | Todos |
-| `PP_CLIENT_ID` | `<id-de-la-app>` | Todos |
-| `PP_CLIENT_SECRET` | Secreto de la *app registration* | Todos |
-| `PP_TENANT_ID` | `<id-del-tenant>` | Todos |
-| `PP_SECRETS` | Ruta a un archivo `CLAVE=valor` con las cuatro anteriores. Por defecto, `pp_secrets.env` en la raíz del repositorio (está en `.gitignore`) | Todos |
-| `PAN_HMAC_KEY_FILE` | Ruta al archivo con la clave K (64 caracteres hexadecimales = 32 bytes). Si falta, el código usa una ruta por defecto dentro de la carpeta personal (`~/.config/…`) | [`paso6_clave_k.py`](../../scripts/pan/paso6_clave_k.py), los scripts de prueba que calculan HMAC ([`fixture_telefonos.py`](../../scripts/pan/fixture_telefonos.py), [`paso6_prueba.py`](../../scripts/pan/paso6_prueba.py)) y la suite integral ([`csv.js`](../../tests/integral/lib/csv.js)) |
+| Tablas | **Tables** (Tablas) | 14 tablas que empiezan con `sanic_cm_tbl_` |
+| Pasos de *plugin* | **Plug-in steps** (Pasos de complemento) | Todos con estado **On** (Activado), incluidos los seis de `PanGuard` (Create y Update sobre cuenta, carga diaria y bóveda). Si alguno está **Off**, seleccionarlo y elegir **Turn on** (Activar) |
+| *Custom APIs* | Objetos de tipo *Custom API* | Las cinco de la tabla anterior |
+| Roles | **Security roles** (Roles de seguridad) | Los siete `SR \| CM \| …` |
+| Apps | **Apps** | La app de la oficina y la del localizador |
+| *Offline profile* | Admin center → ambiente → **Settings** (Configuración) → **Users + permissions** (Usuarios y permisos) → **Mobile configuration** (Configuración móvil) | «Cobranza Movil - Cobrador», con las tablas cliente, actualización de datos, agente, asignación, cuenta, pago, dirección, interacción, teléfono, bóveda y opciones de lista |
 
-⚠️ Hay dos formas de lectura. [`paso5_plugins.py`](../../scripts/pan/paso5_plugins.py) y [`paso12_custom_api.py`](../../scripts/pan/paso12_custom_api.py) leen primero las **variables de entorno** y completan lo que falte desde el archivo. El resto usa [`dvlib.py`](../../scripts/seguridad/dvlib.py), que lee **solo el archivo** (`PP_SECRETS` o `pp_secrets.env`) e ignora las variables de entorno.
+**Por qué `PanGuard` tiene que estar activo.** Rechaza números de tarjeta en claro en las columnas de identificación ([`PanGuard.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PanGuard.cs)). En una instalación nueva la plantilla de carga ya enmascara el número, así que tiene que quedar activo desde el primer día. El detalle de cada paso está en [Plugins y Custom APIs](04-plugins-y-custom-apis.md).
 
-`paso7_desplegar.py` además usa el **perfil activo de `pac`**:
+**Si un paso o una *Custom API* no llegó.** La única alternativa gráfica para registrar pasos fuera de la *solution* es **Plug-in Registration Tool**, la herramienta de escritorio de Microsoft para Windows. Es preferible no usarla: pedir al equipo de desarrollo un paquete nuevo que incluya el componente. Un paso registrado a mano en un ambiente de producción queda fuera de la *solution* y una actualización posterior no lo reemplaza.
 
-```bash
-pac auth create --applicationId <id-de-la-app> --clientSecret <secreto> \
-  --tenant <id-del-tenant> --environment <url-del-ambiente>
-pac auth list   # el perfil con * es el que se usa
-```
+**Filtros del *offline profile*.** El *offline profile* define qué tablas y filas baja el teléfono para trabajar sin señal; en su nombre, «Cobrador» es el nombre histórico del localizador. Las asignaciones bajan solo si están activas; las interacciones, los pagos y las actualizaciones de datos, solo si se modificaron en los últimos 90 días. El resto de las tablas baja todas las filas que el usuario puede leer: la seguridad por fila es la que recorta. Si el perfil aparece sin publicar, abrirlo y publicarlo (**Publish**). Detalle en [App del localizador](05-app-localizador.md).
 
-Para la CI, los mismos cuatro valores van como *secrets* del repositorio de GitHub (`DATAVERSE_URL`, `PP_CLIENT_ID`, `PP_CLIENT_SECRET`, `PP_TENANT_ID`), más `PLUGIN_SNK_BASE64` (el `.snk` en base64) para registrar *plugins*.
+## 4. Ajustes de seguridad posteriores a la importación
 
-## Instalación paso a paso
+Todos se hacen en el admin center: **Manage** (Administrar) → **Environments** (Entornos) → ambiente → **Settings** → **Users + permissions** → **Security roles**.
 
-Cada script se corre primero sin `--aplicar` para leer el plan y después con `--aplicar`.
+### 4.1. Quitar privilegios a System Customizer
 
-### 1. Conseguir la *solution*
+Dataverse le da al rol del sistema *System Customizer* privilegios sobre toda tabla nueva. Lo tienen identidades de servicio y personas de desarrollo, que no deben leer el número de tarjeta ni la clave K.
 
-Se instala desde un export de `cm_core_cobranzamovil` del ambiente de origen. El *workflow* [`solution-release.yml`](../../.github/workflows/solution-release.yml) lo produce: fija la versión, exporta la *solution* **no administrada** (*unmanaged*, editable) y **administrada** (*managed*, sellada) y las publica como *assets* de un GitHub Release `sol-vX.Y.Z.B`.
+1. Abrir el rol **System Customizer**.
+2. Buscar la tabla de la bóveda («CM | TBL | PAN de cuenta», `sanic_cm_tbl_cuentapan`) y dejar todos sus privilegios en **None selected** (Ninguno).
+3. Buscar la tabla de claves de Smelter (`sanic_tbl_smlt_hmackey`) y hacer lo mismo. ⚠️ A confirmar su nombre visible en la versión instalada de Smelter; el nombre lógico es el de arriba.
+4. **Save + close** (Guardar y cerrar).
 
-- Para un ambiente de **desarrollo**, importar la no administrada: los scripts de despliegue exportan y reimportan la *solution*, y una administrada no se puede exportar.
-- Para **producción**, importar la administrada.
+Quedan con acceso *System Administrator* y roles internos de Microsoft que la plataforma no deja modificar (por ejemplo, *Support User*).
 
-⚠️ La carpeta [`solutions/unpacked/`](../../solutions/unpacked/) está atrasada (no tiene la bóveda `sanic_cm_tbl_cuentapan` ni las opciones de lista `sanic_cm_tbl_opcionlista`, y hasta la próxima sincronización puede seguir mostrando el *flow* «Cloud Flow \| CM \| Cambio de Owner en Asignaciones» y la función *low-code* `sanic_PlugInCMMarcarinteraccioncomograbadaenCORE`, que ya no forman parte de la *solution*). No se instala desde ahí. Antes de instalar, comprobar que el export contiene las 14 tablas `sanic_cm_tbl_*`, los seis roles `SR | CM | *` más `SR | CM | Cartera sin cobrador`, el ensamblado `Sanic.CobranzaMovil.Plugins`, las cuatro *Custom APIs* y el *offline profile* «Cobranza Movil - Cobrador».
+### 4.2. Revisar los privilegios de la bóveda
 
-### 2. Importar la *solution*
+En el mismo editor, comprobar que la lectura de `sanic_cm_tbl_cuentapan` quedó así (viaja con los roles; se revisa porque es la pieza más sensible):
 
-```bash
-pac solution import --path cm_core_cobranzamovil_unmanaged.zip --publish-changes
-```
+| Rol | Read de la bóveda |
+|---|---|
+| `SR \| CM \| Localizador` | **User** (Basic): solo las cuentas de su cartera, por el compartido en cascada desde la cuenta |
+| `SR \| CM \| BackOffice` | **Organization** (Global): transcribe al *core* |
+| `SR \| CM \| Admin`, `Solicitante`, `Supervisor` | Ninguno |
 
-El editor (*publisher*) de la *solution* usa el prefijo `sanic`. No hace falta crearlo: viene con la *solution*.
+Nadie tiene Create, Write ni Delete sobre la bóveda: la escribe solo la carga. Motivos en [Seguridad](03-seguridad.md#protección-del-número-de-tarjeta-pan).
 
-### 3. *Plugins* y *Custom APIs*
+### 4.3. Herencia de privilegios para roles dados por equipo
 
-La *solution* trae el ensamblado y sus pasos, pero la importación puede dejar pasos desactivados. [`paso5_plugins.py`](../../scripts/pan/paso5_plugins.py) busca el ensamblado y cada paso por nombre, actualiza lo que existe y crea lo que falta (nunca duplica), y deja los pasos como deben estar: los de `PanGuard` según el parámetro y el resto siempre activos. Requiere la dll firmada con **la misma** `.snk` que el ensamblado importado: si el *PublicKeyToken* no coincide con el registrado, se detiene. Los tres parámetros `--dll`, `--version` y `--public-key-token` son obligatorios también en el plan; el *workflow* `pan-plugin-cm` imprime la versión y el *PublicKeyToken* de la dll que compila.
+Si un rol de CM se va a dar **a través de un equipo** (paso 9), su propiedad **Member's privilege inheritance** (Herencia de privilegios de miembros) tiene que estar en **Direct User (Basic) access level and Team privileges** (Nivel de acceso de usuario directo y privilegios de equipo). Con *Team privileges only*, la persona solo podría usar los privilegios de nivel User sobre registros cuyo dueño es el equipo, y un localizador no vería las asignaciones de las que es dueño.
 
-```bash
-# Compilar firmado (o bajar el artefacto plugin-dll del workflow pan-plugin-cm)
-dotnet build plugins/Sanic.CobranzaMovil.Plugins/Sanic.CobranzaMovil.Plugins.csproj \
-  -c Release -p:AssemblyOriginatorKeyFile=<ruta-al-snk> -o out/dll
+1. Seleccionar el rol y, en la barra de comandos, **Settings**.
+2. Revisar **Member's privilege inheritance** y guardar.
 
-python3 scripts/pan/paso5_plugins.py --dll out/dll/Sanic.CobranzaMovil.Plugins.dll \
-  --version <AssemblyVersion> --public-key-token <16-hex> --activar-panguard          # plan
-python3 scripts/pan/paso5_plugins.py ... --activar-panguard --aplicar                 # aplica
+⚠️ A confirmar si esta propiedad viaja con el rol en la *solution*: revisarla siempre después de importar. Ver [Seguridad](03-seguridad.md#roles-heredados-por-equipos-de-entra-id).
 
-python3 scripts/pan/paso12_custom_api.py            # plan; verifica las 4 Custom APIs
-python3 scripts/pan/paso12_custom_api.py --aplicar  # solo si el plan muestra faltantes
-```
+## 5. Equipo «Cartera sin cobrador»
 
-[`paso12_custom_api.py`](../../scripts/pan/paso12_custom_api.py) corre **después** de `paso5_plugins.py`: se detiene si el ensamblado no está registrado y avisa si su versión es anterior a la que trae cada API. Si una API registrada difiere en algo que Dataverse no deja cambiar (enlace, si es función, tipo de un parámetro), se detiene y hay que borrarla y recrearla a mano.
+Los *plugins* `RepartoAsignacion` y `RepartoPorAgente` le pasan a este equipo las asignaciones activas cuyo agente no tiene usuario: así nadie las ve en el teléfono y el localizador anterior las pierde. Lo buscan **por nombre**: tiene que existir **exactamente un** equipo de tipo *Owner* cuyo nombre empiece con `CM · Cartera sin cobrador` ([`CarteraSinCobrador.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/CarteraSinCobrador.cs), constante `PrefijoEquipoSinCobrador` de [`Esquema.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/Esquema.cs)). Es el único equipo de CM con nombre obligatorio. Sin él, la primera carga reparte con error.
 
-El paso de [`PurgaArchivoCarga`](../../plugins/Sanic.CobranzaMovil.Plugins/PurgaArchivoCarga.cs) se registra sobre la tabla de trabajos de importación de Smelter (`sanic_tbl_smlt_importjob`): Smelter tiene que estar instalado antes de este paso. Mientras no existan las plantillas de CM (paso 6), el *plugin* corre y no hace nada.
+1. Admin center → ambiente → **Settings** → **Users + permissions** → **Teams** (Equipos) → **+ Create team** (Crear equipo).
+2. Completar:
+   - **Team name** (Nombre del equipo): `CM · Cartera sin cobrador · <sufijo-del-ambiente>`, por ejemplo con `PRD`. El separador es el **punto medio** `·` (U+00B7) con un espacio a cada lado, no un punto ni un guion: con otro carácter el *plugin* no lo encuentra.
+   - **Business unit** (Unidad de negocio): la unidad raíz.
+   - **Team type** (Tipo de equipo): **Owner** (Propietario).
+   - **Description**: «Dueño de las asignaciones cuyo agente no tiene usuario o que no tienen agente. SIN miembros.»
+3. Guardar. En el equipo, menú **⋮** → **Manage security roles** (Administrar roles de seguridad) → marcar **solo** `SR | CM | Cartera sin cobrador` → **Save**.
+4. **No agregarle miembros.** El rol solo da lectura de asignaciones a nivel User: alcanza para que el equipo sea dueño y no le da acceso a ninguna persona.
 
-**Por qué `--activar-panguard`.** `PanGuard` rechaza números de tarjeta en las columnas de identificación. En una instalación nueva la plantilla de carga ya enmascara el número, así que tiene que quedar activo desde el primer día. La versión del ensamblado está en [`Sanic.CobranzaMovil.Plugins.csproj`](../../plugins/Sanic.CobranzaMovil.Plugins/Sanic.CobranzaMovil.Plugins.csproj); el detalle de cada paso, en [Plugins y Custom APIs](04-plugins-y-custom-apis.md).
+## 6. Equipo de carga
 
-### 4. Equipos y roles
+Smelter le da a cada trabajo de importación el dueño de su plantilla, y quien pone un trabajo en cola tiene que poder leer la plantilla. Por eso las tres plantillas de CM tienen como dueño un equipo, y las personas que cargan el archivo (el Admin) son miembros de ese equipo. Las *Custom APIs* `sanic_cm_PartirCarga` y `sanic_cm_AltaCuenta` crean trabajos con los permisos de quien las llama ([`PartirCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PartirCarga.cs), [`AltaCuenta.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/AltaCuenta.cs)).
 
-Los roles llegan con la *solution*; los equipos no. Se crean antes que las plantillas de Smelter, porque la plantilla principal tiene que tener como dueño el equipo de carga.
+1. **Teams** → **+ Create team**, en la unidad raíz. El nombre es libre; se sugiere uno descriptivo («Carga Cobranza Móvil»). Tipo:
+   - **Owner**, si los miembros se agregan a mano; o
+   - **Microsoft Entra ID Security group** (Grupo de seguridad de Microsoft Entra ID), si los miembros salen de un grupo de Entra ID. En ese caso se elige el grupo en **Group name** y el tipo de pertenencia en **Membership type**.
+2. **Manage security roles**: el rol de Smelter que permite ver plantillas y correr trabajos (en CM se lo llama **Smelter Operador**; ⚠️ A confirmar el nombre en la versión instalada). Si los Admin van a recibir su rol de CM por este mismo equipo, agregar también `SR | CM | Admin`.
+3. Si es de tipo *Owner*: **⋮** → **Manage team members** (Administrar miembros) → agregar a los Admin.
 
-```bash
-# Equipo dueño de las asignaciones sin localizador. <ENV> es el sufijo del ambiente (DEV, PRD...).
-python3 scripts/seguridad/paso5_cartera_sin_cobrador.py --entorno <ENV>            # plan
-python3 scripts/seguridad/paso5_cartera_sin_cobrador.py --entorno <ENV> --aplicar
-```
+Este equipo tiene que existir antes de crear las plantillas (paso 8), que lo toman como dueño.
 
-[`paso5_cartera_sin_cobrador.py`](../../scripts/seguridad/paso5_cartera_sin_cobrador.py) crea el rol `SR | CM | Cartera sin cobrador` (solo lectura Basic de la asignación), lo agrega a la *solution* y crea el equipo «CM · Cartera sin cobrador · `<ENV>`» en la unidad de negocio raíz, **sin miembros**. Es idempotente; termina con error si encuentra más de un equipo con ese prefijo, si el equipo tiene otro rol o si tiene miembros. **Tiene que existir antes de la primera carga**: sin él, `RepartoAsignacion` y `RepartoPorAgente` fallan al buscar un único equipo con ese prefijo ([`CarteraSinCobrador.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/CarteraSinCobrador.cs)).
+## 7. Clave K
 
-Los demás equipos se crean a mano. La app de la oficina deduce el perfil de cada persona del **nombre del equipo** ([`App.pa.yaml`](../../apps/backoffice-canvas/Src/App.pa.yaml), fórmula `gblRol`): toma el segmento del medio de «CM · `<perfil>` · `<ENV>`» y lo compara con un texto fijo. Por eso los nombres tienen que ser exactamente estos:
+K es la clave secreta con la que Smelter calcula el HMAC del número de tarjeta: las tablas se unen por ese valor en lugar del número. Vive en la tabla protegida de Smelter `sanic_tbl_smlt_hmackey`, en una fila activa con nombre `cm-pan`, en **todos** los ambientes, producción incluida. No se usa Azure Key Vault: Smelter lee la clave de su propia tabla. Por qué existe y cómo se protege: [Seguridad](03-seguridad.md#la-clave-k).
 
-| Equipo | Rol de Dataverse | Además |
+1. **Generar K**: 64 caracteres hexadecimales en minúscula (`0-9`, `a-f`), que son 32 bytes. Usar el generador de secretos del gestor de contraseñas de la organización, configurado para ese alfabeto y ese largo. Guardarla en ese gestor. Una K por ambiente; nunca reutilizar la de otro. ⚠️ A confirmar qué herramienta de la organización genera el valor.
+2. **Cargarla.** Con la pantalla de claves de Smelter, si la versión instalada la tiene (⚠️ A confirmar). Si no, desde el portal de Power Apps:
+   1. **Tables** → filtro **All** (Todas) → buscar `sanic_tbl_smlt_hmackey` y abrirla.
+   2. En el área de columnas y datos de la tabla, agregar una fila con `sanic_smlt_hk_name` = `cm-pan` y `sanic_smlt_hk_value` = K.
+   3. Guardar.
+3. **Comprobar** que haya **una sola** fila activa con nombre `cm-pan`. Con dos, Smelter falla.
+
+Sin K, la carga falla con `TransformError`.
+
+## 8. Plantillas de Smelter
+
+La carga usa tres plantillas (*Import Template* de Smelter). Los nombres están fijos en [`Esquema.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/Esquema.cs) y no se pueden cambiar; los dos últimos llevan el punto medio `·`:
+
+| Plantilla | Uso | Se edita |
 |---|---|---|
-| CM · Localizadores · `<ENV>` | `SR \| CM \| Localizador` | |
-| CM · Backoffice · `<ENV>` | `SR \| CM \| BackOffice` | |
-| CM · Solicitantes · `<ENV>` | `SR \| CM \| Solicitante` | |
-| CM · Supervisores · `<ENV>` | `SR \| CM \| Supervisor` | |
-| CM · Admin y Carga · `<ENV>` | `SR \| CM \| Admin` | Rol «Smelter Operador» de Smelter: lo necesita para ver la plantilla y cargar el archivo |
-| CM · Cartera sin cobrador · `<ENV>` | `SR \| CM \| Cartera sin cobrador` | Lo crea el script anterior. **Sin miembros** |
+| «Cobranza movil» | Principal: la prueba en seco, la carga en serie y el alta de cuenta | Sí, es la única que se edita |
+| «Cobranza movil · padres» | Carga paralela: producto, fiador y agente | Nunca a mano: es copia de su parte de la principal |
+| «Cobranza movil · partes» | Carga paralela: todo lo demás | Nunca a mano: es copia de su parte de la principal |
 
-1. Crear los equipos en la unidad de negocio raíz. Pueden ser equipos de tipo *Microsoft Entra ID security group* (sus miembros salen de un grupo de Entra ID). En el rol `SR | CM | Localizador`, **Member's privilege inheritance** tiene que ser *Direct User (Basic) access level and Team privileges* (motivo en [Seguridad](03-seguridad.md#roles-heredados-por-equipos-de-entra-id)).
-2. ⚠️ A confirmar a qué identidad se asigna `SR | CM | Servicio - Cobranza` en el ambiente de origen. Los *plugins* lo tratan como un rol con permisos de escritura de servicio ([`RolesCm.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/RolesCm.cs)).
-3. Compartir cada app con los grupos que la usan: la del localizador solo con los localizadores.
-4. Después de la primera carga (que crea los agentes a partir del archivo), vincular cada localizador con su agente: app de la oficina → **Agentes** ([`scrAgentes.pa.yaml`](../../apps/backoffice-canvas/Src/scrAgentes.pa.yaml)). El Admin también puede crear agentes desde esa pantalla.
+El modelo de configuración (plantilla, *Table Mapping*, *Column Mapping*), las tablas que escribe cada mapeo y sus claves de *dedup* están en [Carga diaria](07-carga-diaria.md#plantillas-de-smelter).
 
-### 5. Datos de configuración
+### 8.1. Plantilla principal
 
-```bash
-# Clave K en la tabla protegida de Smelter (y quita privilegios automáticos a System Customizer sobre esa tabla)
-PAN_HMAC_KEY_FILE=<ruta-al-archivo-de-K> python3 scripts/pan/paso6_clave_k.py --aplicar
+Se crea en las pantallas de Smelter con el rol que permite editar plantillas. ⚠️ A confirmar el mecanismo con el proveedor: si la versión instalada permite exportar una plantilla de un ambiente e importarla en otro, es la vía recomendada (Smelter expone la *Custom API* `sanic_capi_smelter_exporttemplate` para exportar; no hay registro de una importación). Si no:
 
-# Privilegios de la bóveda del número de tarjeta (y quita los de System Customizer sobre ella)
-python3 scripts/pan/paso4_roles.py --aplicar
+- **A mano**, copiando cada *Table Mapping* y *Column Mapping* de la plantilla del ambiente de origen, con la tabla de [Carga diaria](07-carga-diaria.md#plantillas-de-smelter) como guía.
+- **Por Excel** (⚠️ A confirmar que los *lookups* se resuelven bien): en el ambiente de origen, `make.powerapps.com` → **Tables** → **Export** → **Export data** de las tablas de plantillas, *table mappings* y *column mappings* de Smelter; en el destino, **Tables** → **Import** → **Import data from Excel**, en ese orden (cada *lookup* apunta a la tabla anterior). La columna de dueño no se importa: se asigna después.
 
-# Tabla, privilegios y opciones iniciales de las listas editables
-python3 scripts/pan/paso23_listas.py --aplicar
-```
+Dos ajustes que la plantilla principal tiene que tener:
 
-- [`paso6_clave_k.py`](../../scripts/pan/paso6_clave_k.py) carga K en `sanic_tbl_smlt_hmackey` bajo el nombre `cm-pan`. K se lee del archivo indicado en `PAN_HMAC_KEY_FILE` (64 caracteres hexadecimales = 32 bytes); el script nunca la imprime, se detiene si hay más de una fila activa `cm-pan` y reemplaza la fila si no coincide con el archivo. Generar una K nueva para cada instalación (`python3 -c "import secrets; print(secrets.token_hex(32))" > <ruta-al-archivo-de-K>`), guardarla en el gestor de secretos del equipo y nunca reutilizar la de otro ambiente. K vive en esa tabla en **todos** los ambientes, producción incluida: no se usa Azure Key Vault. Por qué K existe y cómo se protege: [Seguridad](03-seguridad.md#la-clave-k).
-- [`paso4_roles.py`](../../scripts/pan/paso4_roles.py) deja la lectura de la bóveda `sanic_cm_tbl_cuentapan` en Basic para Localizador y Global para BackOffice, y le quita a *System Customizer* los privilegios que la plataforma le da sobre toda tabla nueva. El plan imprime para cada rol el valor actual y el de destino; si la *solution* ya trajo los privilegios, coinciden y lo único por aplicar son las líneas «System Customizer: quitar …», si aparecen.
-- [`paso23_listas.py`](../../scripts/pan/paso23_listas.py) crea la tabla `sanic_cm_tbl_opcionlista` si falta, da lectura a todos los roles de CM y escritura a Admin y Servicio, y crea las opciones iniciales (tipos de Especial, motivos de cierre, mensajes rápidos) que no existan. Necesita los roles de la *solution*. Tiene que correr **antes** del *offline profile*, que incluye esa tabla.
+| Mapeo | Valor | Por qué |
+|---|---|---|
+| *Column Mapping* `NombreFianza` → `sanic_cm_fi_nombre`, en el *Table Mapping* de `sanic_cm_tbl_fiador` | Valor por defecto (*default value*) = `(sin fiador)` | Las filas sin fiador comparten un solo fiador «(sin fiador)» en vez de crear uno vacío por fila. El *Column Mapping* de la cuenta que busca el fiador **no** lleva ese valor: con el nombre vacío, la cuenta queda sin fiador |
+| *Table Mapping* de `sanic_cm_tbl_agente` | *UpdateIfExists* = No; *CreateIfNotExists* = Sí | El agente tiene una sola columna mapeada, su nombre, que es la clave: actualizarlo no cambia nada y Smelter lo reescribiría en cada fila. Antes de apagarlo, comprobar que ese *Table Mapping* no mapee otras columnas: dejarían de actualizarse |
 
-### 6. Plantillas de Smelter
+Además, `PartirCarga` exige que el cliente se deduplique por `sanic_cm_cl_cif` desde una columna del archivo. La principal no puede tener *Relationship Mappings*: un mapeo de relación con el padre en otra plantilla deja el *lookup* vacío sin aviso.
 
-La carga usa tres plantillas: «Cobranza movil» (la principal, la única que se edita a mano) y dos derivadas para la carga paralela, «Cobranza movil · padres» y «Cobranza movil · partes». Los nombres están fijos en [`Esquema.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/Esquema.cs) y no se pueden cambiar.
+### 8.2. Plantillas derivadas
 
-1. Crear la plantilla principal «Cobranza movil» con sus *table mappings* y *column mappings*, según [Carga diaria](07-carga-diaria.md). ⚠️ A confirmar el mecanismo: Smelter expone `sanic_capi_smelter_exporttemplate` para exportarla del ambiente de origen, pero el repositorio no tiene un script ni un archivo para importarla. Sin ese mecanismo, se arma a mano.
-2. Asignar la plantilla principal al equipo «CM · Admin y Carga · `<ENV>`» (paso 4). Las derivadas copian ese dueño, y Smelter le da a cada trabajo de importación el dueño de su plantilla.
-3. Asegurar dos ajustes de la principal (idempotentes; si ya están, el script dice «YA ESTA»):
+`PartirCarga` compara las tres plantillas antes de partir la carga y se niega si no coinciden. Las derivadas tienen que ser **copia exacta** de su parte de la principal:
 
-   ```bash
-   python3 scripts/pan/paso13_fiador_sin_nombre.py --aplicar   # fiador vacío → "(sin fiador)"
-   python3 scripts/pan/paso19_agente_sin_update.py --aplicar   # la carga no reescribe agentes existentes
-   ```
+1. Crear «Cobranza movil · padres» y «Cobranza movil · partes» con los mismos valores de la principal en: delimitador, encabezado, tamaño de lote, tipo de origen y estado (**Activo**).
+2. En «· padres», crear **solo** los *Table Mappings* de `sanic_cm_tbl_producto`, `sanic_cm_tbl_fiador` y `sanic_cm_tbl_agente`; en «· partes», **todos los demás**. Cada uno con los mismos valores que en la principal: nombre, tabla destino, columnas de *dedup*, orden de procesamiento, *CreateIfNotExists*, *UpdateIfExists* y si es tabla intermedia.
+3. Bajo cada *Table Mapping*, los mismos *Column Mappings* que en la principal: nombre, columna destino, columna de origen, tipo de dato, requerido, valor por defecto, tabla y columna de *lookup*, mapeo de opciones y expresión de transformación.
 
-   Los dos buscan la plantilla por nombre y fallan si no hay exactamente una. `paso19_agente_sin_update.py` además se detiene si el *table mapping* del agente mapea más columnas que su clave.
-4. Generar las derivadas: `python3 scripts/pan/paso20_plantillas_paralelas.py --aplicar` ([`paso20_plantillas_paralelas.py`](../../scripts/pan/paso20_plantillas_paralelas.py)). Copia de la principal los *table mappings* de producto, fiador y agente a «· padres» y el resto a «· partes», con el mismo dueño, y borra en las derivadas lo que ya no esté en la principal. Se vuelve a correr después de cada cambio en la principal.
+Cada vez que se cambia la principal, hay que repetir el cambio en la derivada que corresponde (y borrar en ella lo que ya no esté en la principal).
 
-### 7. *Offline profile* y borrado programado
+### 8.3. Dueño de las tres plantillas
 
-```bash
-python3 scripts/pan/paso7_perfil_offline.py --aplicar
-python3 scripts/seguridad/paso10_borrado_programado.py --aplicar
-```
+Asignar las tres plantillas al **equipo de carga** del paso 6: abrir cada una en Smelter y usar **Assign** (Asignar). Smelter le da a cada trabajo de importación el dueño de su plantilla.
 
-- [`paso7_perfil_offline.py`](../../scripts/pan/paso7_perfil_offline.py) asegura el *offline profile* «Cobranza Movil - Cobrador» (la definición de qué tablas y filas baja el teléfono): lo crea si no existe, agrega o ajusta sus tablas y filtros, lo publica, comprueba que se regeneren sus consultas de sincronización y lo agrega a la *solution*. Si el perfil llegó con la *solution*, conserva su id y el `.msapr` del repositorio no cambia. Si lo tiene que crear, escribe el id nuevo en [`sanic_appcobranzamovil_c4e67_DocumentUri.msapr`](../../apps/localizador-canvas/sanic_appcobranzamovil_c4e67_DocumentUri.msapr) y después hay que desplegar la app (ver [Publicar cambios](#publicar-cambios)). Requiere que existan todas las tablas que lista, incluida `sanic_cm_tbl_opcionlista` (paso 5).
-- [`paso10_borrado_programado.py`](../../scripts/seguridad/paso10_borrado_programado.py) programa los siete trabajos diarios de *bulk delete* (reconoce los existentes por nombre) y cancela dos trabajos retirados si los encuentra. El primer ciclo corre un minuto después de aplicar. Plazos y motivos: [Ciclo de vida de los datos](08-ciclo-de-vida.md).
+## 9. Asignar roles a las personas y compartir las apps
 
-### 8. Configuración del ambiente que no hace ningún script
+Cada persona recibe **un solo** rol operativo de CM (`SR | CM | <perfil>`). Se le puede dar de cualquiera de estas tres formas, sin requisitos sobre el nombre del equipo:
 
-- **Nivel de trazas de *plugins***: en *Exception* (configuración del sistema del ambiente; columna `plugintracelogsetting` de la tabla `organization`, valor 1). Para diagnosticar se sube un rato a *All* (ver [Mantenimiento](11-mantenimiento.md)).
-- **Auditoría** del ambiente encendida (ver prerrequisitos).
-- ⚠️ A confirmar: políticas de prevención de pérdida de datos (DLP), grupo de seguridad del ambiente y controles del dispositivo (Intune) dependen del *tenant* y no forman parte de la *solution*.
+| Forma | Dónde | Cuándo conviene |
+|---|---|---|
+| **Directo a la persona** | Admin center → ambiente → **Settings** → **Users + permissions** → **Users** (Usuarios) → seleccionar la persona → **Manage security roles** → marcar el rol → **Save** | Pocas personas |
+| **Equipo de Dataverse de tipo *Owner*** | **Teams** → crear el equipo → **Manage security roles** → **Manage team members** | Grupos que se administran desde Dataverse |
+| **Equipo de grupo de Entra ID** | Crear el grupo de seguridad en el centro de administración de Microsoft Entra; en **Teams**, crear un equipo de tipo **Microsoft Entra ID Security group** vinculado a ese grupo y darle el rol | Cuando las altas y bajas se administran en Entra ID. Los miembros los administra un administrador de Entra; Dataverse los sincroniza cuando la persona entra al ambiente |
 
-## Verificación
+La app de la oficina y los *plugins* leen los roles **efectivos** de la persona: los directos y los heredados de cualquier equipo ([`RolesCm.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/RolesCm.cs)). La app los pide al abrir con la *Custom API* `sanic_cm_MisRoles` ([`MisRoles.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/MisRoles.cs), llamada desde [`scrCarga.pa.yaml`](../../apps/backoffice-canvas/Src/scrCarga.pa.yaml)). Si el rol llega por un equipo, revisar antes el ajuste de herencia del paso 4.3.
+
+| Perfil | Rol de CM | Además |
+|---|---|---|
+| Localizador | `SR \| CM \| Localizador` | |
+| Oficina que transcribe | `SR \| CM \| BackOffice` | |
+| Solicitante de Especiales | `SR \| CM \| Solicitante` | |
+| Supervisor | `SR \| CM \| Supervisor` | |
+| Administrador funcional | `SR \| CM \| Admin` | Miembro del equipo de carga (paso 6) |
+
+Reglas (motivos en [Seguridad](03-seguridad.md#qué-no-hacer)):
+
+- No dar Localizador junto con BackOffice: la misma persona podría registrar y transcribir su propia visita.
+- No dar a ninguna persona `SR | CM | Cartera sin cobrador`.
+- ⚠️ A confirmar a qué identidad se asigna `SR | CM | Servicio - Cobranza`. Los *plugins* la tratan como al Admin y además le permiten crear Diarias e Incobrables ([`AprobacionEspecial.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/AprobacionEspecial.cs)). La operación normal no la necesita.
+
+**Compartir las apps.** En `make.powerapps.com` → **Apps**, seleccionar cada app → **Share** (Compartir) → agregar personas o grupos de Entra ID. La app del localizador **solo** con los localizadores: con un rol de lectura amplia, el teléfono bajaría una copia sin conexión de toda la cartera. La de la oficina, con los demás perfiles. Compartir la app no da permisos sobre los datos: los da el rol.
+
+## 10. Opciones iniciales de las listas
+
+Las listas que el Admin edita (tipo de Especial, motivos de cierre, mensajes rápidos del localizador) viven en `sanic_cm_tbl_opcionlista`. La tabla viaja en la *solution*; las opciones no. Con un usuario que tenga `SR | CM | Admin`, abrir la app de la oficina → **Listas** ([`scrListas.pa.yaml`](../../apps/backoffice-canvas/Src/scrListas.pa.yaml)) y crear las opciones. Las que usaba la instalación original:
+
+| Lista | Opciones |
+|---|---|
+| Tipo de Especial | Retiro urgente, Cobro especial, Verificación |
+| Motivo de cierre Incobrable | Recuperada, Baja / castigada, Fuera de cartera |
+| Motivo de cierre Especial | Gestión completada, Ya no aplica, Solicitud errónea |
+| Mensaje rápido | Promesa de pago, No localizado, Cliente pagó, No tiene dinero hoy, Negocio cerrado, Pidió arreglo |
+
+La primera opción activa de cada lista es la que aparece por defecto. Las opciones no se borran: se desactivan. Detalle en [App de la oficina](06-app-backoffice.md#listas-administrables).
+
+## 11. Borrado programado
+
+Siete trabajos diarios de *bulk delete* (borrado masivo programado de Dataverse) aplican los plazos de retención. Plazos y motivos: [Ciclo de vida de los datos](08-ciclo-de-vida.md#los-siete-trabajos-de-borrado).
+
+Para cada trabajo:
+
+1. Admin center → ambiente → **Settings** → **Data management** (Administración de datos) → **Bulk deletion** (Eliminación masiva) → **New** (Nuevo). Se abre **Bulk Deletion Wizard** (Asistente para eliminación masiva) → **Next**.
+2. En **Define Search Criteria** (Definir criterios de búsqueda), elegir la tabla en **Look for** (Buscar) y armar las condiciones de la tabla siguiente. **Preview Records** (Vista previa de registros) muestra qué se borraría hoy. **Next**.
+3. En **Select Options** (Seleccionar opciones): **Name** (Nombre) exactamente como en la tabla; hora de inicio fuera del horario de carga; marcar **Run this job after every** (Ejecutar este trabajo cada) **1** día; sin correo de aviso. **Next**.
+4. **Submit** (Enviar).
+
+| Nombre del trabajo | **Look for** | Condiciones |
+|---|---|---|
+| `CM - Carga diaria de mas de 7 dias` | Carga diaria (`sanic_cm_tbl_cargadiaria`) | Fecha de carga (`sanic_cm_cd_fechacarga`) **Older Than X Days** (Anterior a X días) 7 |
+| `CM - Cuentas fuera de cartera hace mas de 14 dias` | Cuenta (`sanic_cm_tbl_cuenta`) | Modificado el **Older Than X Days** 14; **y** sin asignación viva; **y** sin interacción pendiente (ver nota) |
+| `CM - Clientes sin cuentas` | Cliente (`sanic_cm_tbl_cliente`) | Modificado el **Older Than X Days** 2; **y** relacionada Cuenta (por el cliente) **Does Not Contain Data** (No contiene datos) |
+| `CM - Fiadores sin cuentas` | Fiador (`sanic_cm_tbl_fiador`) | Modificado el **Older Than X Days** 2; **y** relacionada Cuenta (por el fiador) **Does Not Contain Data** |
+| `CM - Pagos de mas de 2 anos` | Pago (`sanic_cm_tbl_pago`) | Creado el **Older Than X Days** 730 |
+| `CM - Actualizaciones de datos de mas de 2 anos` | Actualización de datos (`sanic_cm_tbl_actualizaciondatos`) | Creado el **Older Than X Days** 730 |
+| `CM - Interacciones de mas de 2 anos` | Interacción (`sanic_cm_tbl_interaccion`) | Creado el **Older Than X Days** 735 |
+
+**Nota sobre el trabajo de cuentas.** «Asignación viva» es una asignación de la cuenta activa, **o** con «Última carga» en los últimos 14 días, **o** con fecha de cierre en los últimos 14 días. «Interacción pendiente» es una interacción de la cuenta con estado de grabación = Pendiente (todavía no transcrita). La condición es que **no exista** ninguna fila relacionada que cumpla esos filtros. ⚠️ A confirmar que el asistente permita poner condiciones dentro de un **Does Not Contain Data**; si no lo permite, este trabajo no tiene equivalente gráfico (ver [Puntos a confirmar](#puntos-a-confirmar)).
+
+Las columnas de fecha de carga y de «Última carga» son *DateOnly* (solo fecha): con ellas, usar operadores de días, nunca de horas o minutos ([Ciclo de vida](08-ciclo-de-vida.md#operadores-que-no-valen-con-dateonly)).
+
+**Alternativa a futuro.** Los trabajos de *bulk delete* hoy pueden viajar en una *solution* (componente **Data Life Cycle Config**). Si el equipo de desarrollo los agrega a `cm_core_cobranzamovil`, este paso desaparece. Un trabajo importado corre apenas se importa.
+
+## 12. Ajustes del ambiente
+
+| Ajuste | Dónde | Valor |
+|---|---|---|
+| Auditoría del ambiente | Admin center → ambiente → **Settings** → **Audit and logs** (Auditoría y registros) → **Audit settings** (Configuración de auditoría) → **Start Auditing** (Iniciar auditoría) → **Save** | Encendida. La auditoría por tabla y por columna viaja en la *solution*, pero no registra nada si el ambiente la tiene apagada |
+| Nivel de trazas de *plugins* | Admin center → ambiente → **Settings** → **Resources** (Recursos) → **All legacy settings** (Toda la configuración heredada) → **Settings** → **Administration** (Administración) → **System Settings** (Configuración del sistema) → pestaña **Customization** (Personalización) → **Enable logging to plug-in trace log** (Habilitar registro en el registro de seguimiento de complementos) | **Exception**. Para diagnosticar se sube un rato a **All** (ver [Mantenimiento](11-mantenimiento.md)). Si el ambiente redirige la configuración heredada a la app *Power Platform Environment Settings*, la opción está en **Administration** dentro de esa app |
+| Políticas de prevención de pérdida de datos (DLP), grupo de seguridad del ambiente, controles del dispositivo (Intune) | Admin center y Microsoft Intune | ⚠️ A confirmar: dependen del *tenant* y no forman parte de la *solution* |
+
+## Verificación final
 
 | Qué comprobar | Cómo | Resultado esperado |
 |---|---|---|
-| Pasos de *plugin* | `paso5_plugins.py` sin `--aplicar` | Todos los pasos «sin cambios» y activos, PanGuard incluido |
-| *Custom APIs* | `paso12_custom_api.py` sin `--aplicar` | Las cuatro existen y coinciden |
-| Roles, cascadas y auditoría | Correr **sin `--aplicar`** [`paso1_cascadas_auditoria.py`](../../scripts/seguridad/paso1_cascadas_auditoria.py), [`paso4_rol_basic.py`](../../scripts/seguridad/paso4_rol_basic.py), [`paso6_cobrador_solo_crea.py`](../../scripts/seguridad/paso6_cobrador_solo_crea.py), [`paso7_sin_flows.py`](../../scripts/seguridad/paso7_sin_flows.py), [`paso8_sin_trazas.py`](../../scripts/seguridad/paso8_sin_trazas.py) y [`paso4_roles.py`](../../scripts/pan/paso4_roles.py) | La *solution* trajo la configuración: los tres últimos dicen «sin cambios: ya está así» y los demás muestran el valor actual igual al de destino. Si alguno muestra una diferencia, el export de la *solution* es anterior a ese ajuste |
-| Clave K | `paso6_clave_k.py` sin `--aplicar` | «ya cargada y coincide con el archivo» |
-| Plantillas | `paso20_plantillas_paralelas.py` sin `--aplicar` | Sin diferencias entre la principal y las derivadas |
-| Descripciones de metadatos | [`paso24_descripciones.py`](../../scripts/pan/paso24_descripciones.py) sin `--aplicar` | «0 descripción(es) a cambiar» y ninguna con código de seguimiento. Si hay diferencias, correrlo con `--aplicar` |
-| Carga de punta a punta | En el ambiente de desarrollo, cargar [`cobranza-mock-1000.csv`](../../test-data/cobranza-mock-1000.csv) desde **Cargar archivo** y revisar **Monitoreo** | Trabajo completo, 0 filas fallidas, asignaciones repartidas en pocos minutos. Unos minutos después de terminar, los trabajos ya no tienen archivo: lo borra `PurgaArchivoCarga`. Si el ambiente tenía trabajos de antes del *plugin*, limpiarlos con [`paso10_purgar_archivos.py`](../../scripts/pan/paso10_purgar_archivos.py) `--aplicar` (ver [Ciclo de vida](08-ciclo-de-vida.md#archivo-de-carga-de-smelter)) |
-| Prueba integral | [`tests/integral/`](../../tests/integral/README.md), solo en desarrollo | Todos los checks en verde (ver [Pruebas](10-pruebas.md)) |
-| Teléfono | Un localizador abre la app, sincroniza y ve solo su cartera | La cartera coincide con sus asignaciones activas |
+| Pasos de *plugin* | **Solutions** → `cm_core_cobranzamovil` → **Plug-in steps** | Todos **On**, `PanGuard` incluido |
+| *Custom APIs* | Objetos de la *solution* | Las cinco presentes |
+| System Customizer | Editor del rol, tablas de la bóveda y de claves de Smelter | Ningún privilegio |
+| Herencia de privilegios | **Settings** de cada rol dado por equipo | *Direct User (Basic) access level and Team privileges* |
+| Equipo «Cartera sin cobrador» | **Teams** | Uno solo, tipo *Owner*, rol `SR \| CM \| Cartera sin cobrador`, sin miembros |
+| Equipo de carga | **Teams** | Rol de Smelter para correr trabajos; los Admin como miembros |
+| Clave K | Tabla `sanic_tbl_smlt_hmackey` | Una sola fila activa `cm-pan` |
+| Plantillas | Pantallas de Smelter | Tres plantillas activas, dueño = equipo de carga, derivadas iguales a su parte de la principal |
+| Roles de cada persona | Admin center → **Users** → persona → roles; o **Run diagnostics** (Ejecutar diagnóstico) | Un rol operativo de CM, directo o por un equipo |
+| Opciones de lista | App de la oficina → **Listas** | Las cuatro listas con opciones activas |
+| Borrado programado | **Bulk deletion** → vista de trabajos recurrentes | Los siete trabajos, diarios |
+| Auditoría y trazas | Ajustes del paso 12 | Auditoría encendida; trazas en *Exception* |
+| Carga de punta a punta | **Solo en el ambiente de desarrollo**: app de la oficina → **Cargar archivo** con [`cobranza-mock-1000.csv`](../../test-data/cobranza-mock-1000.csv); después **Monitoreo** ([`scrMonitoreo.pa.yaml`](../../apps/backoffice-canvas/Src/scrMonitoreo.pa.yaml)) | Trabajo completo, 0 filas fallidas, asignaciones repartidas en pocos minutos. Unos minutos después, los trabajos ya no tienen archivo: lo borra [`PurgaArchivoCarga`](../../plugins/Sanic.CobranzaMovil.Plugins/PurgaArchivoCarga.cs) |
+| Agentes | Después de la primera carga, app de la oficina → **Agentes y usuarios** ([`scrAgentes.pa.yaml`](../../apps/backoffice-canvas/Src/scrAgentes.pa.yaml)) | Cada localizador vinculado a su agente, con el correo de su usuario (lo completa [`EmailDesdeUsuario.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/EmailDesdeUsuario.cs)) |
+| Teléfono | Un localizador abre la app en Power Apps móvil y sincroniza | Ve solo su cartera, que coincide con sus asignaciones activas |
 
-⚠️ Nunca cargar archivos de prueba en producción. Los archivos de [`test-data/`](../../test-data/) usan números de tarjeta generados al azar por [`generar-mock.py`](../../test-data/generar-mock.py).
+⚠️ Nunca cargar archivos de prueba en producción. Los de [`test-data/`](../../test-data/) usan números de tarjeta generados al azar.
 
-## Publicar cambios
+## Actualizar a una versión nueva
 
-### Apps (canal habitual)
+Una versión nueva llega como un `.zip` con número de versión mayor (formato `X.Y.Z.B`; los cambios se anotan en [`CHANGELOG.md`](../../CHANGELOG.md)).
 
-[`paso7_desplegar.py`](../../scripts/pan/paso7_desplegar.py) despliega las dos apps desde `apps/*/Src` en una sola importación:
+1. **Elegir el momento**: sin cargas en curso y fuera del horario de los localizadores. Mientras dura la importación, los pasos de *plugin* pueden quedar apagados, y un cambio de asignaciones de ese intervalo puede no repartirse (ver [Trampas](#trampas-y-errores-conocidos)).
+2. **Avisar a los makers** que cierren las apps en Power Apps Studio: si alguien tiene una app abierta en edición, la importación falla.
+3. `make.powerapps.com` → **Solutions** → **Import solution** → **Browse** → **Next**. Aparece el aviso **This solution package contains an update for a solution that is already installed** (Este paquete contiene una actualización de una solución ya instalada).
+4. En **Advanced settings**, elegir la acción:
+   - **Upgrade** (Actualizar; recomendada para la administrada): deja la versión nueva y **borra** los componentes que ya no están en ella.
+   - **Stage for Upgrade** (Preparar para actualizar): instala la nueva junto a la vieja; se completa después con **Apply Solution Upgrade** (Aplicar actualización). Solo si hace falta migrar datos entre las dos.
+   - **Update** (no recomendada): reemplaza sin borrar lo que se quitó; el ambiente puede quedar distinto del de origen.
+5. Dejar marcada **Enable plug-in steps and flows included in the solution** → **Import**.
+6. Si es la no administrada: **Publish all customizations**.
+7. Repetir la revisión del paso 3 (pasos **On**, *Custom APIs*, *offline profile*) y del paso 4.1 si la versión agrega tablas nuevas (System Customizer vuelve a recibir privilegios sobre ellas).
+8. Aplicar a mano lo que no viaja, **solo si la versión lo cambió** (lo indica el `CHANGELOG.md`): plantillas de Smelter (principal y derivadas), trabajos de borrado, opciones de lista nuevas.
 
-```bash
-python3 scripts/pan/paso7_desplegar.py             # empaqueta, exporta la solution del ambiente y arma el zip; no importa
-python3 scripts/pan/paso7_desplegar.py --aplicar   # importa y publica
-python3 scripts/seguridad/paso3_reconciliar.py --aplicar
-```
-
-Qué hace y por qué no alcanza con importar el `.msapp`:
-
-1. Revisa los `.pa.yaml`: YAML válido y sin propiedades que Studio rechaza. `pac canvas pack` empaqueta igual un archivo inválido y la app publicada después no abre en Studio.
-2. Empaqueta cada app y sella la versión: reemplaza `nfVersion = "dev";` de `App.pa.yaml` por el *commit* y la hora, en una copia (el repositorio no cambia).
-3. Revisa con [`paso7_esquema.py`](../../scripts/pan/paso7_esquema.py) que la copia del esquema guardada en la app conozca cada columna que usan las fórmulas. Si falta una, la fórmula queda inerte sin aviso.
-4. Exporta la *solution* del ambiente, reemplaza los `.msapp` y actualiza `DatabaseReferences` y `CdsDependencies` de `customizations.xml`. Sin eso, la app publicada no consulta una tabla nueva.
-5. Importa con `--publish-changes` y **restaura el estado de los pasos de *plugin* y de los *flows***, que la importación altera.
-
-Después hay que correr [`paso3_reconciliar.py`](../../scripts/seguridad/paso3_reconciliar.py): mientras dura la importación los pasos están apagados y los cambios de asignaciones de ese intervalo no se reparten.
-
-**Despliegue rápido con `cm_parche`.** [`paso22_parche.py`](../../scripts/pan/paso22_parche.py) mantiene una *solution* no administrada chica, del mismo editor, con solo los componentes que se están cambiando. Es más rápida y no toca *plugins*, *flows* ni roles.
-
-```bash
-python3 scripts/pan/paso22_parche.py --app cobrador --aplicar     # "cobrador" = app del localizador (nombre histórico)
-python3 scripts/pan/paso22_parche.py --tabla sanic_cm_tbl_pago --aplicar
-python3 scripts/pan/paso7_desplegar.py --parche --aplicar
-```
-
-Con `--parche` no hace falta `paso3_reconciliar.py`: el parche no contiene pasos de *plugin*, así que la importación no los apaga. Una tabla o app agregada al parche tiene que existir ya en el ambiente (el script no crea componentes). `--quitar` la saca del parche.
-
-### *Plugins*
-
-Workflow [`pan-plugin-cm.yml`](../../.github/workflows/pan-plugin-cm.yml): compila, corre las pruebas en `net462` (en Windows) y, con `registrar = true`, firma y llama a `paso5_plugins.py`. Sin `registrar`, no toca Dataverse. Para correrlo a mano, ejecutar `paso5_plugins.py` como en el paso 3 de la instalación. Una *Custom API* nueva se agrega a [`paso12_custom_api.py`](../../scripts/pan/paso12_custom_api.py) y se registra después del ensamblado.
-
-⚠️ `workflow_dispatch` solo aparece para los *workflows* que están en la rama por defecto, y `pan-plugin-cm.yml` todavía no está en `main`: hoy solo se dispara con un *push* a la rama de `on.push.branches` que toque `plugins/**`, y deja la dll firmada como artefacto (no registra). `activar_panguard` y `desactivar_panguard` exigen `registrar = true`. Al adoptar la solución, llevar el *workflow* a la rama por defecto o cambiar esa rama.
-
-### Otros componentes
-
-Tablas, columnas, vistas y roles se cambian en el ambiente de desarrollo **dentro de la *solution*** `cm_core_cobranzamovil` (en el portal, abriendo la *solution*; por API, con el encabezado `MSCRM.SolutionUniqueName`). Los cambios a las plantillas de Smelter se hacen en la principal y se propagan con `paso20_plantillas_paralelas.py`. Ver [Mantenimiento](11-mantenimiento.md#cómo-hacer-los-cambios-más-comunes).
-
-### Llevar a producción
-
-1. Correr [`solution-release.yml`](../../.github/workflows/solution-release.yml) con la versión nueva: deja los zips en el Release `sol-vX.Y.Z.B` y encadena [`solution-sync.yml`](../../.github/workflows/solution-sync.yml), que desempaqueta la no administrada en `solutions/unpacked/` (sin `CanvasApps/`) para tener el historial de cambios.
-2. Importar el zip administrado en producción con `pac solution import --publish-changes`.
-3. Repetir en producción los pasos de la instalación que correspondan al cambio: plantillas de Smelter (son datos), trabajos de borrado, *offline profile*.
-4. Correr `paso3_reconciliar.py --aplicar` en producción.
-
-⚠️ A confirmar: no hay un *workflow* de importación a producción. Los cuatro *secrets* apuntan a un solo ambiente, el de desarrollo.
-
-### Estado de los *workflows* de CI
-
-| Workflow | Estado | Uso |
-|---|---|---|
-| [`pan-plugin-cm.yml`](../../.github/workflows/pan-plugin-cm.yml) | Vigente | Compila, prueba y (opcional) registra los *plugins* |
-| [`solution-release.yml`](../../.github/workflows/solution-release.yml) | Vigente | Versiona, exporta y publica el Release |
-| [`solution-sync.yml`](../../.github/workflows/solution-sync.yml) | Vigente | Desempaqueta el Release en `solutions/unpacked/` |
-| [`diag-smelter.yml`](../../.github/workflows/diag-smelter.yml), [`diag-roles-canvas.yml`](../../.github/workflows/diag-roles-canvas.yml), [`diag-metadata.yml`](../../.github/workflows/diag-metadata.yml), [`diag-app-desplegada.yml`](../../.github/workflows/diag-app-desplegada.yml), [`verify-data.yml`](../../.github/workflows/verify-data.yml) | Diagnóstico, solo lectura | Opcionales, manuales. Consultan el ambiente y solo imprimen. `diag-app-desplegada.yml` hace *checkout* de una rama fija (`ref:`): cambiarla antes de usarlo |
-| [`import-app.yml`](../../.github/workflows/import-app.yml), [`import-backoffice.yml`](../../.github/workflows/import-backoffice.yml) | **No usar** | Importan con `--activate-plugins`, no actualizan `DatabaseReferences` y no restauran el estado de los pasos. `import-app.yml` además importa un `.msapp` fijo de un Release viejo. Lo reemplaza `paso7_desplegar.py` |
-| [`export-app.yml`](../../.github/workflows/export-app.yml), [`export-backoffice-src.yml`](../../.github/workflows/export-backoffice-src.yml) | **Obsoletos, no usar** | Bajaban la app editada en Studio a un Release o a una rama fijos. `export-backoffice-src.yml` además borra `apps/backoffice-canvas` y lo reemplaza por lo publicado, con *commit*. El código fuente de las apps es el de `apps/*/Src` |
-
-## Versionado
-
-| Qué | Formato | Dónde |
-|---|---|---|
-| *Solution* | `X.Y.Z.B` | La fija `solution-release.yml` (`pac solution online-version`). El Release se etiqueta `sol-vX.Y.Z.B`; los cambios se anotan a mano en [`CHANGELOG.md`](../../CHANGELOG.md) |
-| Ensamblado de *plugins* | `AssemblyVersion` de 4 partes | [`Sanic.CobranzaMovil.Plugins.csproj`](../../plugins/Sanic.CobranzaMovil.Plugins/Sanic.CobranzaMovil.Plugins.csproj). Subir solo *build* o *revision* |
-| Apps | Sello `nfVersion` | Lo pone `paso7_desplegar.py`; queda en `local/version-desplegada.json` y las suites de pruebas lo comparan con la app servida |
-
-**Por qué el ensamblado no cambia *major* ni *minor*.** Si cambia *build* o *revision*, Dataverse lo actualiza en el lugar y los pasos siguen apuntando a él. Si cambia *major* o *minor*, al importar la *solution* lo trata como **otro ensamblado** y los pasos siguen apuntando al viejo ([documentación de Microsoft](https://learn.microsoft.com/power-apps/developer/data-platform/register-plug-in#assembly-versioning)).
+La importación no toca los datos: equipos, K, plantillas, trabajos de borrado, opciones y asignaciones de roles quedan como estaban.
 
 ## Piezas y archivos
 
 | Pieza | Archivo |
 |---|---|
-| Mapa de todos los scripts | [`scripts/README.md`](../../scripts/README.md) |
-| Cliente de Web API de los scripts | [`dvlib.py`](../../scripts/seguridad/dvlib.py) |
-| Registro de *plugins* y pasos | [`paso5_plugins.py`](../../scripts/pan/paso5_plugins.py) |
-| Registro de *Custom APIs* | [`paso12_custom_api.py`](../../scripts/pan/paso12_custom_api.py) |
-| Despliegue de apps | [`paso7_desplegar.py`](../../scripts/pan/paso7_desplegar.py), [`paso7_esquema.py`](../../scripts/pan/paso7_esquema.py), [`paso7_fuentes.py`](../../scripts/pan/paso7_fuentes.py), [`paso22_parche.py`](../../scripts/pan/paso22_parche.py) |
-| *Offline profile* | [`paso7_perfil_offline.py`](../../scripts/pan/paso7_perfil_offline.py) |
-| Equipos y configuración de datos | [`paso5_cartera_sin_cobrador.py`](../../scripts/seguridad/paso5_cartera_sin_cobrador.py), [`paso6_clave_k.py`](../../scripts/pan/paso6_clave_k.py), [`paso4_roles.py`](../../scripts/pan/paso4_roles.py), [`paso23_listas.py`](../../scripts/pan/paso23_listas.py), [`paso10_borrado_programado.py`](../../scripts/seguridad/paso10_borrado_programado.py), [`paso10_purgar_archivos.py`](../../scripts/pan/paso10_purgar_archivos.py) |
-| Descripciones de metadatos | [`paso24_descripciones.py`](../../scripts/pan/paso24_descripciones.py) |
-| Plantillas de Smelter | [`paso13_fiador_sin_nombre.py`](../../scripts/pan/paso13_fiador_sin_nombre.py), [`paso19_agente_sin_update.py`](../../scripts/pan/paso19_agente_sin_update.py), [`paso20_plantillas_paralelas.py`](../../scripts/pan/paso20_plantillas_paralelas.py) |
-| *Solution* desempaquetada | [`solutions/`](../../solutions/README.md) |
-| CI | [`.github/workflows/`](../../.github/workflows/) |
+| Nombres fijos que el código busca (equipo «Cartera sin cobrador», plantillas, prefijo de roles) | [`Esquema.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/Esquema.cs) |
+| Búsqueda del equipo «Cartera sin cobrador» | [`CarteraSinCobrador.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/CarteraSinCobrador.cs) |
+| Roles efectivos (directos y por equipo) en los *plugins* | [`RolesCm.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/RolesCm.cs) |
+| Perfil de la persona en la app de la oficina | [`scrCarga.pa.yaml`](../../apps/backoffice-canvas/Src/scrCarga.pa.yaml) (variable `gblRol`) y [`MisRoles.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/MisRoles.cs) |
+| Partición de la carga y control de las plantillas derivadas | [`PartirCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PartirCarga.cs) |
+| Borrado del archivo de carga | [`PurgaArchivoCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PurgaArchivoCarga.cs) |
+| Pantallas de la instalación | [`scrListas.pa.yaml`](../../apps/backoffice-canvas/Src/scrListas.pa.yaml), [`scrAgentes.pa.yaml`](../../apps/backoffice-canvas/Src/scrAgentes.pa.yaml), [`scrCargaArchivo.pa.yaml`](../../apps/backoffice-canvas/Src/scrCargaArchivo.pa.yaml), [`scrMonitoreo.pa.yaml`](../../apps/backoffice-canvas/Src/scrMonitoreo.pa.yaml) |
+| Versión del ensamblado de *plugins* | [`Sanic.CobranzaMovil.Plugins.csproj`](../../plugins/Sanic.CobranzaMovil.Plugins/Sanic.CobranzaMovil.Plugins.csproj) |
 
 ## Trampas y errores conocidos
 
-- ⚠️ **La clave `.snk` es irreemplazable.** El ensamblado de la *solution* está firmado con una clave de nombre seguro que no está en el repositorio. Sin esa misma `.snk`, `paso5_plugins.py` se detiene («no coincide con la registrada») y no se pueden publicar cambios de *plugins* sin desregistrar el ensamblado y volver a registrar todos los pasos. Pedirla al equipo de origen y guardarla en el gestor de secretos.
-- ⚠️ **Una K nueva no reconoce los datos viejos.** Las claves `*_clavepan` son HMAC con K. Si se migran datos desde otro ambiente, hay que usar su misma K; si no, la carga no encuentra las cuentas existentes y las duplica.
-- **El orden importa.** `paso12_custom_api.py` va después de `paso5_plugins.py`; los equipos (en especial «CM · Admin y Carga») antes de las plantillas, que toman su dueño; `paso23_listas.py` antes del *offline profile*, que incluye su tabla. El equipo «Cartera sin cobrador», la clave K y las tres plantillas tienen que estar antes de la primera carga. Si K falta, la carga falla con `TransformError`. Si faltan las derivadas, `PartirCarga` se niega a partir la carga.
-- **La importación apaga pasos de *plugin*.** Con `--activate-plugins` enciende PanGuard; sin él puede apagar otros. Por eso se despliega con `paso7_desplegar.py` (restaura los estados) y nunca con `import-app.yml` o `import-backoffice.yml`.
-- **Despliegue interrumpido.** Si `paso7_desplegar.py` se corta durante la importación, guarda el estado previo de los pasos en `local/deploy-estado-previo.json` y el despliegue siguiente restaura **ese** estado. No borrar el archivo a mano.
-- **App tomada en Studio.** Si alguien tiene la app abierta en modo edición, la importación falla con `AppLeaseConflict`; el script reintenta cada 60 segundos.
-- **La carpeta es `Src`, con mayúscula.** En Linux, con otro nombre, `pac canvas pack` empaqueta una app sin fórmulas y no avisa. `paso7_desplegar.py` lo detecta contando los `.pa.yaml`.
-- **Los scripts se corren desde la raíz del repositorio.** Algunos escriben respaldos en `local/_backups/` con ruta relativa.
+- **Smelter primero.** Sin Smelter instalado, la importación de CM informa una dependencia faltante: el paso de `PurgaArchivoCarga` está registrado sobre la tabla de trabajos de importación de Smelter.
+- **El punto medio.** El equipo «CM · Cartera sin cobrador · …» y las plantillas «Cobranza movil · padres» y «· partes» usan `·` (U+00B7), no `.` ni `-`. Escrito con otro carácter, el código no los encuentra: el reparto falla o `PartirCarga` se niega a partir la carga. Conviene copiar el nombre desde este documento.
+- **El orden importa.** El equipo de carga antes de las plantillas (que toman su dueño). El equipo «Cartera sin cobrador», la clave K y las tres plantillas antes de la primera carga. Si falta K, la carga falla con `TransformError`; si faltan las derivadas o no coinciden con la principal, `PartirCarga` se niega a partir.
+- **Una K nueva no reconoce los datos viejos.** Las claves `*_clavepan` son HMAC con K. Si se migran datos desde otro ambiente, hay que usar su misma K; si no, la carga no encuentra las cuentas existentes y las duplica.
+- **La importación puede apagar pasos.** Sin **Enable plug-in steps and flows included in the solution**, los pasos que llegan inactivos quedan inactivos. Revisar **Plug-in steps** después de cada importación.
+- **Cambios durante la importación.** Mientras se importa, los pasos asíncronos de reparto pueden no correr. Un cambio de asignaciones en ese intervalo puede quedar sin dueño correcto o sin compartir. Para un agente concreto, quitar y volver a poner su usuario en **Agentes y usuarios** dispara `RepartoPorAgente`, que re-reparte sus asignaciones. No hay una pantalla que reconcilie todo de una vez.
+- **App abierta en Studio.** Si alguien tiene una app abierta en modo edición, la importación falla. Reintentar cuando la cierre.
+- **El ensamblado no cambia *major* ni *minor*.** Si cambia *build* o *revision*, Dataverse lo actualiza en el lugar y los pasos siguen apuntando a él. Si cambia *major* o *minor*, al importar lo trata como **otro ensamblado** y los pasos siguen apuntando al viejo ([documentación de Microsoft](https://learn.microsoft.com/power-apps/developer/data-platform/register-plug-in#assembly-versioning)). Es una regla para quien genera la versión; quien instala solo nota el síntoma.
+- **Una *solution* administrada no se exporta.** Si un ambiente se va a usar para modificar CM, importar ahí la no administrada.
+- **Equipo de grupo de Entra ID.** Sus miembros se sincronizan cuando la persona entra al ambiente; hasta entonces, no hereda el rol. Las altas y bajas de miembros se hacen en Entra ID, no en Dataverse.
 
 ## Puntos a confirmar
 
-- ⚠️ Mecanismo para crear la plantilla «Cobranza movil» en un ambiente nuevo (exportar/importar con Smelter o armarla a mano).
-- ⚠️ Versión mínima de Smelter con `HMAC()` (los indicadores `CreateIfNotExists`/`UpdateIfExists` se respetan desde la 1.3.0.0, según `diag-smelter.yml`).
+- ⚠️ Mecanismo para crear la plantilla «Cobranza movil» en un ambiente nuevo: exportar e importar con Smelter, importar por Excel o armarla a mano.
+- ⚠️ Versión mínima de Smelter con `HMAC()` (*UpdateIfExists* se respeta desde la 1.3.0.0, según lo registrado en el proyecto).
+- ⚠️ Nombre exacto de los roles de Smelter (Operador y Configurador) y si Smelter tiene pantalla propia para la clave K.
 - ⚠️ Plan de licencias de Power Apps.
-- ⚠️ Identidad que recibe `SR | CM | Servicio - Cobranza`.
-- ⚠️ Proceso de promoción a producción (no hay *workflow*). K se carga en producción igual que en desarrollo, con `paso6_clave_k.py` en la tabla de Smelter.
-- ⚠️ Versión mínima de Python.
+- ⚠️ Identidad que recibe `SR | CM | Servicio - Cobranza`, o si hace falta.
+- ⚠️ Si **Member's privilege inheritance** viaja con los roles en la *solution*.
+- ⚠️ Si el asistente de *bulk delete* permite el trabajo de cuentas (condiciones dentro de **Does Not Contain Data**).
+- ⚠️ Herramienta de la organización para generar K y procedimiento de rotación: cambiar K obliga a recalcular todas las claves `*_clavepan` existentes, y no hay un procedimiento gráfico para eso.
+- ⚠️ DLP, grupo de seguridad del ambiente e Intune.

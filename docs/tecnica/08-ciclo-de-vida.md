@@ -27,21 +27,21 @@ flowchart TD
 
 ### Los siete trabajos de borrado
 
-Los define [`paso10_borrado_programado.py`](../../scripts/seguridad/paso10_borrado_programado.py). Cada uno es una consulta (*QueryExpression*) que se programa con el mensaje `BulkDelete`, recurrencia `FREQ=DAILY;INTERVAL=1;` y sin aviso por correo. La primera corrida es un minuto después de aplicar el script y desde entonces una vez por día a esa hora. El script también cancela los trabajos de la lista `RETIRADOS` (nombres de trabajos anteriores que ya no se usan).
+No viajan en la *solution*: se crean a mano con el asistente de *bulk delete* del admin center ([Instalación, paso 11](09-instalacion-y-despliegue.md#11-borrado-programado)). Cada uno es una consulta sobre una tabla que se repite cada 1 día, sin aviso por correo. La primera corrida es a la hora de inicio elegida en el asistente y desde entonces una vez por día a esa hora.
 
-| # | Nombre del trabajo | Tabla | Borra | Constante |
+| # | Nombre del trabajo | Tabla | Borra | Plazo |
 |---|---|---|---|---|
-| 1 | `CM - Carga diaria de mas de 7 dias` | `sanic_cm_tbl_cargadiaria` («CM \| TBL \| Carga diaria») | `sanic_cm_cd_fechacarga` con más de 7 días | `CARGA_DIAS = 7` |
-| 2 | `CM - Cuentas fuera de cartera hace mas de 14 dias` | `sanic_cm_tbl_cuenta` («CM \| TBL \| Cuenta») | `modifiedon` con más de 14 días **y** sin asignación viva **y** sin interacción Pendiente (ver abajo) | `GRACIA_DIAS = 14` |
-| 3 | `CM - Clientes sin cuentas` | `sanic_cm_tbl_cliente` («CM \| TBL \| Cliente») | Sin ninguna cuenta y `modifiedon` con más de 2 días | `RECIEN_DIAS = 2` |
-| 4 | `CM - Fiadores sin cuentas` | `sanic_cm_tbl_fiador` («CM \| TBL \| Fiador») | Sin ninguna cuenta y `modifiedon` con más de 2 días | `RECIEN_DIAS = 2` |
-| 5 | `CM - Pagos de mas de 2 anos` | `sanic_cm_tbl_pago` («CM \| TBL \| Pago») | `createdon` con más de 730 días | `APP_DIAS = 730` |
-| 6 | `CM - Actualizaciones de datos de mas de 2 anos` | `sanic_cm_tbl_actualizaciondatos` («CM \| TBL \| Actualizacion de dato») | `createdon` con más de 730 días | `APP_DIAS = 730` |
-| 7 | `CM - Interacciones de mas de 2 anos` | `sanic_cm_tbl_interaccion` («CM \| TBL \| Interaccion») | `createdon` con más de 735 días | `INTERACCION_DIAS = 735` |
+| 1 | `CM - Carga diaria de mas de 7 dias` | `sanic_cm_tbl_cargadiaria` («CM \| TBL \| Carga diaria») | `sanic_cm_cd_fechacarga` con más de 7 días | 7 días |
+| 2 | `CM - Cuentas fuera de cartera hace mas de 14 dias` | `sanic_cm_tbl_cuenta` («CM \| TBL \| Cuenta») | `modifiedon` con más de 14 días **y** sin asignación viva **y** sin interacción Pendiente (ver abajo) | 14 días de gracia |
+| 3 | `CM - Clientes sin cuentas` | `sanic_cm_tbl_cliente` («CM \| TBL \| Cliente») | Sin ninguna cuenta y `modifiedon` con más de 2 días | 2 días |
+| 4 | `CM - Fiadores sin cuentas` | `sanic_cm_tbl_fiador` («CM \| TBL \| Fiador») | Sin ninguna cuenta y `modifiedon` con más de 2 días | 2 días |
+| 5 | `CM - Pagos de mas de 2 anos` | `sanic_cm_tbl_pago` («CM \| TBL \| Pago») | `createdon` con más de 730 días | 730 días |
+| 6 | `CM - Actualizaciones de datos de mas de 2 anos` | `sanic_cm_tbl_actualizaciondatos` («CM \| TBL \| Actualizacion de dato») | `createdon` con más de 730 días | 730 días |
+| 7 | `CM - Interacciones de mas de 2 anos` | `sanic_cm_tbl_interaccion` («CM \| TBL \| Interaccion») | `createdon` con más de 735 días | 735 días |
 
 **Asignación viva** (trabajo 2): una asignación de la cuenta (unida por `sanic_cm_as_cuentaid`) con `sanic_cm_as_estado` = activa, **o** con `sanic_cm_as_ultimacarga` en los últimos 14 días, **o** con `sanic_cm_as_fechacierre` en los últimos 14 días. **Interacción Pendiente**: una interacción de la cuenta con `sanic_cm_in_estadograbacion` = 1 (todavía no transcrita al core). El `modifiedon` de la cuenta cuenta porque cada carga la reescribe.
 
-Los «sin registros relacionados» se expresan como uniones externas (*LeftOuter*) con la condición `Null` sobre el id de la tabla unida; Dataverse las respeta en el *bulk delete*. El script arma la misma consulta en FetchXML para contar cuántas filas cumplen hoy, sin borrar nada.
+Los «sin registros relacionados» se expresan en el asistente con la tabla relacionada y **Does Not Contain Data** (No contiene datos), que Dataverse resuelve como una unión externa sin filas del otro lado. **Preview Records** (Vista previa de registros) muestra cuántas filas cumplen hoy, sin borrar nada. ⚠️ A confirmar que el asistente permita poner las condiciones de «asignación viva» e «interacción Pendiente» dentro de **Does Not Contain Data** para el trabajo 2 (ver [Instalación, paso 11](09-instalacion-y-despliegue.md#11-borrado-programado)).
 
 Agente, producto y opciones de lista no se borran nunca: se desactivan.
 
@@ -63,7 +63,7 @@ Al borrar un registro padre, cada relación decide qué pasa con los hijos: **Ca
 | Producto → cuenta | **Restrict** | El producto no se borra mientras tenga cuentas |
 | Agente → asignación, interacción, cuenta, carga diaria | **Restrict** | El agente no se borra; se desactiva |
 
-Las Restrict de cliente → carga diaria e interacción → pago/actualización las aplica [`paso1_cascadas_auditoria.py`](../../scripts/seguridad/paso1_cascadas_auditoria.py).
+El comportamiento de cada relación viaja en la *solution*. Se revisa en `make.powerapps.com` → **Tables** → la tabla padre → **Relationships** (Relaciones) → la relación → opciones avanzadas (**Delete**, Eliminar).
 
 **Por qué el orden importa.** Los siete trabajos son independientes y Dataverse no garantiza en qué orden corren dentro del día. Los plazos están escalonados para que el resultado no dependa de ese orden:
 
@@ -126,15 +126,15 @@ Cada envío a Smelter (prueba en seco, carga en serie, carga paralela y alta de 
 | Barrido en la misma corrida: hasta 50 trabajos de esas plantillas, con archivo, de más de 7 días, en estado terminal o pruebas en seco sin estado | Borra sus archivos, los más viejos primero | Recupera lo que un paso fallido dejó y los trabajos anteriores a la instalación del *plugin* |
 | Trabajo sin estado (salvo esas pruebas viejas), en cola o procesando | No lo toca | Todavía lo pueden leer `PartirCarga`, Smelter o «Relanzar partes» |
 
-El trabajo se conserva con sus contadores y sus registros; solo se borra el archivo. [`paso10_purgar_archivos.py`](../../scripts/pan/paso10_purgar_archivos.py) aplica la misma regla a mano (sin el tope de 50 y sin el plazo de 7 días para los trabajos terminados): sirve en la instalación y para limpiar lo que ya existía. Ficha del *plugin*: [Plugins y Custom APIs](04-plugins-y-custom-apis.md#purgaarchivocarga).
+El trabajo se conserva con sus contadores y sus registros; solo se borra el archivo. Los archivos que ya existían antes de instalar el *plugin* los recoge el barrido, hasta 50 por corrida, cada vez que algún trabajo cambia de estado. ⚠️ A confirmar un procedimiento gráfico para borrar a mano el archivo de un trabajo puntual (por ejemplo, desde el trabajo en las pantallas de Smelter o desde la fila de «TBL | SMLT | Import Job» en `make.powerapps.com`). Ficha del *plugin*: [Plugins y Custom APIs](04-plugins-y-custom-apis.md#purgaarchivocarga).
 
 ## Piezas y archivos
 
 | Pieza | Archivo |
 |---|---|
-| Trabajos de borrado programado | [`paso10_borrado_programado.py`](../../scripts/seguridad/paso10_borrado_programado.py) |
-| Restrict y cascades de la auditoría | [`paso1_cascadas_auditoria.py`](../../scripts/seguridad/paso1_cascadas_auditoria.py) |
-| Borrado del archivo de los jobs de Smelter | [`PurgaArchivoCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PurgaArchivoCarga.cs), [`PurgaArchivoCargaTests.cs`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/PurgaArchivoCargaTests.cs); a mano, [`paso10_purgar_archivos.py`](../../scripts/pan/paso10_purgar_archivos.py) |
+| Trabajos de borrado programado | No viajan en la *solution*: admin center → **Bulk deletion** ([Instalación, paso 11](09-instalacion-y-despliegue.md#11-borrado-programado)) |
+| Restrict y cascades | Relaciones de las tablas, en la *solution* ([Modelo de datos](02-modelo-de-datos.md#relaciones-y-cascadas)) |
+| Borrado del archivo de los jobs de Smelter | [`PurgaArchivoCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PurgaArchivoCarga.cs), [`PurgaArchivoCargaTests.cs`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/PurgaArchivoCargaTests.cs) |
 | Identidad en la interacción | [`IdentidadEnInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/IdentidadEnInteraccion.cs), [`IdentidadEnInteraccionTests.cs`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/IdentidadEnInteraccionTests.cs) |
 | Reapertura y reclasificación | [`CargaSobreAsignacion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/CargaSobreAsignacion.cs), [`Reclasificacion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/Reclasificacion.cs) |
 | Cierre en lote | [`CerrarFueraDeCartera.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/CerrarFueraDeCartera.cs), [`CerrarFueraDeCarteraTests.cs`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/CerrarFueraDeCarteraTests.cs) |
@@ -154,23 +154,21 @@ En el Power Platform admin center: **Entornos** → el ambiente → **Configurac
 | Ver la consulta | Abrir el trabajo → **Information** → **Properties** |
 | Pausar, posponer, reanudar o cancelar | Menú **Actions** del trabajo |
 
-También desde la CLI: `pac data bulk-delete pause --id <id-del-trabajo>` y `pac data bulk-delete resume --id <id-del-trabajo>`.
-
 ⚠️ Antes de una migración o de una carga masiva de prueba, pausar los trabajos 2 a 4: una carga que no toca ciertas cuentas durante 14 días las deja elegibles.
 
 ### Cambiar un plazo
 
-Un trabajo de *bulk delete* no se edita: se cancela y se crea otro. El script los identifica **por nombre** y no toca uno que ya exista.
+Un trabajo de *bulk delete* no se edita: se cancela y se crea otro.
 
-1. Cambiar la constante en `paso10_borrado_programado.py` (`CARGA_DIAS`, `GRACIA_DIAS`, `RECIEN_DIAS`, `APP_DIAS`, `INTERACCION_DIAS`).
-2. Si el nombre del trabajo incluye el plazo (trabajos 1 y 2), agregar el nombre viejo a `RETIRADOS` para que el script lo cancele. Si no lo incluye (trabajos 3 a 7), cancelar el trabajo actual a mano desde el admin center; si no, el script dice «ya programado» y conserva el plazo viejo.
-3. Correr el script sin `--aplicar`: muestra el plan y cuántas filas cumplen hoy.
-4. Correrlo con `--aplicar`. La primera corrida es un minuto después.
-5. Mantener el escalonamiento: `INTERACCION_DIAS` mayor que `APP_DIAS`, y `GRACIA_DIAS` mayor que `CARGA_DIAS`.
+1. Admin center → ambiente → **Settings** → **Data management** → **Bulk deletion**: abrir el trabajo y cancelarlo desde el menú **Actions** (Acciones).
+2. Crear el trabajo nuevo con el asistente, igual que en [Instalación, paso 11](09-instalacion-y-despliegue.md#11-borrado-programado), con el plazo nuevo. Si el nombre incluye el plazo (trabajos 1 y 2), ajustar también el nombre.
+3. Antes de enviarlo, revisar con **Preview Records** cuántas filas cumplen hoy.
+4. Mantener el escalonamiento: el plazo de las interacciones mayor que el de pagos y actualizaciones, y la gracia de la cuenta mayor que el plazo de la carga diaria.
+5. Actualizar la tabla de trabajos de [Instalación, paso 11](09-instalacion-y-despliegue.md#11-borrado-programado) y la de este documento, para que la próxima instalación use el plazo nuevo.
 
 ### Agregar una tabla nueva al ciclo de vida
 
-Agregar una tupla a `TRABAJOS` con nombre, tabla, condiciones y uniones (`c(...)` y `union(...)`). Revisar antes las relaciones de la tabla: una Restrict con un hijo que vive más hace que el borrado falle todos los días.
+Crear un trabajo nuevo con el asistente ([Instalación, paso 11](09-instalacion-y-despliegue.md#11-borrado-programado)): tabla en **Look for**, condiciones y, para «sin registros relacionados», la tabla relacionada con **Does Not Contain Data**. Agregarlo a la tabla de trabajos de la instalación. Revisar antes las relaciones de la tabla: una Restrict con un hijo que vive más hace que el borrado falle todos los días.
 
 ### Operadores que no valen con *DateOnly*
 
@@ -184,12 +182,12 @@ Para probar el borrado con plazos cortos, usar días o columnas que no sean *Dat
 
 ## Trampas y errores conocidos
 
-- ⚠️ **Archivos de carga que quedan.** Una parte de la carga paralela sin estado que nadie relanza ni descarta, o un trabajo real sin estado que nadie cierra, conserva su archivo con los números de tarjeta completos: ni `PurgaArchivoCarga` ni el script lo tocan, porque todavía se podría leer. Se resuelve con «▶ Relanzar partes», «✕ Descartar partes» o «✕ Descartar carga» en Cargar archivo; al llegar a un estado terminal, el *plugin* borra el archivo. Los trabajos y sus registros no se borran nunca.
-- **El paso de `PurgaArchivoCarga` tiene que estar activo y asíncrono.** Registrado síncrono no hace nada (no frena a Smelter). Si el paso falta o está apagado, los archivos se acumulan hasta la próxima corrida del *plugin* o de `paso10_purgar_archivos.py --aplicar`.
+- ⚠️ **Archivos de carga que quedan.** Una parte de la carga paralela sin estado que nadie relanza ni descarta, o un trabajo real sin estado que nadie cierra, conserva su archivo con los números de tarjeta completos: `PurgaArchivoCarga` no lo toca, porque todavía se podría leer. Se resuelve con «▶ Relanzar partes», «✕ Descartar partes» o «✕ Descartar carga» en Cargar archivo; al llegar a un estado terminal, el *plugin* borra el archivo. Los trabajos y sus registros no se borran nunca.
+- **El paso de `PurgaArchivoCarga` tiene que estar activo y asíncrono.** Registrado síncrono no hace nada (no frena a Smelter). Si el paso falta o está apagado, los archivos se acumulan; al reactivarlo, el barrido los borra de a 50 por corrida ([Instalación, paso 3](09-instalacion-y-despliegue.md#3-revisar-lo-importado)).
 - ⚠️ **Borrar un cliente a mano borra sus cuentas** (Cascade), con su bóveda y sus asignaciones. El trabajo 3 solo elige clientes sin cuentas, pero un Admin con la API no tiene ese freno.
 - **Una cuenta borrada vuelve como nueva.** Si el banco la manda otra vez, la carga crea una cuenta nueva con la misma clave HMAC; las interacciones viejas siguen sin vínculo (conservan su `Clave PAN`).
 - **La interacción creada sin cuenta no guarda identidad.** `IdentidadEnInteraccion` solo actúa en el Create y solo si la cuenta existe.
 - **«Fuera de cartera» en Cierres.** `CargaSobreAsignacion` reconoce un cierre del sistema por el motivo exacto `fuera de cartera` (sin distinguir mayúsculas). Una Incobrable cerrada a mano con ese motivo y **sin** detalle se reabre si el banco la vuelve a mandar; con detalle («Fuera de cartera — …») no.
 - **El teléfono pierde lo cerrado recién al sincronizar.** El cierre y la revocación son inmediatos en el servidor; el dispositivo los ve en la próxima sincronización (ver [App del localizador](05-app-localizador.md)).
 - **Reconciliación con una carga en serie colgada.** Un job sin estado de menos de 12 h bloquea Reconciliación. Se libera con «✕ Descartar carga» en Cargar archivo (ver [Carga diaria](07-carga-diaria.md)).
-- **`solutions/unpacked` puede estar atrasada.** En el repositorio, las relaciones cliente → carga diaria, interacción → pago e interacción → actualización de datos figuran todavía como Cascade, y la relación cuenta → bóveda no figura. Lo que vale en el ambiente es lo que deja `paso1_cascadas_auditoria.py`.
+- **`solutions/unpacked` puede estar atrasada.** En el repositorio, las relaciones cliente → carga diaria, interacción → pago e interacción → actualización de datos figuran todavía como Cascade, y la relación cuenta → bóveda no figura. Lo que vale es lo que tiene el ambiente (y el `.zip` exportado de él); se revisa como se indica en [Cascades y Restrict](#cascades-y-restrict).
