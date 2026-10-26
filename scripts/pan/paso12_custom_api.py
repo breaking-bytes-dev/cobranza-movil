@@ -135,13 +135,14 @@ APIS = [
             ('Corte', TEXTO, 'Dia de la ultima carga usado como corte, aaaa-mm-dd'),
         ]),
     dict(
-        api='sanic_cm_MisRoles', tipo='MisRoles', version=(1, 0, 10, 8),
+        api='sanic_cm_MisRoles', tipo='MisRoles', version=(1, 0, 10, 9),
         definicion=definicion('sanic_cm_MisRoles', 'CM - Mis roles',
                               'Perfiles de CM del usuario que llama (roles directos y por equipo), para el menu y los '
                               'permisos de la app de la oficina.'),
         parametros=[],
         respuesta=[
             ('Roles', TEXTO, 'Perfiles sin el prefijo "SR | CM | ", ordenados y separados por "|" (vacio si no tiene)'),
+            ('Version', TEXTO, 'Version de la solucion cm_core_cobranzamovil, para mostrar en las apps (vacio si no se encuentra)'),
         ]),
 ]
 

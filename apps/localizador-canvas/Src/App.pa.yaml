@@ -21,9 +21,9 @@ App:
       EspNota(notas:Text): Text =
          With({ i: Find(" — ", Coalesce(notas, "")) },
             If(IsBlank(i), Coalesce(notas, ""), Trim(Mid(notas, i + 3))));
-      // Versión desplegada: el script de despliegue reemplaza "dev" por el commit y la fecha al empaquetar;
-      // las pruebas la leen en la app servida para no probar una versión vieja.
-      nfVersion = "dev";
+      // Versión que muestra Sincronización. La del backoffice sale de la solución (Custom API sanic_cm_MisRoles), pero
+      // esta app offline no tiene la fuente "Environment": queda "—".
+      nfVersion = "—";
       // Fórmula con nombre: se recalcula sola cuando llegan los datos, sin bloquear el arranque.
       // El servidor guarda el correo del agente en minúsculas y offline la comparación la hace la base local
       // del teléfono: por eso se compara contra Lower(User().Email).

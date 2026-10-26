@@ -53,10 +53,6 @@ App:
                   With({x: Value(Mid(d, Len(d) - i.Value + 1, 1))},
                       {v: If(Mod(i.Value, 2) = 0, If(x * 2 > 9, x * 2 - 9, x * 2), x)})), v), 10) = 0;
 
-      // Versión desplegada. El despliegue reemplaza "dev" por "<commit> <aaaa-mm-dd HH:MM UTC>" al empaquetar;
-      // las pruebas la leen en la app servida para no probar una versión vieja.
-      nfVersion = "dev";
-
       // Alerta de carga: Cartera por localizador marca en rojo al localizador con más asignaciones activas que esto.
       // Es un criterio de operación (no un límite técnico: el teléfono trae la cartera por tramos). Cambiarlo aquí.
       nfUmbralCarga = 500;
@@ -101,8 +97,6 @@ App:
       );
     OnStart: |-
       =// ===== App.OnStart =====
-      // La nav (componente) no ve las fórmulas con nombre que solo usa ella: la versión va por variable.
-      Set(gblVersion, nfVersion);
       // 1) Tokens de color (identidad de la familia, modo día)
       Set(
           gblC,

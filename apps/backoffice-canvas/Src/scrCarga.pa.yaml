@@ -13,6 +13,8 @@ Screens:
             Set(varRespRolCga, Environment.sanic_cm_MisRoles());
             Set(gblRolError, IfError(Left(Text(varRespRolCga.Roles), 0), TextoError(Coalesce(FirstError.Message, "sin detalle"))));
             Set(gblRol, If(IsBlank(gblRolError), Coalesce(Text(varRespRolCga.Roles), ""), ""));
+            // Versión de la solución cm_core_cobranzamovil (la misma API la devuelve); "—" si no llegó.
+            Set(gblVersion, IfError(Coalesce(Text(varRespRolCga.Version), "—"), "—"));
             Set(gblRolListo, true)
         )
     Children:

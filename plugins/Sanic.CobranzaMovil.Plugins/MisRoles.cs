@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.ServiceModel;
+using Microsoft.Xrm.Sdk;
+using Microsoft.Xrm.Sdk.Query;
 
 namespace Sanic.CobranzaMovil.Plugins
 {
@@ -11,6 +14,8 @@ namespace Sanic.CobranzaMovil.Plugins
     /// Mira los roles directos y los de cualquier equipo del que sea miembro (tambien los de grupo de Entra ID), sin
     /// depender del nombre de los equipos. Cualquier usuario puede llamarla: solo devuelve lo suyo.
     /// "Servicio - Cobranza" no se devuelve: es la identidad de las integraciones, no un perfil de la app.
+    /// Devuelve tambien Version = version de la solucion cm_core_cobranzamovil, que las apps muestran en pantalla
+    /// (las personas no pueden leer la tabla de soluciones); vacia si no se encuentra, sin fallar por eso.
     /// No traza nombres de roles: solo la cantidad.
     /// </summary>
     public sealed class MisRoles : PluginBase
@@ -32,6 +37,30 @@ namespace Sanic.CobranzaMovil.Plugins
             var perfiles = Perfiles(RolesCm.DelLlamador(local));
             ctx.OutputParameters[Esquema.SalidaRoles] = string.Join("|", perfiles);
             local.Trace("{0} perfiles de CM.", perfiles.Count);
+            ctx.OutputParameters[Esquema.SalidaVersion] = VersionDeLaSolucion(local);
+        }
+
+        /// <summary>Version de la solucion de CM, leida con el servicio del sistema; vacia si no esta o no se puede leer.</summary>
+        private static string VersionDeLaSolucion(LocalContext local)
+        {
+            var q = new QueryExpression(Esquema.Solucion)
+            {
+                ColumnSet = new ColumnSet(Esquema.SolucionVersion),
+                TopCount = 1,
+            };
+            q.Criteria.AddCondition(Esquema.SolucionNombreUnico, ConditionOperator.Equal, Esquema.SolucionCm);
+            try
+            {
+                var filas = local.ServicioSistema.RetrieveMultiple(q);
+                var version = filas == null ? null : filas.Entities.Select(f => f.GetAttributeValue<string>(Esquema.SolucionVersion)).FirstOrDefault();
+                if (string.IsNullOrEmpty(version)) local.Trace("no se encontro la version de la solucion.");
+                return version ?? "";
+            }
+            catch (FaultException<OrganizationServiceFault> ex)
+            {
+                local.Trace("no se pudo leer la version de la solucion: {0}", ex.Message);
+                return "";
+            }
         }
 
         /// <summary>Nombres de rol de CM sin el prefijo, sin la identidad de servicio, en orden fijo.</summary>

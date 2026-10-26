@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.ServiceModel;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Query;
 using Moq;
@@ -10,6 +11,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
     /// <summary>
     /// La Custom API MisRoles devuelve los perfiles de CM del llamador (directos y por equipo), sin el prefijo
     /// "SR | CM | ", separados por "|" y sin repetir. La identidad de servicio no es un perfil de la app.
+    /// Tambien devuelve la version de la solucion de CM, que las apps muestran en pantalla.
     /// </summary>
     public class MisRolesTests
     {
@@ -25,6 +27,25 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
                 H.Factory.Setup(f => f.CreateOrganizationService(It.Is<Guid?>(g => g == null))).Returns(Sistema.Object);
                 Sistema.Setup(s => s.RetrieveMultiple(It.Is<QueryBase>(q => Enlace(q) == "systemuserroles"))).Returns(Filas(directos));
                 Sistema.Setup(s => s.RetrieveMultiple(It.Is<QueryBase>(q => Enlace(q) == "teamroles"))).Returns(Filas(porEquipo));
+                ConVersion("1.0.10.9");
+            }
+
+            public void ConVersion(string version)
+            {
+                var filas = new EntityCollection();
+                if (version != null)
+                {
+                    var sol = new Entity("solution", Guid.NewGuid());
+                    sol["version"] = version;
+                    filas.Entities.Add(sol);
+                }
+                Sistema.Setup(s => s.RetrieveMultiple(It.Is<QueryBase>(q => EsDeSolucion(q)))).Returns(filas);
+            }
+
+            public string Version()
+            {
+                H.Ejecutar(new MisRoles());
+                return (string)H.Outputs["Version"];
             }
 
             public string Roles()
@@ -43,6 +64,12 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
                     filas.Entities.Add(r);
                 }
                 return filas;
+            }
+
+            public static bool EsDeSolucion(QueryBase q)
+            {
+                var qe = q as QueryExpression;
+                return qe != null && qe.EntityName == "solution";
             }
 
             public static string Enlace(QueryBase q)
@@ -117,6 +144,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             var consultas = e.Sistema.Invocations
                 .Where(i => i.Method.Name == "RetrieveMultiple")
                 .Select(i => (QueryExpression)i.Arguments[0])
+                .Where(q => !Escenario.EsDeSolucion(q))
                 .ToList();
             Assert.Equal(2, consultas.Count);
             Assert.Contains(consultas, q => Escenario.Enlace(q) == "systemuserroles");
@@ -137,6 +165,58 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             e.Roles();
             Assert.DoesNotContain("BackOffice", e.H.TodoElTexto());
             Assert.DoesNotContain("SR | CM", e.H.TodoElTexto());
+        }
+
+        [Fact]
+        public void Devuelve_la_version_de_la_solucion_de_CM()
+        {
+            var e = new Escenario(new[] { "SR | CM | Admin" }, new string[0]);
+            e.ConVersion("1.2.3.4");
+            Assert.Equal("1.2.3.4", e.Version());
+        }
+
+        [Fact]
+        public void Busca_la_solucion_por_su_nombre_unico_con_el_servicio_del_sistema()
+        {
+            var e = new Escenario(new[] { "SR | CM | Admin" }, new string[0]);
+            e.Version();
+
+            var q = e.Sistema.Invocations
+                .Where(i => i.Method.Name == "RetrieveMultiple")
+                .Select(i => (QueryExpression)i.Arguments[0])
+                .Single(Escenario.EsDeSolucion);
+            Assert.Contains(q.Criteria.Conditions, c => c.AttributeName == "uniquename" && (string)c.Values[0] == "cm_core_cobranzamovil");
+            Assert.Contains("version", q.ColumnSet.Columns);
+            Assert.Equal(0, e.H.ConsultasAlServicio());
+        }
+
+        [Fact]
+        public void Version_vacia_si_no_encuentra_la_solucion()
+        {
+            var e = new Escenario(new[] { "SR | CM | Admin" }, new string[0]);
+            e.ConVersion(null);
+            Assert.Equal("", e.Version());
+            Assert.Equal("Admin", (string)e.H.Outputs["Roles"]);
+        }
+
+        [Fact]
+        public void Version_vacia_si_la_consulta_de_la_solucion_falla_y_sigue_devolviendo_los_roles()
+        {
+            var e = new Escenario(new[] { "SR | CM | BackOffice" }, new string[0]);
+            e.Sistema.Setup(s => s.RetrieveMultiple(It.Is<QueryBase>(q => Escenario.EsDeSolucion(q))))
+                .Throws(new FaultException<OrganizationServiceFault>(new OrganizationServiceFault(), "sin acceso"));
+            Assert.Equal("", e.Version());
+            Assert.Equal("BackOffice", (string)e.H.Outputs["Roles"]);
+        }
+
+        [Fact]
+        public void Devuelve_roles_y_version_en_la_misma_llamada()
+        {
+            var e = new Escenario(new[] { "SR | CM | Supervisor" }, new string[0]);
+            e.ConVersion("2.0.0.1");
+            e.H.Ejecutar(new MisRoles());
+            Assert.Equal("Supervisor", (string)e.H.Outputs["Roles"]);
+            Assert.Equal("2.0.0.1", (string)e.H.Outputs["Version"]);
         }
     }
 }

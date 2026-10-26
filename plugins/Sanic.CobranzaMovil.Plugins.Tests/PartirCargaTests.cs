@@ -570,12 +570,15 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         }
 
         [Fact]
-        public void Sin_la_plantilla_de_padres_pide_correr_paso20()
+        public void Sin_la_plantilla_de_padres_pide_copiarlas_de_la_principal_en_Smelter()
         {
             var e = new Escenario(Admin);
             Entradas(e, 3);
             e.PadresVisible = false;
-            Assert.Contains("paso20", e.Rechaza().Message);
+            var m = e.Rechaza().Message;
+            Assert.Contains("faltan las plantillas", m);
+            Assert.Contains("copiandolas de \"Cobranza movil\" en Smelter", m);
+            Assert.DoesNotContain("scripts", m);
             e.NoEscribioNada();
         }
 
@@ -599,7 +602,11 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             {
                 Tabla = m.Tabla, Nombre = m.Nombre, Dedup = m.Dedup, Orden = m.Orden, Cols = m.Cols.Take(m.Cols.Count - 1).ToList(),
             }).ToList();
-            Assert.Contains("no coincide", e.Rechaza().Message);
+            var msg = e.Rechaza().Message;
+            Assert.Contains("no coincide", msg);
+            Assert.Contains("resincronizar a mano", msg);
+            Assert.Contains("exportar la plantilla principal e importarla", msg);
+            Assert.DoesNotContain("scripts", msg);
             e.NoEscribioNada();
         }
 

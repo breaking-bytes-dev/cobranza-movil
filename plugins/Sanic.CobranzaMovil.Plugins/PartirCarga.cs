@@ -43,6 +43,10 @@ namespace Sanic.CobranzaMovil.Plugins
         public const long TamanoMaximo = 50L * 1024 * 1024;
         private const int Bloque = 4 * 1024 * 1024;
         private const int EstadoActivo = 1;
+        // Las derivadas no se regeneran solas: el Admin las vuelve a copiar de la principal
+        private const string ComoResincronizar = "un Admin tiene que resincronizar a mano las plantillas \"" + Esquema.NombrePlantillaPadres
+            + "\" y \"" + Esquema.NombrePlantillaPartes + "\" copiandolas de \"" + Esquema.NombrePlantillaCobranza
+            + "\" en Smelter (exportar la plantilla principal e importarla con el nombre de cada una).";
         /// <summary>Cuantos valores largos cita el error (el resto se cuenta).</summary>
         public const int MaximoCasosLargo = 5;
 
@@ -135,7 +139,7 @@ namespace Sanic.CobranzaMovil.Plugins
             if (padresTpl == null || partesTpl == null)
             {
                 throw local.Error("faltan las plantillas \"" + Esquema.NombrePlantillaPadres + "\" y \"" + Esquema.NombrePlantillaPartes
-                    + "\" (o tu usuario no las ve): hay que correr scripts/pan/paso20_plantillas_paralelas.py --aplicar.");
+                    + "\" (o tu usuario no las ve): " + ComoResincronizar);
             }
             var mapeos = Mapeos(svc, principal.Id, padresTpl.Id, partesTpl.Id);
             var deLaPrincipal = mapeos.Where(m => m.Plantilla == principal.Id).ToList();
@@ -413,7 +417,7 @@ namespace Sanic.CobranzaMovil.Plugins
             if (!igualConfig || !a.SequenceEqual(b, StringComparer.Ordinal))
             {
                 throw local.Error("la plantilla \"" + nombre + "\" no coincide con \"" + Esquema.NombrePlantillaCobranza
-                    + "\": hay que regenerarla con scripts/pan/paso20_plantillas_paralelas.py --aplicar.");
+                    + "\": " + ComoResincronizar);
             }
         }
 

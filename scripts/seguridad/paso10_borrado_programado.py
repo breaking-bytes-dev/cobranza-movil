@@ -16,14 +16,18 @@ Trabajos (centro de administración → Borrado de registros en masa):
      borrar mientras tenga pagos o actualizaciones (Restrict), por eso va unos días después.
 Los "sin registros relacionados" son uniones externas con la condición "nulo"; Dataverse las respeta en el borrado en masa.
 
-Retira los trabajos obsoletos "CM - Carga diaria de mas de 60 dias" y "CM - Fiadores sin nombre".
-El primer ciclo corre al aplicar; después, uno por día. Idempotente por nombre. Imprime solo conteos.
+Cada trabajo se crea como Data Life Cycle Config (retentionconfig, tipo borrado) dentro de la solución, para que viaje
+con ella a otros ambientes. Retira los trabajos de borrado sueltos (fuera de la solución) con los mismos nombres y los
+obsoletos "CM - Carga diaria de mas de 60 dias" y "CM - Fiadores sin nombre".
+Corre todos los días a las 09:00 UTC. Idempotente por nombre. Imprime solo conteos.
 Uso: python3 paso10_borrado_programado.py [--aplicar]"""
-import sys, datetime
+import sys, datetime, json
 from xml.sax.saxutils import quoteattr
 from dvlib import rq, get
 
 APLICAR = '--aplicar' in sys.argv
+SOLUCION = 'cm_core_cobranzamovil'
+TIPO_BORRADO = 1
 CARGA_DIAS, GRACIA_DIAS, APP_DIAS, INTERACCION_DIAS, RECIEN_DIAS = 7, 14, 730, 735, 2
 OPERACION_BULK_DELETE, TERMINADO, CANCELADO = 13, 3, 32
 RETIRADOS = ['CM - Carga diaria de mas de 60 dias', 'CM - Fiadores sin nombre']
@@ -57,36 +61,22 @@ TRABAJOS = [
     ('CM - Interacciones de mas de 2 anos', P + 'interaccion', [c('createdon', 'OlderThanXDays', INTERACCION_DIAS)], []),
 ]
 
-# ---- QueryExpression (Web API) del borrado
-def qe_valor(v):
-    if v is None: return []
-    if isinstance(v, bool): return [{'Type': 'System.Boolean', 'Value': str(v).lower()}]
-    return [{'Type': 'System.Int32', 'Value': str(v)}]
-def qe_cond(x):
-    d = {'AttributeName': x['attr'], 'Operator': x['op'], 'Values': qe_valor(x['valor'])}
-    if x['alias']: d['EntityName'] = x['alias']
-    return d
-def qe(tabla, conds, uniones):
-    return {'EntityName': tabla,
-            'Criteria': {'FilterOperator': 'And', 'Conditions': [qe_cond(x) for x in conds], 'Filters': []},
-            'LinkEntities': [{'LinkFromEntityName': tabla, 'LinkFromAttributeName': u['desde'], 'LinkToEntityName': u['entidad'],
-                              'LinkToAttributeName': u['hacia'], 'JoinOperator': 'LeftOuter', 'EntityAlias': u['alias'],
-                              'Columns': {'AllColumns': False, 'Columns': []},
-                              'LinkCriteria': {'FilterOperator': 'Or', 'Conditions': [qe_cond(x) for x in u['vivas']], 'Filters': []},
-                              'LinkEntities': []} for u in uniones]}
-
-# ---- La misma consulta en FetchXML, para contar lo que cumple hoy
+# ---- FetchXML del borrado (y la misma consulta agregada, para contar lo que cumple hoy)
 FX_OP = {'OlderThanXDays': 'olderthan-x-days', 'LastXDays': 'last-x-days', 'Null': 'null', 'Equal': 'eq'}
 def fx_cond(x):
     v = '' if x['valor'] is None else ' value=' + quoteattr(str(int(x['valor'])) if isinstance(x['valor'], bool) else str(x['valor']))
     e = f' entityname="{x["alias"]}"' if x['alias'] else ''
     return f'<condition{e} attribute="{x["attr"]}" operator="{FX_OP[x["op"]]}"{v}/>'
-def fx(tabla, conds, uniones):
+def fx(tabla, conds, uniones, contar=True):
     links = ''.join(f'<link-entity name="{u["entidad"]}" from="{u["hacia"]}" to="{u["desde"]}" link-type="outer" alias="{u["alias"]}">'
                     + (f'<filter type="or">{"".join(fx_cond(x) for x in u["vivas"])}</filter>' if u['vivas'] else '')
                     + '</link-entity>' for u in uniones)
+    filtro = f'<filter type="and">{"".join(fx_cond(x) for x in conds)}</filter>'
+    if not contar:
+        return (f'<fetch version="1.0" mapping="logical" distinct="true"><entity name="{tabla}"><attribute name="{tabla}id"/>'
+                f'{links}{filtro}</entity></fetch>')
     return (f'<fetch aggregate="true"><entity name="{tabla}"><attribute name="{tabla}id" alias="n" aggregate="countcolumn" distinct="true"/>'
-            f'{links}<filter type="and">{"".join(fx_cond(x) for x in conds)}</filter></entity></fetch>')
+            f'{links}{filtro}</entity></fetch>')
 def conjunto(tabla):
     st, b = rq('GET', f"EntityDefinitions(LogicalName='{tabla}')?$select=EntitySetName")
     return b['EntitySetName']
@@ -96,32 +86,39 @@ def cumplen(tabla, conds, uniones):
     if st >= 300: return f'? ({st})'
     return b['value'][0]['n']
 
-def vivos(nombre):
-    return get(f"asyncoperations?$select=asyncoperationid,recurrencepattern"
-               f"&$filter=operationtype eq {OPERACION_BULK_DELETE} and name eq '{nombre}' and statecode ne {TERMINADO}")['value']
-
-err = 0
-for nombre in RETIRADOS:
-    for j in vivos(nombre):
-        print(f'"{nombre}": se retira (lo reemplaza la política nueva).')
+def sueltos(nombre):
+    """Trabajos de borrado en curso con ese nombre que no son de una Data Life Cycle Config."""
+    propios = {r['asyncoperationid'] for r in get("retentionconfigs?$select=asyncoperationid")['value']}
+    return [j for j in get(f"asyncoperations?$select=asyncoperationid&$filter=operationtype eq {OPERACION_BULK_DELETE} "
+                           f"and name eq '{nombre}' and statecode ne {TERMINADO}")['value'] if j['asyncoperationid'] not in propios]
+def configurado(nombre):
+    return get(f"retentionconfigs?$select=retentionconfigid&$filter=name eq '{nombre}' and type eq {TIPO_BORRADO}")['value']
+def cancelar(nombre, motivo):
+    global err
+    for j in sueltos(nombre):
+        print(f'"{nombre}": se retira el trabajo suelto ({motivo}).')
         if APLICAR:
             st, b = rq('PATCH', f"asyncoperations({j['asyncoperationid']})", {'statecode': TERMINADO, 'statuscode': CANCELADO})
             print('   ✓' if st < 300 else f'   ✗ {st} {str(b)[:200]}'); err += st >= 300
+
+err = 0
+for nombre in RETIRADOS: cancelar(nombre, 'obsoleto')
 for nombre, tabla, conds, uniones in TRABAJOS:
     hoy = cumplen(tabla, conds, uniones)
-    if vivos(nombre):
-        print(f'"{nombre}": ya programado. Hoy cumplen: {hoy}')
-        continue
-    print(f'"{nombre}": se programa (diario). Hoy cumplen: {hoy}')
-    if not APLICAR:
-        continue
-    cuerpo = {'QuerySet': [qe(tabla, conds, uniones)], 'JobName': nombre, 'SendEmailNotification': False,
-              'ToRecipients': [], 'CCRecipients': [], 'RecurrencePattern': 'FREQ=DAILY;INTERVAL=1;',
-              'StartDateTime': (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=1)).strftime('%Y-%m-%dT%H:%M:%SZ')}
-    st, b = rq('POST', 'BulkDelete', cuerpo)
-    if st >= 300:
-        err += 1; print('  error HTTP', st, str(b)[:300])
+    if configurado(nombre):
+        print(f'"{nombre}": ya está en la solución. Hoy cumplen: {hoy}')
     else:
-        print('  programado. JobId', b.get('JobId'))
+        print(f'"{nombre}": se crea en la solución (diario). Hoy cumplen: {hoy}')
+        if APLICAR:
+            inicio = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=1)).strftime('%Y-%m-%dT09:00:00Z')
+            criterio = {'QuerySet': [fx(tabla, conds, uniones, contar=False)], 'SendEmailNotification': False,
+                        'ToRecipients': [], 'CCRecipients': []}
+            cuerpo = {'name': nombre, 'uniquename': nombre, 'type': TIPO_BORRADO, 'entitylogicalname': tabla,
+                      'recurrence': 'FREQ=DAILY;INTERVAL=1', 'starttime': inicio, 'criteria': json.dumps(criterio)}
+            st, b = rq('POST', 'retentionconfigs', cuerpo, {'MSCRM.SolutionUniqueName': SOLUCION})
+            if st >= 300:
+                err += 1; print('  error HTTP', st, str(b)[:300]); continue
+            print('  creado.')
+    cancelar(nombre, 'lo reemplaza el de la solución')
 print('listo.' if APLICAR else 'plan (sin cambios). Aplicar con --aplicar.')
 sys.exit(1 if err else 0)
