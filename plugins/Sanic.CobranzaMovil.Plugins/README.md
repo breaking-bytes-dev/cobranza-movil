@@ -1,6 +1,6 @@
 # Sanic.CobranzaMovil.Plugins
 
-Ensamblado único con los *plugins* y las *Custom APIs* de Cobranza Móvil. Destino: .NET Framework 4.6.2, C# 7.3, *sandbox* de Dataverse, firmado con nombre seguro y sin dependencias fuera del SDK de Dataverse.
+Ensamblado único con los *plugins* y las *Custom APIs* de Cobranza Móvil. Destino: .NET Framework 4.6.2, C# 7.3, *sandbox* de Dataverse, firmado con nombre seguro y sin dependencias fuera del SDK de Dataverse. Versión actual del ensamblado: 1.0.10.7.
 
 La descripción de cada plugin y cada Custom API (mensaje, etapa, qué hace y por qué) está en [04 · Plugins y Custom APIs](../../docs/tecnica/04-plugins-y-custom-apis.md).
 
@@ -8,9 +8,9 @@ La descripción de cada plugin y cada Custom API (mensaje, etapa, qué hace y po
 
 | Carpeta o archivo | Contenido |
 |---|---|
-| `*.cs` de esta carpeta | Un archivo por plugin, uno por Custom API y las clases de apoyo (`PluginBase`, `Esquema`, `RolesCm`, `UsuarioSistema`, `PanDetector`, `CarteraSinCobrador`, `SolicitadoPor`, `FilaDeCarga`, `ArchivoCsv`, `ParticionCarga`) |
+| `*.cs` de esta carpeta | Un archivo por plugin, uno por Custom API y las clases de apoyo (`PluginBase`, `Esquema`, `RolesCm`, `UsuarioSistema`, `PanDetector` (detecta y enmascara números de tarjeta), `CarteraSinCobrador`, `SolicitadoPor`, `FilaDeCarga`, `ArchivoCsv`, `ParticionCarga`) |
 | [`Esquema.cs`](Esquema.cs) | Todos los nombres lógicos de tablas y columnas que usan los plugins |
-| [`../Sanic.CobranzaMovil.Plugins.Tests/`](../Sanic.CobranzaMovil.Plugins.Tests/) | Pruebas con xUnit y Moq (net462); [`Harness.cs`](../Sanic.CobranzaMovil.Plugins.Tests/Harness.cs) arma el contexto de ejecución |
+| [`../Sanic.CobranzaMovil.Plugins.Tests/`](../Sanic.CobranzaMovil.Plugins.Tests/) | 665 pruebas con xUnit y Moq (net462); [`Harness.cs`](../Sanic.CobranzaMovil.Plugins.Tests/Harness.cs) arma el contexto de ejecución |
 | [`paso5_plugins.py`](../../scripts/pan/paso5_plugins.py) | Registro del ensamblado y de sus pasos (fuente de verdad del registro) |
 | [`paso12_custom_api.py`](../../scripts/pan/paso12_custom_api.py) | Definición de las Custom APIs y sus parámetros |
 | [`pan-plugin-cm.yml`](../../.github/workflows/pan-plugin-cm.yml) | Workflow que prueba, compila firmado y registra |

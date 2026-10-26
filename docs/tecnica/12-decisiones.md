@@ -28,7 +28,7 @@ Las decisiones están agrupadas por área:
 
 ### 1.2 Lo que viene del teléfono no se rechaza: se marca
 
-- **Decisión:** los plugins que procesan lo que crea el teléfono completan o marcan en lugar de rechazar: recibo repetido (`sanic_cm_pg_reciborepetido`), actualización sin vincular (`sanic_cm_ad_sinvincular`), identidad de la cuenta en la interacción, tramo. El pago **no tiene** *alternate key* sobre recibo, cuenta y moneda.
+- **Decisión:** los plugins que procesan lo que crea el teléfono completan o marcan en lugar de rechazar: recibo repetido (`sanic_cm_pg_reciborepetido`), actualización sin vincular (`sanic_cm_ad_sinvincular`), identidad de la cuenta en la interacción, tramo, número de tarjeta en un texto libre (se enmascara, ver [3.4](#34-en-los-textos-libres-del-teléfono-el-pan-se-enmascara-no-se-rechaza)). El pago **no tiene** *alternate key* sobre recibo, cuenta y moneda.
 - **Por qué:** el runtime offline descarta en silencio lo que el servidor rechaza y no lo reintenta. Un rechazo es un pago perdido sin aviso. Una *alternate key* se valida antes que los plugins, así que tampoco sirve.
 - **Alternativa descartada:** clave alternativa `(número de recibo, cuenta, moneda)` en el pago. El script que la crea, [`clave_recibo_pago.py`](../../scripts/localizador/clave_recibo_pago.py), está retirado (termina sin hacer nada) y [`paso15_marcas_offline.py`](../../scripts/pan/paso15_marcas_offline.py) la quita si existe.
 - **Qué se rompe si se cambia:** cualquier `throw` nuevo en un plugin de Create de interacción, pago o actualización de datos convierte un dato dudoso en un dato perdido.
@@ -62,7 +62,7 @@ Las decisiones están agrupadas por área:
 
 - **Decisión:** aprobación de Especiales, columnas que puede escribir cada rol, grabación en el core, agente de la interacción, reparto y reconciliación se imponen en plugins y Custom APIs. Las pantallas solo ayudan.
 - **Por qué:** el servidor es la única fuente confiable. Las reglas de negocio de formulario no corren en canvas ni en la Web API, y cualquiera con un rol puede escribir por la API sin pasar por la pantalla.
-- **Alternativa descartada:** reglas de negocio de formulario y validación en la app; un *flow* de Power Automate para el dueño de la asignación (correría con una identidad personal y su historial de ejecuciones guardaría la fila completa). El *flow* «Cloud Flow \| CM \| Cambio de Owner en Asignaciones» y la función low-code `sanic_PlugInCMMarcarinteraccioncomograbadaenCORE` todavía existen en el ambiente (el *flow*, apagado), pero ninguna app los usa: son sobrantes a retirar, no parte del diseño.
+- **Alternativa descartada:** reglas de negocio de formulario y validación en la app; un *flow* de Power Automate para el dueño de la asignación (correría con una identidad personal y su historial de ejecuciones guardaría la fila completa).
 - **Qué se rompe si se cambia:** mover una validación a la pantalla la deja sin efecto para la API, Smelter y la otra app. Ver [Plugins y Custom APIs](04-plugins-y-custom-apis.md).
 
 ### 2.2 Restricción de columnas por plugin, no por seguridad de columna
@@ -115,6 +115,13 @@ Las decisiones están agrupadas por área:
 - **Por qué:** todos los lookups, vistas y búsquedas muestran el nombre principal; enmascararlo corrige todos a la vez. *Formula columns* no muestran valores offline y las reglas de enmascarado nativas están en versión preliminar y no sirven en canvas.
 - **Alternativa descartada:** columna calculada o de fórmula; enmascarar en cada pantalla.
 - **Qué se rompe si se cambia:** una plantilla que vuelva a escribir el número completo hace fallar la carga fila por fila (PanGuard lo rechaza). Es el comportamiento buscado: no desactivar PanGuard para «arreglar» la carga.
+
+### 3.4 En los textos libres del teléfono el PAN se enmascara, no se rechaza
+
+- **Decisión:** [`PanEnTextoLibre.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PanEnTextoLibre.cs) (PreOperation síncrono, Create y Update) reemplaza en el comentario de la interacción y en las tres direcciones de la actualización de datos cada secuencia de 13 a 19 dígitos que pasa Luhn por `•••• ` y sus últimos 4. Nunca rechaza. La app del localizador muestra un aviso que no bloquea ([`scrInteraccion.pa.yaml`](../../apps/localizador-canvas/Src/scrInteraccion.pa.yaml), `lblAvisoTarjeta`).
+- **Por qué:** esos textos llegan del teléfono, muchas veces sin señal, y el runtime offline descarta en silencio un registro rechazado: rechazar perdería la visita entera (y sus pagos) por un dato que se puede corregir en el servidor ([1.2](#12-lo-que-viene-del-teléfono-no-se-rechaza-se-marca)). Exigir Luhn y un largo de 13 a 19 evita enmascarar teléfonos, recibos o importes, porque aquí un falso positivo modifica el texto guardado.
+- **Alternativa descartada:** una regla más de `PanGuard` (rechaza: perdería la visita); bloquear el guardado en la app (sin el servidor no protege lo que llega por la API y el aviso de la app no valida Luhn); no revisar los textos libres (un PAN quedaría guardado en claro, fuera de la bóveda).
+- **Qué se rompe si se cambia:** convertirlo en rechazo pierde capturas sin aviso. Ampliar la detección (por ejemplo, sin Luhn o dentro de tiras de dígitos sin separadores) enmascara datos buenos que el BackOffice necesita al transcribir.
 
 ## 4. Acceso y reparto
 
@@ -204,7 +211,7 @@ Las decisiones están agrupadas por área:
 - **Decisión:** [`PartirCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PartirCarga.cs) convierte el job en uno de «padres» (última fila de cada producto, fiador y agente) y crea hasta 4 jobs de «partes» donde las filas que escriben un mismo registro van juntas ([`ParticionCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ParticionCarga.cs)). La app usa 3 partes (`nfPartesCarga`). El archivo se parte a nivel de bytes ([`ArchivoCsv.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ArchivoCsv.cs)).
 - **Por qué:** en un solo job las filas se procesan en serie, en lotes que rozan el límite de 120 s por operación, y una carga grande tarda mucho. 3 y no 4 por el límite de protección del servicio de Dataverse (1.200 s de ejecución cada 5 minutos por usuario): cada parte consume unos 100 s por lote y con 4 se queda al borde ([`App.pa.yaml`](../../apps/backoffice-canvas/Src/App.pa.yaml)). Con menos de 300 filas la API hace una sola parte. Dos partes escribiendo el mismo registro a la vez chocarían.
 - **Alternativa descartada:** un solo job; partir por número de fila.
-- **Qué se rompe si se cambia:** las plantillas «Cobranza movil · padres» y «· partes» las genera [`paso20_plantillas_paralelas.py`](../../scripts/pan/paso20_plantillas_paralelas.py) desde la principal: editarlas a mano hace que `PartirCarga` se niegue a partir. Un *Relationship Mapping* en la principal no se puede repartir y detiene el script. Con la carga paralela el job original pasa a la plantilla «· padres», así que [`paso10_purgar_archivos.py`](../../scripts/pan/paso10_purgar_archivos.py), que solo mira la plantilla principal, no borra los archivos de esa carga (ver [Mantenimiento](11-mantenimiento.md)).
+- **Qué se rompe si se cambia:** las plantillas «Cobranza movil · padres» y «· partes» las genera [`paso20_plantillas_paralelas.py`](../../scripts/pan/paso20_plantillas_paralelas.py) desde la principal: editarlas a mano hace que `PartirCarga` se niegue a partir. Un *Relationship Mapping* en la principal no se puede repartir y detiene el script. Las tres plantillas se reconocen por nombre también en [`PurgaArchivoCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PurgaArchivoCarga.cs): renombrarlas deja los archivos de carga sin purgar (ver [8.2](#82-el-archivo-de-carga-se-purga-con-un-plugin-asíncrono-no-con-un-flow)).
 
 ### 6.3 El alta manual de una cuenta es una importación de una fila
 
@@ -238,6 +245,13 @@ Las decisiones están agrupadas por área:
 - **Alternativa descartada:** no borrar nunca; borrar la interacción junto con la cuenta.
 - **Qué se rompe si se cambia:** borrar una cuenta con interacciones sin grabar deja al BackOffice sin la bóveda para transcribirlas. El nombre del cliente no se copia a la interacción, por decisión del dueño del producto. Detalle en [Ciclo de vida](08-ciclo-de-vida.md).
 
+### 8.2 El archivo de carga se purga con un plugin asíncrono, no con un flow
+
+- **Decisión:** [`PurgaArchivoCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PurgaArchivoCarga.cs), PostOperation **asíncrono** sobre el Update de `sanic_smlt_ij_status` de los trabajos de Smelter, borra con `DeleteFile` el CSV de los trabajos de las tres plantillas de CM cuando llegan a un estado terminal (2, 3 o 4) y barre hasta 50 trabajos de más de 7 días que todavía tengan archivo. Conserva el trabajo y sus registros. [`paso10_purgar_archivos.py`](../../scripts/pan/paso10_purgar_archivos.py) aplica la misma regla a mano.
+- **Por qué:** el CSV trae los PAN completos y, una vez terminado el trabajo, nadie lo vuelve a leer. Un *plugin* viaja dentro del ensamblado (se instala y versiona con el resto), no necesita conexiones (*connection references*) ni un dueño de *flow* con licencia, y su lógica se prueba en la CI con las pruebas unitarias. Es asíncrono para no frenar al orquestador de Smelter, que cambia el estado dentro de su propia operación; el barrido cubre lo que dejó un paso fallido.
+- **Alternativa descartada:** un *flow* de Power Automate disparado por el cambio de estado (necesita conexión, identidad dueña y licencia, no se prueba en la CI); un *bulk delete* (borra filas, no vacía una columna de archivo, y se perderían los registros del trabajo); correr el script a mano después de cada carga (depende de que alguien se acuerde).
+- **Qué se rompe si se cambia:** borrar el archivo de un trabajo **sin** estado puede romper una carga: lo leen `PartirCarga`, Smelter y «Relanzar partes». Registrarlo síncrono lo deja sin efecto (el *plugin* no hace nada en ese modo). Renombrar una plantilla la deja fuera de la purga.
+
 ## Índice por pieza
 
 | Si se va a cambiar… | Leer |
@@ -245,8 +259,9 @@ Las decisiones están agrupadas por área:
 | Un plugin de interacción, pago o actualización de datos | [1.2](#12-lo-que-viene-del-teléfono-no-se-rechaza-se-marca), [1.3](#13-un-solo-nivel-de-lookup-en-lo-que-se-filtra-offline), [2.3](#23-el-localizador-solo-registra-en-su-cartera) |
 | El perfil offline o la app del teléfono | [1.1](#11-la-app-del-teléfono-es-canvas-con-perfil-offline-propio), [1.4](#14-el-agente-se-identifica-por-el-upn-en-minúsculas), [7.1](#71-tramos-por-hash-del-id-de-la-cuenta) |
 | Roles, equipos o privilegios | [2.2](#22-restricción-de-columnas-por-plugin-no-por-seguridad-de-columna), [2.4](#24-sin-roles-de-cm-sin-restricción), [4.3](#43-equipo-dueño-cartera-sin-cobrador-sin-miembros) |
+| Textos libres que llegan del teléfono | [1.2](#12-lo-que-viene-del-teléfono-no-se-rechaza-se-marca), [3.4](#34-en-los-textos-libres-del-teléfono-el-pan-se-enmascara-no-se-rechaza) |
 | Relaciones o cascadas | [3.1](#31-el-pan-vive-en-una-bóveda-con-seguridad-por-fila), [4.4](#44-cascadas-cortadas-donde-filtraban-acceso), [8.1](#81-borrado-programado-con-identidad-conservada-en-la-interacción) |
-| La plantilla de Smelter o el archivo del banco | [3.2](#32-clave-sustituta-hmac-calculada-por-smelter), [3.3](#33-el-nombre-principal-guarda-el-número-enmascarado), [6.2](#62-carga-paralela-padres-primero-partes-por-cliente), [6.3](#63-el-alta-manual-de-una-cuenta-es-una-importación-de-una-fila) |
+| La plantilla de Smelter o el archivo del banco | [3.2](#32-clave-sustituta-hmac-calculada-por-smelter), [3.3](#33-el-nombre-principal-guarda-el-número-enmascarado), [6.2](#62-carga-paralela-padres-primero-partes-por-cliente), [6.3](#63-el-alta-manual-de-una-cuenta-es-una-importación-de-una-fila), [8.2](#82-el-archivo-de-carga-se-purga-con-un-plugin-asíncrono-no-con-un-flow) |
 | Motivos de cierre o la reconciliación | [5.3](#53-reconciliación-de-diarias-manual-en-el-servidor-y-con-freno), [5.4](#54-la-carga-reabre-solo-lo-que-cerró-el-sistema-reconocido-por-el-motivo), [5.6](#56-las-listas-editables-se-guardan-como-texto) |
 | El reparto de asignaciones | [4.1](#41-solo-su-cartera-por-dueño-y-compartidos-en-un-plugin-asíncrono), [4.2](#42-cambiar-el-usuario-de-un-agente-reescribe-sus-asignaciones) |
 
@@ -261,5 +276,5 @@ Las decisiones están agrupadas por área:
 
 - ⚠️ **Varias decisiones fallan en silencio si se rompen:** un rechazo nuevo sobre lo que sube el teléfono ([1.2](#12-lo-que-viene-del-teléfono-no-se-rechaza-se-marca)), un cambio de texto en los motivos de cierre ([5.4](#54-la-carga-reabre-solo-lo-que-cerró-el-sistema-reconocido-por-el-motivo)), una cascada vuelta a *Cascade* ([4.4](#44-cascadas-cortadas-donde-filtraban-acceso)) o una persona sin rol de CM ([2.4](#24-sin-roles-de-cm-sin-restricción)). Ninguna produce un error visible.
 - ⚠️ **K y la canonización del PAN son parte del esquema.** Cambiarlas equivale a cambiar la clave primaria de negocio de cuatro tablas ([3.2](#32-clave-sustituta-hmac-calculada-por-smelter)).
-- **Los plugins asíncronos fallan fuera de la vista del usuario.** Los trabajos del reparto que fallan quedan en las operaciones del sistema; se diagnostican como se explica en [Mantenimiento](11-mantenimiento.md).
+- **Los plugins asíncronos fallan fuera de la vista del usuario.** Los trabajos del reparto o de la purga del archivo de carga que fallan quedan en las operaciones del sistema; se diagnostican como se explica en [Mantenimiento](11-mantenimiento.md).
 - **Los interruptores de la app de la oficina** (`nfCargaParalela`, `nfCierreServidor`, `nfValidarLargo` en [`App.pa.yaml`](../../apps/backoffice-canvas/Src/App.pa.yaml)) solo funcionan después de refrescar la fuente «Environment» en Studio; con la fuente desactualizada, la fórmula que llama a la Custom API queda inerte.

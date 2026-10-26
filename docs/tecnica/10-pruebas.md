@@ -47,7 +47,7 @@ Las tres suites comparten el arnés de [`tests/backoffice-canvas/lib/`](../../te
 
 ### Qué cubren
 
-Cada *plugin* tiene su clase de pruebas en [`plugins/Sanic.CobranzaMovil.Plugins.Tests/`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/) (unos 440 métodos `[Fact]`/`[Theory]`). Verifican rechazos y sus mensajes, que ningún mensaje ni traza contenga un número de tarjeta, casos vacíos y nulos, y **qué columnas y cuántas veces** consulta cada *plugin*. El detalle de cada *plugin* está en [Plugins y Custom APIs](04-plugins-y-custom-apis.md).
+Cada *plugin* tiene su clase de pruebas en [`plugins/Sanic.CobranzaMovil.Plugins.Tests/`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/) (665 pruebas: cada `[Fact]` y cada caso de un `[Theory]`, con xUnit y Moq). Verifican rechazos y sus mensajes, que ningún mensaje ni traza contenga un número de tarjeta, casos vacíos y nulos, y **qué columnas y cuántas veces** consulta cada *plugin*. El detalle de cada *plugin* está en [Plugins y Custom APIs](04-plugins-y-custom-apis.md).
 
 **Por qué Moq y no FakeXrmEasy:** FakeXrmEasy v3 exige licencia comercial y una clave en la CI, y aquí hace falta afirmar exactamente qué columnas pide cada consulta, algo que Moq permite directo (ver el comentario de [`Harness.cs`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/Harness.cs)).
 

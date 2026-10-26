@@ -212,7 +212,7 @@ Lo que el localizador registra en una visita: comentario, ubicación, si hubo pa
 | `sanic_cm_in_numerointeraccion` | [IN] Numero de Interaccion | Autonumérico `IN-{SEQNUM:4}`. Lo asigna el servidor al sincronizar: sin señal está vacío. |
 | `sanic_cm_in_cuentaid` | [IN] Cuenta | Cuenta visitada. Obligatoria (la exige [`InteraccionDelCobrador`](../../plugins/Sanic.CobranzaMovil.Plugins/InteraccionDelCobrador.cs)). |
 | `sanic_cm_in_agente`, `_nombreagente` | [IN] Agente, [IN] NombreAgente | Localizador. Si quien crea es un localizador, el servidor pone el agente vinculado a su usuario, no el que manda la app. |
-| `sanic_cm_in_comentario` | [IN] Comentario | Texto libre (2.000). |
+| `sanic_cm_in_comentario` | [IN] Comentario | Texto libre (2.000). Un número de tarjeta escrito aquí se guarda como `•••• ` y sus últimos 4: lo enmascara [`PanEnTextoLibre`](../../plugins/Sanic.CobranzaMovil.Plugins/PanEnTextoLibre.cs). |
 | `sanic_cm_in_fechacaptura` | Fecha de captura | La pone el teléfono al registrar (puede llegar horas después). |
 | `sanic_cm_cd_aplicapago` | [IN] Aplica pago | Sí/No. ⚠️ El prefijo es `cd`, no `in`: es un nombre heredado que no se puede renombrar. |
 | `sanic_cm_in_actualizainfo` | [IN] Actualiza info | Sí/No: hay una actualización de datos asociada. |
@@ -251,7 +251,7 @@ Los datos de contacto nuevos que el cliente pidió cambiar en una visita. Es un 
 | `sanic_cm_ad_interaccionid` | [AD] Interaccion | Interacción de la visita. |
 | `sanic_cm_ad_cuentaid`, `_fechacaptura` | [AD] Cuenta, [AD] Fecha de captura | Sin señal, el *lookup* a una interacción recién creada llega vacío. Con la cuenta y la misma fecha de captura, [`ActualizacionConInteraccion`](../../plugins/Sanic.CobranzaMovil.Plugins/ActualizacionConInteraccion.cs) encuentra la interacción y la vincula. |
 | `sanic_cm_ad_sinvincular` | [AD] Sin vincular | Sí si llegó sin poder vincularse. [`VincularActualizacionPendiente`](../../plugins/Sanic.CobranzaMovil.Plugins/VincularActualizacionPendiente.cs) la vincula cuando llega la interacción. |
-| `_telefonocasa`, `_telefonocelular`, `_telefonotrabajo`, `_direccioncasa`, `_direccionec`, `_direcciontrabajo`, `_correoelectronico` | [AD] … | Solo se completa lo que cambió. |
+| `_telefonocasa`, `_telefonocelular`, `_telefonotrabajo`, `_direccioncasa`, `_direccionec`, `_direcciontrabajo`, `_correoelectronico` | [AD] … | Solo se completa lo que cambió. En las tres direcciones, un número de tarjeta se guarda enmascarado ([`PanEnTextoLibre`](../../plugins/Sanic.CobranzaMovil.Plugins/PanEnTextoLibre.cs)). |
 
 ### `sanic_cm_tbl_opcionlista` — «CM | TBL | Opción de lista»
 
@@ -387,11 +387,10 @@ Crearla **después** de que la columna tenga datos sin duplicados: un duplicado 
 - ⚠️ **Lo que viene del teléfono no se rechaza: se marca.** El runtime sin señal descarta en silencio lo que el servidor rechaza y no lo reintenta. Por eso no hay clave alternativa en `pago` y existen `pg_reciborepetido` y `ad_sinvincular`. Cualquier validación nueva sobre `interaccion`, `pago` o `actualizaciondatos` tiene que seguir esta regla. Las únicas excepciones son las reglas de seguridad de `InteraccionDelCobrador` (cuenta y agente obligatorios, solo cuentas de la cartera propia), que sí rechazan.
 - ⚠️ **Sin señal solo funciona un nivel de *lookup*.** Por eso la cuenta guarda copias en texto (`ct_nombrecliente`, `ct_cifcliente`…) y el pago guarda su propia cuenta (`pg_cuentaid`).
 - ⚠️ **El número enmascarado no es único.** Dos cuentas pueden terminar en los mismos 4 dígitos. Nunca usar `ct_numerodecuenta` ni `ct_ultimos4` para unir datos: usar el *lookup* o `ct_clavepan`.
-- ⚠️ **Nunca escribir el número completo fuera de `cp_pan`.** `PanGuard` rechaza 5 o más dígitos seguidos en `ct_numerodecuenta`, `cd_numerocuenta` y `cp_name`, pero no vigila otras columnas.
+- ⚠️ **Nunca escribir el número completo fuera de `cp_pan`.** `PanGuard` rechaza 5 o más dígitos seguidos en `ct_numerodecuenta`, `cd_numerocuenta` y `cp_name`, y `PanEnTextoLibre` enmascara números de tarjeta en `in_comentario` y en las tres direcciones de la actualización de datos; ninguna otra columna se vigila.
 - **`sanic_cm_cd_aplicapago` está en la interacción** pese a su prefijo `cd`.
 - **`ct_fechapago` es texto** y puede traer formatos distintos según el archivo.
 - **`as_tipo` vale Especial por defecto.** Un alta por API sin tipo crea una Especial que queda pendiente de aprobación.
 - **Renombrar el agente en el archivo crea otro agente.** Hay que volver a vincular el usuario.
 - **La carga pisa los datos maestros.** Lo que el Admin edite en un cliente, dirección o teléfono lo reemplaza la próxima carga.
-- **Límite de 2.000 filas por consulta** de una canvas app: por eso existen los tramos. Una tabla nueva que la app tenga que traer completa necesita el mismo tratamiento. ⚠️ A confirmar: en el paquete de la app del localizador, `References/DataSources.json` declara `MaxGetRowsCount` 500 por fuente y `Properties.json`, 2.000 para la app; no está confirmado cuál rige.
-- **Columnas borradas que el código todavía nombra.** `sanic_cm_as_numerocuenta`, `sanic_cm_in_numerocuenta` y `sanic_cm_pg_numerocuenta` ya no existen, pero [`Esquema.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/Esquema.cs) conserva sus constantes y `PanGuard` tiene reglas para asignación, interacción y pago que nunca corren (sus pasos solo están registrados en cuenta, carga diaria y bóveda). Son sobrantes: no recrear esas columnas.
+- **Límite de 2.000 filas por consulta** de una canvas app: por eso existen los tramos. Una tabla nueva que la app tenga que traer completa necesita el mismo tratamiento. ⚠️ A confirmar: en el paquete de la app del localizador, `References/DataSources.json` declara `MaxGetRowsCount` 500 por fuente y `Properties.json`, 2.000 para la app; no está confirmado cuál rige. El aviso de cartera incompleta del teléfono salta cuando un tramo llega a 500 filas, así que vale con cualquiera de los dos.

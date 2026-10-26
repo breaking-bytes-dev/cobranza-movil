@@ -21,10 +21,10 @@ En el orden en que se corren, después de importar la *solution*. Todos son idem
 
 | Script | Qué hace |
 |---|---|
-| [`pan/paso5_plugins.py`](pan/paso5_plugins.py) `--dll … --version … --public-key-token … --activar-panguard` | Registra o actualiza el ensamblado de *plugins* y sus pasos; con `--activar-panguard` deja todos activos. Requiere la dll firmada con la misma `.snk` |
+| [`pan/paso5_plugins.py`](pan/paso5_plugins.py) `--dll … --version … --public-key-token … --activar-panguard` | Registra o actualiza el ensamblado de *plugins* y sus pasos (incluido el de `PurgaArchivoCarga` sobre los trabajos de Smelter, que tiene que estar instalado); con `--activar-panguard` deja todos activos. Requiere la dll firmada con la misma `.snk` |
 | [`pan/paso12_custom_api.py`](pan/paso12_custom_api.py) | Registra o verifica las cuatro *Custom APIs*. Después de `paso5_plugins.py` |
 | [`seguridad/paso5_cartera_sin_cobrador.py`](seguridad/paso5_cartera_sin_cobrador.py) `--entorno <ENV>` | Equipo «CM · Cartera sin cobrador · `<ENV>`» y su rol. Antes de la primera carga. Los demás equipos se crean a mano en este momento |
-| [`pan/paso6_clave_k.py`](pan/paso6_clave_k.py) | Carga K (del archivo de `PAN_HMAC_KEY_FILE`) en la tabla protegida de Smelter y le quita privilegios sobre ella a System Customizer. Se usa en todos los ambientes, producción incluida: su comentario inicial, que habla de Key Vault, está desactualizado |
+| [`pan/paso6_clave_k.py`](pan/paso6_clave_k.py) | Carga K (del archivo de `PAN_HMAC_KEY_FILE`) en la tabla protegida de Smelter y le quita privilegios sobre ella a System Customizer. Se usa en todos los ambientes, producción incluida (no se usa Azure Key Vault) |
 | [`pan/paso4_roles.py`](pan/paso4_roles.py) | Privilegios de la bóveda del número de tarjeta y quita los que System Customizer recibe sobre ella |
 | [`pan/paso23_listas.py`](pan/paso23_listas.py) | Tabla de listas editables, sus privilegios y las opciones iniciales. Antes del *offline profile* |
 | [`pan/paso13_fiador_sin_nombre.py`](pan/paso13_fiador_sin_nombre.py) | Ajuste de la plantilla principal de Smelter: fiador vacío → «(sin fiador)». La plantilla principal tiene que existir |
@@ -42,7 +42,8 @@ En el orden en que se corren, después de importar la *solution*. Todos son idem
 | [`pan/paso7_fuentes.py`](pan/paso7_fuentes.py) | Agregar o refrescar una tabla en las fuentes de datos de una app (`.msapr`) |
 | [`pan/paso7_esquema.py`](pan/paso7_esquema.py) | Chequeo de columnas de las fórmulas. Lo llama `paso7_desplegar.py`; se puede correr suelto |
 | [`seguridad/paso3_reconciliar.py`](seguridad/paso3_reconciliar.py) | Después de cada despliegue |
-| [`pan/paso10_purgar_archivos.py`](pan/paso10_purgar_archivos.py) | Después de cada carga: borra el CSV fuente, que trae números de tarjeta completos. ⚠️ Hoy solo revisa la plantilla principal (ver [Mantenimiento](../docs/tecnica/11-mantenimiento.md#tareas-recurrentes)) |
+| [`pan/paso10_purgar_archivos.py`](pan/paso10_purgar_archivos.py) | Al instalar sobre un ambiente con cargas anteriores, o si el paso de `PurgaArchivoCarga` estuvo apagado: borra el CSV fuente (trae números de tarjeta completos) de los trabajos terminados de las tres plantillas de CM y de las pruebas en seco abandonadas. Misma regla que el *plugin*, que lo hace solo después de cada carga (ver [Ciclo de vida](../docs/tecnica/08-ciclo-de-vida.md#archivo-de-carga-de-smelter)) |
+| [`pan/paso24_descripciones.py`](pan/paso24_descripciones.py) | Después de cambiar una descripción en un script de creación (`paso23_listas.py`, `paso15_marcas_offline.py`, `paso14_actualizacion_offline.py`, `paso12_custom_api.py`, `paso5_cartera_sin_cobrador.py`): la corrige en el ambiente, que esos scripts no tocan si ya existe. Reporta además descripciones con códigos de seguimiento |
 | [`pan/paso5_plugins.py`](pan/paso5_plugins.py), [`pan/paso12_custom_api.py`](pan/paso12_custom_api.py) | Al publicar una versión nueva de los *plugins* o una *Custom API* nueva |
 | [`pan/paso20_plantillas_paralelas.py`](pan/paso20_plantillas_paralelas.py) | Después de cada cambio en la plantilla principal de Smelter |
 | [`pan/paso7_perfil_offline.py`](pan/paso7_perfil_offline.py) | Cuando la app del localizador usa una tabla nueva |

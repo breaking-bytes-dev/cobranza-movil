@@ -1,6 +1,6 @@
 # Ciclo de vida de los datos
 
-Cuánto vive cada dato de Cobranza Móvil, qué lo cierra o lo borra y por qué. Cubre los siete trabajos de borrado programado, las *cascades* y *Restrict* que deciden qué arrastra cada borrado, lo que conserva la interacción cuando su cuenta desaparece, y los cierres de asignaciones (Reconciliación y Cierres). Está escrito para quien mantiene la solución y tiene que cambiar un plazo o diagnosticar por qué algo se borró (o no).
+Cuánto vive cada dato de Cobranza Móvil, qué lo cierra o lo borra y por qué. Cubre los siete trabajos de borrado programado, la purga del archivo de carga de Smelter, las *cascades* y *Restrict* que deciden qué arrastra cada borrado, lo que conserva la interacción cuando su cuenta desaparece, y los cierres de asignaciones (Reconciliación y Cierres). Está escrito para quien mantiene la solución y tiene que cambiar un plazo o diagnosticar por qué algo se borró (o no).
 
 ## Cómo funciona
 
@@ -116,13 +116,25 @@ Al cerrarse, `RepartoAsignacion` le revoca al localizador la cuenta, el cliente 
 
 Con `nfCierreServidor = false` la pantalla hace un `Patch` masivo desde la app, limitado a las 2.000 filas que puede tener una colección.
 
+### Archivo de carga de Smelter
+
+Cada envío a Smelter (prueba en seco, carga en serie, carga paralela y alta de cuenta) crea un trabajo de importación (`sanic_tbl_smlt_importjob`) con el CSV del banco en la columna de archivo `sanic_smlt_ij_sourcefile`, con los números de tarjeta completos. Ese archivo no lo borra un *bulk delete* sino el *plugin* [`PurgaArchivoCarga`](../../plugins/Sanic.CobranzaMovil.Plugins/PurgaArchivoCarga.cs), asíncrono, que corre cada vez que cambia `sanic_smlt_ij_status` de un trabajo:
+
+| Caso | Qué hace | Por qué |
+|---|---|---|
+| El trabajo que cambió de estado, si es de una de las tres plantillas de CM («Cobranza movil», «· padres», «· partes») y quedó en estado terminal (2 *Completed*, 3 *CompletedWithErrors*, 4 *Failed*) | Borra su archivo con `DeleteFile`, sea prueba en seco o carga real | Un trabajo terminado no se vuelve a leer: cada envío crea un trabajo nuevo con su propio archivo |
+| Barrido en la misma corrida: hasta 50 trabajos de esas plantillas, con archivo, de más de 7 días, en estado terminal o pruebas en seco sin estado | Borra sus archivos, los más viejos primero | Recupera lo que un paso fallido dejó y los trabajos anteriores a la instalación del *plugin* |
+| Trabajo sin estado (salvo esas pruebas viejas), en cola o procesando | No lo toca | Todavía lo pueden leer `PartirCarga`, Smelter o «Relanzar partes» |
+
+El trabajo se conserva con sus contadores y sus registros; solo se borra el archivo. [`paso10_purgar_archivos.py`](../../scripts/pan/paso10_purgar_archivos.py) aplica la misma regla a mano (sin el tope de 50 y sin el plazo de 7 días para los trabajos terminados): sirve en la instalación y para limpiar lo que ya existía. Ficha del *plugin*: [Plugins y Custom APIs](04-plugins-y-custom-apis.md#purgaarchivocarga).
+
 ## Piezas y archivos
 
 | Pieza | Archivo |
 |---|---|
 | Trabajos de borrado programado | [`paso10_borrado_programado.py`](../../scripts/seguridad/paso10_borrado_programado.py) |
 | Restrict y cascades de la auditoría | [`paso1_cascadas_auditoria.py`](../../scripts/seguridad/paso1_cascadas_auditoria.py) |
-| Borrado del archivo de los jobs de Smelter | [`paso10_purgar_archivos.py`](../../scripts/pan/paso10_purgar_archivos.py) |
+| Borrado del archivo de los jobs de Smelter | [`PurgaArchivoCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PurgaArchivoCarga.cs), [`PurgaArchivoCargaTests.cs`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/PurgaArchivoCargaTests.cs); a mano, [`paso10_purgar_archivos.py`](../../scripts/pan/paso10_purgar_archivos.py) |
 | Identidad en la interacción | [`IdentidadEnInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/IdentidadEnInteraccion.cs), [`IdentidadEnInteraccionTests.cs`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/IdentidadEnInteraccionTests.cs) |
 | Reapertura y reclasificación | [`CargaSobreAsignacion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/CargaSobreAsignacion.cs), [`Reclasificacion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/Reclasificacion.cs) |
 | Cierre en lote | [`CerrarFueraDeCartera.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/CerrarFueraDeCartera.cs), [`CerrarFueraDeCarteraTests.cs`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/CerrarFueraDeCarteraTests.cs) |
@@ -172,7 +184,8 @@ Para probar el borrado con plazos cortos, usar días o columnas que no sean *Dat
 
 ## Trampas y errores conocidos
 
-- ⚠️ **Los archivos de los jobs de Smelter no tienen borrado programado.** Cada CSV del banco queda en `sanic_smlt_ij_sourcefile` con los números de tarjeta completos. [`paso10_purgar_archivos.py`](../../scripts/pan/paso10_purgar_archivos.py) se corre a mano y borra el archivo **solo de los jobs de la plantilla principal** «Cobranza movil» (pruebas en seco, cargas en serie y altas de cuenta). En la carga paralela, `PartirCarga` pasa el job original a «Cobranza movil · padres» y crea las partes con «Cobranza movil · partes»: hoy esos archivos (que también traen el número completo) **no se purgan**. Los jobs y sus logs tampoco se borran.
+- ⚠️ **Archivos de carga que quedan.** Una parte de la carga paralela sin estado que nadie relanza ni descarta, o un trabajo real sin estado que nadie cierra, conserva su archivo con los números de tarjeta completos: ni `PurgaArchivoCarga` ni el script lo tocan, porque todavía se podría leer. Se resuelve con «▶ Relanzar partes», «✕ Descartar partes» o «✕ Descartar carga» en Cargar archivo; al llegar a un estado terminal, el *plugin* borra el archivo. Los trabajos y sus registros no se borran nunca.
+- **El paso de `PurgaArchivoCarga` tiene que estar activo y asíncrono.** Registrado síncrono no hace nada (no frena a Smelter). Si el paso falta o está apagado, los archivos se acumulan hasta la próxima corrida del *plugin* o de `paso10_purgar_archivos.py --aplicar`.
 - ⚠️ **Borrar un cliente a mano borra sus cuentas** (Cascade), con su bóveda y sus asignaciones. El trabajo 3 solo elige clientes sin cuentas, pero un Admin con la API no tiene ese freno.
 - **Una cuenta borrada vuelve como nueva.** Si el banco la manda otra vez, la carga crea una cuenta nueva con la misma clave HMAC; las interacciones viejas siguen sin vínculo (conservan su `Clave PAN`).
 - **La interacción creada sin cuenta no guarda identidad.** `IdentidadEnInteraccion` solo actúa en el Create y solo si la cuenta existe.

@@ -23,17 +23,18 @@ Los scripts de operación muestran el plan sin cambiar nada y aplican solo con `
 | Tarea | Frecuencia | Cómo |
 |---|---|---|
 | Revisar la carga del día | Diaria | App de la oficina → **Monitoreo** ([`scrMonitoreo.pa.yaml`](../../apps/backoffice-canvas/Src/scrMonitoreo.pa.yaml)) y **Reconciliación** ([`scrReconciliacion.pa.yaml`](../../apps/backoffice-canvas/Src/scrReconciliacion.pa.yaml)). Detalle técnico de un trabajo: tablas de Smelter `sanic_tbl_smlt_importjobs` y sus registros de error |
-| Borrar el archivo fuente de las cargas | Después de cada carga | `python3 scripts/pan/paso10_purgar_archivos.py --aplicar` ([`paso10_purgar_archivos.py`](../../scripts/pan/paso10_purgar_archivos.py)). El CSV trae los números de tarjeta completos. Ver la advertencia de abajo |
+| Revisar cargas sin terminar | Diaria | En **Cargar archivo** → *Mis últimas cargas*, relanzar o descartar las partes y cargas que quedaron sin estado. Mientras no terminan conservan su CSV con los números de tarjeta completos; al terminar, [`PurgaArchivoCarga`](../../plugins/Sanic.CobranzaMovil.Plugins/PurgaArchivoCarga.cs) lo borra solo. Ver la advertencia de abajo |
 | Revisar los trabajos de borrado | Semanal | Centro de administración de Power Platform → ambiente → Configuración → Administración de datos → Eliminación de registros en masa. Los trabajos se llaman `CM - …`. Con `paso10_borrado_programado.py` sin `--aplicar` se ven cuántos registros cumple cada uno hoy |
 | Reconciliar compartidos | Después de cada despliegue | `python3 scripts/seguridad/paso3_reconciliar.py --aplicar` ([`paso3_reconciliar.py`](../../scripts/seguridad/paso3_reconciliar.py)). Agrega los compartidos que faltan. Con `--revocar` quita los sobrantes |
 | Alta y baja de localizadores | A demanda | Ver [Alta y baja de un localizador](#alta-y-baja-de-un-localizador) |
 | Alta y baja de personal de oficina | A demanda | Agregar o quitar a la persona del equipo «CM · `<perfil>` · `<ENV>`» (o de su grupo de Entra ID). Ver [Seguridad](03-seguridad.md#dar-acceso-a-una-persona-nueva) |
 | Listas editables | A demanda | El Admin las edita en **Listas** ([`scrListas.pa.yaml`](../../apps/backoffice-canvas/Src/scrListas.pa.yaml)). No requiere despliegue |
 | Revisar trazas de *plugins* | Ante un error | Ver [Trazas de *plugins*](#trazas-de-plugins) |
-| Revisar trabajos asíncronos fallidos | Semanal | Trabajos del sistema (`asyncoperations`) con estado fallido, de los pasos `RepartoAsignacion`, `RepartoPorAgente` y `TramoCartera`. Los del reparto que terminan bien se borran solos, así que lo que queda merece revisión |
+| Revisar trabajos asíncronos fallidos | Semanal | Trabajos del sistema (`asyncoperations`) con estado fallido, de los pasos `RepartoAsignacion`, `RepartoPorAgente`, `TramoCartera` y `PurgaArchivoCarga`. Los asíncronos que terminan bien se borran solos, así que lo que queda merece revisión |
+| Corregir descripciones de metadatos | Después de cambiar una descripción en un script de creación | `python3 scripts/pan/paso24_descripciones.py` (plan: muestra antes y después) y luego con `--aplicar` ([`paso24_descripciones.py`](../../scripts/pan/paso24_descripciones.py)). Los scripts de creación no tocan lo que ya existe; este sí, pero solo la descripción de tablas, columnas, el equipo «Cartera sin cobrador» y las *Custom APIs* con sus parámetros. También reporta descripciones con códigos de seguimiento |
 | Respaldo de la clave `.snk` y de K | Al rotar personal | Que ambas estén en el gestor de secretos del equipo. Sin la `.snk` no se pueden actualizar los *plugins* |
 
-⚠️ `paso10_purgar_archivos.py` solo busca trabajos cuya plantilla es «Cobranza movil». En la carga paralela, `PartirCarga` pasa el trabajo original a la plantilla «Cobranza movil · padres» y crea las partes con «Cobranza movil · partes», cada una con su archivo ([`PartirCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PartirCarga.cs)). Esos archivos **no** los borra: siguen con los números completos. Pendiente en el código: ampliar el filtro del script a las tres plantillas. Mientras tanto, borrar a mano el archivo (columna `sanic_smlt_ij_sourcefile`) de esos trabajos en la tabla de trabajos de Smelter.
+⚠️ El archivo de carga lo borra `PurgaArchivoCarga` cuando el trabajo de cualquiera de las tres plantillas de CM («Cobranza movil», «· padres», «· partes») llega a un estado terminal, y cada corrida barre hasta 50 trabajos de más de 7 días que todavía tengan archivo (ver [Ciclo de vida](08-ciclo-de-vida.md#archivo-de-carga-de-smelter)). No borra el de una parte sin estado que nadie relanza ni descarta, ni el de una carga sin estado que nadie cierra: por eso hay que resolverlas. [`paso10_purgar_archivos.py`](../../scripts/pan/paso10_purgar_archivos.py) aplica la misma regla a mano (sin `--aplicar`, solo muestra el plan): se corre al instalar, para limpiar lo que existía antes del *plugin*, o si el paso del *plugin* estuvo apagado.
 
 ### Alta y baja de un localizador
 
@@ -173,7 +174,8 @@ Los pasos del lado de Dataverse y de los *plugins* están en [Seguridad](03-segu
 |---|---|
 | Mapa de scripts | [`scripts/README.md`](../../scripts/README.md) |
 | Reconciliación de compartidos | [`paso3_reconciliar.py`](../../scripts/seguridad/paso3_reconciliar.py) |
-| Borrado de archivos fuente | [`paso10_purgar_archivos.py`](../../scripts/pan/paso10_purgar_archivos.py) |
+| Borrado de archivos fuente | [`PurgaArchivoCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PurgaArchivoCarga.cs) (automático); [`paso10_purgar_archivos.py`](../../scripts/pan/paso10_purgar_archivos.py) (a mano) |
+| Descripciones de metadatos | [`paso24_descripciones.py`](../../scripts/pan/paso24_descripciones.py) |
 | Trabajos de borrado programado | [`paso10_borrado_programado.py`](../../scripts/seguridad/paso10_borrado_programado.py) |
 | Plantillas derivadas de Smelter | [`paso20_plantillas_paralelas.py`](../../scripts/pan/paso20_plantillas_paralelas.py) |
 | Fuentes de datos de las apps | [`paso7_fuentes.py`](../../scripts/pan/paso7_fuentes.py), [`paso7_esquema.py`](../../scripts/pan/paso7_esquema.py) |

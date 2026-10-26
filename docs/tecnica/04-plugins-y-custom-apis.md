@@ -2,7 +2,7 @@
 
 Este documento describe cada *plugin* (código C# que Dataverse ejecuta dentro de su propio proceso al crear o modificar un registro) y cada *Custom API* (un mensaje propio de Dataverse que las apps invocan como si fuera una función) de Cobranza Móvil: dónde se registra, qué hace, por qué existe y dónde está su código y su prueba. Está pensado para quien tiene que cambiar una regla de negocio del servidor o diagnosticar un error que devuelve Dataverse.
 
-Todo el código vive en un solo ensamblado, [`Sanic.CobranzaMovil.Plugins`](../../plugins/Sanic.CobranzaMovil.Plugins/), y sus pruebas en [`Sanic.CobranzaMovil.Plugins.Tests`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/). El modelo de datos se explica en [02 · Modelo de datos](02-modelo-de-datos.md) y los roles en [03 · Seguridad](03-seguridad.md); aquí solo se cita lo necesario.
+Todo el código vive en un solo ensamblado, [`Sanic.CobranzaMovil.Plugins`](../../plugins/Sanic.CobranzaMovil.Plugins/), y sus pruebas (665, xUnit y Moq) en [`Sanic.CobranzaMovil.Plugins.Tests`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/). La versión del ensamblado (1.0.10.7) está en [`Sanic.CobranzaMovil.Plugins.csproj`](../../plugins/Sanic.CobranzaMovil.Plugins/Sanic.CobranzaMovil.Plugins.csproj). El modelo de datos se explica en [02 · Modelo de datos](02-modelo-de-datos.md) y los roles en [03 · Seguridad](03-seguridad.md); aquí solo se cita lo necesario.
 
 ## Resumen
 
@@ -13,6 +13,7 @@ La fuente de verdad del registro es [`paso5_plugins.py`](../../scripts/pan/paso5
 | Plugin | Tabla | Mensaje | Etapa y modo | Para qué |
 |---|---|---|---|---|
 | [PanGuard](#panguard) | cuenta, carga diaria y bóveda (ver ficha) | Create, Update | Pre, síncrono | Rechaza un número de tarjeta en claro |
+| [PanEnTextoLibre](#panentextolibre) | interacción y actualización de datos (ver ficha) | Create, Update | Pre, síncrono | Enmascara un número de tarjeta en los textos libres; nunca rechaza |
 | [ClaveDesdeCuenta](#clavedesdecuenta) | `sanic_cm_tbl_asignacion` «CM \| TBL \| Asignacion» | Create, Update | Pre, síncrono | Copia la clave HMAC de la cuenta a la asignación |
 | [AprobacionEspecial](#aprobacionespecial) | `sanic_cm_tbl_asignacion` | Create, Update | Pre, síncrono | Solo Supervisor aprueba Especiales; solo la carga crea Diarias e Incobrables |
 | [ColumnasAsignacion](#columnasasignacion) | `sanic_cm_tbl_asignacion` | Update | Pre, síncrono | Cada rol escribe solo sus columnas |
@@ -31,6 +32,7 @@ La fuente de verdad del registro es [`paso5_plugins.py`](../../scripts/pan/paso5
 | [CuentaDesdeInteraccion](#cuentadesdeinteraccion) | `sanic_cm_tbl_pago` «CM \| TBL \| Pago» | Create | Pre, síncrono | Completa cuenta y número de interacción del pago |
 | [ReciboRepetido](#reciborepetido) | `sanic_cm_tbl_pago` | Create | Pre, síncrono | Marca el recibo repetido |
 | [TipoDesdeProducto](#tipodesdeproducto) | `sanic_cm_tbl_cuenta` «CM \| TBL \| Cuenta» | Create, Update | Pre, síncrono | Copia el tipo del producto a la cuenta |
+| [PurgaArchivoCarga](#purgaarchivocarga) | `sanic_tbl_smlt_importjob` (trabajo de importación de Smelter) | Update | **Post, asíncrono** | Borra el CSV del banco de los trabajos de CM terminados |
 
 ### Custom APIs
 
@@ -50,7 +52,7 @@ Las cuatro son globales (sin tabla asociada), de tipo acción y sin pasos person
 ### Convenciones comunes a todos los plugins
 
 - **Base común.** Todos heredan de [`PluginBase`](../../plugins/Sanic.CobranzaMovil.Plugins/PluginBase.cs): traza inicio, mensaje, etapa y profundidad, y convierte cualquier excepción inesperada en un error genérico. Así el usuario nunca ve un mensaje interno que podría citar un valor del registro.
-- **Fallan cerrado si están mal registrados.** Cada plugin llama a `ExigirRegistro(tabla, etapa, mensajes)` y, si no coincide, lanza un error. Un paso en la etapa equivocada no se ignora en silencio.
+- **Fallan cerrado si están mal registrados.** Cada plugin llama a `ExigirRegistro(tabla, etapa, mensajes)` y, si no coincide, lanza un error. Un paso en la etapa equivocada no se ignora en silencio. Hay dos excepciones a propósito: `PanEnTextoLibre` nunca lanza (corre sobre lo que llega del teléfono, que no se puede rechazar) y `PurgaArchivoCarga` registrado como síncrono no hace nada (no debe frenar la actualización de estado de Smelter); los dos dejan el problema en la traza.
 - **Dos identidades.** `local.Service` usa los permisos del usuario que llama (mínimo privilegio). `local.ServicioSistema` usa la identidad del sistema y se reserva para lo que un rol de persona no debe poder hacer: leer roles, buscar en registros ajenos, dar y quitar acceso.
 - **Pasos.** Todos con *rank* 1, despliegue solo en servidor y ejecución como el usuario que llama. El nombre del paso es `<Tipo>: <Mensaje> of <tabla>` y es la clave con la que el script lo encuentra para actualizarlo.
 - **Trazas sin datos.** Ninguna traza ni mensaje de error contiene el valor de una columna: solo nombres de columna, cantidades y códigos de error.
@@ -92,9 +94,25 @@ Dentro de la etapa PreOperation todos tienen el mismo *rank*, por lo que el orde
 | Código / prueba | [`PanGuard.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PanGuard.cs) · [`PanGuardTests.cs`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/PanGuardTests.cs) |
 
 - En las tres columnas rechaza 5 o más dígitos seguidos (tolera espacio, guion o espacio duro entre dígitos). El valor enmascarado `****1234` pasa.
-- El código y `paso5_plugins.py` todavía declaran tres columnas en desuso (`sanic_cm_as_numerocuenta`, `sanic_cm_in_numerocuenta`, `sanic_cm_pg_numerocuenta`) que ya no existen en el esquema: el script no registra esos pasos (y retira el paso si existiera) y las constantes de `Esquema.cs` son sobrantes.
 - **Por qué:** es la red de seguridad PCI: el número completo solo vive en la bóveda `sanic_cm_tbl_cuentapan` (ver [03 · Seguridad](03-seguridad.md)). El mensaje nombra la columna, nunca el valor.
 - ⚠️ Los seis pasos (Create y Update de las tres tablas) tienen que estar **activos**. El script crea un paso nuevo **desactivado** y, en cada corrida, conserva el estado de los que ya existen; en un ambiente nuevo hay que correrlo con `--activar-panguard` (en la CI, la entrada `activar_panguard`). Verificar el estado después de cada importación.
+
+### PanEnTextoLibre
+
+| | |
+|---|---|
+| Tablas y columnas | `sanic_cm_tbl_interaccion` (`sanic_cm_in_comentario`); `sanic_cm_tbl_actualizaciondatos` «CM \| TBL \| Actualizacion de dato» (`sanic_cm_ad_direccioncasa`, `sanic_cm_ad_direccionec`, `sanic_cm_ad_direcciontrabajo`) |
+| Mensaje | Create y Update (Update filtrado por esas columnas) |
+| Etapa y modo | PreOperation, síncrono |
+| Código / prueba | [`PanEnTextoLibre.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PanEnTextoLibre.cs) · [`PanEnTextoLibreTests.cs`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/PanEnTextoLibreTests.cs), [`PanDetectorTests.cs`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/PanDetectorTests.cs) |
+
+- En cada columna del *Target* busca números de tarjeta con `PanDetector.EnmascararPan`: una secuencia de 13 a 19 dígitos (con espacios, guiones o espacio duro entre medio) que pasa el dígito verificador Luhn. Cada una se reemplaza por `•••• ` y sus últimos 4 antes de guardarse. El resto del texto queda igual.
+- En una racha de dígitos más larga (un teléfono pegado a la tarjeta con un espacio) prueba los tramos que empiezan y terminan en un borde de grupo, del más largo al más corto. Dentro de una tira de dígitos sin separadores no busca: casi cualquier ventana de 13 o más dígitos pasaría Luhn una vez de cada diez.
+- **Nunca rechaza.** Un registro mal configurado, un *Target* que no es entidad o un valor que no es texto solo se trazan. La traza nombra la columna enmascarada, nunca el valor.
+- Teléfonos y correo no se revisan: la app ya valida su formato.
+- Sus pasos quedan siempre activos; no comparten el ciclo de activación de `PanGuard`.
+- **Por qué no es una regla de `PanGuard`:** `PanGuard` rechaza, y lo que llega del teléfono sin conexión no se puede rechazar: el *runtime offline* descarta el registro en silencio y se pierde la visita. Por qué se enmascara en vez de rechazar: [12 · Decisiones](12-decisiones.md).
+- La app del localizador muestra un aviso (`lblAvisoTarjeta` en [`scrInteraccion.pa.yaml`](../../apps/localizador-canvas/Src/scrInteraccion.pa.yaml)) cuando el comentario tiene 13 o más dígitos seguidos; no bloquea el guardado.
 
 ### ClaveDesdeCuenta
 
@@ -339,6 +357,25 @@ Nombre histórico: en el código el localizador aparece como «cobrador».
 - Copia el tipo del producto a `sanic_cm_ct_tipoproducto`. Si el producto no cambió y la cuenta ya tiene tipo, no lee nada.
 - **Por qué:** la carga solo llena el lookup y la app del localizador muestra el tipo sin consultar productos. Cambiar el tipo de un producto **no** se propaga a sus cuentas existentes.
 
+### PurgaArchivoCarga
+
+| | |
+|---|---|
+| Tabla | `sanic_tbl_smlt_importjob` (trabajo de importación de Smelter, *Import Job*) |
+| Mensaje | Update filtrado por `sanic_smlt_ij_status` |
+| Etapa y modo | PostOperation, **asíncrono** (el trabajo del sistema se borra si termina bien) |
+| Código / prueba | [`PurgaArchivoCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PurgaArchivoCarga.cs) · [`PurgaArchivoCargaTests.cs`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/PurgaArchivoCargaTests.cs) |
+
+- Solo mira los trabajos de las tres plantillas de CM: «Cobranza movil», «Cobranza movil · padres» y «Cobranza movil · partes» (las busca por nombre, igual que `PartirCarga`). Si no existe ninguna, no hace nada.
+- **El trabajo que cambió de estado.** Lo vuelve a leer (el paso es asíncrono y el estado pudo cambiar) y, si está en un estado terminal (2 *Completed*, 3 *CompletedWithErrors* o 4 *Failed*), borra su archivo `sanic_smlt_ij_sourcefile`, sea prueba en seco o carga real.
+- **Barrido.** En la misma corrida borra el archivo de hasta 50 trabajos más (`Esquema.MaximoPurgasPorCorrida`), los más viejos primero, de esas plantillas, con archivo y creados hace más de 7 días (`Esquema.DiasConservarArchivoCarga`) que estén en estado terminal o sean pruebas en seco sin estado (abandonadas: la pantalla nunca relanza una prueba). Así no queda nada para siempre por un paso que falló o por trabajos anteriores al *plugin*.
+- Nunca toca un trabajo sin estado (salvo esas pruebas viejas), en cola ni procesando. El trabajo se conserva: solo se borra el archivo, y se conservan los contadores y los registros.
+- Una columna de archivo no se vacía con `Update`: se borra con el mensaje `DeleteFile` y el id del archivo. Si un borrado falla, traza el tipo de error y sigue; lo toma el próximo barrido.
+- Usa la identidad del sistema: el estado lo cambia el orquestador de Smelter (no un usuario de CM) y el barrido tiene que ver los trabajos de todos.
+- **Por qué es seguro borrar al llegar a un estado terminal:** cada envío crea un trabajo nuevo con su archivo (la carga real no reutiliza el de la prueba en seco); `PartirCarga` solo lee el archivo de un trabajo **sin** estado; el trabajo de padres termina después de que se crearon las partes, cada una con su archivo; «Relanzar» solo pone en cola partes sin estado y «Descartar» las pasa a *Failed* sin correrlas.
+- **Por qué asíncrono:** síncrono correría dentro de la actualización de estado de Smelter y frenaría a su orquestador. Por qué un *plugin* y no un *flow*: [12 · Decisiones](12-decisiones.md).
+- ⚠️ Las partes sin estado no se barren (se pueden relanzar): una parte que nadie relanza ni descarta conserva su archivo. Lo mismo un trabajo real que queda sin estado y nadie cierra. Ver [08 · Ciclo de vida](08-ciclo-de-vida.md).
+
 ## Custom APIs
 
 Las apps las invocan con `Environment.sanic_cm_<API>({...})`. Un error del plugin llega a la app como texto JSON con el código `0x80040265`; la función `TextoError` de [`App.pa.yaml`](../../apps/backoffice-canvas/Src/App.pa.yaml) extrae el mensaje legible.
@@ -441,14 +478,7 @@ Cierra por lotes las Diarias activas que quedaron fuera de la última carga. Plu
 - La app llama en bucle mientras `Restantes` sea mayor que cero.
 - **Por qué:** una lista de canvas app no pasa de 2.000 filas y un lote grande excedería los 2 minutos de un plugin.
 
-### Sobrantes a retirar
-
-No forman parte del diseño; siguen en la *solution* y conviene retirarlos:
-
-- **`sanic_PlugInCMMarcarinteraccioncomograbadaenCORE`** ([`solutions/unpacked/customapis/`](../../solutions/unpacked/customapis/)): una función *low-code* con entradas `TargetRecord` y `EntraUserID`. Ninguna app la llama: la transcripción se controla con [`GrabacionInteraccion`](#grabacioninteraccion).
-- **«Cloud Flow | CM | Cambio de Owner en Asignaciones»** ([`solutions/unpacked/Workflows/`](../../solutions/unpacked/Workflows/)): *flow* apagado que, encendido, cambia el dueño de la asignación cuando cambia el agente. Eso lo hace [`RepartoAsignacion`](#repartoasignacion); no encenderlo.
-
-Las cuatro Custom APIs de CM no están en esa carpeta de la *solution* desempaquetada: se registran con `paso12_custom_api.py`.
+Las cuatro Custom APIs de CM no están en la *solution* desempaquetada ([`solutions/unpacked/customapis/`](../../solutions/unpacked/customapis/)): se registran con `paso12_custom_api.py`.
 
 ## Clases de apoyo
 
@@ -462,7 +492,7 @@ No tienen pasos ni son Custom APIs: las usan los plugins.
 | [`UsuarioSistema`](../../plugins/Sanic.CobranzaMovil.Plugins/UsuarioSistema.cs) | Reconoce a la identidad del sistema con un `WhoAmI` cacheado por organización, para no consultar roles en cada fila de la carga | [`CargaComoSistemaTests.cs`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/CargaComoSistemaTests.cs) |
 | [`SolicitadoPor`](../../plugins/Sanic.CobranzaMovil.Plugins/SolicitadoPor.cs) | Una persona de CM solo puede ponerse a sí misma en «Solicitado por» | Indirecta |
 | [`CarteraSinCobrador`](../../plugins/Sanic.CobranzaMovil.Plugins/CarteraSinCobrador.cs) | Busca el único *owner team* (equipo dueño de registros) cuyo nombre empieza con «CM · Cartera sin cobrador». Si no hay uno solo, falla | Indirecta |
-| [`PanDetector`](../../plugins/Sanic.CobranzaMovil.Plugins/PanDetector.cs) | Detecta N dígitos seguidos, con separadores | [`PanDetectorTests.cs`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/PanDetectorTests.cs) |
+| [`PanDetector`](../../plugins/Sanic.CobranzaMovil.Plugins/PanDetector.cs) | Detecta N dígitos seguidos, con separadores (`ContieneSecuenciaDeDigitos`); enmascara números de tarjeta en texto libre (`EnmascararPan`) y valida Luhn (`PasaLuhn`) | [`PanDetectorTests.cs`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/PanDetectorTests.cs) |
 | [`FilaDeCarga`](../../plugins/Sanic.CobranzaMovil.Plugins/FilaDeCarga.cs) | Arma el CSV de una fila con las 33 columnas del archivo del banco; canoniza el número y valida Luhn | [`AltaCuentaTests.cs`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/AltaCuentaTests.cs) |
 | [`ArchivoCsv`](../../plugins/Sanic.CobranzaMovil.Plugins/ArchivoCsv.cs) | Lee el CSV a nivel de bytes (RFC 4180) para partirlo sin alterar ninguna fila | [`ArchivoCsvTests.cs`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/ArchivoCsvTests.cs) |
 | [`ParticionCarga`](../../plugins/Sanic.CobranzaMovil.Plugins/ParticionCarga.cs) | Elige las filas de padres y reparte las demás en partes (*union-find* sobre las claves de deduplicación) | [`ParticionCargaTests.cs`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/ParticionCargaTests.cs) |
@@ -549,10 +579,10 @@ En un tenant nuevo se genera una clave una sola vez y se guarda en el gestor de 
 
 - ⚠️ **Límite de 2 minutos.** Un plugin síncrono corre dentro del mensaje que lo disparó y comparte su límite de 2 minutos; si se pasa, se deshace todo el mensaje. Con la carga de Smelter eso es un lote de 100 filas entero. Por eso el reparto es asíncrono, `CerrarFueraDeCartera` trabaja por lotes y `RepartoPorAgente` se corta en 1.000. Antes de agregar consultas a un plugin PreOperation de asignación, multiplicar por las filas de la carga.
 - ⚠️ **Profundidad.** Ningún plugin corta por `Context.Depth`: los encadenamientos se evitan con los filtros. `Reclasificacion` actualiza otra asignación (vuelve a disparar los pasos de asignación), `RepartoPorAgente` toca asignaciones para disparar `RepartoAsignacion` y `VincularActualizacionPendiente` dispara `ActualizacionConInteraccion`. Si se agrega una columna a un filtro o un plugin que escribe en la misma tabla, verificar que no cierre un ciclo: Dataverse corta en profundidad 8 con un error.
-- ⚠️ **Lo que viene *offline* no se rechaza, se marca.** El teléfono descarta un registro rechazado y no lo reintenta: el dato se pierde. Por eso `ActualizacionConInteraccion` marca `sanic_cm_ad_sinvincular`, `ReciboRepetido` marca `sanic_cm_pg_reciborepetido`, `IdentidadEnInteraccion` nunca rechaza y `VincularActualizacionPendiente` es asíncrono. Un plugin nuevo sobre interacción, pago o actualización de datos debe seguir la misma regla. `InteraccionDelCobrador` sí rechaza (cuenta ajena, agente inactivo) porque es una regla de seguridad; la app lo informa en [05 · App del localizador](05-app-localizador.md).
+- ⚠️ **Lo que viene *offline* no se rechaza, se marca.** El teléfono descarta un registro rechazado y no lo reintenta: el dato se pierde. Por eso `ActualizacionConInteraccion` marca `sanic_cm_ad_sinvincular`, `ReciboRepetido` marca `sanic_cm_pg_reciborepetido`, `IdentidadEnInteraccion` y `PanEnTextoLibre` nunca rechazan y `VincularActualizacionPendiente` es asíncrono. Un plugin nuevo sobre interacción, pago o actualización de datos debe seguir la misma regla. `InteraccionDelCobrador` sí rechaza (cuenta ajena, agente inactivo) porque es una regla de seguridad; la app lo informa en [05 · App del localizador](05-app-localizador.md).
 - ⚠️ **Trazas sin datos personales.** Nunca poner en `Trace` ni en un mensaje de error el valor de una columna: ni números de tarjeta, ni CIF, ni nombres, ni ids de registro. `PluginBase` traza solo el tipo de una excepción inesperada, porque su mensaje podría citar valores.
 - **La identidad del sistema no tiene roles de CM.** Los controles por rol la dejan pasar a propósito: la carga de Smelter escribe con esa identidad. Un administrador del ambiente sin roles de CM tampoco se frena.
-- **Pasos asíncronos fallidos.** Los que terminan bien se borran solos; los fallidos quedan en `asyncoperations` (trabajos del sistema) con nombre `Sanic.CobranzaMovil.Plugins.Reparto…`. Los compartidos que el reparto no pudo dar o quitar los corrige [`paso3_reconciliar.py`](../../scripts/seguridad/paso3_reconciliar.py) (no cambia dueños: para eso se vuelve a escribir el agente de la asignación). Ver [11 · Mantenimiento](11-mantenimiento.md).
+- **Pasos asíncronos fallidos.** Los que terminan bien se borran solos; los fallidos quedan en `asyncoperations` (trabajos del sistema) con nombre `Sanic.CobranzaMovil.Plugins.<Plugin>…` (por ejemplo `…RepartoAsignacion` o `…PurgaArchivoCarga`). Un archivo que `PurgaArchivoCarga` no pudo borrar lo toma el barrido de una corrida posterior. Los compartidos que el reparto no pudo dar o quitar los corrige [`paso3_reconciliar.py`](../../scripts/seguridad/paso3_reconciliar.py) (no cambia dueños: para eso se vuelve a escribir el agente de la asignación). Ver [11 · Mantenimiento](11-mantenimiento.md).
 - **Equipo «Cartera sin cobrador».** `RepartoAsignacion` y `RepartoPorAgente` fallan sin tocar nada si no existe un único equipo dueño con ese prefijo. Se crea con [`paso5_cartera_sin_cobrador.py`](../../scripts/seguridad/paso5_cartera_sin_cobrador.py).
 - **Plantillas de Smelter para `PartirCarga`.** Las plantillas «· padres» y «· partes» tienen que ser copia exacta de «Cobranza movil»; si se cambia la principal, volver a correr [`paso20_plantillas_paralelas.py`](../../scripts/pan/paso20_plantillas_paralelas.py).
 - **Custom API nueva o parámetro nuevo en la app.** La canvas app guarda una foto de las Custom APIs: después de registrar, hay que refrescar la fuente «Environment» en Studio. Mientras tanto la fórmula que la llama queda inerte. Los interruptores `nfCargaParalela`, `nfCierreServidor` y `nfValidarLargo` de [`App.pa.yaml`](../../apps/backoffice-canvas/Src/App.pa.yaml) existen para eso.

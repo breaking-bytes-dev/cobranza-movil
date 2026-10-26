@@ -87,7 +87,7 @@ Se instala desde un export de `cm_core_cobranzamovil` del ambiente de origen. El
 - Para un ambiente de **desarrollo**, importar la no administrada: los scripts de despliegue exportan y reimportan la *solution*, y una administrada no se puede exportar.
 - Para **producción**, importar la administrada.
 
-⚠️ La carpeta [`solutions/unpacked/`](../../solutions/unpacked/) está atrasada (no tiene la bóveda `sanic_cm_tbl_cuentapan` ni las opciones de lista `sanic_cm_tbl_opcionlista`). No se instala desde ahí. Antes de instalar, comprobar que el export contiene las 14 tablas `sanic_cm_tbl_*`, los seis roles `SR | CM | *` más `SR | CM | Cartera sin cobrador`, el ensamblado `Sanic.CobranzaMovil.Plugins`, las cuatro *Custom APIs* y el *offline profile* «Cobranza Movil - Cobrador».
+⚠️ La carpeta [`solutions/unpacked/`](../../solutions/unpacked/) está atrasada (no tiene la bóveda `sanic_cm_tbl_cuentapan` ni las opciones de lista `sanic_cm_tbl_opcionlista`, y hasta la próxima sincronización puede seguir mostrando el *flow* «Cloud Flow \| CM \| Cambio de Owner en Asignaciones» y la función *low-code* `sanic_PlugInCMMarcarinteraccioncomograbadaenCORE`, que ya no forman parte de la *solution*). No se instala desde ahí. Antes de instalar, comprobar que el export contiene las 14 tablas `sanic_cm_tbl_*`, los seis roles `SR | CM | *` más `SR | CM | Cartera sin cobrador`, el ensamblado `Sanic.CobranzaMovil.Plugins`, las cuatro *Custom APIs* y el *offline profile* «Cobranza Movil - Cobrador».
 
 ### 2. Importar la *solution*
 
@@ -115,6 +115,8 @@ python3 scripts/pan/paso12_custom_api.py --aplicar  # solo si el plan muestra fa
 ```
 
 [`paso12_custom_api.py`](../../scripts/pan/paso12_custom_api.py) corre **después** de `paso5_plugins.py`: se detiene si el ensamblado no está registrado y avisa si su versión es anterior a la que trae cada API. Si una API registrada difiere en algo que Dataverse no deja cambiar (enlace, si es función, tipo de un parámetro), se detiene y hay que borrarla y recrearla a mano.
+
+El paso de [`PurgaArchivoCarga`](../../plugins/Sanic.CobranzaMovil.Plugins/PurgaArchivoCarga.cs) se registra sobre la tabla de trabajos de importación de Smelter (`sanic_tbl_smlt_importjob`): Smelter tiene que estar instalado antes de este paso. Mientras no existan las plantillas de CM (paso 6), el *plugin* corre y no hace nada.
 
 **Por qué `--activar-panguard`.** `PanGuard` rechaza números de tarjeta en las columnas de identificación. En una instalación nueva la plantilla de carga ya enmascara el número, así que tiene que quedar activo desde el primer día. La versión del ensamblado está en [`Sanic.CobranzaMovil.Plugins.csproj`](../../plugins/Sanic.CobranzaMovil.Plugins/Sanic.CobranzaMovil.Plugins.csproj); el detalle de cada paso, en [Plugins y Custom APIs](04-plugins-y-custom-apis.md).
 
@@ -159,7 +161,7 @@ python3 scripts/pan/paso4_roles.py --aplicar
 python3 scripts/pan/paso23_listas.py --aplicar
 ```
 
-- [`paso6_clave_k.py`](../../scripts/pan/paso6_clave_k.py) carga K en `sanic_tbl_smlt_hmackey` bajo el nombre `cm-pan`. K se lee del archivo indicado en `PAN_HMAC_KEY_FILE` (64 caracteres hexadecimales = 32 bytes); el script nunca la imprime, se detiene si hay más de una fila activa `cm-pan` y reemplaza la fila si no coincide con el archivo. Generar una K nueva para cada instalación (`python3 -c "import secrets; print(secrets.token_hex(32))" > <ruta-al-archivo-de-K>`), guardarla en el gestor de secretos del equipo y nunca reutilizar la de otro ambiente. K vive en esa tabla en **todos** los ambientes, producción incluida: no se usa Azure Key Vault. El comentario inicial del script («solo DEV», «en producción va en Key Vault») está desactualizado. Por qué K existe y cómo se protege: [Seguridad](03-seguridad.md#la-clave-k).
+- [`paso6_clave_k.py`](../../scripts/pan/paso6_clave_k.py) carga K en `sanic_tbl_smlt_hmackey` bajo el nombre `cm-pan`. K se lee del archivo indicado en `PAN_HMAC_KEY_FILE` (64 caracteres hexadecimales = 32 bytes); el script nunca la imprime, se detiene si hay más de una fila activa `cm-pan` y reemplaza la fila si no coincide con el archivo. Generar una K nueva para cada instalación (`python3 -c "import secrets; print(secrets.token_hex(32))" > <ruta-al-archivo-de-K>`), guardarla en el gestor de secretos del equipo y nunca reutilizar la de otro ambiente. K vive en esa tabla en **todos** los ambientes, producción incluida: no se usa Azure Key Vault. Por qué K existe y cómo se protege: [Seguridad](03-seguridad.md#la-clave-k).
 - [`paso4_roles.py`](../../scripts/pan/paso4_roles.py) deja la lectura de la bóveda `sanic_cm_tbl_cuentapan` en Basic para Localizador y Global para BackOffice, y le quita a *System Customizer* los privilegios que la plataforma le da sobre toda tabla nueva. El plan imprime para cada rol el valor actual y el de destino; si la *solution* ya trajo los privilegios, coinciden y lo único por aplicar son las líneas «System Customizer: quitar …», si aparecen.
 - [`paso23_listas.py`](../../scripts/pan/paso23_listas.py) crea la tabla `sanic_cm_tbl_opcionlista` si falta, da lectura a todos los roles de CM y escritura a Admin y Servicio, y crea las opciones iniciales (tipos de Especial, motivos de cierre, mensajes rápidos) que no existan. Necesita los roles de la *solution*. Tiene que correr **antes** del *offline profile*, que incluye esa tabla.
 
@@ -193,7 +195,6 @@ python3 scripts/seguridad/paso10_borrado_programado.py --aplicar
 
 - **Nivel de trazas de *plugins***: en *Exception* (configuración del sistema del ambiente; columna `plugintracelogsetting` de la tabla `organization`, valor 1). Para diagnosticar se sube un rato a *All* (ver [Mantenimiento](11-mantenimiento.md)).
 - **Auditoría** del ambiente encendida (ver prerrequisitos).
-- **Sobrantes**: si la *solution* trae el *flow* «Cloud Flow | CM | Cambio de Owner en Asignaciones» o la función *low-code* `sanic_PlugInCMMarcarinteraccioncomograbadaenCORE`, dejarlos sin usar (el *flow*, **apagado**) y retirarlos. No forman parte del diseño: el dueño de la asignación lo pone el *plugin* `RepartoAsignacion` y la transcripción la controla `GrabacionInteraccion`.
 - ⚠️ A confirmar: políticas de prevención de pérdida de datos (DLP), grupo de seguridad del ambiente y controles del dispositivo (Intune) dependen del *tenant* y no forman parte de la *solution*.
 
 ## Verificación
@@ -205,8 +206,8 @@ python3 scripts/seguridad/paso10_borrado_programado.py --aplicar
 | Roles, cascadas y auditoría | Correr **sin `--aplicar`** [`paso1_cascadas_auditoria.py`](../../scripts/seguridad/paso1_cascadas_auditoria.py), [`paso4_rol_basic.py`](../../scripts/seguridad/paso4_rol_basic.py), [`paso6_cobrador_solo_crea.py`](../../scripts/seguridad/paso6_cobrador_solo_crea.py), [`paso7_sin_flows.py`](../../scripts/seguridad/paso7_sin_flows.py), [`paso8_sin_trazas.py`](../../scripts/seguridad/paso8_sin_trazas.py) y [`paso4_roles.py`](../../scripts/pan/paso4_roles.py) | La *solution* trajo la configuración: los tres últimos dicen «sin cambios: ya está así» y los demás muestran el valor actual igual al de destino. Si alguno muestra una diferencia, el export de la *solution* es anterior a ese ajuste |
 | Clave K | `paso6_clave_k.py` sin `--aplicar` | «ya cargada y coincide con el archivo» |
 | Plantillas | `paso20_plantillas_paralelas.py` sin `--aplicar` | Sin diferencias entre la principal y las derivadas |
-| Sobrantes | Power Automate y la *solution* | El *flow* «Cloud Flow \| CM \| Cambio de Owner en Asignaciones», si viene, está **apagado**; la función `sanic_PlugInCMMarcarinteraccioncomograbadaenCORE` no la usa ninguna app. Los dos se retiran |
-| Carga de punta a punta | En el ambiente de desarrollo, cargar [`cobranza-mock-1000.csv`](../../test-data/cobranza-mock-1000.csv) desde **Cargar archivo** y revisar **Monitoreo** | Trabajo completo, 0 filas fallidas, asignaciones repartidas en pocos minutos. Después, borrar el archivo con [`paso10_purgar_archivos.py`](../../scripts/pan/paso10_purgar_archivos.py) `--aplicar` (ver [Mantenimiento](11-mantenimiento.md#tareas-recurrentes)) |
+| Descripciones de metadatos | [`paso24_descripciones.py`](../../scripts/pan/paso24_descripciones.py) sin `--aplicar` | «0 descripción(es) a cambiar» y ninguna con código de seguimiento. Si hay diferencias, correrlo con `--aplicar` |
+| Carga de punta a punta | En el ambiente de desarrollo, cargar [`cobranza-mock-1000.csv`](../../test-data/cobranza-mock-1000.csv) desde **Cargar archivo** y revisar **Monitoreo** | Trabajo completo, 0 filas fallidas, asignaciones repartidas en pocos minutos. Unos minutos después de terminar, los trabajos ya no tienen archivo: lo borra `PurgaArchivoCarga`. Si el ambiente tenía trabajos de antes del *plugin*, limpiarlos con [`paso10_purgar_archivos.py`](../../scripts/pan/paso10_purgar_archivos.py) `--aplicar` (ver [Ciclo de vida](08-ciclo-de-vida.md#archivo-de-carga-de-smelter)) |
 | Prueba integral | [`tests/integral/`](../../tests/integral/README.md), solo en desarrollo | Todos los checks en verde (ver [Pruebas](10-pruebas.md)) |
 | Teléfono | Un localizador abre la app, sincroniza y ve solo su cartera | La cartera coincide con sus asignaciones activas |
 
@@ -294,7 +295,8 @@ Tablas, columnas, vistas y roles se cambian en el ambiente de desarrollo **dentr
 | Registro de *Custom APIs* | [`paso12_custom_api.py`](../../scripts/pan/paso12_custom_api.py) |
 | Despliegue de apps | [`paso7_desplegar.py`](../../scripts/pan/paso7_desplegar.py), [`paso7_esquema.py`](../../scripts/pan/paso7_esquema.py), [`paso7_fuentes.py`](../../scripts/pan/paso7_fuentes.py), [`paso22_parche.py`](../../scripts/pan/paso22_parche.py) |
 | *Offline profile* | [`paso7_perfil_offline.py`](../../scripts/pan/paso7_perfil_offline.py) |
-| Equipos y configuración de datos | [`paso5_cartera_sin_cobrador.py`](../../scripts/seguridad/paso5_cartera_sin_cobrador.py), [`paso6_clave_k.py`](../../scripts/pan/paso6_clave_k.py), [`paso4_roles.py`](../../scripts/pan/paso4_roles.py), [`paso23_listas.py`](../../scripts/pan/paso23_listas.py), [`paso10_borrado_programado.py`](../../scripts/seguridad/paso10_borrado_programado.py) |
+| Equipos y configuración de datos | [`paso5_cartera_sin_cobrador.py`](../../scripts/seguridad/paso5_cartera_sin_cobrador.py), [`paso6_clave_k.py`](../../scripts/pan/paso6_clave_k.py), [`paso4_roles.py`](../../scripts/pan/paso4_roles.py), [`paso23_listas.py`](../../scripts/pan/paso23_listas.py), [`paso10_borrado_programado.py`](../../scripts/seguridad/paso10_borrado_programado.py), [`paso10_purgar_archivos.py`](../../scripts/pan/paso10_purgar_archivos.py) |
+| Descripciones de metadatos | [`paso24_descripciones.py`](../../scripts/pan/paso24_descripciones.py) |
 | Plantillas de Smelter | [`paso13_fiador_sin_nombre.py`](../../scripts/pan/paso13_fiador_sin_nombre.py), [`paso19_agente_sin_update.py`](../../scripts/pan/paso19_agente_sin_update.py), [`paso20_plantillas_paralelas.py`](../../scripts/pan/paso20_plantillas_paralelas.py) |
 | *Solution* desempaquetada | [`solutions/`](../../solutions/README.md) |
 | CI | [`.github/workflows/`](../../.github/workflows/) |
@@ -316,5 +318,5 @@ Tablas, columnas, vistas y roles se cambian en el ambiente de desarrollo **dentr
 - ⚠️ Versión mínima de Smelter con `HMAC()` (los indicadores `CreateIfNotExists`/`UpdateIfExists` se respetan desde la 1.3.0.0, según `diag-smelter.yml`).
 - ⚠️ Plan de licencias de Power Apps.
 - ⚠️ Identidad que recibe `SR | CM | Servicio - Cobranza`.
-- ⚠️ Proceso de promoción a producción (no hay *workflow*). K se carga en producción igual que en desarrollo, con `paso6_clave_k.py` en la tabla de Smelter; el comentario del script que menciona Key Vault está desactualizado.
+- ⚠️ Proceso de promoción a producción (no hay *workflow*). K se carga en producción igual que en desarrollo, con `paso6_clave_k.py` en la tabla de Smelter.
 - ⚠️ Versión mínima de Python.

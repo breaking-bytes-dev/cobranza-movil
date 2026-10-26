@@ -17,10 +17,10 @@ La app es de tipo teléfono (640 × 1136, vertical). Su nombre interno es `sanic
 | Pantalla | Qué hace |
 |---|---|
 | [`scrInicio`](../../apps/localizador-canvas/Src/scrInicio.pa.yaml) | Pantalla de arranque. Cobrado hoy (C$ y US$), cantidad de pagos, interacciones, cuentas y clientes visitados; desglose de las interacciones del día por cliente o por cuenta. Si el agente está desactivado muestra un bloqueo |
-| [`scrCartera`](../../apps/localizador-canvas/Src/scrCartera.pa.yaml) | La cartera agrupada por cliente: saldo vencido total, filtros por tipo (Todos, Diaria, Incobrable, Especial), búsqueda por nombre o últimos 4, aviso de si la carga diaria del teléfono es la de hoy, y orden manual (▲▼) que se guarda en la asignación |
+| [`scrCartera`](../../apps/localizador-canvas/Src/scrCartera.pa.yaml) | La cartera agrupada por cliente: saldo vencido total, filtros por tipo (Todos, Diaria, Incobrable, Especial), búsqueda por nombre o últimos 4, aviso de si la carga diaria del teléfono es la de hoy, y orden manual (▲▼) que se guarda en la asignación. Tiene armada una segunda vista, «▤ Cuenta» (`galCartera_cuenta`: una fila por asignación con cliente, últimos 4, tipo, saldo vencido y días de mora, que abre `scrDetalleCuenta`), pero el selector Cliente/Cuenta está oculto (`Visible: =false`), así que hoy solo se ve la vista por cliente |
 | [`scrCliente`](../../apps/localizador-canvas/Src/scrCliente.pa.yaml) | Ficha del cliente con dos pestañas: **Cuentas** (teléfonos con llamada directa, direcciones con enlace a mapas, cuentas a cobrar) e **Interacciones** de todas sus cuentas |
 | [`scrDetalleCuenta`](../../apps/localizador-canvas/Src/scrDetalleCuenta.pa.yaml) | Detalle de una cuenta: saldos, pago mínimo, mora, fechas, fiador, datos de la Especial (tipo, retiro pedido, nota), botón «Ver número» y las interacciones de la cuenta. El botón «＋ Registrar interacción» abre `scrInteraccion` |
-| [`scrInteraccion`](../../apps/localizador-canvas/Src/scrInteraccion.pa.yaml) | Registrar visita: comentario con mensajes rápidos, productos del cliente a los que aplica, pagos (monto, moneda, recibo), actualización de datos y ubicación GPS |
+| [`scrInteraccion`](../../apps/localizador-canvas/Src/scrInteraccion.pa.yaml) | Registrar visita: comentario con mensajes rápidos (con un aviso, que no bloquea, si parece contener un número de tarjeta), productos del cliente a los que aplica, pagos (monto, moneda, recibo), actualización de datos y ubicación GPS |
 | [`scrPagos`](../../apps/localizador-canvas/Src/scrPagos.pa.yaml) | Pagos e interacciones de un día elegido (hoy por defecto, hasta 89 días atrás) con calendario y búsqueda |
 | [`scrSincronizacion`](../../apps/localizador-canvas/Src/scrSincronizacion.pa.yaml) | Estado de la sincronización, capturas pendientes de subir, capturas de hoy con su estado y la versión desplegada de la app |
 
@@ -102,7 +102,7 @@ La cartera es una copia en colecciones (`colAsig`, `colClientes`). El temporizad
 
 ### La cartera se trae por tramos
 
-Cada copia de Dataverse a una colección se corta en el límite de filas de la app (la app asume 2.000: `varCarteraIncompleta` compara contra ese número). Para no cortar la cartera, el *plugin* [`TramoCartera.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/TramoCartera.cs) le pone a cada cuenta, asignación y pago un **tramo** de 0 a 19 (hash FNV-1a del id de la cuenta; el pago usa el de su interacción). El botón oculto `btnCargarCartera` trae asignaciones y cuentas tramo por tramo (20 vueltas) y después una consulta más para lo que todavía no tiene tramo (por ejemplo, una cuenta recién creada):
+Cada copia de Dataverse a una colección se corta en el límite de filas de la app (500 o 2.000, ver [Límites de filas](#límites-de-filas)). Para no cortar la cartera, el *plugin* [`TramoCartera.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/TramoCartera.cs) le pone a cada cuenta, asignación y pago un **tramo** de 0 a 19 (hash FNV-1a del id de la cuenta; el pago usa el de su interacción). El botón oculto `btnCargarCartera` trae asignaciones y cuentas tramo por tramo (20 vueltas) y después una consulta más para lo que todavía no tiene tramo (por ejemplo, una cuenta recién creada):
 
 ```
 ForAll(Sequence(20, 0) As T,
@@ -110,7 +110,7 @@ ForAll(Sequence(20, 0) As T,
     Collect(colCuentas, Filter('CM | TBL | Cuentas', '[CT] Tramo' = T.Value)));
 ```
 
-Asignación y cuenta caen en el mismo tramo porque las dos usan el id de la cuenta. Si algún tramo llega al límite, `varCarteraIncompleta` muestra un error: sincronizar no lo arregla. El relleno de tramos para datos existentes está en [`paso18_tramo_cartera.py`](../../scripts/pan/paso18_tramo_cartera.py).
+Asignación y cuenta caen en el mismo tramo porque las dos usan el id de la cuenta. Si algún tramo (o la consulta de lo que no tiene tramo) llega a 500 filas, `varCarteraIncompleta` muestra un error («Tu cartera es más grande de lo que la app puede mostrar…»): sincronizar no lo arregla. El umbral es 500 a propósito: la consulta pudo cortarse con cualquiera de los dos límites posibles. El relleno de tramos para datos existentes está en [`paso18_tramo_cartera.py`](../../scripts/pan/paso18_tramo_cartera.py).
 
 Las Especiales solo aparecen aprobadas: toda consulta de asignaciones del localizador lleva `'[AS] Tipo' <> Especial || '[AS] Estado de aprobacion' = Aprobado`.
 
@@ -138,6 +138,7 @@ Con varios productos tildados y sin pago ni datos, la app crea una interacción 
 | Regla | En la app | En el servidor |
 |---|---|---|
 | Comentario obligatorio | Botón deshabilitado y «Falta: …» | — |
+| Número de tarjeta en el comentario | Aviso `lblAvisoTarjeta` si hay 13 o más dígitos seguidos (con espacios o guiones); **no** bloquea | [`PanEnTextoLibre`](../../plugins/Sanic.CobranzaMovil.Plugins/PanEnTextoLibre.cs) lo guarda como `•••• ` y los últimos 4 si pasa Luhn; también en las direcciones de la actualización de datos. Nunca rechaza |
 | Pago: monto mayor que 0 y recibo en cada línea; recibo de hasta 30 caracteres; recibos sin repetir en la visita | Botón deshabilitado | — |
 | Recibo ya registrado | Bloquea si lo encuentra en el teléfono (solo ve sus pagos de 90 días) | `ReciboRepetido` busca en toda la cartera y marca |
 | Pago mayor que el saldo vencido | Pide confirmar con un segundo toque | — |
@@ -161,6 +162,8 @@ La tabla y sus opciones iniciales las crea [`paso23_listas.py`](../../scripts/pa
 ### Número de tarjeta (PAN)
 
 La app muestra siempre `•••• 1234`. «Ver número» en [`scrDetalleCuenta`](../../apps/localizador-canvas/Src/scrDetalleCuenta.pa.yaml) y [`scrInteraccion`](../../apps/localizador-canvas/Src/scrInteraccion.pa.yaml) lee la bóveda con un solo nivel de lookup, guarda el PAN **solo** en una variable de contexto (`locPan`) y un temporizador lo oculta a los 30 s. Nunca va a colecciones, `SaveData` ni variables globales. Las reglas de la bóveda están en [Seguridad](03-seguridad.md).
+
+Si el localizador escribe un número de tarjeta en el comentario, la etiqueta `lblAvisoTarjeta` le advierte que se va a guardar oculto; el guardado sigue habilitado. El servidor ([`PanEnTextoLibre`](../../plugins/Sanic.CobranzaMovil.Plugins/PanEnTextoLibre.cs)) lo enmascara al subir. **Por qué no se bloquea:** el aviso es una ayuda y no una garantía (no valida Luhn); la protección real está en el servidor, que no puede rechazar lo que llega *offline*.
 
 ### Ícono y nombre
 
@@ -274,7 +277,7 @@ Reemplazar `icono/icono.png` (y su fuente `icono.svg`) y, si cambia el color de 
 
 ### Límites de filas
 
-- ⚠️ A confirmar: cuál es el límite que rige. El `.msapr` declara `MaxGetRowsCount` 500 por fuente en `References/DataSources.json` y 2.000 a nivel app en `Properties.json`; la app está escrita suponiendo 2.000.
+- ⚠️ A confirmar: cuál es el límite que rige. El `.msapr` declara `MaxGetRowsCount` 500 por fuente en `References/DataSources.json` y 2.000 a nivel app en `Properties.json`. Los tramos están pensados para 2.000, pero el aviso de cartera incompleta salta a las 500 filas por tramo, así que avisa con cualquiera de los dos límites.
 - Cada copia a una colección se corta en el límite de filas: la cartera se trae por tramos. Si la cartera de un localizador crece tanto que un tramo llega al límite, la app avisa y hay que subir la cantidad de tramos: la constante `TramosCartera` de [`Esquema.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/Esquema.cs), la constante `TRAMOS` de [`paso18_tramo_cartera.py`](../../scripts/pan/paso18_tramo_cartera.py) y el `Sequence(20, 0)` de esta app y de las pantallas de la oficina que usan tramos; después, rellenar con `paso18_tramo_cartera.py --rellenar`.
 - Las demás pantallas no copian tablas enteras: leen cada dirección, teléfono o cuenta de la base local cuando la muestran.
 
