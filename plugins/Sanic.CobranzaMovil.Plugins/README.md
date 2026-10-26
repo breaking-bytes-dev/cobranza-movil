@@ -1,6 +1,6 @@
 # Sanic.CobranzaMovil.Plugins
 
-Ensamblado de plugins de la **Fase 2 PAN/PCI** (diseño: [fase2-pan-diseno.md](../../docs/auditoria/fase2-pan-diseno.md) §2.6 y §4, filas 5 y 8).
+Ensamblado de plugins de la **Fase 2 PAN/PCI** (diseño: [fase2-pan-diseno.md](../../docs/historico/auditoria/fase2-pan-diseno.md) §2.6 y §4, filas 5 y 8).
 .NET Framework 4.6.2, sandbox de Dataverse, firmado con nombre seguro. **Ningún plugin conoce ni necesita la clave K del HMAC.**
 
 ## Qué hace cada plugin
@@ -69,7 +69,7 @@ Versión 1.0.8.0: suma el plugin de la Custom API `AltaCuenta` (DAT-20). Tampoco
 
 Versión 1.0.8.3: `SolicitarEspecial` le quita el compartido de la asignación al solicitante anterior al reactivar (S-7 b1). Sin pasos nuevos.
 
-Versión 1.0.8.4: huecos H1, H2 y H3 de la matriz de roles (`docs/auditoria/matriz-roles.md`). Sin pasos nuevos.
+Versión 1.0.8.4: huecos H1, H2 y H3 de la matriz de roles (`docs/historico/auditoria/matriz-roles.md`). Sin pasos nuevos.
 
 Versión 1.0.8.7: `ActualizacionConInteraccion` traza los NOMBRES (nunca los valores) de las columnas que recibe, para diagnosticar qué descarta el runtime offline del teléfono (F7).
 

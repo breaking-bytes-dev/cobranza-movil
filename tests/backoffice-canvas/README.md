@@ -4,7 +4,7 @@ Pruebas end-to-end con **Playwright** sobre el **player** de Power Apps (no Stud
 por rol, verificando cada número y cada escritura contra **Dataverse** (Web API con el Service Principal).
 Prioridad 1: que **no haya problemas de delegación** (Bloque D).
 
-Resultados de la última corrida: [`docs/guias/backoffice-canvas/14-resultados-pruebas-e2e.md`](../../docs/guias/backoffice-canvas/14-resultados-pruebas-e2e.md).
+Resultados de la última corrida: [`docs/historico/guias/backoffice-canvas/14-resultados-pruebas-e2e.md`](../../docs/historico/guias/backoffice-canvas/14-resultados-pruebas-e2e.md).
 
 ## Requisitos
 

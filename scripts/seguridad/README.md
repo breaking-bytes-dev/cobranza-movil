@@ -1,6 +1,6 @@
 # Seguridad · Fase 1: el cobrador solo lee su cartera
 
-Scripts que aplicaron la Fase 1 de [docs/auditoria/00-lista-consolidada.md](../../docs/auditoria/00-lista-consolidada.md) (S-1, S-2, S-8) en DEV. Usan el Service Principal de `pp_secrets.env` (no versionado). Para otra ruta, definir `PP_SECRETS`.
+Scripts que aplicaron la Fase 1 de [docs/historico/auditoria/00-lista-consolidada.md](../../docs/historico/auditoria/00-lista-consolidada.md) (S-1, S-2, S-8) en DEV. Usan el Service Principal de `pp_secrets.env` (no versionado). Para otra ruta, definir `PP_SECRETS`.
 
 Todos muestran el plan sin cambiar nada; aplican solo con `--aplicar`.
 

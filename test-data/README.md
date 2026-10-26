@@ -10,7 +10,7 @@
 | **`cobranza-mock-1000.csv`** | `2026-06-20` | Día 1 — 1000 cuentas, 33 columnas. |
 | **`cobranza-mock-1000-dia2.csv`** | `2026-06-21` | Día 2 — el "día siguiente" del día 1 (mismas cuentas, actualizadas). |
 
-Las 32 columnas del diccionario ([`../docs/01-import-y-diccionario-de-datos.md`](../docs/desarrollo/01-import-y-diccionario-de-datos.md)) **+ `FechaCarga`**.
+Las 32 columnas del diccionario ([`../docs/01-import-y-diccionario-de-datos.md`](../docs/historico/desarrollo/01-import-y-diccionario-de-datos.md)) **+ `FechaCarga`**.
 
 ## Qué EJERCITA
 
@@ -35,7 +35,7 @@ Las 32 columnas del diccionario ([`../docs/01-import-y-diccionario-de-datos.md`]
 
 ## Cómo probar el ciclo completo
 
-1. Activar **todas las alt keys** ([`../docs/02-import-configuracion.md`](../docs/guias/02-import-configuracion.md) §7).
+1. Activar **todas las alt keys** ([`../docs/02-import-configuracion.md`](../docs/historico/guias/02-import-configuracion.md) §7).
 2. Template: Source = CSV, Has Header = Sí, Delimiter = `,`, Chunk Size = 1000.
 3. **Importar día 1** → verificar: maestras pobladas, `cuenta`=1000, `cargadiaria`=1000, `asignacion` ok.
 4. **Reimportar día 1** (mismo archivo) → **idempotencia**: nada se duplica (conteos iguales).

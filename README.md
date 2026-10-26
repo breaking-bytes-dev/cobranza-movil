@@ -1,47 +1,75 @@
 # Cobranza Móvil
 
-Solución **Power Platform** para modernizar la cobranza en campo de un banco: reemplaza las boletas de
-papel de los **localizadores externos** (en moto, a veces sin señal) por una app móvil offline, y le da a
-la oficina una app para transcribir las gestiones al core bancario.
+Solución de **Power Platform** para la cobranza en campo de un banco. Los **localizadores** visitan a los clientes con mora y registran cada visita y cada pago en una app de teléfono que funciona **sin señal**. Después, la oficina **transcribe** esas interacciones al sistema central del banco (*core*) desde una app web.
 
-El banco exporta un **CSV diario** → **Smelter** lo normaliza a **12 tablas Dataverse** (prefijo `sanic_`) →
-dos apps lo consumen.
+```mermaid
+flowchart LR
+    CSV["Archivo diario del banco<br/>(CSV)"] -->|Cargar archivo| SM["Smelter<br/>(normaliza la carga)"]
+    SM --> DV[("Dataverse<br/>14 tablas + plugins")]
+    DV <-->|sincroniza cuando hay señal| LOC["App del localizador<br/>(teléfono, offline)"]
+    DV <--> BO["App de la oficina<br/>(web)"]
+    BO -->|la persona transcribe| CORE["Core del banco"]
+```
 
-## Componentes
+## Quién la usa
 
-| Componente | Tecnología | Diseño / Guía |
-|------------|------------|---------------|
-| **App Localizador** (campo) | Canvas app **offline-first**, player móvil nativo | [desarrollo/04](docs/desarrollo/04-app-localizador-canvas.md) · [guía paso a paso](docs/guias/05-guia-paso-a-paso-localizador.md) |
-| **App Oficina** (backoffice) | Model-driven app (vistas, formularios, comandos) | [desarrollo/07](docs/desarrollo/07-app-backoffice-modeldriven.md) · [guía incremental](docs/guias/09-guia-construccion-backoffice.md) |
-| **Import diario** | Smelter (CSV → 12 tablas normalizadas) | [desarrollo/01](docs/desarrollo/01-import-y-diccionario-de-datos.md) · [guía de configuración](docs/guias/02-import-configuracion.md) |
-| **Seguridad** | Row-level (owner por localizador) + 6 roles + field security | [referencia/componentes/01](docs/referencia/componentes/01-seguridad-row-level.md) · [15-roles](docs/referencia/componentes/15-roles-de-seguridad.md) |
-| **Automatización** | Power Automate (owner de asignación) + flujo de auditoría | [referencia/componentes/14](docs/referencia/componentes/14-automatizacion-owner-asignacion.md) |
+| Rol | App | Qué hace |
+|---|---|---|
+| **Localizador** | Teléfono | Ve su cartera, registra interacciones y pagos, actualiza datos del cliente |
+| **BackOffice** | Web | Transcribe al *core* las interacciones del día y revisa las ya transcritas |
+| **Solicitante** | Web | Pide asignaciones Especiales y sigue sus solicitudes |
+| **Supervisor** | Web | Aprueba Especiales, reasigna cuentas y mira la cartera de cada localizador |
+| **Admin** | Web | Carga el archivo diario, monitorea la carga, reconcilia, da de alta cuentas y administra localizadores, datos maestros y listas |
+
+## Documentación
+
+### Para quien usa la app → [`docs/usuarios/`](docs/usuarios/)
+
+| Guía | Para |
+|---|---|
+| [Conceptos básicos](docs/usuarios/00-conceptos.md) | Todos: cartera, interacción, tipos de asignación, qué pasa sin señal |
+| [App del localizador](docs/usuarios/01-localizador.md) | Localizador |
+| [Transcripción](docs/usuarios/02-backoffice.md) | BackOffice |
+| [Solicitudes de Especiales](docs/usuarios/03-solicitante.md) | Solicitante |
+| [Supervisión](docs/usuarios/04-supervisor.md) | Supervisor |
+| [Administración diaria](docs/usuarios/05-admin.md) | Admin |
+| [Preguntas frecuentes](docs/usuarios/06-preguntas-frecuentes.md) | Todos |
+
+### Para quien desarrolla o mantiene la solución → [`docs/tecnica/`](docs/tecnica/)
+
+| # | Documento | Qué explica |
+|---|---|---|
+| 01 | [Arquitectura](docs/tecnica/01-arquitectura.md) | Componentes, flujo de datos de punta a punta y por qué se diseñó así |
+| 02 | [Modelo de datos](docs/tecnica/02-modelo-de-datos.md) | Las 14 tablas, sus relaciones, claves alternativas y cascadas |
+| 03 | [Seguridad](docs/tecnica/03-seguridad.md) | Roles, dueños de registros, protección del número de tarjeta (PAN) |
+| 04 | [Plugins y Custom APIs](docs/tecnica/04-plugins-y-custom-apis.md) | Cada plugin y Custom API: mensaje, etapa, qué hace y dónde está su código |
+| 05 | [App del localizador](docs/tecnica/05-app-localizador.md) | Pantallas, perfil *offline*, sincronización |
+| 06 | [App de la oficina](docs/tecnica/06-app-backoffice.md) | Pantallas por rol, componentes, patrones de carga por tramos |
+| 07 | [Carga diaria](docs/tecnica/07-carga-diaria.md) | Formato del archivo, plantillas de Smelter, partición y validaciones |
+| 08 | [Ciclo de vida de los datos](docs/tecnica/08-ciclo-de-vida.md) | Cuánto vive cada dato y los trabajos de borrado programado |
+| 09 | [Instalación y despliegue](docs/tecnica/09-instalacion-y-despliegue.md) | Instalar en un ambiente nuevo, publicar cambios, variables de entorno |
+| 10 | [Pruebas](docs/tecnica/10-pruebas.md) | Pruebas de plugins y suites de punta a punta |
+| 11 | [Mantenimiento](docs/tecnica/11-mantenimiento.md) | Tareas recurrentes, diagnóstico y cómo hacer los cambios más comunes |
+| 12 | [Decisiones de diseño](docs/tecnica/12-decisiones.md) | Las decisiones que conviene conocer antes de cambiar algo |
+
+[Glosario](docs/glosario.md) · [Historial de cambios](CHANGELOG.md) · [Documentación de construcción (histórico)](docs/historico/)
 
 ## Estructura del repositorio
 
-```
-docs/
-├── guias/         Guías paso a paso para CONSTRUIR (por audiencia: maker)
-├── desarrollo/    Diseño y profundidad técnica (arquitectura, apps, pruebas)
-├── referencia/    Fuente única de verdad (tablas, roles, decisiones, Smelter)
-│   ├── componentes/   Una ficha por tabla/pieza (01–15)
-│   └── decisiones/    Registro de decisiones (DEC-001…)
-└── mockups/       Prototipos HTML/SVG de la app de campo
-test-data/         CSVs mock (⚠️ jamás datos reales del banco) + generador
-```
-
-## Por dónde empezar
-
-1. **Entender el sistema** → [docs/desarrollo/00-arquitectura-macro.md](docs/desarrollo/00-arquitectura-macro.md)
-2. **Ver el modelo de datos** → [docs/referencia/03-catalogo-de-tablas.md](docs/referencia/03-catalogo-de-tablas.md)
-3. **Construir la app de campo** → [docs/guias/05-guia-paso-a-paso-localizador.md](docs/guias/05-guia-paso-a-paso-localizador.md)
-4. **Construir la app de oficina** → [docs/guias/09-guia-construccion-backoffice.md](docs/guias/09-guia-construccion-backoffice.md)
-5. **Por qué se decidió cada cosa** → [docs/referencia/decisiones/registro-de-decisiones.md](docs/referencia/decisiones/registro-de-decisiones.md)
+| Carpeta | Contenido |
+|---|---|
+| [`apps/localizador-canvas/`](apps/localizador-canvas/) | Código fuente de la app del teléfono (canvas, `.pa.yaml`) |
+| [`apps/backoffice-canvas/`](apps/backoffice-canvas/) | Código fuente de la app de la oficina (canvas, `.pa.yaml`) |
+| [`plugins/`](plugins/) | Plugins y Custom APIs en C# y sus pruebas unitarias |
+| [`solutions/`](solutions/) | La solución de Dataverse desempaquetada |
+| [`scripts/`](scripts/) | Scripts de instalación, despliegue y mantenimiento |
+| [`tests/`](tests/) | Suites de punta a punta de las dos apps |
+| [`test-data/`](test-data/) | Archivos de carga de ejemplo y su generador. Nunca datos reales |
+| [`docs/`](docs/) | Esta documentación |
 
 ## Convenciones
 
-- **Idioma:** documentación en español; nombres de esquema Dataverse con prefijo `sanic_`.
-- **Commits:** [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:`, `chore:`…).
-- **Versionado:** versión de la solución Dataverse en 4 dígitos `X.Y.Z.B`; tags de release `sol-vX.Y.Z.B`
-  (ver [docs/desarrollo/10-estructura-del-repositorio.md](docs/desarrollo/10-estructura-del-repositorio.md)).
-- **Regla de oro de los docs:** siempre con los **campos reales** de las tablas `sanic_*`, nunca datos inventados.
+- **Idioma:** documentación y comentarios en español. El esquema de Dataverse usa el prefijo `sanic_`.
+- **Comentarios en el código:** cortos y explicativos, sin códigos de seguimiento internos.
+- **Commits:** [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:`…).
+- **Datos:** el repositorio nunca guarda números de tarjeta, claves ni datos reales de clientes.

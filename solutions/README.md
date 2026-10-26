@@ -1,6 +1,6 @@
 # Soluciones — Estrategia ALM de dos planos
 
-> Adaptada de `bitbreaker01/sigil` (ver [docs/desarrollo/10 §Fase 3](../docs/desarrollo/10-estructura-del-repositorio.md)).
+> Adaptada de `bitbreaker01/sigil` (ver [docs/historico/desarrollo/10 §Fase 3](../docs/historico/desarrollo/10-estructura-del-repositorio.md)).
 
 La solución `Cobranza Móvil` vive en **dos planos**, cada uno con un propósito distinto:
 

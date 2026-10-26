@@ -4,7 +4,7 @@
 - sanic_cm_CerrarFueraDeCartera (plugins/Sanic.CobranzaMovil.Plugins/CerrarFueraDeCartera.cs)
 - sanic_cm_PartirCarga (plugins/Sanic.CobranzaMovil.Plugins/PartirCarga.cs), para la carga paralela. Requiere las
   plantillas de Smelter "Cobranza movil · padres" y "· partes" (scripts/pan/paso20_plantillas_paralelas.py --aplicar).
-Ver docs/auditoria/01-pendientes.md.
+Ver docs/historico/auditoria/01-pendientes.md.
 
 Requisito: el ensamblado Sanic.CobranzaMovil.Plugins ya registrado con paso5_plugins.py en la version que trae el tipo de
 cada API. Si el tipo de plugin no existe en el ensamblado, este script lo registra.

@@ -6,7 +6,7 @@ Recorre **de punta a punta** la solución, con **todos los roles** y **las dos a
 CSV QA ─► Smelter (API) ─► reparto (plugin) ─► Admin ─► Solicitante ─► Supervisor ─► Cobrador ─► BackOffice ─► Admin (cierres) ─► Solicitante ─► limpieza
 ```
 
-Es la versión automática de la [guía 17](../../docs/guias/17-prueba-integral-0-a-100.md). Lo que exige un **teléfono real** (modo avión, GPS,
+Es la versión automática de la [guía 17](../../docs/historico/guias/17-prueba-integral-0-a-100.md). Lo que exige un **teléfono real** (modo avión, GPS,
 "Ver número" en el dispositivo, sincronización offline) **no** está acá: sigue en la guía, marcado con 📱.
 
 ## Cómo correrla
@@ -106,6 +106,6 @@ cd tests/integral && NODE_PATH=../backoffice-canvas/node_modules node seguridad/
 Sin navegador: se hace pasar por User1 a User5 (nunca User6) y en cada tabla de CM intenta crear, leer, editar, borrar, reasignarse y
 compartir, más los casos de columna de la asignación y la interacción y el alta de un job de Smelter. Compara con
 `seguridad/esperado.js` (lo que cada rol debería poder hacer según sus pantallas, con el porqué) y escribe
-[docs/auditoria/matriz-roles.md](../../docs/auditoria/matriz-roles.md). Solo datos QA propios, borrados al final. Toma el lock de DEV
+[docs/historico/auditoria/matriz-roles.md](../../docs/historico/auditoria/matriz-roles.md). Solo datos QA propios, borrados al final. Toma el lock de DEV
 (`local/dev.lock`) igual que las suites: su limpieza por prefijo borraría los datos de una corrida en paralelo.
 `--solo-informe resultados/matriz-<id>` rearma el informe sin volver a correr.
