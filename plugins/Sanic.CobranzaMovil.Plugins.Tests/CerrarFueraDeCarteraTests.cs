@@ -134,8 +134,18 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             Assert.Equal(60, e.H.Outputs["Restantes"]);
         }
 
+        [Fact]
+        public void Lote_cero_usa_el_de_por_defecto()
+        {
+            // Dataverse manda 0 en un parametro entero opcional que la app no paso.
+            var e = new Escenario(new[] { Admin }, 600, 250, Dia);
+            e.H.Inputs["Lote"] = 0;
+            e.Ejecutar();
+            Assert.Equal(250, e.ConsultaDeFilas.TopCount);
+        }
+
         [Theory]
-        [InlineData(0)]
+        [InlineData(-1)]
         [InlineData(501)]
         public void Rechaza_un_lote_fuera_de_rango(int lote)
         {

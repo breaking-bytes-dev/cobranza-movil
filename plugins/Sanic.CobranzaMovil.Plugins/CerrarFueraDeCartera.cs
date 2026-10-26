@@ -15,7 +15,7 @@ namespace Sanic.CobranzaMovil.Plugins
     ///  - Fuera de la carga: Diaria activa con "Ultima carga" (DateOnly) anterior al corte. Mismo criterio que la pantalla.
     ///  - Esperadas: cuantas confirmo el Admin (en las vueltas siguientes, las que quedaban). Si hay MAS, no cierra: la
     ///    pantalla estaba vieja y el Admin no confirmo esas.
-    ///  - Lote: cierra hasta Lote filas por llamado (por defecto 250, maximo 500) para no pasar el limite de 2 minutos de un
+    ///  - Lote: cierra hasta Lote filas por llamado (0 o sin valor = 250, maximo 500) para no pasar el limite de 2 minutos de un
     ///    plugin; la app llama de nuevo mientras Restantes sea mayor que cero.
     ///  - SoloContar: true = no escribe; devuelve cuantas cerraria (pruebas y verificacion).
     /// Cierra con los permisos del LLAMADOR (la auditoria muestra al Admin, como el Patch de antes): estado = false, motivo
@@ -59,7 +59,9 @@ namespace Sanic.CobranzaMovil.Plugins
             }
             var esperadas = Entrada<int?>(ctx, Esquema.ParamEsperadas);
             if (!esperadas.HasValue || esperadas.Value < 0) throw local.Error("falta la cantidad confirmada.");
-            var lote = Entrada<int?>(ctx, Esquema.ParamLote) ?? LotePorDefecto;
+            // Opcional: Dataverse manda 0 cuando la app no lo pasa (verificado en DEV), asi que 0 = el de por defecto.
+            var lote = Entrada<int?>(ctx, Esquema.ParamLote) ?? 0;
+            if (lote == 0) lote = LotePorDefecto;
             if (lote < 1 || lote > LoteMaximo) throw local.Error("el lote debe ser de 1 a " + LoteMaximo + ".");
             var soloContar = Entrada<bool?>(ctx, Esquema.ParamSoloContar) == true;
 
