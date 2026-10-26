@@ -301,12 +301,12 @@ flowchart LR
 
 | Tabla | Crea | Cambia | Fin | Teléfono | Notas |
 |---|---|---|---|---|---|
-| **Carga diaria** | Smelter (una foto por día, idempotente) | Nadie | Se acumula; un trabajo diario borra lo de más de 60 días (DEC-019) | No | Monitoreo cuenta las de hoy; Reconciliación compara contra la última |
+| **Carga diaria** | Smelter (una foto por día, idempotente) | Nadie | Un trabajo diario borra lo de más de 7 días (sección 9) | No | Monitoreo cuenta las de hoy; Reconciliación compara contra la última |
 | **Cliente** | Smelter; Admin en Maestros (anti-duplicado de CIF) | Smelter en cada carga; Admin (nombre y datos) | No se borra | Sí, lo compartido | Lo que edita el Admin lo pisa la carga siguiente; las apps leen el nombre de la cuenta (DAT-26) |
-| **Cuenta** | Solo Smelter | Smelter (saldos, mora, datos del cliente) | No se borra | Sí, lo compartido | Número enmascarado `****1234` |
-| **PAN de cuentas** (bóveda) | Solo Smelter | Nadie | Se borra solo con la cuenta | Sí, lo compartido (por cascada) | Lee **BackOffice** (todo) y el cobrador (lo suyo, "Ver número", 30 s) |
-| **Dirección / Teléfono** | Smelter; Admin agrega | Smelter (clave CIF + tipo) | No se borra | Sí (por cascada del cliente) | No hay editar ni borrar en las apps |
-| **Fiador** | Smelter | Smelter | No se borra (RESTRICT); un trabajo diario borra los fiadores sin nombre | No | El plugin lo comparte, pero no está en el perfil. Los sin nombre salen de las filas del CSV con `NombreFianza` vacío (la corrección de origen es de Smelter) |
+| **Cuenta** | Solo Smelter | Smelter (saldos, mora, datos del cliente) | Se borra 14 días después de salir de cartera (sección 9) | Sí, lo compartido | Número enmascarado `****1234` |
+| **PAN de cuentas** (bóveda) | Solo Smelter | Nadie | Se borra con la cuenta (cascada) | Sí, lo compartido (por cascada) | Lee **BackOffice** (todo) y el cobrador (lo suyo, "Ver número", 30 s) |
+| **Dirección / Teléfono** | Smelter; Admin agrega | Smelter (clave CIF + tipo) | Se borra con el cliente (cascada) | Sí (por cascada del cliente) | No hay editar ni borrar en las apps |
+| **Fiador** | Smelter | Smelter | Un trabajo diario borra los fiadores sin cuentas (sección 9); con cuentas, RESTRICT | No | El plugin lo comparte, pero no está en el perfil. Los sin nombre salen de las filas del CSV con `NombreFianza` vacío (la corrección de origen es de Smelter) |
 | **Agente** | Smelter (solo el nombre) | Admin vincula o desvincula el usuario (el backoffice solo escribe ese lookup), activa o desactiva; el plugin **EmailDesdeUsuario** pone el correo = UPN en minúsculas (DAT-17) | Se desactiva | Sí | Sin usuario, sus asignaciones van al equipo "Cartera sin cobrador" (DAT-07); al vincularlo, **RepartoPorAgente** las reparte (DAT-08) |
 
 ### 7.1 Agente
@@ -323,6 +323,26 @@ stateDiagram-v2
 ```
 
 ---
+
+## 9. Borrado programado (política del dueño, 2026-10-21)
+
+Trabajos de borrado en masa de Dataverse, uno por día (~15:36 UTC), definidos en `scripts/seguridad/paso10_borrado_programado.py`.
+
+| Tabla | Desde qué evento | Plazo | Condición | Cómo |
+|---|---|---|---|---|
+| Carga diaria | `FechaCarga` | 7 días | Toda fila | Trabajo propio |
+| Cuenta | La más tardía entre: último cambio de la cuenta (la carga la toca), última carga y último cierre de sus asignaciones | 14 días (7 + 7 de gracia) | Sin asignación activa ni interacción Pendiente | Trabajo propio |
+| PAN de cuenta, Asignación | Con su cuenta | — | — | Cascada |
+| Cliente | Último cambio | 2 días sin cuentas | Restrict mientras tenga carga diaria | Trabajo propio |
+| Dirección, Teléfono | Con su cliente | — | — | Cascada |
+| Fiador | Último cambio | 2 días sin cuentas | — | Trabajo propio |
+| Pago, Actualización de datos | Creación | 730 días | — | Trabajo propio |
+| Interacción | Creación | 735 días | Después de sus pagos (Restrict) | Trabajo propio |
+| Agente, Producto, Opciones de lista | — | No se borran | Se desactivan | — |
+
+Al borrarse la cuenta, la interacción, el pago y la actualización quedan sin el vínculo; la interacción conserva `[IN] Últimos 4`,
+`[IN] CIF cliente` y `[IN] Clave PAN` (HMAC), y las apps los muestran (APP-50). El nombre del cliente no se guarda, por decisión del dueño.
+Probado de punta a punta el 2026-10-26 con plazos acelerados (ver `01-pendientes.md`).
 
 ## 8. Brechas abiertas del ciclo de vida
 
