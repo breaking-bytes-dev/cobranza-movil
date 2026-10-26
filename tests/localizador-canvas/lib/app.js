@@ -12,7 +12,7 @@ const URL = `https://apps.powerapps.com/play/e/9c8994b8-b1bc-ee23-9184-2f6346502
 const CACHE_APP = /^(PAAppLoadCache-|PAPreloadKeyV2-)/;  // mismo descarte de caché que lib/player.js del backoffice
 const esRuntime = f => /runtime-app\.[^/]*powerplatform\.com\/publishedapp/.test(f.url()) && !f.isDetached();
 
-// Abre la app y verifica que DEV sirva la versión desplegada. El sello se ve en Sincronización: se entra por la
+// Abre la app y verifica que muestre la versión de la solución. Se ve en Sincronización: se entra por la
 // píldora de Inicio, se lee y se vuelve a Inicio.
 async function abrir(browser, opts = {}) {
   return version.abrirVerificada('cobrador', {

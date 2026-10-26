@@ -19,8 +19,8 @@ async function abrirBackoffice(usuario, etiqueta) {
 
 // Abre la app del localizador (web player) como User5 en un Chromium NUEVO.
 // Si la app no carga (no aparece cmpNav_1), se REINTENTA UNA vez cerrando y reabriendo el contexto. El reintento queda en el
-// log (y como nota en el informe si se pasa `ctx`). Un sello de versión distinto del desplegado NO se reintenta: version.js
-// ya espera hasta 10 min y su error es real (`versionDistinta`).
+// log (y como nota en el informe si se pasa `ctx`). Una versión distinta de la de la solución NO se reintenta: version.js
+// ya espera hasta 5 min y su error es real (`versionDistinta`).
 async function abrirCobrador(ctx) {
   for (let intento = 1; ; intento++) {
     console.log(`  ··· abriendo la app del cobrador como user5 (carga en frío, 1 a 2 min)${intento > 1 ? ' — reintento' : ''}`);
