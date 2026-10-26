@@ -291,10 +291,13 @@ Screens:
                   Type: =TextInputType.Multiline
             - galChips:
                 Control: Gallery@2.15.0
-                Variant: Horizontal
+                Variant: Vertical
                 Properties:
                   FillPortions: =0
-                  Height: =180
+                  Height: |-
+                    =// APP-49: grilla de 2 columnas que crece con la cantidad de mensajes (antes: horizontal de 3 filas fijas y el
+                    // 7.º quedaba fuera de la pantalla). El alto del chip escala con el tamaño de letra («Aa»).
+                    RoundUp(Self.AllItemsCount / 2, 0) * Self.TemplateHeight
                   Items: |-
                     =// APP-49: mensajes rápidos desde 'CM | TBL | Opciones de lista' (los edita el Admin; la tabla está en el perfil
                     // sin conexión, llega en la próxima sincronización). Sin filas (todavía no sincronizó o falló), los de siempre.
@@ -306,31 +309,32 @@ Screens:
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
                   ShowScrollbar: =false
-                  TemplatePadding: =10
-                  TemplateSize: =Parent.Width / 2 - 30
-                  WrapCount: =3
+                  TemplatePadding: =5
+                  TemplateSize: =Max(44, Round(gblT.fsm * 3.6, 0))
+                  WrapCount: =2
                 Children:
                   - Button11:
                       Control: Classic/Button@2.2.0
                       Properties:
-                        BorderThickness: =0
+                        BorderColor: =gblC.borderSoft
+                        BorderThickness: =1
                         Color: =gblC.accent
-                        DisabledFill: =RGBA(244, 244, 244, 0)
-                        Fill: =Color.Transparent
-                        Height: =Parent.TemplateHeight
+                        Fill: =gblC.chipBg
+                        FontWeight: =FontWeight.Semibold
+                        Height: =Parent.TemplateHeight - 10
+                        HoverFill: =ColorFade(gblC.chipBg, -8%)
                         OnSelect: |-
                           =Set(varCom, With({ t: Trim(txtComentario.Text) }, If(IsBlank(t), ThisItem.Value, t & ". " & ThisItem.Value)))
-                        PaddingBottom: =7
-                        PaddingLeft: =13
-                        PaddingRight: =13
-                        PaddingTop: =7
-                        RadiusBottomLeft: =16
-                        RadiusBottomRight: =16
-                        RadiusTopLeft: =16
-                        RadiusTopRight: =16
-                        Size: =gblT.fxs
+                        PaddingLeft: =10
+                        PaddingRight: =10
+                        PressedFill: =ColorFade(gblC.chipBg, -15%)
+                        RadiusBottomLeft: =20
+                        RadiusBottomRight: =20
+                        RadiusTopLeft: =20
+                        RadiusTopRight: =20
+                        Size: =gblT.fsm
                         Text: =ThisItem.Value
-                        Width: =Parent.TemplateWidth
+                        Width: =Parent.TemplateWidth - 10
             - cardSelProd:
                 Control: GroupContainer@1.5.0
                 Variant: AutoLayout
@@ -568,14 +572,18 @@ Screens:
                             Variant: Vertical
                             Properties:
                               AlignInContainer: =AlignInContainer.Start
-                              BorderThickness: =3
+                              BorderThickness: =0
                               FillPortions: =0
                               Height: =Self.AllItemsCount * Self.TemplateHeight
                               Items: =colLineasPago
                               LayoutMinHeight: =16
                               LayoutMinWidth: =16
-                              TemplatePadding: =
-                              TemplateSize: =170
+                              ShowScrollbar: =false
+                              TemplatePadding: =0
+                              TemplateSize: |-
+                                =// Una tarjeta por pago: monto + moneda, y recibo + quitar. Controles clásicos con la letra de la
+                                // app (gblT): escalan con «Aa» (los modernos traían su propio tamaño y no escalaban).
+                                Max(42, Round(gblT.fbase * 3, 0)) * 2 + 8 + 24 + 10
                               Width: =App.Width - 64
                             Children:
                               - conLinea:
@@ -583,105 +591,130 @@ Screens:
                                   Variant: AutoLayout
                                   Properties:
                                     BorderColor: =gblC.cardBorder
-                                    BorderThickness: =2
+                                    BorderThickness: =1
                                     DropShadow: =DropShadow.None
                                     Fill: =gblC.surface
                                     Height: =Parent.TemplateHeight - 10
-                                    LayoutAlignItems: =LayoutAlignItems.Center
                                     LayoutDirection: =LayoutDirection.Vertical
                                     LayoutGap: =8
-                                    PaddingBottom: =10
-                                    PaddingLeft: =10
-                                    PaddingRight: =10
-                                    PaddingTop: =10
-                                    RadiusBottomLeft: =10
-                                    RadiusBottomRight: =10
-                                    RadiusTopLeft: =10
-                                    RadiusTopRight: =10
-                                    Width: =App.Width - 68
+                                    PaddingBottom: =12
+                                    PaddingLeft: =12
+                                    PaddingRight: =12
+                                    PaddingTop: =12
+                                    RadiusBottomLeft: =12
+                                    RadiusBottomRight: =12
+                                    RadiusTopLeft: =12
+                                    RadiusTopRight: =12
+                                    Width: =Parent.TemplateWidth
                                   Children:
-                                    - fila 1:
+                                    - filaMontoPago:
                                         Control: GroupContainer@1.5.0
                                         Variant: AutoLayout
                                         Properties:
                                           DropShadow: =DropShadow.None
-                                          LayoutAlignItems: =LayoutAlignItems.Center
+                                          FillPortions: =0
+                                          Height: =Max(42, Round(gblT.fbase * 3, 0))
                                           LayoutDirection: =LayoutDirection.Horizontal
                                           LayoutGap: =8
                                           LayoutMinHeight: =16
                                           LayoutMinWidth: =16
-                                          PaddingBottom: =8
-                                          PaddingLeft: =8
-                                          PaddingRight: =8
-                                          PaddingTop: =8
                                         Children:
                                           - txtMonto:
-                                              Control: ModernNumberInput@1.1.1
+                                              Control: Classic/TextInput@2.3.2
                                               Properties:
-                                                AccessibleLabel: |-
-                                                  ="Monto del pago"
+                                                AccessibleLabel: ="Monto del pago"
                                                 AlignInContainer: =AlignInContainer.Stretch
-                                                Default: =ThisItem.monto
-                                                FillPortions: =1
+                                                BorderColor: =gblC.borderSoft
+                                                BorderThickness: =1
+                                                Color: =gblC.ink
+                                                Default: =If(IsBlank(ThisItem.monto), "", Text(ThisItem.monto))
+                                                Fill: =gblC.surface
+                                                FillPortions: =3
+                                                FocusedBorderColor: =gblC.accent
+                                                FocusedBorderThickness: =2
+                                                Format: =TextFormat.Number
+                                                HintText: ="Monto"
                                                 LayoutMinHeight: =16
                                                 LayoutMinWidth: =16
                                                 OnChange: |-
-                                                  =Patch(colLineasPago, LookUp(colLineasPago, id = ThisItem.id), {monto: Value(Self.Value)}); UpdateContext({locConfirmaExceso: false})
+                                                  =Patch(colLineasPago, LookUp(colLineasPago, id = ThisItem.id), {monto: Value(Self.Text)}); UpdateContext({locConfirmaExceso: false})
+                                                RadiusBottomLeft: =10
+                                                RadiusBottomRight: =10
+                                                RadiusTopLeft: =10
+                                                RadiusTopRight: =10
+                                                Size: =gblT.fbase
                                           - Dropdown1:
-                                              Control: ModernDropdown@1.0.2
+                                              Control: Classic/DropDown@2.3.1
                                               Properties:
-                                                AccessibleLabel: |-
-                                                  ="Moneda del pago"
+                                                AccessibleLabel: ="Moneda del pago"
                                                 AlignInContainer: =AlignInContainer.Stretch
-                                                Default: |-
-                                                  ={Value: ThisItem.moneda}
-                                                FillPortions: =1
-                                                ItemDisplayText: =ThisItem.Value
+                                                BorderColor: =gblC.borderSoft
+                                                BorderThickness: =1
+                                                ChevronBackground: =gblC.surface
+                                                ChevronFill: =gblC.muted
+                                                ChevronHoverBackground: =gblC.chipBg
+                                                ChevronHoverFill: =gblC.accent
+                                                Color: =gblC.ink
+                                                Default: =ThisItem.moneda
+                                                Fill: =gblC.surface
+                                                FillPortions: =2
+                                                HoverColor: =gblC.ink
+                                                HoverFill: =gblC.chipBg
                                                 Items: =["NIO","USD"]
                                                 LayoutMinHeight: =16
                                                 LayoutMinWidth: =16
                                                 OnChange: |-
                                                   =Patch(colLineasPago, LookUp(colLineasPago, id = ThisItem.id), {moneda: Self.Selected.Value}); UpdateContext({locConfirmaExceso: false})
-                                    - fila 2:
+                                                PressedColor: =gblC.onAccent
+                                                PressedFill: =gblC.accent
+                                                SelectionColor: =gblC.onAccent
+                                                SelectionFill: =gblC.accent
+                                                Size: =gblT.fbase
+                                    - filaReciboPago:
                                         Control: GroupContainer@1.5.0
                                         Variant: AutoLayout
                                         Properties:
                                           DropShadow: =DropShadow.None
-                                          LayoutAlignItems: =LayoutAlignItems.Center
+                                          FillPortions: =0
+                                          Height: =Max(42, Round(gblT.fbase * 3, 0))
                                           LayoutDirection: =LayoutDirection.Horizontal
                                           LayoutGap: =8
                                           LayoutMinHeight: =16
                                           LayoutMinWidth: =16
-                                          PaddingBottom: =8
-                                          PaddingLeft: =8
-                                          PaddingRight: =8
-                                          PaddingTop: =8
                                         Children:
                                           - txtRecibo:
-                                              Control: ModernTextInput@1.1.1
+                                              Control: Classic/TextInput@2.3.2
                                               Properties:
-                                                AccessibleLabel: |-
-                                                  ="Número de recibo"
-                                                MaxLength: |-
-                                                  =30
+                                                AccessibleLabel: ="Número de recibo"
                                                 AlignInContainer: =AlignInContainer.Stretch
+                                                BorderColor: =gblC.borderSoft
+                                                BorderThickness: =1
+                                                Color: =gblC.ink
                                                 Default: =ThisItem.recibo
+                                                Fill: =gblC.surface
                                                 FillPortions: =1
+                                                FocusedBorderColor: =gblC.accent
+                                                FocusedBorderThickness: =2
+                                                HintText: ="N° de recibo"
                                                 LayoutMinHeight: =16
                                                 LayoutMinWidth: =16
+                                                MaxLength: =30
                                                 OnChange: |-
                                                   =Patch(colLineasPago, LookUp(colLineasPago, id = ThisItem.id), {recibo: Self.Text})
-                                                Placeholder: ="N° de recibo"
+                                                RadiusBottomLeft: =10
+                                                RadiusBottomRight: =10
+                                                RadiusTopLeft: =10
+                                                RadiusTopRight: =10
+                                                Size: =gblT.fbase
                                           - btnQuitar:
-                                              Control: ModernButton@1.0.0
+                                              Control: Classic/Button@2.2.0
                                               Properties:
-                                                AccessibleLabel: ="Quitar este pago"
                                                 AlignInContainer: =AlignInContainer.Stretch
-                                                Appearance: =ButtonAppearance.Transparent
                                                 BorderColor: =gblC.redInk
-                                                BorderStyle: =BorderStyle.Solid
                                                 BorderThickness: =1
                                                 Color: =gblC.redInk
+                                                Fill: =gblC.surface
+                                                HoverFill: =gblC.chipBg
                                                 LayoutMinHeight: =16
                                                 LayoutMinWidth: =16
                                                 OnSelect: |-
@@ -690,29 +723,37 @@ Screens:
                                                 PaddingLeft: =0
                                                 PaddingRight: =0
                                                 PaddingTop: =0
-                                                RadiusBottomLeft: =8
-                                                RadiusBottomRight: =8
-                                                RadiusTopLeft: =8
-                                                RadiusTopRight: =8
+                                                PressedFill: =gblC.chipBg
+                                                RadiusBottomLeft: =10
+                                                RadiusBottomRight: =10
+                                                RadiusTopLeft: =10
+                                                RadiusTopRight: =10
+                                                Size: =gblT.fmd
                                                 Text: ="✕"
-                                                Width: =42
+                                                Tooltip: ="Quitar este pago"
+                                                Width: =Max(42, Round(gblT.fbase * 3, 0))
                         - btnAddPago:
                             Control: Classic/Button@2.2.0
                             Properties:
-                              AlignInContainer: =AlignInContainer.Center
-                              BorderColor: =gblC.cardBorder
+                              AlignInContainer: =AlignInContainer.Stretch
+                              BorderColor: =gblC.accent
                               BorderStyle: =BorderStyle.Dashed
+                              BorderThickness: =1
                               Color: =gblC.accent
                               Fill: =gblC.chipBg
-                              Height: =60
+                              FontWeight: =FontWeight.Semibold
+                              Height: =Max(42, Round(gblT.fbase * 3, 0))
+                              HoverFill: =ColorFade(gblC.chipBg, -8%)
                               LayoutMinHeight: =16
                               LayoutMinWidth: =16
                               OnSelect: |-
                                 =Collect(colLineasPago, {id: GUID(), monto: If(false, 0), moneda: If(Coalesce(varCuenta.'[CT] Saldo Vencido NIO', 0) <= 0 && Coalesce(varCuenta.'[CT] Saldo Vencido USD', 0) > 0, "USD", "NIO"), recibo: ""}); UpdateContext({locConfirmaExceso: false})
-                              PaddingBottom: =11
-                              PaddingLeft: =11
-                              PaddingRight: =11
-                              PaddingTop: =11
+                              PressedFill: =ColorFade(gblC.chipBg, -15%)
+                              RadiusBottomLeft: =10
+                              RadiusBottomRight: =10
+                              RadiusTopLeft: =10
+                              RadiusTopRight: =10
+                              Size: =gblT.fbase
                               Text: ="＋ Agregar pago"
             - rowDatos:
                 Control: GroupContainer@1.5.0
