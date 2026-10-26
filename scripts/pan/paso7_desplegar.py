@@ -122,6 +122,17 @@ def actualizar_app(cust, nombre, ldr, perfil):
     return cust[:ini] + bloque + cust[fin:]
 
 for nombre, (_, ldr, perfil) in msapps.items(): cust = actualizar_app(cust, nombre, ldr, perfil)
+# Ícono de la app en la lista de Power Apps (2026-10-25): la solución lo lleva en CanvasApps/<app>_BackgroundImageUri (PNG) y
+# <BackgroundColor> del <CanvasApp>; el .msapr, en Resources/PublishInfo.json (LogoFileName) para Studio.
+ICONOS = {'sanic_appcobranzamovil_c4e67': (os.path.join(RAIZ, 'apps/localizador-canvas/icono/icono.png'), 'RGBA(15,107,107,1)')}
+iconos = {}
+for nombre, (png, color) in ICONOS.items():
+    if nombre not in msapps or not os.path.exists(png): continue
+    i = cust.index(f'<Name>{nombre}</Name>'); ini = cust.rindex('<CanvasApp>', 0, i); fin = cust.index('</CanvasApp>', i)
+    bloque = re.sub(r'<BackgroundColor>.*?</BackgroundColor>', f'<BackgroundColor>{color}</BackgroundColor>', cust[ini:fin], count=1)
+    cust = cust[:ini] + bloque + cust[fin:]
+    iconos[f'CanvasApps/{nombre}_BackgroundImageUri'] = open(png, 'rb').read()
+    print(f'  {nombre}: ícono {os.path.relpath(png, RAIZ)} y fondo {color}')
 deploy = os.path.join(tmp, 'deploy.zip')
 with zipfile.ZipFile(deploy, 'w') as zout:
     for it in zin.infolist():
@@ -129,6 +140,7 @@ with zipfile.ZipFile(deploy, 'w') as zout:
         if it.filename == 'customizations.xml': data = cust.encode('utf-8')
         for nombre, (bytes_app, _, _) in msapps.items():
             if it.filename == f'CanvasApps/{nombre}_DocumentUri.msapp': data = bytes_app
+        if it.filename in iconos: data = iconos[it.filename]
         zi = zipfile.ZipInfo(it.filename, date_time=it.date_time); zi.compress_type = it.compress_type; zi.external_attr = it.external_attr
         zout.writestr(zi, data)
 print('deploy.zip listo en', deploy)
