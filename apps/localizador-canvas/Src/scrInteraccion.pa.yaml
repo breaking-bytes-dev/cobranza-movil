@@ -293,6 +293,7 @@ Screens:
                 Control: Gallery@2.15.0
                 Variant: Vertical
                 Properties:
+                  AlignInContainer: =AlignInContainer.Stretch
                   FillPortions: =0
                   Height: |-
                     =// APP-49: grilla de 2 columnas que crece con la cantidad de mensajes (antes: horizontal de 3 filas fijas y el
@@ -553,6 +554,7 @@ Screens:
                         LayoutMinWidth: =16
                         PaddingBottom: =2
                         PaddingLeft: =12
+                        PaddingRight: =12
                         PaddingTop: =2
                         Visible: =tpPago.Value
                       Children:
@@ -571,7 +573,7 @@ Screens:
                             Control: Gallery@2.15.0
                             Variant: Vertical
                             Properties:
-                              AlignInContainer: =AlignInContainer.Start
+                              AlignInContainer: =AlignInContainer.Stretch
                               BorderThickness: =0
                               FillPortions: =0
                               Height: =Self.AllItemsCount * Self.TemplateHeight
@@ -584,7 +586,6 @@ Screens:
                                 =// Una tarjeta por pago: monto + moneda, y recibo + quitar. Controles clásicos con la letra de la
                                 // app (gblT): escalan con «Aa» (los modernos traían su propio tamaño y no escalaban).
                                 Max(42, Round(gblT.fbase * 3, 0)) * 2 + 8 + 24 + 10
-                              Width: =App.Width - 64
                             Children:
                               - conLinea:
                                   Control: GroupContainer@1.5.0
