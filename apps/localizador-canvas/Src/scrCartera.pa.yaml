@@ -1205,12 +1205,12 @@ Screens:
               // Lo que todavía no tiene tramo (p. ej. una cuenta recién creada: el servidor lo asigna en segundo plano).
               Collect(colAsigRaw, Filter('CM | TBL | Asignacions', '[AS] Tramo' = Blank() && '[AS] Estado' = true && ('[AS] Tipo' <> 'Choice | CM | Tipo asignacion'.Especial || '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado)));
               Collect(colCuentas, Filter('CM | TBL | Cuentas', '[CT] Tramo' = Blank()));
-              // Si un tramo llega a 500 filas, la consulta pudo cortarse (el límite puede ser 500 o 2000): se avisa (sincronizar no lo arregla).
+              // Si un tramo llega a 2000 filas (el límite de cada consulta), la consulta se cortó: se avisa (sincronizar no lo arregla).
               Set(varCarteraIncompleta,
                   Max(ForAll(Sequence(21, 0) As T,
-                      CountRows(Filter(colAsigRaw, If(T.Value = 20, IsBlank('[AS] Tramo'), '[AS] Tramo' = T.Value)))), Value) >= 500
+                      CountRows(Filter(colAsigRaw, If(T.Value = 20, IsBlank('[AS] Tramo'), '[AS] Tramo' = T.Value)))), Value) >= 2000
                   || Max(ForAll(Sequence(21, 0) As T,
-                      CountRows(Filter(colCuentas, If(T.Value = 20, IsBlank('[CT] Tramo'), '[CT] Tramo' = T.Value)))), Value) >= 500);
+                      CountRows(Filter(colCuentas, If(T.Value = 20, IsBlank('[CT] Tramo'), '[CT] Tramo' = T.Value)))), Value) >= 2000);
               If(varCarteraIncompleta,
                   Notify("Tu cartera es más grande de lo que la app puede mostrar y faltan clientes. Avisá a soporte.", NotificationType.Error));
               // Las Especiales solo se gestionan aprobadas (el servidor tampoco deja asignar agente antes).

@@ -12,7 +12,7 @@ Los términos de Cobranza Móvil, para quien usa las apps y para quien mantiene 
 | **Solicitante** | Quien pide asignaciones Especiales para una cuenta. | Rol `SR \| CM \| Solicitante` |
 | **Supervisor** | Quien aprueba o rechaza las Especiales, elige su localizador y las reasigna. | Rol `SR \| CM \| Supervisor` |
 | **Admin** | Quien carga el archivo diario, reconcilia, cierra asignaciones, da de alta cuentas y administra localizadores, datos maestros y listas. | Rol `SR \| CM \| Admin` |
-| **Servicio - Cobranza** | Identidad técnica (no una persona) con la que corren procesos automáticos. | Rol `SR \| CM \| Servicio - Cobranza` |
+| **Servicio - Cobranza** | Rol opcional reservado para un proceso automático (no una persona). La operación normal no lo usa; si se usa, se asigna a un *application user*. | Rol `SR \| CM \| Servicio - Cobranza` |
 
 ## Cartera y asignaciones
 

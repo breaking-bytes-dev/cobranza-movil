@@ -103,7 +103,7 @@ La cartera es una copia en colecciones (`colAsig`, `colClientes`). El temporizad
 
 ### La cartera se trae por tramos
 
-Cada copia de Dataverse a una colección se corta en el límite de filas de la app (500 o 2.000, ver [Límites de filas](#límites-de-filas)). Para no cortar la cartera, el *plugin* [`TramoCartera.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/TramoCartera.cs) le pone a cada cuenta, asignación y pago un **tramo** de 0 a 19 (hash FNV-1a del id de la cuenta; el pago usa el de su interacción). El botón oculto `btnCargarCartera` trae asignaciones y cuentas tramo por tramo (20 vueltas) y después una consulta más para lo que todavía no tiene tramo (por ejemplo, una cuenta recién creada):
+Cada copia de Dataverse a una colección se corta en el límite de filas de la app (2.000 por consulta, ver [Límites de filas](#límites-de-filas)). Para no cortar la cartera, el *plugin* [`TramoCartera.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/TramoCartera.cs) le pone a cada cuenta, asignación y pago un **tramo** de 0 a 19 (hash FNV-1a del id de la cuenta; el pago usa el de su interacción). El botón oculto `btnCargarCartera` trae asignaciones y cuentas tramo por tramo (20 vueltas) y después una consulta más para lo que todavía no tiene tramo (por ejemplo, una cuenta recién creada):
 
 ```
 ForAll(Sequence(20, 0) As T,
@@ -111,7 +111,7 @@ ForAll(Sequence(20, 0) As T,
     Collect(colCuentas, Filter('CM | TBL | Cuentas', '[CT] Tramo' = T.Value)));
 ```
 
-Asignación y cuenta caen en el mismo tramo porque las dos usan el id de la cuenta. Si algún tramo (o la consulta de lo que no tiene tramo) llega a 500 filas, `varCarteraIncompleta` muestra un error («Tu cartera es más grande de lo que la app puede mostrar…»): sincronizar no lo arregla. El umbral es 500 a propósito: la consulta pudo cortarse con cualquiera de los dos límites posibles. `TramoCartera` calcula el tramo solo al crear el registro: los registros que ya existían antes de instalar el *plugin* no lo tienen y entran por la consulta de lo que no tiene tramo.
+Asignación y cuenta caen en el mismo tramo porque las dos usan el id de la cuenta. Si algún tramo (o la consulta de lo que no tiene tramo) llega a 2.000 filas, `varCarteraIncompleta` muestra un error («Tu cartera es más grande de lo que la app puede mostrar…»): la consulta se cortó y sincronizar no lo arregla ([`scrCartera.pa.yaml`](../../apps/localizador-canvas/Src/scrCartera.pa.yaml)). Con 20 tramos, la cartera de un localizador soporta hasta unas 40.000 asignaciones activas. `TramoCartera` calcula el tramo solo al crear el registro: los registros que ya existían antes de instalar el *plugin* no lo tienen y entran por la consulta de lo que no tiene tramo.
 
 Las Especiales solo aparecen aprobadas: toda consulta de asignaciones del localizador lleva `'[AS] Tipo' <> Especial || '[AS] Estado de aprobacion' = Aprobado`.
 
@@ -203,7 +203,19 @@ La app se modifica en **Power Apps Studio**, siempre **dentro de la *solution***
 5. Exportar la *solution* **subiendo su número de versión** en **Export this solution**: ese número es el que la app muestra como versión, no hay que tocar nada en la app. Importarla en el ambiente de destino ([Instalación, pasos 1 y 2](09-instalacion-y-despliegue.md#1-conseguir-el-paquete-de-la-solution) y [Actualizar a una versión nueva](09-instalacion-y-despliegue.md#actualizar-a-una-versión-nueva)).
 6. En el destino, con conexión, la pantalla Sincronización y el pie del menú de la app de la oficina tienen que mostrar la versión nueva de la *solution* ([Pruebas](10-pruebas.md#0-verificación-previa-pre), PRE-07).
 
-Las fuentes de la carpeta [`apps/localizador-canvas/Src/`](../../apps/localizador-canvas/Src/) (`*.pa.yaml`, formato de código de Power Apps) son una copia legible de pantallas, controles y fórmulas, útil para revisar y buscar. El `.msapr` guarda las fuentes de datos, el id del perfil *offline* y los recursos. Studio muestra el mismo YAML de cada control con **View code** (Ver código). ⚠️ A confirmar cómo se mantiene esa copia al día con lo publicado (por ejemplo, con la integración de Git de las *solutions* de Power Platform): un cambio hecho en Studio no actualiza el repositorio solo.
+Studio muestra el YAML de cada control con **View code** (Ver código).
+
+### Mantener `Src/` del repositorio al día
+
+La fuente de verdad de las dos apps es la *solution* del ambiente de desarrollo. Las carpetas `apps/<app>/Src/` (por ejemplo [`apps/localizador-canvas/Src/`](../../apps/localizador-canvas/Src/)) tienen una copia legible en `*.pa.yaml` (formato de código fuente de Power Apps) de pantallas, controles y fórmulas, para revisar los cambios y buscar en el repositorio. Un cambio hecho en Studio no actualiza el repositorio solo: después de publicar se copia a mano.
+
+1. En Studio, con la app ya publicada, descargar una copia de la app: menú desplegable junto a **Save** (Guardar) → **Download a copy** (Descargar una copia); en la interfaz clásica de Studio, **File** → **Save as** → **This computer** (Archivo → Guardar como → Este equipo). Se descarga un archivo `.msapp`.
+2. Un `.msapp` es un archivo zip: abrirlo con el explorador de archivos (si no lo abre, cambiar la extensión a `.zip`).
+3. Copiar los `*.pa.yaml` de su carpeta `Src` (incluida la subcarpeta de componentes) sobre `apps/<app>/Src/` del repositorio. Solo esos archivos sirven como código fuente: los `.json` del `.msapp` cambian en cada guardado.
+4. Revisar la diferencia antes de hacer *commit*: Studio no conserva los comentarios YAML (`# …`) ni el orden de algunas propiedades, y sí conserva los comentarios dentro de las fórmulas (`//`). Si se perdió un comentario útil, volver a ponerlo.
+5. Hacer *commit*.
+
+El archivo `.msapr` de cada carpeta (por ejemplo [`sanic_appcobranzamovil_c4e67_DocumentUri.msapr`](../../apps/localizador-canvas/sanic_appcobranzamovil_c4e67_DocumentUri.msapr)) guarda las fuentes de datos, el id del perfil *offline*, la configuración y los recursos de la app. Solo cambia cuando se agregan o refrescan fuentes de datos en Studio, y no se mantiene a mano: si cambia una fuente, vale la app publicada en la *solution*.
 
 Si se pega YAML en Studio, una fórmula que contiene `: ` (dos puntos y espacio) va en bloque `|-`:
 
@@ -224,7 +236,7 @@ Text: |-
 
 ### Agregar una tabla nueva a la app
 
-1. En Studio, **Data** → **Add data** (Agregar datos) → la tabla.
+1. En Studio, **Data** → **Add data** (Agregar datos) → la tabla. Revisar que la fuente nueva tome el límite de filas de la app (2.000): **Settings** → **General** → **Data row limit** ([Límites de filas](#límites-de-filas)).
 2. Agregarla al perfil *offline* con un filtro: en Studio, **Settings** (Configuración) → **General** → con **Can be used offline** encendido, en el perfil seleccionado **⋯** → **Edit selected profile** (Editar perfil seleccionado); o en el admin center → ambiente → **Settings** → **Users + permissions** → **Mobile configuration** → «Cobranza Movil - Cobrador». Con perfil personalizado el servicio **no** la agrega solo: sin este paso, la tabla está vacía en el teléfono. Publicar el perfil y **volver a publicar la app**, que usa la versión publicada del perfil.
 3. Comprobar que la tabla y el perfil estén en la *solution* (en la *solution*, seleccionar la app → **Advanced** → **Add required objects**, Agregar objetos requeridos).
 4. Si la tabla hereda la visibilidad por compartido desde la cuenta, revisar que la relación tenga la *cascade* de Share que corresponde ([Seguridad](03-seguridad.md)). Los registros que ya existían no se comparten solos con el localizador: para un agente concreto, quitar y volver a poner su usuario en **Localizadores y usuarios** de la app de la oficina re-reparte sus asignaciones ([Instalación, trampas](09-instalacion-y-despliegue.md#trampas-y-errores-conocidos)). ⚠️ A confirmar si ese re-reparto alcanza a la tabla nueva y si hace falta un procedimiento para todos los localizadores a la vez.
@@ -256,7 +268,8 @@ En Studio, **Settings** → **General**: ícono de la app y color de fondo (`RGB
 
 ### Límites de filas
 
-- ⚠️ A confirmar: cuál es el límite que rige. El `.msapr` declara `MaxGetRowsCount` 500 por fuente en `References/DataSources.json` y 2.000 a nivel app en `Properties.json`. Los tramos están pensados para 2.000, pero el aviso de cartera incompleta salta a las 500 filas por tramo, así que avisa con cualquiera de los dos límites.
+- **El límite es 2.000 filas por consulta**, igual en las dos apps: es el **Data row limit** de la app (`DefaultConnectedDataSourceMaxGetRowsCount` en `msapp/Properties.json` del `.msapr`) y el `MaxGetRowsCount` de cada fuente de datos (`msapp/References/DataSources.json`). Con 20 tramos, la cartera de un localizador soporta hasta unas 40.000 asignaciones activas; el aviso de cartera incompleta salta cuando un tramo llega a 2.000 filas.
+- ⚠️ **Al agregar una fuente de datos en Studio**, revisar que tome el límite de la app (2.000): en Studio, **Settings** (Configuración) → **General** → **Data row limit** (Límite de filas de datos). Una fuente con un límite menor corta sus consultas antes y la cartera puede quedar incompleta sin que el aviso lo detecte a tiempo.
 - Cada copia a una colección se corta en el límite de filas: la cartera se trae por tramos. Si la cartera de un localizador crece tanto que un tramo llega al límite, la app avisa y hay que subir la cantidad de tramos: la constante `TramosCartera` de [`Esquema.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/Esquema.cs), y el `Sequence(20, 0)` de esta app y de las pantallas de la oficina que usan tramos. Después hay que recalcular el tramo de las cuentas, asignaciones y pagos existentes, porque `TramoCartera` solo lo calcula al crear. ⚠️ A confirmar: no hay una pantalla ni un procedimiento gráfico para ese recálculo (el tramo es un hash del id de la cuenta y no se puede calcular a mano).
 - Las demás pantallas no copian tablas enteras: leen cada dirección, teléfono o cuenta de la base local cuando la muestran.
 

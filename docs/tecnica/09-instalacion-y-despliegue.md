@@ -35,7 +35,7 @@ flowchart TD
 | 14 tablas `sanic_cm_tbl_*` (incluidas la bóveda `sanic_cm_tbl_cuentapan` y las opciones de lista `sanic_cm_tbl_opcionlista`), columnas, claves alternativas, relaciones y comportamiento de *cascade* | Sí | Portal de Power Apps → **Solutions** | 3 |
 | Auditoría por tabla y por columna | Sí | Viaja con cada tabla; solo registra si el ambiente tiene la auditoría encendida | 12 |
 | Roles `SR \| CM \| Localizador`, `BackOffice`, `Solicitante`, `Supervisor`, `Admin`, `Servicio - Cobranza` y `Cartera sin cobrador`, con sus privilegios | Sí | Admin center → **Security roles** | 3 y 4 |
-| Propiedad **Member's privilege inheritance** de cada rol | ⚠️ A confirmar | Admin center → rol → **Settings** | 4 |
+| Propiedad **Member's privilege inheritance** de cada rol | No. Un rol nuevo se crea con el valor correcto; si alguien lo cambió, una actualización no lo corrige | Admin center → rol → **Settings** | 4 |
 | Privilegios automáticos de *System Customizer* sobre la bóveda y sobre la tabla de la clave K | No (la plataforma los agrega al crear la tabla) | Admin center → rol *System Customizer* | 4 |
 | Ensamblado `Sanic.CobranzaMovil.Plugins` y todos sus pasos | Sí | **Solutions** → **Plug-in steps** | 3 |
 | Estado activo o inactivo de cada paso | Depende de la opción de importación | **Solutions** → **Plug-in steps** | 2 y 3 |
@@ -68,7 +68,7 @@ flowchart TD
 | Permiso | Para qué |
 |---|---|
 | Rol **System Administrator** en el ambiente | Importar un ensamblado de *plugins* (*System Customizer* no tiene el privilegio de crear *Plug-In Assembly*), editar roles del sistema, importar una *solution* que contiene trabajos de *bulk delete* (solo un administrador puede hacerlo) y escribir en la tabla protegida de la clave K |
-| Rol de Smelter que permite editar plantillas | Crear y modificar las plantillas. En CM se lo llama **Smelter Configurador**; ⚠️ A confirmar el nombre exacto del rol en la versión instalada de Smelter |
+| Rol de Smelter que permite editar plantillas | Crear y modificar las plantillas. Rol **Smelter Configurador** (nombre en la versión de Smelter instalada en el ambiente de desarrollo; otra versión podría nombrarlo distinto) |
 | Permiso para crear grupos de seguridad en Microsoft Entra ID (o alguien que lo tenga) | Solo si los roles se van a dar por equipos de grupo de Entra ID (paso 9) |
 
 ## 1. Conseguir el paquete de la solution
@@ -83,7 +83,7 @@ El paquete es un archivo `.zip` exportado del ambiente de desarrollo donde se ma
    - **Managed** (Administrada, sellada) para **producción** y cualquier ambiente donde no se vaya a modificar.
 5. **Export**. El `.zip` queda en la carpeta de descargas del navegador.
 
-⚠️ La carpeta [`solutions/unpacked/`](../../solutions/unpacked/) del repositorio está atrasada respecto del ambiente (por ejemplo, no tiene la bóveda ni las opciones de lista). No se instala desde ahí: se instala siempre desde un `.zip` exportado.
+⚠️ La carpeta [`solutions/unpacked/`](../../solutions/unpacked/) del repositorio es una copia legible de la *solution* para comparar versiones. No se instala desde ahí: se instala siempre desde un `.zip` exportado.
 
 ## 2. Importar la solution
 
@@ -126,7 +126,7 @@ Dataverse le da al rol del sistema *System Customizer* privilegios sobre toda ta
 
 1. Abrir el rol **System Customizer**.
 2. Buscar la tabla de la bóveda («CM | TBL | PAN de cuenta», `sanic_cm_tbl_cuentapan`) y dejar todos sus privilegios en **None selected** (Ninguno).
-3. Buscar la tabla de claves de Smelter (`sanic_tbl_smlt_hmackey`) y hacer lo mismo. ⚠️ A confirmar su nombre visible en la versión instalada de Smelter; el nombre lógico es el de arriba.
+3. Buscar la tabla de claves de Smelter («TBL | SMLT | HMAC Key», `sanic_tbl_smlt_hmackey`) y hacer lo mismo.
 4. **Save + close** (Guardar y cerrar).
 
 Quedan con acceso *System Administrator* y roles internos de Microsoft que la plataforma no deja modificar (por ejemplo, *Support User*).
@@ -150,7 +150,7 @@ Si un rol de CM se va a dar **a través de un equipo** (paso 9), su propiedad **
 1. Seleccionar el rol y, en la barra de comandos, **Settings**.
 2. Revisar **Member's privilege inheritance** y guardar.
 
-⚠️ A confirmar si esta propiedad viaja con el rol en la *solution*: revisarla siempre después de importar. Ver [Seguridad](03-seguridad.md#roles-heredados-por-equipos-de-entra-id).
+Esta propiedad **no viaja** en la *solution*. El valor correcto es el que Dataverse pone al crear un rol nuevo, así que en una instalación nueva no hace falta tocarla. Solo se revisa si alguien la cambió: una actualización de la *solution* no la corrige. Ver [Seguridad](03-seguridad.md#roles-heredados-por-equipos-de-entra-id).
 
 ## 5. Equipo «Cartera sin cobrador»
 
@@ -172,7 +172,7 @@ Smelter le da a cada trabajo de importación el dueño de su plantilla, y quien 
 1. **Teams** → **+ Create team**, en la unidad raíz. El nombre es libre; se sugiere uno descriptivo («Carga Cobranza Móvil»). Tipo:
    - **Owner**, si los miembros se agregan a mano; o
    - **Microsoft Entra ID Security group** (Grupo de seguridad de Microsoft Entra ID), si los miembros salen de un grupo de Entra ID. En ese caso se elige el grupo en **Group name** y el tipo de pertenencia en **Membership type**.
-2. **Manage security roles**: el rol de Smelter que permite ver plantillas y correr trabajos (en CM se lo llama **Smelter Operador**; ⚠️ A confirmar el nombre en la versión instalada). Si los Admin van a recibir su rol de CM por este mismo equipo, agregar también `SR | CM | Admin`.
+2. **Manage security roles**: el rol de Smelter que permite ver plantillas y correr trabajos (**Smelter Operador** en la versión de Smelter instalada en el ambiente de desarrollo). Si los Admin van a recibir su rol de CM por este mismo equipo, agregar también `SR | CM | Admin`.
 3. Si es de tipo *Owner*: **⋮** → **Manage team members** (Administrar miembros) → agregar a los Admin.
 
 Este equipo tiene que existir antes de crear las plantillas (paso 8), que lo toman como dueño.
@@ -279,7 +279,7 @@ Reglas (motivos en [Seguridad](03-seguridad.md#qué-no-hacer)):
 
 - No dar Localizador junto con BackOffice: la misma persona podría registrar y transcribir su propia visita.
 - No dar a ninguna persona `SR | CM | Cartera sin cobrador`.
-- ⚠️ A confirmar a qué identidad se asigna `SR | CM | Servicio - Cobranza`. Los *plugins* la tratan como al Admin y además le permiten crear Diarias e Incobrables ([`AprobacionEspecial.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/AprobacionEspecial.cs)). La operación normal no la necesita.
+- `SR | CM | Servicio - Cobranza` es opcional: la operación normal no lo usa y no se asigna a ninguna persona ni equipo. Queda para un proceso automático futuro; si se usa, se asigna a un *application user* (usuario de aplicación). Los *plugins* lo tratan como al Admin y además le permiten crear Diarias e Incobrables ([`AprobacionEspecial.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/AprobacionEspecial.cs)).
 
 **Compartir las apps.** En `make.powerapps.com` → **Apps**, seleccionar cada app → **Share** (Compartir) → agregar personas o grupos de Entra ID. La app del localizador **solo** con los localizadores: con un rol de lectura amplia, el teléfono bajaría una copia sin conexión de toda la cartera. La de la oficina, con los demás perfiles. Compartir la app no da permisos sobre los datos: los da el rol.
 
@@ -405,8 +405,5 @@ La importación no toca los datos: equipos, K, plantillas, opciones y asignacion
 
 - ⚠️ Nombres exactos de los botones de exportar e importar plantillas en la versión instalada de Smelter.
 - ⚠️ Versión mínima de Smelter con `HMAC()` (*UpdateIfExists* se respeta desde la 1.3.0.0, según lo registrado en el proyecto).
-- ⚠️ Nombre exacto de los roles de Smelter (Operador y Configurador).
 - ⚠️ Plan de licencias de Power Apps.
-- ⚠️ Identidad que recibe `SR | CM | Servicio - Cobranza`, o si hace falta.
-- ⚠️ Si **Member's privilege inheritance** viaja con los roles en la *solution*.
 - ⚠️ DLP, grupo de seguridad del ambiente e Intune.

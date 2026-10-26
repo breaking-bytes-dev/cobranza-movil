@@ -225,7 +225,7 @@ Las decisiones están agrupadas por área:
 ### 7.1 Tramos por hash del id de la cuenta
 
 - **Decisión:** [`TramoCartera.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/TramoCartera.cs) pone un tramo de 0 a 19 en asignación y cuenta (calculado del id de la cuenta) y en pago (del id de la interacción). Las apps traen la cartera, la reasignación y los pagos del día con 20 consultas, una por tramo.
-- **Por qué:** cada copia a una colección de canvas se corta en 2.000 filas (⚠️ A confirmar: el paquete de la app del localizador declara 500 por fuente y 2.000 para la app; no está confirmado cuál rige). El tramo sale de la cuenta para que sea estable aunque la carga vuelva a crear la asignación, y usa FNV-1a porque los ids de Dataverse son secuenciales y sus primeros bytes reparten mal.
+- **Por qué:** cada copia a una colección de canvas se corta en 2.000 filas, el límite configurado en las dos apps; con 20 tramos, la cartera de un localizador soporta hasta unas 40.000 asignaciones activas. El tramo sale de la cuenta para que sea estable aunque la carga vuelva a crear la asignación, y usa FNV-1a porque los ids de Dataverse son secuenciales y sus primeros bytes reparten mal.
 - **Alternativa descartada:** paginar por fecha u orden; tramo por id de la asignación.
 - **Qué se rompe si se cambia:** cambiar `TramosCartera` o la función de hash deja las filas existentes en tramos que la app ya no consulta; hay que recalcularlas. Las apps también consultan el tramo vacío para lo que todavía no lo tiene.
 

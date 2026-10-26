@@ -28,7 +28,7 @@ flowchart TD
 
 ### Roles
 
-Los roles de CM se reconocen por el prefijo `SR | CM | ` y viven en la unidad de negocio raíz. Viajan en la *solution* con sus privilegios; después de importar se revisan y se completan a mano algunos ajustes sobre roles del sistema ([Instalación, paso 4](09-instalacion-y-despliegue.md#4-ajustes-de-seguridad-posteriores-a-la-importación)). La copia de [`solutions/unpacked/Roles/`](../../solutions/unpacked/Roles/) puede estar atrasada.
+Los roles de CM se reconocen por el prefijo `SR | CM | ` y viven en la unidad de negocio raíz. Viajan en la *solution* con sus privilegios; después de importar se revisan y se completan a mano algunos ajustes sobre roles del sistema ([Instalación, paso 4](09-instalacion-y-despliegue.md#4-ajustes-de-seguridad-posteriores-a-la-importación)). La definición de cada rol queda en [`solutions/unpacked/Roles/`](../../solutions/unpacked/Roles/).
 
 | Rol | Quién lo tiene | Para qué |
 |---|---|---|
@@ -37,7 +37,7 @@ Los roles de CM se reconocen por el prefijo `SR | CM | ` y viven en la unidad de
 | `SR \| CM \| Solicitante` | Quien pide asignaciones Especiales | Buscar cualquier cuenta y pedir una Especial |
 | `SR \| CM \| Supervisor` | Responsable de los localizadores | Aprobar Especiales, reasignar, mirar carteras |
 | `SR \| CM \| Admin` | Administrador funcional de CM | Carga diaria, reconciliación, alta de cuentas, agentes, datos maestros y listas |
-| `SR \| CM \| Servicio - Cobranza` | ⚠️ A confirmar a qué identidad se asigna ([Instalación, paso 9](09-instalacion-y-despliegue.md#9-asignar-roles-a-las-personas-y-compartir-las-apps)); la operación normal no la necesita | Procesos automáticos de CM; los *plugins* la tratan como al Admin, con una diferencia: puede crear Diarias e Incobrables, que al Admin se le rechazan ([`AprobacionEspecial.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/AprobacionEspecial.cs)) |
+| `SR \| CM \| Servicio - Cobranza` | Nadie en la operación normal: es opcional y queda reservado para un proceso automático futuro, que se asignaría a un *application user* (usuario de aplicación, identidad no humana de Dataverse) ([Instalación, paso 9](09-instalacion-y-despliegue.md#9-asignar-roles-a-las-personas-y-compartir-las-apps)) | Procesos automáticos de CM; los *plugins* la tratan como al Admin, con una diferencia: puede crear Diarias e Incobrables, que al Admin se le rechazan ([`AprobacionEspecial.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/AprobacionEspecial.cs)) |
 | `SR \| CM \| Cartera sin cobrador` | Solo el equipo «Cartera sin cobrador», nunca una persona | Permitir que ese equipo sea dueño de asignaciones (ver más abajo) |
 
 [`RolesCm.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/RolesCm.cs) obtiene los roles de CM del usuario que llama, tanto los asignados directamente como los heredados por un equipo. Los *plugins* lo usan así:
@@ -113,7 +113,7 @@ Además, [`InteraccionDelCobrador.cs`](../../plugins/Sanic.CobranzaMovil.Plugins
 
 ### Roles heredados por equipos de Entra ID
 
-Los roles pueden asignarse a un equipo de Dataverse de tipo *Microsoft Entra ID security group* (equipo cuyos miembros son los de un grupo de Entra ID) en lugar de a cada usuario. `RolesCm` reconoce ambos casos. Para el rol Localizador, que trabaja con profundidad Basic, la propiedad del rol **Member's privilege inheritance** tiene que estar en *Direct User (Basic) access level and Team privileges*: con *Team privileges only*, el usuario solo podría usar los privilegios Basic sobre registros cuyo dueño es el equipo, y no vería las asignaciones de las que es dueño. Esta propiedad no figura en la definición del rol de [`solutions/unpacked/Roles/`](../../solutions/unpacked/Roles/): ⚠️ A confirmar si viaja con el rol; se revisa en cada ambiente después de importar ([Instalación, paso 4.3](09-instalacion-y-despliegue.md#43-herencia-de-privilegios-para-roles-dados-por-equipo)).
+Los roles pueden asignarse a un equipo de Dataverse de tipo *Microsoft Entra ID security group* (equipo cuyos miembros son los de un grupo de Entra ID) en lugar de a cada usuario. `RolesCm` reconoce ambos casos. Para el rol Localizador, que trabaja con profundidad Basic, la propiedad del rol **Member's privilege inheritance** tiene que estar en *Direct User (Basic) access level and Team privileges*: con *Team privileges only*, el usuario solo podría usar los privilegios Basic sobre registros cuyo dueño es el equipo, y no vería las asignaciones de las que es dueño. Esta propiedad **no viaja** en la *solution*: no figura en la definición del rol de [`solutions/unpacked/Roles/`](../../solutions/unpacked/Roles/). *Direct User (Basic) access level and Team privileges* es el valor con que Dataverse crea un rol nuevo, así que en una instalación nueva los siete roles de CM quedan bien sin intervención. Solo hay que revisarla si alguien la cambió a mano, y una actualización de la *solution* no la corrige ([Instalación, paso 4.3](09-instalacion-y-despliegue.md#43-herencia-de-privilegios-para-roles-dados-por-equipo)).
 
 La app de la oficina obtiene los perfiles de la persona con la *Custom API* `sanic_cm_MisRoles` ([`MisRoles.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/MisRoles.cs)), que devuelve sus roles de CM efectivos: los directos y los de cualquier equipo, incluido un equipo de grupo de Entra ID. No depende del nombre del equipo: un rol de CM se puede dar por cualquier equipo, con cualquier nombre ([Instalación, paso 9](09-instalacion-y-despliegue.md#9-asignar-roles-a-las-personas-y-compartir-las-apps)).
 
@@ -161,7 +161,7 @@ La auditoría de tabla solo registra si la auditoría está encendida también a
 
 | Pieza | Archivo |
 |---|---|
-| Roles con sus privilegios, cascadas y auditoría | Viajan en la *solution* `cm_core_cobranzamovil` ([Instalación, paso 3](09-instalacion-y-despliegue.md#3-revisar-lo-importado)); copia posiblemente atrasada en [`solutions/unpacked/Roles/`](../../solutions/unpacked/Roles/) |
+| Roles con sus privilegios, cascadas y auditoría | Viajan en la *solution* `cm_core_cobranzamovil` ([Instalación, paso 3](09-instalacion-y-despliegue.md#3-revisar-lo-importado)); copia legible en [`solutions/unpacked/Roles/`](../../solutions/unpacked/Roles/) |
 | Ajustes sobre roles del sistema (System Customizer, herencia de privilegios) | A mano: [Instalación, paso 4](09-instalacion-y-despliegue.md#4-ajustes-de-seguridad-posteriores-a-la-importación) |
 | Equipo «Cartera sin cobrador» | A mano: [Instalación, paso 5](09-instalacion-y-despliegue.md#5-equipo-cartera-sin-cobrador); nombre fijo en [`Esquema.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/Esquema.cs) |
 | Clave K | A mano: [Instalación, paso 7](09-instalacion-y-despliegue.md#7-clave-k) |

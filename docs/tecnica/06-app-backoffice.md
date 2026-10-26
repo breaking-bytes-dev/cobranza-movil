@@ -293,7 +293,9 @@ Igual que la app del localizador: se edita en **Power Apps Studio** dentro de la
 4. Exportar la *solution* **subiendo su número de versión** en **Export this solution** (es el número que muestra la app; no hay que tocar nada en ella) e importarla en el destino ([Instalación, pasos 1 y 2](09-instalacion-y-despliegue.md#1-conseguir-el-paquete-de-la-solution)).
 5. En el destino, verificar en el pie del menú que «Versión» muestre la versión nueva de la *solution* ([Pruebas](10-pruebas.md#0-verificación-previa-pre), PRE-07).
 
-La relación entre Studio y las fuentes `.pa.yaml` del repositorio, y el ejemplo de YAML, están en [App del localizador](05-app-localizador.md#cómo-modificar-la-app).
+6. Actualizar [`apps/backoffice-canvas/Src/`](../../apps/backoffice-canvas/Src/) en el repositorio con los `*.pa.yaml` de una copia descargada de la app, como explica [Mantener `Src/` del repositorio al día](05-app-localizador.md#mantener-src-del-repositorio-al-día) (incluye por qué hay que revisar la diferencia antes de hacer *commit*).
+
+El ejemplo de YAML para pegar en Studio está en [App del localizador](05-app-localizador.md#cómo-modificar-la-app). Al agregar una fuente de datos, revisar que tome el límite de la app (2.000): **Settings** → **General** → **Data row limit**.
 
 ### Agregar una columna o una tabla
 

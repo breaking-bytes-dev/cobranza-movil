@@ -491,11 +491,11 @@ Sin entradas.
 | `Version` | Texto | Versión de la *solution* `cm_core_cobranzamovil` instalada en el ambiente (formato `X.Y.Z.B`), leída en el servidor con el servicio del sistema; vacía si no se encuentra o no se puede leer |
 
 - Quién puede: cualquier usuario; solo devuelve lo suyo. Lee los roles con el servicio del sistema (`RolesCm`), directos y de cualquier equipo del que sea miembro, también los de grupo de Entra ID.
-- `Servicio - Cobranza` no se devuelve: es la identidad de las integraciones, no un perfil de la app.
+- `Servicio - Cobranza` no se devuelve: es un rol reservado para procesos automáticos, no un perfil de la app.
 - **Por qué:** canvas no deja navegar Equipo → Roles dentro de un `ForAll`; sin esta API la app tendría que deducir el perfil del nombre del equipo.
 - **Por qué devuelve `Version`:** así la versión que muestran las apps es la de la *solution* importada, sin un sello escrito a mano en cada app. Para cambiarla basta con subir el número de versión de la *solution* al exportarla. La app de la oficina la muestra en el pie del menú (`gblVersion`, puesta en [`scrCarga`](../../apps/backoffice-canvas/Src/scrCarga.pa.yaml); «—» si no llegó).
 
-La copia desempaquetada del repositorio ([`solutions/unpacked/customapis/`](../../solutions/unpacked/customapis/)) está atrasada y no tiene las cinco *Custom APIs* de CM: viajan en la *solution* exportada del ambiente de desarrollo y se revisan después de importar ([Instalación, paso 3](09-instalacion-y-despliegue.md#3-revisar-lo-importado)). ⚠️ A confirmar que el paquete incluya `sanic_cm_MisRoles`: sin ella, la app de la oficina abre sin perfiles («Sin acceso») para todos.
+Las cinco *Custom APIs* de CM viajan en la *solution* y su definición (parámetros de entrada y de respuesta) queda en la copia desempaquetada del repositorio, una carpeta por API en [`solutions/unpacked/customapis/`](../../solutions/unpacked/customapis/). Se revisan después de importar ([Instalación, paso 3](09-instalacion-y-despliegue.md#3-revisar-lo-importado)). ⚠️ Sin `sanic_cm_MisRoles`, la app de la oficina abre sin perfiles («Sin acceso») para todos.
 
 ## Clases de apoyo
 
