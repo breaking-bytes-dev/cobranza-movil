@@ -149,7 +149,7 @@ Configuración que tiene que estar antes de probar flujos. La mira el Verificado
 | PRE-04 Pasos de *plugin* | Verificador | make → Soluciones → la *solution* de CM → pasos de complemento | Todos activos. `RepartoAsignacion`, `RepartoPorAgente` y `PurgaArchivoCarga` en modo **asíncrono**; los seis pasos de `PanGuard` activos |
 | PRE-05 Plantillas de Smelter | Verificador | Smelter → plantillas de importación | Existen «Cobranza movil», «Cobranza movil · padres» y «Cobranza movil · partes», activas, con esos nombres exactos y una sola de cada una |
 | PRE-06 Borrado programado | Verificador | Centro de administración → **Eliminación masiva** | Los siete trabajos `CM - …` de [Ciclo de vida](08-ciclo-de-vida.md#los-siete-trabajos-de-borrado) existen, recurrentes diarios, en espera. Se revisan en detalle en [CIC](#14-ciclo-de-vida-y-borrado-programado-cic) |
-| PRE-07 Versión publicada | P-ADM, P-LOC1 | Abrir la app de la oficina (pie del menú, «Versión») y la del localizador (indicador de sincronización → «Versión de la app») | Las dos muestran la versión recién instalada. Si muestran otra, el reproductor sigue sirviendo la anterior: esperar unos minutos y reabrir antes de seguir |
+| PRE-07 Versión publicada | P-ADM | Abrir la app de la oficina y mirar el pie del menú («Versión») | Muestra el **Version** de la *solution* `cm_core_cobranzamovil` recién importada (make.powerapps.com → **Solutions**); sale de la propiedad `Version` de `sanic_cm_MisRoles`, no de la app. Si muestra otra, el reproductor sigue sirviendo la anterior: esperar unos minutos y reabrir. «—» indica que no pudo obtenerla del servidor: falla del caso. (La app del localizador muestra «—» en Sincronización; no se verifica) |
 
 ### 1. Seguridad por rol (SEG)
 

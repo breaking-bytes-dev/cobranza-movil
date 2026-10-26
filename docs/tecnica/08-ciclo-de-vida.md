@@ -27,7 +27,9 @@ flowchart TD
 
 ### Los siete trabajos de borrado
 
-No viajan en la *solution*: se crean a mano con el asistente de *bulk delete* del admin center ([Instalación, paso 11](09-instalacion-y-despliegue.md#11-borrado-programado)). Cada uno es una consulta sobre una tabla que se repite cada 1 día, sin aviso por correo. La primera corrida es a la hora de inicio elegida en el asistente y desde entonces una vez por día a esa hora.
+Viajan **dentro de la *solution*** `cm_core_cobranzamovil` como componentes **Data Life Cycle Config**: los trabajos de *bulk delete* son *solution-aware*, así que su definición (consulta completa y recurrencia) se exporta e importa como cualquier otro componente. Después de importar solo se verifican ([Instalación, paso 11](09-instalacion-y-despliegue.md#11-borrado-programado)). Cada uno es una consulta sobre una tabla que se repite cada 1 día, sin aviso por correo.
+
+⚠️ Un trabajo importado **corre inmediatamente al importarse** ([documentación de Microsoft](https://learn.microsoft.com/power-platform/admin/delete-bulk-records#solution-aware-bulk-deletion-jobs)): cada importación de la *solution* dispara una limpieza en ese momento. Se planifica la importación (sin cargas en curso, fuera del horario de los localizadores), y solo un administrador puede importar una *solution* que contiene estos trabajos.
 
 | # | Nombre del trabajo | Tabla | Borra | Plazo |
 |---|---|---|---|---|
@@ -41,7 +43,7 @@ No viajan en la *solution*: se crean a mano con el asistente de *bulk delete* de
 
 **Asignación viva** (trabajo 2): una asignación de la cuenta (unida por `sanic_cm_as_cuentaid`) con `sanic_cm_as_estado` = activa, **o** con `sanic_cm_as_ultimacarga` en los últimos 14 días, **o** con `sanic_cm_as_fechacierre` en los últimos 14 días. **Interacción Pendiente**: una interacción de la cuenta con `sanic_cm_in_estadograbacion` = 1 (todavía no transcrita al core). El `modifiedon` de la cuenta cuenta porque cada carga la reescribe.
 
-Los «sin registros relacionados» se expresan en el asistente con la tabla relacionada y **Does Not Contain Data** (No contiene datos), que Dataverse resuelve como una unión externa sin filas del otro lado. **Preview Records** (Vista previa de registros) muestra cuántas filas cumplen hoy, sin borrar nada. ⚠️ A confirmar que el asistente permita poner las condiciones de «asignación viva» e «interacción Pendiente» dentro de **Does Not Contain Data** para el trabajo 2 (ver [Instalación, paso 11](09-instalacion-y-despliegue.md#11-borrado-programado)).
+Los «sin registros relacionados» son, en la consulta, una unión con la tabla relacionada del tipo **Does Not Contain Data** (No contiene datos), que Dataverse resuelve como una unión externa sin filas del otro lado. En el trabajo 2, las condiciones de «asignación viva» e «interacción Pendiente» van dentro de esas uniones: la consulta completa está en el trabajo del ambiente de desarrollo y viaja así en la *solution*.
 
 Agente, producto y opciones de lista no se borran nunca: se desactivan.
 
@@ -132,7 +134,7 @@ El trabajo se conserva con sus contadores y sus registros; solo se borra el arch
 
 | Pieza | Archivo |
 |---|---|
-| Trabajos de borrado programado | No viajan en la *solution*: admin center → **Bulk deletion** ([Instalación, paso 11](09-instalacion-y-despliegue.md#11-borrado-programado)) |
+| Trabajos de borrado programado | En la *solution*, como componentes **Data Life Cycle Config**; se ven en admin center → **Bulk deletion** ([Instalación, paso 11](09-instalacion-y-despliegue.md#11-borrado-programado)) |
 | Restrict y cascades | Relaciones de las tablas, en la *solution* ([Modelo de datos](02-modelo-de-datos.md#relaciones-y-cascadas)) |
 | Borrado del archivo de los jobs de Smelter | [`PurgaArchivoCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PurgaArchivoCarga.cs), [`PurgaArchivoCargaTests.cs`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/PurgaArchivoCargaTests.cs) |
 | Identidad en la interacción | [`IdentidadEnInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/IdentidadEnInteraccion.cs), [`IdentidadEnInteraccionTests.cs`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/IdentidadEnInteraccionTests.cs) |
@@ -158,17 +160,19 @@ En el Power Platform admin center: **Entornos** → el ambiente → **Configurac
 
 ### Cambiar un plazo
 
-Un trabajo de *bulk delete* no se edita: se cancela y se crea otro.
+Los trabajos se cambian **solo en el ambiente de desarrollo** y llegan a los demás ambientes con la *solution*. Un trabajo de *bulk delete* no se edita: se cancela y se crea otro.
 
-1. Admin center → ambiente → **Settings** → **Data management** → **Bulk deletion**: abrir el trabajo y cancelarlo desde el menú **Actions** (Acciones).
-2. Crear el trabajo nuevo con el asistente, igual que en [Instalación, paso 11](09-instalacion-y-despliegue.md#11-borrado-programado), con el plazo nuevo. Si el nombre incluye el plazo (trabajos 1 y 2), ajustar también el nombre.
-3. Antes de enviarlo, revisar con **Preview Records** cuántas filas cumplen hoy.
-4. Mantener el escalonamiento: el plazo de las interacciones mayor que el de pagos y actualizaciones, y la gracia de la cuenta mayor que el plazo de la carga diaria.
-5. Actualizar la tabla de trabajos de [Instalación, paso 11](09-instalacion-y-despliegue.md#11-borrado-programado) y la de este documento, para que la próxima instalación use el plazo nuevo.
+1. En el ambiente de desarrollo: admin center → ambiente → **Settings** → **Data management** → **Bulk deletion**: abrir el trabajo y cancelarlo desde el menú **Actions** (Acciones).
+2. Crear el trabajo nuevo con **New** (se abre **Bulk Deletion Wizard**), con la misma consulta y el plazo nuevo; **Run this job after every** **1** día; hora de inicio fuera del horario de carga; sin correo. Si el nombre incluye el plazo (trabajos 1 y 2), ajustar también el nombre. Antes de enviarlo, revisar con **Preview Records** (Vista previa de registros) cuántas filas cumplen hoy.
+3. Mantener el escalonamiento: el plazo de las interacciones mayor que el de pagos y actualizaciones, y la gracia de la cuenta mayor que el plazo de la carga diaria.
+4. En `make.powerapps.com` → **Solutions** → `cm_core_cobranzamovil` → **Add existing** (Agregar existente) → **More** (Más) → **Other** (Otros) → **Data Life Cycle Config** → elegir el trabajo nuevo. Quitar de la *solution* el trabajo cancelado.
+5. Exportar la *solution* con un número de versión mayor ([Instalación, paso 1](09-instalacion-y-despliegue.md#1-conseguir-el-paquete-de-la-solution)) e importarla en los demás ambientes, recordando que el trabajo corre al importarse.
+6. En cada ambiente, comprobar en **Bulk deletion** que quede el trabajo nuevo y no el viejo; si el viejo sigue recurrente, cancelarlo desde **Actions**.
+7. Actualizar la tabla de trabajos de [Instalación, paso 11](09-instalacion-y-despliegue.md#11-borrado-programado) y la de este documento.
 
 ### Agregar una tabla nueva al ciclo de vida
 
-Crear un trabajo nuevo con el asistente ([Instalación, paso 11](09-instalacion-y-despliegue.md#11-borrado-programado)): tabla en **Look for**, condiciones y, para «sin registros relacionados», la tabla relacionada con **Does Not Contain Data**. Agregarlo a la tabla de trabajos de la instalación. Revisar antes las relaciones de la tabla: una Restrict con un hijo que vive más hace que el borrado falle todos los días.
+Igual que cambiar un plazo, pero sin cancelar nada: en el ambiente de desarrollo, crear el trabajo con **New** (tabla en **Look for**, condiciones y, para «sin registros relacionados», la tabla relacionada con **Does Not Contain Data**), agregarlo a la *solution* con **Add existing** → **More** → **Other** → **Data Life Cycle Config**, exportar e importar. Agregarlo a la tabla de trabajos de la instalación. Revisar antes las relaciones de la tabla: una Restrict con un hijo que vive más hace que el borrado falle todos los días.
 
 ### Operadores que no valen con *DateOnly*
 

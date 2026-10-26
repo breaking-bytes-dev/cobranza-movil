@@ -64,7 +64,7 @@ flowchart LR
 | [`solutions/`](solutions/) | La solución de Dataverse desempaquetada |
 | [`scripts/`](scripts/) | Scripts de instalación, despliegue y mantenimiento |
 | [`tests/`](tests/) | Suites de punta a punta de las dos apps |
-| [`test-data/`](test-data/) | Archivos de carga de ejemplo y su generador. Nunca datos reales |
+| [`test-data/`](test-data/) | Archivos de carga de ejemplo. Nunca datos reales |
 | [`docs/`](docs/) | Esta documentación |
 
 ## Convenciones

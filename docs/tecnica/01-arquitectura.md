@@ -77,7 +77,7 @@ sequenceDiagram
 4. **Subida.** Al recuperar señal, el runtime offline sube lo pendiente con la identidad del localizador. Los plugins exigen cuenta y agente, ponen el agente del usuario, completan lookups (*lookup*: columna que apunta a otra fila) y marcan lo dudoso.
 5. **Transcripción.** El BackOffice abre [`scrTranscripcion.pa.yaml`](../../apps/backoffice-canvas/Src/scrTranscripcion.pa.yaml), lee el número completo de la bóveda, transcribe la interacción al core y la marca **grabada** con el código que devuelve el core. [`GrabacionInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/GrabacionInteraccion.cs) impide grabarla dos veces y pone la fecha y el usuario.
 6. **Reconciliación y cierres.** El Admin cierra en [`scrReconciliacion.pa.yaml`](../../apps/backoffice-canvas/Src/scrReconciliacion.pa.yaml) las Diarias que no vinieron en la última carga (Custom API [`CerrarFueraDeCartera.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/CerrarFueraDeCartera.cs)) y en [`scrCierres.pa.yaml`](../../apps/backoffice-canvas/Src/scrCierres.pa.yaml) las Incobrables y Especiales. Cada cierre dispara el reparto, que revoca el acceso; la asignación desaparece del teléfono en la siguiente sincronización.
-7. **Borrado programado.** Siete trabajos diarios de *bulk delete*, creados a mano en cada ambiente ([Instalación, paso 11](09-instalacion-y-despliegue.md#11-borrado-programado)), borran la carga diaria a los 7 días, las cuentas 14 días después de salir de cartera y lo que capturó el teléfono a los 2 años.
+7. **Borrado programado.** Siete trabajos diarios de *bulk delete*, que viajan en la *solution* como componentes *Data Life Cycle Config* ([Instalación, paso 11](09-instalacion-y-despliegue.md#11-borrado-programado)), borran la carga diaria a los 7 días, las cuentas 14 días después de salir de cartera y lo que capturó el teléfono a los 2 años.
 
 ### Por qué una canvas app offline en el teléfono
 
@@ -118,7 +118,7 @@ El número de cuenta del archivo del banco es el PAN real, así que la solución
 | Plantillas de Smelter | Registros de Smelter, se crean a mano en cada ambiente ([Instalación, paso 8](09-instalacion-y-despliegue.md#8-plantillas-de-smelter)); nombres fijos en [`Esquema.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/Esquema.cs) |
 | Equipo «Cartera sin cobrador» | Se crea a mano ([Instalación, paso 5](09-instalacion-y-despliegue.md#5-equipo-cartera-sin-cobrador)); lo busca [`CarteraSinCobrador.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/CarteraSinCobrador.cs) |
 | Perfiles de la app de la oficina | Custom API `sanic_cm_MisRoles` ([`MisRoles.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/MisRoles.cs)), llamada desde [`scrCarga.pa.yaml`](../../apps/backoffice-canvas/Src/scrCarga.pa.yaml) |
-| Borrado programado | Siete trabajos de *bulk delete* creados a mano ([Instalación, paso 11](09-instalacion-y-despliegue.md#11-borrado-programado)); archivo de carga: [`PurgaArchivoCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PurgaArchivoCarga.cs) |
+| Borrado programado | Siete trabajos de *bulk delete* en la *solution* (componentes *Data Life Cycle Config*; [Instalación, paso 11](09-instalacion-y-despliegue.md#11-borrado-programado)); archivo de carga: [`PurgaArchivoCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PurgaArchivoCarga.cs) |
 | Solución desempaquetada | [`solutions/unpacked/`](../../solutions/unpacked/) (puede estar atrasada respecto del ambiente) |
 | Pruebas | Casos manuales por interfaz en [Pruebas](10-pruebas.md); las suites automatizadas de [`tests/`](../../tests/) son solo para desarrolladores |
 
@@ -133,7 +133,7 @@ El número de cuenta del archivo del banco es el PAN real, así que la solución
 
 **Agregar una tabla que el teléfono necesite.** Agregarla a la solución, darle privilegios al rol Localizador, sumarla (con un filtro de filas si hace falta acotarla) al *offline profile* «Cobranza Movil - Cobrador» en el admin center → ambiente → **Settings** → **Users + permissions** → **Mobile configuration**, publicar el perfil y refrescar las fuentes de la app. Detalle en [App del localizador](05-app-localizador.md).
 
-**Agregar una columna al archivo del banco.** Se edita la plantilla principal «Cobranza movil» y se repite el cambio a mano en la derivada que corresponde («· padres» o «· partes»), como indica [Instalación, paso 8.2](09-instalacion-y-despliegue.md#82-plantillas-derivadas); `PartirCarga` se niega a partir si las plantillas derivadas no coinciden. Detalle en [Carga diaria](07-carga-diaria.md).
+**Agregar una columna al archivo del banco.** Se edita la plantilla principal «Cobranza movil» y se regeneran las derivadas «· padres» y «· partes» exportando la principal desde Smelter e importándola con cada nombre, como indica [Instalación, paso 8.2](09-instalacion-y-despliegue.md#82-plantillas-derivadas); `PartirCarga` se niega a partir si las plantillas derivadas no coinciden. Detalle en [Carga diaria](07-carga-diaria.md).
 
 **Instalar en otro ambiente.** El orden importa (equipo «Cartera sin cobrador», clave K y plantillas antes de la primera carga). Ver [Instalación y despliegue](09-instalacion-y-despliegue.md).
 

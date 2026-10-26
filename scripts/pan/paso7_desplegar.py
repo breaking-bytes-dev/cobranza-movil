@@ -8,9 +8,8 @@ y chequeo de la foto del esquema (paso7_esquema: una columna que usan las fórmu
 → pac solution export → swap de los .msapp → DatabaseReferences/CdsDependencies desde LocalDatabaseReferences de cada app
 → pac solution import --publish-changes → restaura el estado de los pasos de plugin de CM y de los flows de la solución
 (la importación lo altera: con --activate-plugins enciende PanGuard y sin él apaga ClaveDesdeCuenta).
-Sello de versión: cada app lleva en App.Formulas `nfVersion = "dev";`. Se empaqueta una COPIA de la carpeta con
-"<commit>[+dirty] <aaaa-mm-dd HH:MM UTC>" en lugar de "dev" (el repo no cambia), y tras importar se guarda en
-local/version-desplegada.json: las suites lo comparan con lo que muestra la app servida antes de probar.
+Versión: las apps no llevan sello; la de la oficina muestra la versión de la solución (Custom API sanic_cm_MisRoles).
+Tras importar se guarda "<commit>[+dirty] <aaaa-mm-dd HH:MM UTC>" en local/version-desplegada.json como registro.
 Usa el perfil activo de pac (SP de DEV). Después: paso3_reconciliar.py --aplicar.
 --parche: exporta e importa la solución cm_parche (paso22_parche.py) en vez de cm_core, y solo swapea las apps que el
 parche contiene. Mucho más rápido y no toca plugins, flows ni roles (no están en el parche). Sin paso3 después.
@@ -65,14 +64,11 @@ def git(*args): return subprocess.run(['git', '-C', RAIZ, *args], capture_output
 SELLO_CUANDO = datetime.datetime.now(datetime.timezone.utc)
 VERSION = (git('rev-parse', '--short', 'HEAD') + ('+dirty' if git('status', '--porcelain', '--untracked-files=no') else '')
            + ' ' + SELLO_CUANDO.strftime('%Y-%m-%d %H:%M'))
-MARCA = 'nfVersion = "dev";'
 def copia_sellada(carpeta, nombre):
+    """Copia de la carpeta de la app para empaquetar (el repo no cambia)."""
     copia = os.path.join(tmp, nombre + '-src'); shutil.copytree(os.path.join(RAIZ, carpeta), copia)
-    app = os.path.join(copia, 'Src', 'App.pa.yaml'); txt = open(app, encoding='utf-8').read()
-    if txt.count(MARCA) != 1: raise SystemExit(f'{nombre}: App.pa.yaml tiene que tener UNA vez `{MARCA}` (sello de versión, F7)')
-    open(app, 'w', encoding='utf-8').write(txt.replace(MARCA, f'nfVersion = "{VERSION}";'))
     return copia
-print('versión que se sella en las apps:', VERSION)
+print('commit que se despliega:', VERSION)
 
 msapps = {}
 for carpeta, nombre, minimo in APPS:

@@ -20,7 +20,7 @@ La app es de escritorio (1366 × 768) y se adapta a pantallas angostas: `nfMovil
 El rol sale de la seguridad real de Dataverse, sin tabla propia ni nombres de equipos:
 
 1. `gblUsuarioDV` (fórmula con nombre en [`App.pa.yaml`](../../apps/backoffice-canvas/Src/App.pa.yaml)) busca al usuario en `Users` por `'Azure AD Object ID' = User().EntraObjectId`. Se usa el id de Entra y no el correo porque `User().Email` devuelve el UPN, que puede no coincidir con el correo principal.
-2. `gblRol` es una variable que pone el `OnVisible` de la pantalla inicial [`scrCarga`](../../apps/backoffice-canvas/Src/scrCarga.pa.yaml) con la *Custom API* [`sanic_cm_MisRoles`](04-plugins-y-custom-apis.md#sanic_cm_misroles): los roles efectivos del usuario (directos y de cualquier equipo, también de grupo de Entra ID) sin el prefijo `SR | CM | ` y separados por `|`, por ejemplo `Admin|BackOffice`. `Servicio - Cobranza` no cuenta como perfil.
+2. `gblRol` es una variable que pone el `OnVisible` de la pantalla inicial [`scrCarga`](../../apps/backoffice-canvas/Src/scrCarga.pa.yaml) con la *Custom API* [`sanic_cm_MisRoles`](04-plugins-y-custom-apis.md#sanic_cm_misroles): los roles efectivos del usuario (directos y de cualquier equipo, también de grupo de Entra ID) sin el prefijo `SR | CM | ` y separados por `|`, por ejemplo `Admin|BackOffice`. `Servicio - Cobranza` no cuenta como perfil. La misma llamada devuelve `Version` (versión de la *solution*), que va a `gblVersion` para el pie del menú.
 3. Las comprobaciones usan `"Admin" in gblRol`, que no distingue mayúsculas.
 
 Mientras la API no responde, `gblRolListo` es falso: `scrCarga` muestra «Cargando tus permisos…» y el temporizador `tmrCarga` (cada 0,5 s) pasa a Inicio recién cuando resolvió, así el `OnVisible` de [`scrInicio`](../../apps/backoffice-canvas/Src/scrInicio.pa.yaml) calcula los KPIs con el rol. Como tope, a los 30 s entra igual con error. En Inicio, «Cargando tus permisos…» mientras no resolvió; «Sin acceso» si resolvió vacío; «No se pudo verificar tu acceso» con el detalle (`gblRolError`) si la API falló. El menú muestra «Cargando…» en el lugar del rol.
@@ -147,7 +147,7 @@ Ver [Listas administrables](#listas-administrables).
 | [`cmpKpi`](../../apps/backoffice-canvas/Src/Components/cmpKpi.pa.yaml) | `Etiqueta`, `Valor`, `Detalle`, `EsHero` | Tarjeta de indicador |
 | [`cmpVacio`](../../apps/backoffice-canvas/Src/Components/cmpVacio.pa.yaml) | `Icono`, `Titulo`, `Mensaje` | Estado vacío (cola vacía, sin resultados, sin acceso) |
 
-Los cuatro tienen `AccessAppScope: true`: leen los tokens de la app (`gblC` colores, `gblE` medidas). La versión llega al menú por la variable `gblVersion`, copiada de `nfVersion` en `OnStart`, porque un componente no ve las fórmulas con nombre que solo usa él.
+Los cuatro tienen `AccessAppScope: true`: leen los tokens de la app (`gblC` colores, `gblE` medidas). La versión llega al menú por la variable `gblVersion`, que pone el `OnVisible` de [`scrCarga`](../../apps/backoffice-canvas/Src/scrCarga.pa.yaml) con la propiedad `Version` de la respuesta de `sanic_cm_MisRoles`: es el número de versión de la *solution* `cm_core_cobranzamovil` instalada, leído en el servidor. Si la API no la devuelve o falla, el menú muestra «—». Por eso la versión no se escribe a mano en la app: cambia sola al importar una *solution* con número mayor.
 
 [`App.Formulas`](../../apps/backoffice-canvas/Src/App.pa.yaml) también define funciones compartidas: `Moneda()`, `CuentaMasc()`, `TextoError()` (extrae el `message` del JSON de error de una *Custom API*), `RetiroOk()`, `SoloDigitos()` y `LuhnOk()`.
 
@@ -289,10 +289,9 @@ Igual que la app del localizador: se edita en **Power Apps Studio** dentro de la
 
 1. `make.powerapps.com`, ambiente de desarrollo → **Solutions** → `cm_core_cobranzamovil` → **Apps** → «App - CM - Backoffice Canvas» → **Edit**.
 2. Hacer el cambio. Respetar: nombres de control únicos en toda la app, `Radius*` solo en `GroupContainer`, sin `AccessibleLabel` en `Classic/Button`. No publicar con fórmulas marcadas en rojo.
-3. Actualizar `nfVersion` en `App.Formulas` con la versión nueva.
-4. **Save** y **Publish**.
-5. Verificar en el pie del menú que «Versión» muestre el valor nuevo ([Pruebas](10-pruebas.md), PRE-07).
-6. Exportar la *solution* e importarla en el destino ([Instalación, pasos 1 y 2](09-instalacion-y-despliegue.md#1-conseguir-el-paquete-de-la-solution)).
+3. **Save** y **Publish**.
+4. Exportar la *solution* **subiendo su número de versión** en **Export this solution** (es el número que muestra la app; no hay que tocar nada en ella) e importarla en el destino ([Instalación, pasos 1 y 2](09-instalacion-y-despliegue.md#1-conseguir-el-paquete-de-la-solution)).
+5. En el destino, verificar en el pie del menú que «Versión» muestre la versión nueva de la *solution* ([Pruebas](10-pruebas.md#0-verificación-previa-pre), PRE-07).
 
 La relación entre Studio y las fuentes `.pa.yaml` del repositorio, y el ejemplo de YAML, están en [App del localizador](05-app-localizador.md#cómo-modificar-la-app).
 

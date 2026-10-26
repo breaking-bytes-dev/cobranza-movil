@@ -33,7 +33,8 @@ La app es de tipo teléfono (640 × 1136, vertical). Su nombre interno es `sanic
 
 [`App.pa.yaml`](../../apps/localizador-canvas/Src/App.pa.yaml) define:
 
-- **Fórmulas con nombre** (*named formulas*: se recalculan solas cuando cambian sus datos y no bloquean el arranque): `gblAgente` (el agente del usuario), `gblAgenteInactivo`, `gblSync` (estado de sincronización) y `nfVersion` (sello de versión).
+- **Fórmulas con nombre** (*named formulas*: se recalculan solas cuando cambian sus datos y no bloquean el arranque): `gblAgente` (el agente del usuario), `gblAgenteInactivo`, `gblSync` (estado de sincronización) y la versión que muestra la pantalla Sincronización (`nfVersion`).
+- **Versión**: hoy Sincronización muestra «—». La app de la oficina obtiene la versión de la *solution* con la *Custom API* [`sanic_cm_MisRoles`](04-plugins-y-custom-apis.md#sanic_cm_misroles), pero esta app no tiene la fuente de datos *Environment* que hace falta para llamarla. ⚠️ A confirmar: agregarla desde Studio (**Data** → **Add data** → *Environment*) y comprobar en el teléfono que no afecta el modo *offline* antes de mostrar la versión real.
 - **Funciones de usuario**: `Moneda()` (texto bimoneda), `PanMasc()` (`•••• 1234`), `EspTipo()` y `EspNota()` (separan tipo y nota de la Especial en el texto `Tipo — nota`).
 - **`OnStart`**: preferencias guardadas, los temas `gblDay` / `gblNight` (tokens de color en `gblC`) y los tamaños de letra `gblT`, que escalan con `gblScale`.
 
@@ -197,10 +198,10 @@ La app se modifica en **Power Apps Studio**, siempre **dentro de la *solution***
 
 1. En `make.powerapps.com`, ambiente de desarrollo → **Solutions** → `cm_core_cobranzamovil` → **Apps** → seleccionar «App - Cobranza Movil» → **Edit** (Editar). Se abre Studio.
 2. Hacer el cambio. Respetar: nombres de control únicos en toda la app, `Radius*` solo en `GroupContainer` (no en `Label` ni `Classic/Icon`) y `AccessibleLabel` nunca en `Classic/Button`. Una fórmula con error aparece marcada en rojo en Studio: no publicar con errores pendientes.
-3. Actualizar `nfVersion` en `App.Formulas` (por ejemplo, con el número de versión que va a llevar la *solution*), para poder comprobar después qué versión sirve el reproductor.
-4. **Save** (Guardar) y **Publish** (Publicar) → **Publish this version** (Publicar esta versión).
-5. Probar en el ambiente de desarrollo: en la pantalla Sincronización, «Versión de la app» tiene que mostrar el valor nuevo ([Pruebas](10-pruebas.md), PRE-07).
-6. Exportar la *solution* e importarla en el ambiente de destino ([Instalación, pasos 1 y 2](09-instalacion-y-despliegue.md#1-conseguir-el-paquete-de-la-solution) y [Actualizar a una versión nueva](09-instalacion-y-despliegue.md#actualizar-a-una-versión-nueva)).
+3. **Save** (Guardar) y **Publish** (Publicar) → **Publish this version** (Publicar esta versión).
+4. Probar en el ambiente de desarrollo.
+5. Exportar la *solution* **subiendo su número de versión** en **Export this solution**: ese número es el que la app muestra como versión, no hay que tocar nada en la app. Importarla en el ambiente de destino ([Instalación, pasos 1 y 2](09-instalacion-y-despliegue.md#1-conseguir-el-paquete-de-la-solution) y [Actualizar a una versión nueva](09-instalacion-y-despliegue.md#actualizar-a-una-versión-nueva)).
+6. En el destino, con conexión, el pie del menú de la app de la oficina tiene que mostrar la versión nueva de la *solution* ([Pruebas](10-pruebas.md#0-verificación-previa-pre), PRE-07).
 
 Las fuentes de la carpeta [`apps/localizador-canvas/Src/`](../../apps/localizador-canvas/Src/) (`*.pa.yaml`, formato de código de Power Apps) son una copia legible de pantallas, controles y fórmulas, útil para revisar y buscar. El `.msapr` guarda las fuentes de datos, el id del perfil *offline* y los recursos. Studio muestra el mismo YAML de cada control con **View code** (Ver código). ⚠️ A confirmar cómo se mantiene esa copia al día con lo publicado (por ejemplo, con la integración de Git de las *solutions* de Power Platform): un cambio hecho en Studio no actualiza el repositorio solo.
 
@@ -273,6 +274,6 @@ En Studio, **Settings** → **General**: ícono de la app y color de fondo (`RGB
 
 - ⚠️ **Editar solo en el ambiente de desarrollo y dentro de la *solution*.** Una app creada o editada fuera de `cm_core_cobranzamovil` no viaja al exportar. En producción la *solution* es administrada: no se edita ahí.
 - ⚠️ **Perfil *offline* y app van juntos.** Si se edita y publica el perfil, hay que volver a publicar la app. Al exportar, el perfil tiene que estar en la *solution* (dependencia de la app; **Add required objects** lo agrega).
-- ⚠️ **Versión vieja en el reproductor.** Después de publicar o importar, el teléfono puede servir la versión anterior unos minutos. El síntoma es que «Versión de la app» no cambia; si `nfVersion` no se actualizó al publicar, no hay forma de distinguir las versiones.
+- ⚠️ **Versión vieja en el reproductor.** Después de publicar o importar, el teléfono puede servir la versión anterior unos minutos. Cerrar la app y volver a abrirla con conexión.
 - **App abierta en Studio.** Abrirla puede dejarla como «modificada» (Studio actualiza los controles modernos) y la bloquea mientras está en edición: una importación en ese ambiente falla hasta que se cierra ([Instalación, trampas](09-instalacion-y-despliegue.md#trampas-y-errores-conocidos)).
 - **La importación y los pasos de *plugin*.** Al importar, dejar marcada **Enable plug-in steps and flows included in the solution** y revisar después los pasos ([Instalación, paso 3](09-instalacion-y-despliegue.md#3-revisar-lo-importado)).

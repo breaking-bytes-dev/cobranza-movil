@@ -141,7 +141,7 @@ Reglas de la partición:
 - **Permisos.** Solo Admin, Servicio o un usuario sin roles de CM. Los jobs se crean con los permisos del llamador: el rol de Smelter llega por el equipo y «Creado por» es la persona.
 - **PCI.** El archivo solo vive en memoria. Las trazas y los errores citan columnas y conteos, nunca valores.
 
-Antes de partir, la API exige que la plantilla principal deduplique el cliente por `sanic_cm_cl_cif` desde una columna del archivo, y que las plantillas derivadas estén activas y sean **copia exacta** de su parte de la principal (configuración y firma de cada mapeo). Si no coinciden, falla sin tocar nada y nombra la plantilla que no coincide. La corrección es re-sincronizar las derivadas a mano ([Instalación, paso 8.2](09-instalacion-y-despliegue.md#82-plantillas-derivadas)). ⚠️ El texto del error, en [`PartirCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PartirCarga.cs), pide regenerar las plantillas con una herramienta del repositorio que no forma parte de la instalación: ignorar esa indicación y corregir a mano.
+Antes de partir, la API exige que la plantilla principal deduplique el cliente por `sanic_cm_cl_cif` desde una columna del archivo, y que las plantillas derivadas estén activas y sean **copia exacta** de su parte de la principal (configuración y firma de cada mapeo). Si no coinciden, falla sin tocar nada y nombra la plantilla que no coincide. La corrección es regenerar las derivadas exportando la principal desde Smelter e importándola como «· padres» y «· partes» ([Instalación, paso 8.2](09-instalacion-y-despliegue.md#82-plantillas-derivadas)). ⚠️ El texto del error, en [`PartirCarga.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/PartirCarga.cs), pide regenerar las plantillas con una herramienta del repositorio que no forma parte de la instalación: ignorar esa indicación y corregir a mano.
 
 ### Plantillas de Smelter
 
@@ -150,10 +150,10 @@ Tres plantillas (`sanic_tbl_smlt_importtemplate`). Las tres son del equipo de ca
 | Plantilla | Se edita | Contenido |
 |---|---|---|
 | «Cobranza movil» (principal) | **A mano, solo esta** | Todos los *Table Mappings*. La usan la prueba en seco, la carga en serie y el alta de cuenta del Admin (`AltaCuenta` arma un CSV de una fila con `FilaDeCarga`) |
-| «Cobranza movil · padres» | Nunca por su cuenta: es copia exacta de su parte de la principal | Solo los mapeos de `sanic_cm_tbl_producto`, `sanic_cm_tbl_fiador` y `sanic_cm_tbl_agente` |
-| «Cobranza movil · partes» | Nunca por su cuenta: es copia exacta de su parte de la principal | Todos los demás mapeos |
+| «Cobranza movil · padres» | No: se regenera exportando la principal e importándola con este nombre | Solo los mapeos de `sanic_cm_tbl_producto`, `sanic_cm_tbl_fiador` y `sanic_cm_tbl_agente` |
+| «Cobranza movil · partes» | No: se regenera exportando la principal e importándola con este nombre | Todos los demás mapeos |
 
-Cada cambio en la principal se repite a mano, en las pantallas de Smelter, en la derivada que corresponde: delimitador, encabezado, tamaño de lote, origen, estado y dueño de la plantilla, y cada *Table Mapping* y *Column Mapping* con los mismos valores; lo que ya no esté en la principal se **borra** de la derivada. El paso a paso está en [Instalación, paso 8.2](09-instalacion-y-despliegue.md#82-plantillas-derivadas). La principal no puede tener *Relationship Mappings* ni mapeos repetidos.
+Cada cambio en la principal se lleva a las derivadas a mano, en las pantallas de Smelter: se **exporta** la principal, se **importa** como «· padres» y como «· partes» (renombrando antes la derivada vieja para que no haya dos con el mismo nombre), y en cada una se borran los *Table Mappings* que no le tocan. Así delimitador, encabezado, tamaño de lote, origen y cada *Table Mapping* y *Column Mapping* quedan con los mismos valores. Después se asigna el dueño y se repasa la lista de chequeo de [Instalación, paso 8.2](09-instalacion-y-despliegue.md#82-plantillas-derivadas). La principal no puede tener *Relationship Mappings* ni mapeos repetidos.
 
 Modelo de configuración de Smelter que usa la plantilla:
 
@@ -230,7 +230,7 @@ Productos, fiadores y agentes que se actualizan:
 
 1. Crear la columna en Dataverse (ver [Modelo de datos](02-modelo-de-datos.md)).
 2. Agregar el *Column Mapping* en la plantilla **principal** «Cobranza movil», nunca en las derivadas.
-3. Repetir el cambio en la derivada que corresponde («· padres» para producto, fiador y agente; «· partes» para el resto), como explica [Instalación, paso 8.2](09-instalacion-y-despliegue.md#82-plantillas-derivadas). Sin esto, `PartirCarga` se niega a partir.
+3. Regenerar las derivadas: exportar la principal desde Smelter e importarla como «· padres» (se dejan producto, fiador y agente) y como «· partes» (el resto), como explica [Instalación, paso 8.2](09-instalacion-y-despliegue.md#82-plantillas-derivadas). Sin esto, `PartirCarga` se niega a partir.
 4. Si la columna es nueva en el CSV, agregarla a `FilaDeCarga.Encabezado` para que el alta de cuenta del Admin la siga mandando, y a los archivos de prueba ([Pruebas](10-pruebas.md#datos-de-prueba-el-archivo-de-carga-sintético)).
 5. Probar con una prueba en seco de un archivo de ejemplo.
 
