@@ -68,6 +68,10 @@ App:
       // después de refrescar la fuente "Environment" en Studio (la foto de las Custom APIs del .msapr no conoce
       // sanic_cm_PartirCarga hasta entonces, y la fórmula de btnPartirCar queda inerte).
       nfCargaParalela = true;
+      // APP-48: interruptor del cierre en lote de Reconciliación en el servidor (Custom API sanic_cm_CerrarFueraDeCartera, por
+      // lotes y sin el tope de 2000). false = el Patch de antes. Pasar a true SOLO después de refrescar la fuente "Environment"
+      // en Studio (hasta entonces la foto de las Custom APIs no conoce la API y tmrCierreRec queda inerte).
+      nfCierreServidor = true;
 
       // Interruptor de la validación de largo en la prueba en seco y la carga en serie (btnValidarCar llama a
       // sanic_cm_PartirCarga con SoloValidar = true antes de poner el job en cola). Pasar a true SOLO después de refrescar

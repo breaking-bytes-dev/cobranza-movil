@@ -98,7 +98,10 @@ Screens:
         // visitas (gotcha 01) — sin él, un cierre confirmado ayer deja el botón armado hoy.
         Set(varPctRec, Round(100 * varNDesapRec / Max(1, varNDiariasRec), 0));
         Set(varRojoRec, varPctRec > 30);
-        Reset(chkConfirmarRec)
+        Reset(chkConfirmarRec);
+        Reset(txtConfirmarRec);
+        Set(varCerrandoRec, false);
+        Set(varEnVueloRec, false)
     Children:
       - cmpEncabezadoRec:
           Control: CanvasComponent
@@ -448,7 +451,7 @@ Screens:
                   BorderThickness: =1
                   DropShadow: =DropShadow.None
                   Fill: =gblC.card
-                  Height: =If(nfMovil && varRojoRec, 180, 156)
+                  Height: =If(nfMovil && varRojoRec, 180, 156) + If(varRojoRec, gblE.AltoInput + gblE.PadSm, 0)
                   RadiusBottomLeft: =gblE.Radio
                   RadiusBottomRight: =gblE.Radio
                   RadiusTopLeft: =gblE.Radio
@@ -514,6 +517,25 @@ Screens:
                         Width: =Parent.Width - 2*gblE.Pad
                         X: =gblE.Pad
                         Y: =gblE.PadSm
+                  - txtConfirmarRec:
+                      Control: Classic/TextInput@2.3.2
+                      Properties:
+                        AccessibleLabel: ="Cantidad de Diarias a cerrar"
+                        BorderColor: =gblC.redInk
+                        Default: =""
+                        DisplayMode: =If(chkConfirmarRec.Value && !varCerrandoRec, DisplayMode.Edit, DisplayMode.Disabled)
+                        Fill: =gblC.card
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        HintText: ="Para cerrar, escribí " & varNDesapRec & " (la cantidad de Diarias que se cierran)"
+                        MaxLength: =7
+                        Size: =10
+                        Visible: =varRojoRec
+                        Width: =Parent.Width - 2*gblE.Pad
+                        X: =gblE.Pad
+                        Y: =chkConfirmarRec.Y + chkConfirmarRec.Height + gblE.PadSm
                   - btnCerrarRec:
                       Control: Classic/Button@2.2.0
                       Properties:
@@ -522,7 +544,9 @@ Screens:
                         DisabledColor: =Color.White
                         DisabledFill: =ColorFade(gblC.redBg, 60%)
                         DisplayMode: |-
-                          =If(chkConfirmarRec.Value && nfUltimaCarga >= Today() && !varCargaBloqRec,
+                          =// Con la alerta roja (más del 30%) hay que escribir la cantidad: un clic suelto ya no cierra (APP-48).
+                          If(chkConfirmarRec.Value && nfUltimaCarga >= Today() && !varCargaBloqRec && !varCerrandoRec
+                                  && (!varRojoRec || Trim(txtConfirmarRec.Text) = Text(varNDesapRec)),
                               DisplayMode.Edit, DisplayMode.Disabled)
                         Fill: =If(varRojoRec, gblC.redInk, gblC.redBg)
                         FocusedBorderColor: =gblC.teal
@@ -531,71 +555,84 @@ Screens:
                         Height: =gblE.AltoBoton
                         HoverFill: =ColorFade(Self.Fill, 10%)
                         OnSelect: |-
-                          =// UN solo Patch masivo: ForAll DEVUELVE la tabla de cambios (no muta adentro) y
-                          // cada registro lleva la PK ('CM | TBL | Asignacion') → Patch actualiza esas filas.
-                          // Sin LookUp por fila: colDesapRec ya trae la PK desde el Filter del OnVisible.
-                          // Si algún día el lote legítimo fuera de CIENTOS, esto se muda a un flow/acción
-                          // server-side que cierre en una transacción.
-                          // IfError (B-03): si el Patch masivo falla, detalle y sin aviso de éxito ni recarga.
-                          IfError(
-                              Patch('CM | TBL | Asignacions',
-                                  ForAll(colDesapRec As D,
-                                      {
-                                          'CM | TBL | Asignacion': D.'CM | TBL | Asignacion',
-                                          '[AS] Estado': false,
-                                          '[AS] Motivo': "fuera de cartera",
-                                          'Fecha de cierre': Now()
-                                      }
-                                  )
-                              ),
-                              Notify("No se pudo cerrar el lote de " & CountRows(colDesapRec) & " Diarias: " & FirstError.Message,
-                                  NotificationType.Error),
-                              Notify("🧹 " & CountRows(colDesapRec) & " Diarias cerradas — motivo: fuera de cartera",
-                                  NotificationType.Success, 2500);
-                              // Recarga — mismo bloque del OnVisible (corte del día recalculado)
-                              // Corte = el DÍA de la última carga: 'Última carga' es DateOnly desde 2026-10-25 (día contra día, sin zona).
-                              Set(varCorteRec, Date(Year(nfUltimaCarga), Month(nfUltimaCarga), Day(nfUltimaCarga)));
-                              // Lista acotada a 2000; el conteo es exacto (CountIf).
-                              Concurrent(
-                                  ClearCollect(colDesapRec,
-                                      AddColumns(
-                                          Filter('CM | TBL | Asignacions',
+                          =// APP-48: con nfCierreServidor el cierre lo hace la Custom API por lotes (tmrCierreRec), sin el tope de 2000.
+                          // Si no, el Patch de antes. En los dos casos, overlay «⏳ Cerrando…» y botón deshabilitado mientras dura.
+                          If(nfCierreServidor,
+                              Set(varTotalCierreRec, varNDesapRec);
+                              Set(varRestRec, varNDesapRec);
+                              Set(varCerradasRec, 0);
+                              Set(varEnVueloRec, false);
+                              Set(varCerrandoRec, true),
+                              Set(varTotalCierreRec, CountRows(colDesapRec));
+                              Set(varCerradasRec, 0);
+                              Set(varCerrandoRec, true);
+                              // UN solo Patch masivo: ForAll DEVUELVE la tabla de cambios (no muta adentro) y
+                              // cada registro lleva la PK ('CM | TBL | Asignacion') → Patch actualiza esas filas.
+                              // Sin LookUp por fila: colDesapRec ya trae la PK desde el Filter del OnVisible.
+                              // Si algún día el lote legítimo fuera de CIENTOS, esto se muda a un flow/acción
+                              // server-side que cierre en una transacción.
+                              // IfError (B-03): si el Patch masivo falla, detalle y sin aviso de éxito ni recarga.
+                              IfError(
+                                  Patch('CM | TBL | Asignacions',
+                                      ForAll(colDesapRec As D,
+                                          {
+                                              'CM | TBL | Asignacion': D.'CM | TBL | Asignacion',
+                                              '[AS] Estado': false,
+                                              '[AS] Motivo': "fuera de cartera",
+                                              'Fecha de cierre': Now()
+                                          }
+                                      )
+                                  ),
+                                  Notify("No se pudo cerrar el lote de " & CountRows(colDesapRec) & " Diarias: " & FirstError.Message,
+                                      NotificationType.Error),
+                                  Notify("🧹 " & CountRows(colDesapRec) & " Diarias cerradas — motivo: fuera de cartera",
+                                      NotificationType.Success, 2500);
+                                  // Recarga — mismo bloque del OnVisible (corte del día recalculado)
+                                  // Corte = el DÍA de la última carga: 'Última carga' es DateOnly desde 2026-10-25 (día contra día, sin zona).
+                                  Set(varCorteRec, Date(Year(nfUltimaCarga), Month(nfUltimaCarga), Day(nfUltimaCarga)));
+                                  // Lista acotada a 2000; el conteo es exacto (CountIf).
+                                  Concurrent(
+                                      ClearCollect(colDesapRec,
+                                          AddColumns(
+                                              Filter('CM | TBL | Asignacions',
+                                                  '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
+                                                  && '[AS] Estado' = true
+                                                  && 'Última carga' < varCorteRec
+                                              ),
+                                              clienteRec,
+                                              Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
+                                              ult4Rec,
+                                              Coalesce(ThisRecord.'[AS] Cuenta'.'Últimos 4', "")
+                                          )
+                                      ),
+                                      Set(varNDesapRec,
+                                          CountIf('CM | TBL | Asignacions',
                                               '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
                                               && '[AS] Estado' = true
                                               && 'Última carga' < varCorteRec
-                                          ),
-                                          clienteRec,
-                                          Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
-                                          ult4Rec,
-                                          Coalesce(ThisRecord.'[AS] Cuenta'.'Últimos 4', "")
+                                          )
+                                      ),
+                                      Set(varNDiariasRec,
+                                          CountIf('CM | TBL | Asignacions',
+                                              '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
+                                              && '[AS] Estado' = true
+                                          )
                                       )
-                                  ),
-                                  Set(varNDesapRec,
-                                      CountIf('CM | TBL | Asignacions',
-                                          '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
-                                          && '[AS] Estado' = true
-                                          && 'Última carga' < varCorteRec
-                                      )
-                                  ),
-                                  Set(varNDiariasRec,
-                                      CountIf('CM | TBL | Asignacions',
-                                          '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
-                                          && '[AS] Estado' = true
-                                      )
-                                  )
+                                  );
+                                  Set(varPctRec, Round(100 * varNDesapRec / Max(1, varNDiariasRec), 0));
+                                  Set(varRojoRec, varPctRec > 30);
+                                  Reset(chkConfirmarRec)
                               );
-                              Set(varPctRec, Round(100 * varNDesapRec / Max(1, varNDiariasRec), 0));
-                              Set(varRojoRec, varPctRec > 30);
-                              Reset(chkConfirmarRec)
+                              Set(varCerrandoRec, false)
                           )
                         Size: =10
                         Text: |-
                           =If(varRojoRec,
-                              "⚠ Cerrar " & CountRows(colDesapRec) & " en lote IGUAL (" & varPctRec & "%)",
-                              "🧹 Cerrar " & CountRows(colDesapRec) & " asignaciones en lote")
+                              "⚠ Cerrar " & If(nfCierreServidor, varNDesapRec, CountRows(colDesapRec)) & " en lote IGUAL (" & varPctRec & "%)",
+                              "🧹 Cerrar " & If(nfCierreServidor, varNDesapRec, CountRows(colDesapRec)) & " asignaciones en lote")
                         Width: =Parent.Width - 2*gblE.Pad
                         X: =gblE.Pad
-                        Y: =chkConfirmarRec.Y + chkConfirmarRec.Height + gblE.PadSm
+                        Y: =If(varRojoRec, txtConfirmarRec.Y + txtConfirmarRec.Height, chkConfirmarRec.Y + chkConfirmarRec.Height) + gblE.PadSm
       - cmpNavRec:
           Control: CanvasComponent
           ComponentName: cmpNavLateral
@@ -604,3 +641,91 @@ Screens:
             RutaActiva: ="rec"
             Visible: =!nfMovil || gblNavMovilAbierta
             Width: =gblE.AnchoNav
+      - tmrCierreRec:
+          Control: Timer@2.1.0
+          Properties:
+            AutoPause: =false
+            Duration: =300
+            OnTimerEnd: |-
+              =// APP-48: una vuelta = un llamado a la Custom API (hasta 250 filas, bajo el límite de 2 min de un plugin). Sigue mientras
+              // queden; Esperadas = las que quedaban (si aparecen más, el servidor no cierra y avisa). varEnVueloRec evita dos
+              // llamados a la vez si el temporizador vuelve a disparar antes de la respuesta.
+              If(nfCierreServidor && varCerrandoRec && !varEnVueloRec,
+                  Set(varEnVueloRec, true);
+                  Set(varRespCierreRec, Blank());
+                  Set(varRespCierreRec,
+                      Environment.sanic_cm_CerrarFueraDeCartera({
+                          Corte: Text(varCorteRec, "yyyy-mm-dd"),
+                          Esperadas: varRestRec,
+                          Lote: 250
+                      })
+                  );
+                  Set(varErrCierreRec, IfError(If(IsBlank(varRespCierreRec.Corte), "el servidor no respondió", ""), Coalesce(FirstError.Message, "sin detalle")));
+                  If(IsBlank(varErrCierreRec),
+                      Set(varCerradasRec, varCerradasRec + varRespCierreRec.Cerradas);
+                      Set(varRestRec, varRespCierreRec.Restantes)
+                  );
+                  If(!IsBlank(varErrCierreRec) || varRestRec <= 0 || varRespCierreRec.Cerradas = 0,
+                      Set(varCerrandoRec, false);
+                      If(IsBlank(varErrCierreRec),
+                          Notify("🧹 " & varCerradasRec & " Diarias cerradas — motivo: fuera de cartera", NotificationType.Success, 3000),
+                          Notify("Se cerraron " & varCerradasRec & " de " & varTotalCierreRec & ". " & varErrCierreRec, NotificationType.Error)
+                      );
+                      // Recarga — mismo bloque del OnVisible (corte del día recalculado)
+                      // Corte = el DÍA de la última carga: 'Última carga' es DateOnly desde 2026-10-25 (día contra día, sin zona).
+                      Set(varCorteRec, Date(Year(nfUltimaCarga), Month(nfUltimaCarga), Day(nfUltimaCarga)));
+                      // Lista acotada a 2000; el conteo es exacto (CountIf).
+                      Concurrent(
+                          ClearCollect(colDesapRec,
+                              AddColumns(
+                                  Filter('CM | TBL | Asignacions',
+                                      '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
+                                      && '[AS] Estado' = true
+                                      && 'Última carga' < varCorteRec
+                                  ),
+                                  clienteRec,
+                                  Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
+                                  ult4Rec,
+                                  Coalesce(ThisRecord.'[AS] Cuenta'.'Últimos 4', "")
+                              )
+                          ),
+                          Set(varNDesapRec,
+                              CountIf('CM | TBL | Asignacions',
+                                  '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
+                                  && '[AS] Estado' = true
+                                  && 'Última carga' < varCorteRec
+                              )
+                          ),
+                          Set(varNDiariasRec,
+                              CountIf('CM | TBL | Asignacions',
+                                  '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Diaria
+                                  && '[AS] Estado' = true
+                              )
+                          )
+                      );
+                      Set(varPctRec, Round(100 * varNDesapRec / Max(1, varNDiariasRec), 0));
+                      Set(varRojoRec, varPctRec > 30);
+                      Reset(chkConfirmarRec);
+                      Reset(txtConfirmarRec)
+                  );
+                  Set(varEnVueloRec, false)
+              )
+            Repeat: =true
+            Start: =nfCierreServidor && varCerrandoRec
+            Visible: =false
+      - lblCerrandoRec:
+          Control: Label@2.5.1
+          Properties:
+            Align: =Align.Center
+            Color: =gblC.teal
+            Fill: =RGBA(255, 255, 255, 0.88)
+            Font: =Font.'Segoe UI'
+            FontWeight: =FontWeight.Semibold
+            Height: =Parent.Height
+            Size: =13
+            Text: |-
+              ="⏳ Cerrando " & varTotalCierreRec & " asignaciones fuera de la carga…" & Char(10)
+                  & If(nfCierreServidor, varCerradasRec & " de " & varTotalCierreRec & " cerradas. ", "")
+                  & "No cierres ni cambies de pantalla."
+            Visible: =varCerrandoRec
+            Width: =Parent.Width
