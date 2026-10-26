@@ -228,6 +228,13 @@ ComponentDefinitions:
                                 Titulo: "Datos maestros",
                                 Ruta: "mae",
                                 Roles: "Admin"
+                            },
+                            {
+                                Orden: 17,
+                                Icono: "📋",
+                                Titulo: "Listas",
+                                Ruta: "lst",
+                                Roles: "Admin"
                             }
                         ),
                             CountRows(Filter(Split(Roles, "|"), Value in gblRol)) > 0
@@ -251,7 +258,8 @@ ComponentDefinitions:
                         "rec",  Navigate(scrReconciliacion),
                         "cie",  Navigate(scrCierres),
                         "age",  Navigate(scrAgentes),
-                        "mae",  Navigate(scrMaestros)
+                        "mae",  Navigate(scrMaestros),
+                        "lst",  Navigate(scrListas)
                     );
                     Set(gblNavMovilAbierta, false)
                   ShowScrollbar: =false

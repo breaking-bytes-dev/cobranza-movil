@@ -42,6 +42,9 @@ App:
               If(IsBlank(m), e, Trim(Substitute(m.t, "PartirCarga:", "")))
           );
 
+      // APP-49: monto de retiro de una Especial: obligatorio, número, 0 o más (vacío, texto o negativo no).
+      RetiroOk(t:Text): Boolean = IfError(With({v: Value(Trim(t))}, !IsBlank(Trim(t)) && !IsBlank(v) && v >= 0), false);
+
       // Alta de cuenta: dígitos de la tarjeta (sin espacios, guiones ni puntos) y dígito verificador (Luhn), en vivo.
       SoloDigitos(t:Text): Text = Substitute(Substitute(Substitute(t, " ", ""), "-", ""), ".", "");
       LuhnOk(d:Text): Boolean =

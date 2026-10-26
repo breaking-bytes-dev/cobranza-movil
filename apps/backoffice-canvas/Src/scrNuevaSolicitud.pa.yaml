@@ -16,6 +16,17 @@ Screens:
         // del form y vuelve, el borrador se conserva — INCLUIDA la cuenta elegida (varCtaNva) — y la
         // limpieza (varCtaNva + Reset de buscador e inputs) ocurre SOLO tras enviar con éxito
         // (btnEnviarNva). Si la API falla, nada se limpia (IfError, B-03).
+        // APP-49: los tipos salen de 'CM | TBL | Opciones de lista' (los edita el Admin en «Listas»): activas y en orden, la
+        // primera viene elegida. Si la lectura falla o la lista está vacía, los valores de siempre (la pantalla nunca queda sin tipos).
+        ClearCollect(colTipoNva,
+            IfError(
+                ForAll(
+                    Sort(Filter('CM | TBL | Opciones de lista',
+                        '[OL] Lista' = '[OL] Lista (CM | TBL | Opciones de lista)'.'Tipo de Especial' && '[OL] Activa' = true), '[OL] Orden'),
+                    {t: ThisRecord.'[OL] Texto'}),
+                Blank()));
+        If(CountRows(colTipoNva) = 0,
+            ClearCollect(colTipoNva, {t: "Retiro urgente"}, {t: "Cobro especial"}, {t: "Verificación"}))
     Children:
       - cmpEncabezadoNva:
           Control: CanvasComponent
@@ -371,15 +382,15 @@ Screens:
                 Properties:
                   AccessibleLabel: ="Tipo de solicitud"
                   BorderColor: =gblC.borde
-                  DefaultSelectedItems: =["Retiro urgente"]
-                  DisplayFields: =["Value"]
+                  DefaultSelectedItems: =FirstN(colTipoNva, 1)
+                  DisplayFields: =["t"]
                   Fill: =gblC.card
                   FocusedBorderColor: =gblC.teal
                   FocusedBorderThickness: =2
                   Font: =Font.'Segoe UI'
                   Height: =gblE.AltoInput
                   IsSearchable: =false
-                  Items: =["Retiro urgente", "Cobro especial", "Verificación"]
+                  Items: =colTipoNva
                   SelectMultiple: =false
                   Size: =10
                   Width: =Parent.Width - 2*gblE.Pad
@@ -406,7 +417,7 @@ Screens:
                 Properties:
                   AccessibleLabel: ="Monto de retiro en córdobas"
                   BorderColor: =gblC.borde
-                  Default: =""
+                  Default: ="0"
                   Fill: =gblC.card
                   FocusedBorderColor: =gblC.teal
                   FocusedBorderThickness: =2
@@ -446,7 +457,7 @@ Screens:
                 Properties:
                   AccessibleLabel: ="Monto de retiro en dólares"
                   BorderColor: =gblC.borde
-                  Default: =""
+                  Default: ="0"
                   Fill: =gblC.card
                   FocusedBorderColor: =gblC.teal
                   FocusedBorderThickness: =2
@@ -532,8 +543,9 @@ Screens:
                                 Table(
                                     {t: If(IsBlank(varCtaNva), "cuenta")},
                                     // B-20: el combo estático permite deseleccionar la opción → exigir el tipo.
-                                    {t: If(IsBlank(cmbTipoNva.Selected.Value), "tipo")},
-                                    {t: If(!(Value(txtRetiroNioNva.Text) > 0 || Value(txtRetiroUsdNva.Text) > 0), "monto")},
+                                    {t: If(IsBlank(cmbTipoNva.Selected.t), "tipo")},
+                                    // APP-49: los dos montos son obligatorios y valen 0 o más (0 = sin retiro en esa moneda).
+                                    {t: If(!RetiroOk(txtRetiroNioNva.Text) || !RetiroOk(txtRetiroUsdNva.Text), "monto (0 o más, en NIO y USD)")},
                                     {t: If(IsBlank(Trim(txtMotivoNva.Text)), "motivo")}
                                 ),
                                 !IsBlank(t)
@@ -555,8 +567,8 @@ Screens:
                   DisabledFill: =ColorFade(gblC.teal, 60%)
                   DisplayMode: |-
                     =If(!IsBlank(varCtaNva)
-                        && !IsBlank(cmbTipoNva.Selected.Value)  // B-20
-                        && (Value(txtRetiroNioNva.Text) > 0 || Value(txtRetiroUsdNva.Text) > 0)
+                        && !IsBlank(cmbTipoNva.Selected.t)  // B-20
+                        && RetiroOk(txtRetiroNioNva.Text) && RetiroOk(txtRetiroUsdNva.Text)  // APP-49: 0 o más
                         && !IsBlank(Trim(txtMotivoNva.Text)),
                         DisplayMode.Edit, DisplayMode.Disabled)
                   Fill: =gblC.teal
@@ -582,9 +594,9 @@ Screens:
                         Set(varRespNva,
                             Environment.sanic_cm_SolicitarEspecial({
                                 CuentaId: Text(varCtaNva.'CM | TBL | Cuenta'),
-                                Notas: cmbTipoNva.Selected.Value & " — " & Trim(txtMotivoNva.Text),
-                                RetiroNio: Coalesce(Value(txtRetiroNioNva.Text), 0),
-                                RetiroUsd: Coalesce(Value(txtRetiroUsdNva.Text), 0)
+                                Notas: cmbTipoNva.Selected.t & " — " & Trim(txtMotivoNva.Text),
+                                RetiroNio: Value(Trim(txtRetiroNioNva.Text)),
+                                RetiroUsd: Value(Trim(txtRetiroUsdNva.Text))
                             })
                         );
                         Set(varErrNva, IfError(If(IsBlank(varRespNva.Resultado), "el servidor no devolvió resultado", Left(Text(varRespNva.Resultado), 0)), Coalesce(FirstError.Message, "sin detalle")));

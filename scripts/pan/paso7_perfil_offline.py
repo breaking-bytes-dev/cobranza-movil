@@ -21,7 +21,8 @@ APLICAR = '--aplicar' in sys.argv
 RAIZ = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..')
 MSAPR = os.path.join(RAIZ, 'apps/localizador-canvas/sanic_appcobranzamovil_c4e67_DocumentUri.msapr')
 PERFIL = 'Cobranza Movil - Cobrador'
-TABLAS = ['cliente', 'actualizaciondatos', 'agente', 'asignacion', 'cuenta', 'pago', 'direccion', 'interaccion', 'telefono', 'cuentapan']
+TABLAS = ['cliente', 'actualizaciondatos', 'agente', 'asignacion', 'cuenta', 'pago', 'direccion', 'interaccion', 'telefono', 'cuentapan',
+          'opcionlista']  # APP-49: opciones de lista (mensajes rápidos); tabla chica, baja completa
 # S-1: además de la seguridad por fila, se acota lo que baja al teléfono ("Custom data filter", criterio 3, en FetchXML).
 # Asignaciones: solo activas. Historial (interacciones, pagos, actualizaciones de datos): modificado en los últimos 90 días;
 # lo más viejo se ve en la app solo con señal. Decisión del dueño del producto (2026-10-05).

@@ -295,7 +295,14 @@ Screens:
                 Properties:
                   FillPortions: =0
                   Height: =180
-                  Items: =["Promesa de pago","No localizado","Cliente pagó","No tiene dinero hoy","Negocio cerrado","Pidió arreglo"]
+                  Items: |-
+                    =// APP-49: mensajes rápidos desde 'CM | TBL | Opciones de lista' (los edita el Admin; la tabla está en el perfil
+                    // sin conexión, llega en la próxima sincronización). Sin filas (todavía no sincronizó o falló), los de siempre.
+                    With({o: IfError(Sort(Filter('CM | TBL | Opciones de lista',
+                            '[OL] Lista' = '[OL] Lista (CM | TBL | Opciones de lista)'.'Mensaje rápido' && '[OL] Activa' = true), '[OL] Orden'), Blank())},
+                        If(CountRows(o) = 0,
+                            ["Promesa de pago","No localizado","Cliente pagó","No tiene dinero hoy","Negocio cerrado","Pidió arreglo"],
+                            ForAll(o, {Value: ThisRecord.'[OL] Texto'})))
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
                   ShowScrollbar: =false

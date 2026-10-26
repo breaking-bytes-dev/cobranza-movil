@@ -11,7 +11,19 @@ Screens:
     Properties:
       Fill: =gblC.pantalla
       OnVisible: |-
-        =// Asignaciones activas Incobrable/Especial + joins horneados una vez (receta 7.7).
+        =// APP-49: motivos de cierre desde 'CM | TBL | Opciones de lista' (los edita el Admin en «Listas»), activos y en orden.
+        // Si la lectura falla o una lista está vacía, los de siempre.
+        ClearCollect(colMotIncCie,
+            IfError(ForAll(Sort(Filter('CM | TBL | Opciones de lista',
+                '[OL] Lista' = '[OL] Lista (CM | TBL | Opciones de lista)'.'Motivo de cierre Incobrable' && '[OL] Activa' = true), '[OL] Orden'),
+                {Value: ThisRecord.'[OL] Texto'}), Blank()));
+        If(CountRows(colMotIncCie) = 0, ClearCollect(colMotIncCie, ["Recuperada", "Baja / castigada", "Fuera de cartera"]));
+        ClearCollect(colMotEspCie,
+            IfError(ForAll(Sort(Filter('CM | TBL | Opciones de lista',
+                '[OL] Lista' = '[OL] Lista (CM | TBL | Opciones de lista)'.'Motivo de cierre Especial' && '[OL] Activa' = true), '[OL] Orden'),
+                {Value: ThisRecord.'[OL] Texto'}), Blank()));
+        If(CountRows(colMotEspCie) = 0, ClearCollect(colMotEspCie, ["Gestión completada", "Ya no aplica", "Solicitud errónea"]));
+        // Asignaciones activas Incobrable/Especial + joins horneados una vez (receta 7.7).
         // F11 (b): solo las Especiales APROBADAS; una pendiente se resuelve en Aprobaciones (aprobar o rechazar).
         // Datos de la cuenta navegando el lookup '[AS] Cuenta' (lo resuelve el servidor, sin
         // catálogo de cuentas truncable al Data row limit).
@@ -689,9 +701,7 @@ Screens:
                   InputTextPlaceholder: ="— Elegir —"
                   IsSearchable: =false
                   Items: |-
-                    =If(varSelCie.'[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable,
-                        ["Recuperada", "Baja / castigada", "Fuera de cartera"],
-                        ["Gestión completada", "Ya no aplica", "Solicitud errónea"])
+                    =If(varSelCie.'[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Incobrable, colMotIncCie, colMotEspCie)
                   SelectMultiple: =false
                   Size: =10
                   Width: =Parent.Width - 2*gblE.Pad

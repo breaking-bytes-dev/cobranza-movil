@@ -1,0 +1,350 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+#
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+#
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+Screens:
+  scrListas:
+    Properties:
+      Fill: =gblC.pantalla
+      OnVisible: |-
+        =// APP-49: el Admin edita las opciones de las listas de las apps ('CM | TBL | Opciones de lista', scripts/pan/paso23_listas.py).
+        // No hay borrado: se desactiva (lo elegido se guarda como texto, renombrar no cambia el historial). La primera activa
+        // es la opción por defecto. Solo el Admin (menú) y, en el servidor, solo Admin y Servicio tienen Create/Write.
+        ClearCollect(colListasLst,
+            {n: 1, etq: "Tipo de Especial", uso: "Nueva solicitud: tipo de la Especial. La primera activa viene elegida."},
+            {n: 2, etq: "Motivo de cierre · Incobrable", uso: "Cierres: motivo al cerrar una Incobrable."},
+            {n: 3, etq: "Motivo de cierre · Especial", uso: "Cierres: motivo al cerrar una Especial."},
+            {n: 4, etq: "Mensajes rápidos del cobrador", uso: "Teléfono, Registrar visita: botones que agregan el texto al comentario. Llegan al teléfono en su próxima sincronización."}
+        );
+        If(IsBlank(varListaLst), Set(varListaLst, First(colListasLst)));
+        Set(varEnumLst, Switch(varListaLst.n,
+            1, '[OL] Lista (CM | TBL | Opciones de lista)'.'Tipo de Especial',
+            2, '[OL] Lista (CM | TBL | Opciones de lista)'.'Motivo de cierre Incobrable',
+            3, '[OL] Lista (CM | TBL | Opciones de lista)'.'Motivo de cierre Especial',
+            '[OL] Lista (CM | TBL | Opciones de lista)'.'Mensaje rápido'));
+        Set(varOcupadoLst, true);
+        ClearCollect(colOpcLst, Sort(Filter('CM | TBL | Opciones de lista', '[OL] Lista' = varEnumLst), '[OL] Orden'));
+        Set(varOcupadoLst, false);
+        Reset(txtNuevaLst)
+    Children:
+      - cmpEncLst:
+          Control: CanvasComponent
+          ComponentName: cmpEncabezado
+          Properties:
+            Height: =If(nfMovil, gblE.AltoBarra + 84, 84)
+            Subtitulo: ="Opciones que muestran las apps. Se desactivan, no se borran."
+            Titulo: ="Listas"
+            Width: =Parent.Width - Self.X
+            X: =If(nfMovil, 0, gblE.AnchoNav)
+      - conContenidoLst:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            DropShadow: =DropShadow.None
+            Fill: =Color.Transparent
+            Height: =Parent.Height - Self.Y - gblE.Pad
+            Width: =Min(gblE.AnchoMax, Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - 2*gblE.Pad)
+            X: |-
+              =If(nfMovil, 0, gblE.AnchoNav)
+                  + Max(gblE.Pad, (Parent.Width - If(nfMovil, 0, gblE.AnchoNav) - gblE.AnchoMax) / 2)
+            Y: =cmpEncLst.Y + cmpEncLst.Height + gblE.PadSm
+          Children:
+            - lblListaTitLst:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.ink2
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =18
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Lista"
+                  Width: =Parent.Width
+            - drpListaLst:
+                Control: Classic/DropDown@2.3.1
+                Properties:
+                  AccessibleLabel: ="Lista"
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  ChevronBackground: =gblC.card
+                  ChevronFill: =gblC.ink2
+                  ChevronHoverBackground: =gblC.pantalla
+                  ChevronHoverFill: =gblC.teal
+                  Color: =gblC.ink
+                  Default: =varListaLst.etq
+                  DisplayMode: =If(varOcupadoLst, DisplayMode.Disabled, DisplayMode.Edit)
+                  Fill: =gblC.card
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  HoverColor: =gblC.ink
+                  HoverFill: =gblC.pantalla
+                  Items: =colListasLst
+                  Items.Value: =etq
+                  OnChange: |-
+                    =Set(varListaLst, Self.Selected);
+                    Set(varEnumLst, Switch(varListaLst.n,
+                        1, '[OL] Lista (CM | TBL | Opciones de lista)'.'Tipo de Especial',
+                        2, '[OL] Lista (CM | TBL | Opciones de lista)'.'Motivo de cierre Incobrable',
+                        3, '[OL] Lista (CM | TBL | Opciones de lista)'.'Motivo de cierre Especial',
+                        '[OL] Lista (CM | TBL | Opciones de lista)'.'Mensaje rápido'));
+                    Set(varOcupadoLst, true);
+                    ClearCollect(colOpcLst, Sort(Filter('CM | TBL | Opciones de lista', '[OL] Lista' = varEnumLst), '[OL] Orden'));
+                    Set(varOcupadoLst, false);
+                    Reset(txtNuevaLst)
+                  PressedColor: =gblC.card
+                  PressedFill: =gblC.teal
+                  SelectionColor: =gblC.card
+                  SelectionFill: =gblC.teal
+                  Size: =10
+                  Width: =Min(420, Parent.Width)
+                  Y: =lblListaTitLst.Y + lblListaTitLst.Height + 4
+            - lblUsoLst:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.ink2
+                  Font: =Font.'Segoe UI'
+                  Height: =40
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: =varListaLst.uso & " Solo se muestran las activas, en este orden."
+                  Width: =Parent.Width
+                  Y: =drpListaLst.Y + drpListaLst.Height + 4
+            - txtNuevaLst:
+                Control: Classic/TextInput@2.3.2
+                Properties:
+                  AccessibleLabel: ="Nueva opción"
+                  BorderColor: =gblC.borde
+                  Default: =""
+                  DisplayMode: =If(varOcupadoLst, DisplayMode.Disabled, DisplayMode.Edit)
+                  Fill: =gblC.card
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  HintText: ="Nueva opción (hasta 100 caracteres)"
+                  MaxLength: =100
+                  Size: =10
+                  Width: =Parent.Width - 160 - gblE.PadSm
+                  Y: =lblUsoLst.Y + lblUsoLst.Height + gblE.PadSm
+            - btnAgregarLst:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderThickness: =0
+                  Color: =Color.White
+                  DisplayMode: =If(varOcupadoLst || IsBlank(Trim(txtNuevaLst.Text)), DisplayMode.Disabled, DisplayMode.Edit)
+                  Fill: =gblC.teal
+                  Font: =Font.'Segoe UI'
+                  Height: =gblE.AltoInput
+                  OnSelect: |-
+                    =With({t: Trim(txtNuevaLst.Text)},
+                        If(CountIf(colOpcLst, Lower(Trim('[OL] Texto')) = Lower(t)) > 0,
+                            Notify("Ya existe «" & t & "» en esta lista (si está inactiva, activala).", NotificationType.Warning),
+                            Set(varOcupadoLst, true);
+                            IfError(
+                                Patch('CM | TBL | Opciones de lista', Defaults('CM | TBL | Opciones de lista'), {
+                                    '[OL] Lista': varEnumLst,
+                                    '[OL] Texto': t,
+                                    '[OL] Orden': Coalesce(Max(colOpcLst, '[OL] Orden'), 0) + 10,
+                                    '[OL] Activa': true
+                                }),
+                                Notify("No se pudo agregar: " & FirstError.Message, NotificationType.Error),
+                                Notify("Agregada «" & t & "»", NotificationType.Success, 2000);
+                                Reset(txtNuevaLst)
+                            );
+                            ClearCollect(colOpcLst, Sort(Filter('CM | TBL | Opciones de lista', '[OL] Lista' = varEnumLst), '[OL] Orden'));
+                            Set(varOcupadoLst, false)
+                        )
+                    )
+                  RadiusBottomLeft: =10
+                  RadiusBottomRight: =10
+                  RadiusTopLeft: =10
+                  RadiusTopRight: =10
+                  Size: =10
+                  Text: ="＋ Agregar"
+                  Width: =160
+                  X: =Parent.Width - Self.Width
+                  Y: =txtNuevaLst.Y
+            - galOpcLst:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  BorderColor: =gblC.borde
+                  BorderThickness: =1
+                  Fill: =gblC.card
+                  Height: =Parent.Height - Self.Y
+                  Items: =colOpcLst
+                  TemplatePadding: =0
+                  TemplateSize: =60
+                  Width: =Parent.Width
+                  Y: =txtNuevaLst.Y + txtNuevaLst.Height + gblE.PadSm
+                Children:
+                  - txtTextoFilaLst:
+                      Control: Classic/TextInput@2.3.2
+                      Properties:
+                        AccessibleLabel: ="Texto de la opción"
+                        BorderColor: =gblC.borde
+                        Color: =If(ThisItem.'[OL] Activa', gblC.ink, gblC.ink2)
+                        Default: =ThisItem.'[OL] Texto'
+                        DisplayMode: =If(varOcupadoLst, DisplayMode.Disabled, DisplayMode.Edit)
+                        Fill: =gblC.card
+                        FocusedBorderColor: =gblC.teal
+                        FocusedBorderThickness: =2
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        Italic: =!ThisItem.'[OL] Activa'
+                        MaxLength: =100
+                        Size: =10
+                        Width: =Parent.TemplateWidth - 4*92 - 5*gblE.PadSm
+                        X: =gblE.PadSm
+                        Y: =(Parent.TemplateHeight - Self.Height) / 2
+                  - btnGuardarFilaLst:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderThickness: =0
+                        Color: =Color.White
+                        DisplayMode: |-
+                          =If(varOcupadoLst || IsBlank(Trim(txtTextoFilaLst.Text)) || Trim(txtTextoFilaLst.Text) = ThisItem.'[OL] Texto',
+                              DisplayMode.Disabled, DisplayMode.Edit)
+                        Fill: =gblC.teal
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        OnSelect: |-
+                          =With({t: Trim(txtTextoFilaLst.Text), id: ThisItem.'CM | TBL | Opción de lista'},
+                              If(CountIf(colOpcLst, 'CM | TBL | Opción de lista' <> id && Lower(Trim('[OL] Texto')) = Lower(t)) > 0,
+                                  Notify("Ya existe «" & t & "» en esta lista.", NotificationType.Warning),
+                                  Set(varOcupadoLst, true);
+                                  IfError(
+                                      Patch('CM | TBL | Opciones de lista', ThisItem, {'[OL] Texto': t}),
+                                      Notify("No se pudo guardar: " & FirstError.Message, NotificationType.Error),
+                                      Notify("Guardada «" & t & "»", NotificationType.Success, 2000)
+                                  );
+                                  ClearCollect(colOpcLst, Sort(Filter('CM | TBL | Opciones de lista', '[OL] Lista' = varEnumLst), '[OL] Orden'));
+                                  Set(varOcupadoLst, false)
+                              )
+                          )
+                        Size: =9
+                        Text: ="Guardar"
+                        Width: =92
+                        X: =txtTextoFilaLst.X + txtTextoFilaLst.Width + gblE.PadSm
+                        Y: =txtTextoFilaLst.Y
+                  - btnSubirFilaLst:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderColor: =gblC.borde
+                        BorderThickness: =1
+                        Color: =gblC.ink
+                        DisplayMode: =If(varOcupadoLst || ThisItem.'CM | TBL | Opción de lista' = First(colOpcLst).'CM | TBL | Opción de lista', DisplayMode.Disabled, DisplayMode.Edit)
+                        Fill: =gblC.card
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        OnSelect: |-
+                          =// Intercambia el orden con la de arriba (en la lista ordenada).
+                          With({a: ThisItem, b: Last(Filter(colOpcLst, '[OL] Orden' < ThisItem.'[OL] Orden'))},
+                              If(!IsBlank(b),
+                                  Set(varOcupadoLst, true);
+                                  IfError(
+                                      Patch('CM | TBL | Opciones de lista', a, {'[OL] Orden': b.'[OL] Orden'});
+                                      Patch('CM | TBL | Opciones de lista', b, {'[OL] Orden': a.'[OL] Orden'}),
+                                      Notify("No se pudo mover: " & FirstError.Message, NotificationType.Error)
+                                  );
+                                  ClearCollect(colOpcLst, Sort(Filter('CM | TBL | Opciones de lista', '[OL] Lista' = varEnumLst), '[OL] Orden'));
+                                  Set(varOcupadoLst, false)
+                              )
+                          )
+                        Size: =10
+                        Text: ="↑ Subir"
+                        Width: =92
+                        X: =btnGuardarFilaLst.X + btnGuardarFilaLst.Width + gblE.PadSm
+                        Y: =txtTextoFilaLst.Y
+                  - btnBajarFilaLst:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderColor: =gblC.borde
+                        BorderThickness: =1
+                        Color: =gblC.ink
+                        DisplayMode: =If(varOcupadoLst || ThisItem.'CM | TBL | Opción de lista' = Last(colOpcLst).'CM | TBL | Opción de lista', DisplayMode.Disabled, DisplayMode.Edit)
+                        Fill: =gblC.card
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        OnSelect: |-
+                          =// Intercambia el orden con la de abajo (en la lista ordenada).
+                          With({a: ThisItem, b: First(Filter(colOpcLst, '[OL] Orden' > ThisItem.'[OL] Orden'))},
+                              If(!IsBlank(b),
+                                  Set(varOcupadoLst, true);
+                                  IfError(
+                                      Patch('CM | TBL | Opciones de lista', a, {'[OL] Orden': b.'[OL] Orden'});
+                                      Patch('CM | TBL | Opciones de lista', b, {'[OL] Orden': a.'[OL] Orden'}),
+                                      Notify("No se pudo mover: " & FirstError.Message, NotificationType.Error)
+                                  );
+                                  ClearCollect(colOpcLst, Sort(Filter('CM | TBL | Opciones de lista', '[OL] Lista' = varEnumLst), '[OL] Orden'));
+                                  Set(varOcupadoLst, false)
+                              )
+                          )
+                        Size: =10
+                        Text: ="↓ Bajar"
+                        Width: =92
+                        X: =btnSubirFilaLst.X + btnSubirFilaLst.Width + gblE.PadSm
+                        Y: =txtTextoFilaLst.Y
+                  - btnActivaFilaLst:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderColor: =If(ThisItem.'[OL] Activa', gblC.okInk, gblC.borde)
+                        BorderThickness: =1
+                        Color: =If(ThisItem.'[OL] Activa', gblC.okInk, gblC.ink2)
+                        DisplayMode: =If(varOcupadoLst, DisplayMode.Disabled, DisplayMode.Edit)
+                        Fill: =If(ThisItem.'[OL] Activa', gblC.okBg, gblC.card)
+                        Font: =Font.'Segoe UI'
+                        Height: =gblE.AltoInput
+                        OnSelect: |-
+                          =// No se deja la lista sin ninguna activa: la app mostraría los valores de respaldo y confundiría.
+                          If(ThisItem.'[OL] Activa' && CountIf(colOpcLst, '[OL] Activa') <= 1,
+                              Notify("Tiene que quedar al menos una opción activa en la lista.", NotificationType.Warning),
+                              Set(varOcupadoLst, true);
+                              IfError(
+                                  Patch('CM | TBL | Opciones de lista', ThisItem, {'[OL] Activa': !ThisItem.'[OL] Activa'}),
+                                  Notify("No se pudo cambiar: " & FirstError.Message, NotificationType.Error)
+                              );
+                              ClearCollect(colOpcLst, Sort(Filter('CM | TBL | Opciones de lista', '[OL] Lista' = varEnumLst), '[OL] Orden'));
+                              Set(varOcupadoLst, false)
+                          )
+                        Size: =9
+                        Text: =If(ThisItem.'[OL] Activa', "✓ Activa", "Inactiva")
+                        Width: =92
+                        X: =btnBajarFilaLst.X + btnBajarFilaLst.Width + gblE.PadSm
+                        Y: =txtTextoFilaLst.Y
+                  - recSepLst:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.None
+                        Fill: =gblC.hairline
+                        Height: =1
+                        Width: =Parent.TemplateWidth
+                        Y: =Parent.TemplateHeight - 1
+            - lblCargandoLst:
+                Control: Label@2.5.1
+                Properties:
+                  Align: =Align.Center
+                  Color: =gblC.teal
+                  Fill: =RGBA(255, 255, 255, 0.88)
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =galOpcLst.Height
+                  Size: =12
+                  Text: ="⏳ Cargando…"
+                  Visible: =varOcupadoLst
+                  Width: =galOpcLst.Width
+                  Y: =galOpcLst.Y
+      - cmpNavLst:
+          Control: CanvasComponent
+          ComponentName: cmpNavLateral
+          Properties:
+            Height: =Parent.Height
+            RutaActiva: ="lst"
+            Visible: =!nfMovil || gblNavMovilAbierta
+            Width: =gblE.AnchoNav
