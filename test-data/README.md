@@ -1,63 +1,43 @@
-# Datos de prueba — Mock CSV para Smelter
+# Datos de prueba
 
-> CSVs sintéticos para **probar la configuración del import** (Fase 2). Generados por
-> [`generar-mock.py`](generar-mock.py). Reproducible (seed fija). **Fechas en ISO `yyyy-mm-dd`**.
+Archivos de carga de ejemplo con el formato del archivo diario del banco, para probar la plantilla de Smelter y la pantalla **Cargar archivo** sin datos reales. El formato completo (columnas, separador, codificación) y cómo se carga están en [Carga diaria](../docs/tecnica/07-carga-diaria.md).
+
+⚠️ Este directorio **nunca** lleva datos reales: ni números de tarjeta, ni CIF, ni nombres, ni teléfonos de clientes. Todo lo que hay aquí es sintético y se regenera con el script.
 
 ## Archivos
 
-| Archivo | FechaCarga | Qué es |
-|---------|-----------|--------|
-| **`cobranza-mock-1000.csv`** | `2026-06-20` | Día 1 — 1000 cuentas, 33 columnas. |
-| **`cobranza-mock-1000-dia2.csv`** | `2026-06-21` | Día 2 — el "día siguiente" del día 1 (mismas cuentas, actualizadas). |
+| Archivo | `FechaCarga` | Qué es |
+|---|---|---|
+| [`cobranza-mock-1000.csv`](cobranza-mock-1000.csv) | `2026-06-20` | Día 1: 1.000 cuentas, 33 columnas |
+| [`cobranza-mock-1000-dia2.csv`](cobranza-mock-1000-dia2.csv) | `2026-06-21` | Día 2: las mismas cuentas al día siguiente |
+| [`generar-mock.py`](generar-mock.py) | — | Generador de los dos archivos |
 
-Las 32 columnas del diccionario ([`../docs/01-import-y-diccionario-de-datos.md`](../docs/historico/desarrollo/01-import-y-diccionario-de-datos.md)) **+ `FechaCarga`**.
+Formato: UTF-8 sin BOM, coma como separador, CRLF, encabezado en la primera fila, fechas `aaaa-mm-dd` y decimales con punto.
 
-## Qué EJERCITA
+## Qué ejercitan
 
-### Día 1 (carga inicial)
-| Aspecto | Cómo lo prueba |
-|---------|----------------|
-| Cliente **1:N** Cuenta | 528 clientes únicos para 1000 cuentas (hasta 6 por cliente). |
-| Dedup de catálogos | Solo 7 productos, 18 agentes, 8 fiadores repetidos. |
-| Re-upsert direcciones/teléfonos | Mismo CIF → mismos datos en todas sus filas. |
-| Dos monedas | ~70% NIO / ~30% USD. |
-| 3 TipoAsignacion | ~800 Diaria, ~150 Incobrable, ~47 Especial. |
-| Fiador opcional | ~30% sin fianza. |
-| Fechas **ISO** | `yyyy-mm-dd` → Smelter parsea **sin `DATEPARSE`**. |
+| Caso | Cómo |
+|---|---|
+| Cliente con varias cuentas | 528 clientes para 1.000 cuentas (hasta 6 por cliente) |
+| Catálogos con dedup | 7 productos, 18 agentes, 8 fiadores |
+| Fila sin fiador | 262 filas con `NombreFianza` vacío |
+| Dos monedas | ~70 % en NIO, ~30 % en USD |
+| Tres tipos de asignación | 801 Diarias, 152 Incobrables, 47 Especiales |
+| *Upsert* de la cuenta | El día 2 trae las mismas cuentas con `DiasMora + 1` y saldos nuevos: la cuenta se actualiza, no se duplica |
+| Carga diaria acumulada | Una foto por cuenta y día: después de los dos días hay 2.000 filas de carga diaria |
+| Pagos parciales | ~15 % de las cuentas del día 2 con saldo reducido y `FechaUltimoPago` = día 1 |
+| Reasignación | ~10 % de las Diarias del día 2 cambian de agente |
+| Idempotencia | Volver a cargar el mismo archivo no cambia los conteos |
 
-### Día 2 (el día siguiente) — lo más jugoso
-| Aspecto | Cómo lo prueba |
-|---------|----------------|
-| **`cuenta` se PISA** (upsert) | Mismas cuentas con `DiasMora +1`, saldos actualizados → tras importar, `cuenta` sigue en **1000** filas, no 2000. |
-| **`cargadiaria` ACUMULA** | Alt key `NumeroCuenta + FechaCarga` → tras importar ambos días, `cargadiaria` tiene **2000** snapshots. |
-| Pagos parciales | ~150 cuentas con saldo reducido + `FechaUltimoPago = 2026-06-20`. |
-| Reasignaciones | ~75 Diarias cambian de agente → prueba el cambio de **owner** en `asignacion`. |
+## Cómo se generan
 
-## Cómo probar el ciclo completo
-
-1. Activar **todas las alt keys** ([`../docs/02-import-configuracion.md`](../docs/historico/guias/02-import-configuracion.md) §7).
-2. Template: Source = CSV, Has Header = Sí, Delimiter = `,`, Chunk Size = 1000.
-3. **Importar día 1** → verificar: maestras pobladas, `cuenta`=1000, `cargadiaria`=1000, `asignacion` ok.
-4. **Reimportar día 1** (mismo archivo) → **idempotencia**: nada se duplica (conteos iguales).
-5. **Importar día 2** → verificar:
-   - `cuenta` sigue en **1000** (se pisó con los valores nuevos: DiasMora+1, saldos, agente).
-   - `cargadiaria` ahora en **2000** (acumuló el snapshot del 21).
-   - Las ~75 cuentas reasignadas cambiaron de agente (y su owner, vía el plugin/flow).
-6. Revisar **Import Job Log** por filas fallidas.
-
-## Notas
-
-- **Fechas ISO:** con `yyyy-mm-dd` **no** hace falta `DATEPARSE` en los Column Mappings.
-- **`Especial`** (~47 filas): el import las crea como **`Pendiente`** (DEC-022) → van a la aprobación del
-  Supervisor. Por eso `asignacion` = **1000** (953 Diaria/Incobrable activas + ~47 Especial pendientes).
-- **Alt keys:** los CIF usan guiones (`-`, permitido). No se generan los caracteres prohibidos
-  (`/ < > * % & : \ ? +`).
-
-## Regenerar / ajustar
+Desde la raíz del repositorio (el script escribe en `test-data/` con ruta relativa):
 
 ```bash
-python3 test-data/generar-mock.py        # día 1 + día 2, 1000 filas c/u
-python3 test-data/generar-mock.py 5000   # otra cantidad
+python3 test-data/generar-mock.py         # 1.000 filas por archivo
+python3 test-data/generar-mock.py 5000    # otra cantidad
 ```
 
-Seed fija → mismo comando, mismos archivos (útil para repetir la prueba de idempotencia).
+La semilla es fija: el mismo comando produce los mismos archivos, así que la prueba de idempotencia se puede repetir. Los nombres de salida son siempre `cobranza-mock-1000*.csv`, aunque se pida otra cantidad.
+
+Si cambia el formato del archivo del banco, actualizar `COLS` en el generador junto con `FilaDeCarga.Encabezado` (ver [Carga diaria](../docs/tecnica/07-carga-diaria.md#agregar-o-cambiar-una-columna-del-archivo)).

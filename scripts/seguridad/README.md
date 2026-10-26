@@ -1,64 +1,33 @@
-# Seguridad · Fase 1: el cobrador solo lee su cartera
+# Scripts de seguridad y ciclo de vida
 
-Scripts que aplicaron la Fase 1 de [docs/historico/auditoria/00-lista-consolidada.md](../../docs/historico/auditoria/00-lista-consolidada.md) (S-1, S-2, S-8) en DEV. Usan el Service Principal de `pp_secrets.env` (no versionado). Para otra ruta, definir `PP_SECRETS`.
+Scripts que configuran el modelo de seguridad (roles, equipo «Cartera sin cobrador», cascadas, auditoría) y el borrado programado de Cobranza Móvil. El diseño que aplican está en [Seguridad](../../docs/tecnica/03-seguridad.md) y [Ciclo de vida de los datos](../../docs/tecnica/08-ciclo-de-vida.md). El mapa de todos los scripts y su clasificación está en [`scripts/README.md`](../README.md).
 
-Todos muestran el plan sin cambiar nada; aplican solo con `--aplicar`.
-
-| Paso | Script | Qué hace |
-|---|---|---|
-| 1 | `paso1_cascadas_auditoria.py` | Pone **Share/Unshare/Reparent = NoCascade** en cliente→cuenta, cliente→carga diaria y cuenta→asignación, y (DAT-18) **Assign = NoCascade** en cuenta→asignación y **Delete = Restrict** en interacción→pago, interacción→actualización de datos y cliente→carga diaria: borrar una interacción ya no borra sus pagos. Así, compartir un cliente no comparte todas sus tarjetas, y compartir una cuenta no comparte las asignaciones de otros cobradores. Cliente→dirección y cliente→teléfono siguen en cascada (es lo que se busca). Enciende la **auditoría** en asignación, interacción, pago, agente, actualización de datos y carga diaria. Publica solo esas tablas |
-| 2 | `paso2_flow.py` | **Retirado el 2026-10-13.** Definía el flow "Cambio de Owner en Asignaciones", que quedó **apagado** y lo reemplaza el plugin asíncrono `RepartoAsignacion` ([README de plugins](../../plugins/Sanic.CobranzaMovil.Plugins/README.md)), con la misma regla: asignación activa con agente con usuario → owner + compartido de la Especial con el solicitante + **GrantAccess Read** de cuenta, cliente y fiador al cobrador + revoca al dueño anterior; al cerrar, revoca al dueño; solo revoca si el usuario no tiene **otra** asignación activa que justifique ese registro. El flow fallaba en ~40% de las corridas y, cuando fallaba un compartido, se salteaba la revocación. El script ahora se niega a aplicar salvo con `--reactivar-flow-retirado` (rollback: antes desactivar los pasos de `RepartoAsignacion`) |
-| — | `paso2_prueba.py` | Prueba E2E (T1–T4) con datos `QA-E2E-F1` que se borran al final |
-| 3 | `paso3_reconciliar.py` | **Reconciliación**: asegura los compartidos de todas las asignaciones activas cuyo owner es el usuario de su agente, y lista los **sobrantes** (cuenta, cliente o fiador compartidos con alguien sin una asignación activa que lo justifique). `--revocar` los quita. Es idempotente |
-| 4 | `paso4_rol_basic.py` | El rol `SR \| CM \| Localizador` pasa de lectura **Global** a **Basic** en cuenta, cliente, dirección, teléfono y fiador. `--revertir` lo devuelve a Global |
-| 5 | `paso5_cartera_sin_cobrador.py --entorno DEV` | Equipo dueño **"CM · Cartera sin cobrador · DEV"** (unidad raíz, **sin miembros**) y su rol `SR \| CM \| Cartera sin cobrador` (solo Read Basic de la asignación, más los 4 de SharePoint que Dataverse le pone a todo rol; se agrega a la solución). `RepartoAsignacion` le pasa las asignaciones activas cuyo agente no tiene usuario (DAT-07) y `RepartoPorAgente` las mueve al vincular o quitar el usuario (DAT-08). Termina con error si el equipo tiene miembros u otros roles. **Antes de registrar los plugins 1.0.5.0 en un entorno nuevo** |
-| 6 | `paso6_cobrador_solo_crea.py` | **S-9.** El rol `SR \| CM \| Localizador` pierde Write (Basic) en interacción, pago y actualización de datos, y Assign (Basic) en pago: **crea pero no edita ni reasigna** lo capturado. La app del cobrador solo crea (`Patch` con `Defaults`). `--revertir` devuelve los 4 privilegios |
-| 7 | `paso7_sin_flows.py` | **S-4 (parte de CM).** Localizador, Solicitante, Supervisor y BackOffice pierden los privilegios de crear, editar, borrar, asignar, compartir, vincular y activar procesos, y `prvFlow`; conservan leer y ejecutar. Las apps no llaman a flows. **No alcanza solo:** `Basic User` y roles de otras soluciones siguen dando crear flows y exportar a Excel (ver S-4). `--revertir` devuelve los 36 privilegios |
-| 8 | `paso8_sin_trazas.py` | **S-13.** Localizador, Solicitante, Supervisor y BackOffice pierden `prvReadPluginTraceLog` (Global): una persona de la operación no lee las trazas de plugins (las de otras soluciones del entorno pueden citar datos). Admin y Servicio lo conservan. El nivel de trazas es de toda la organización: en DEV queda en "All"; en PROD va en "Exception". `--revertir` lo devuelve |
-| 9 | `paso9_limpieza_asignacion.py` | **DAT-28:** las Diarias e Incobrables que quedaron en "Pendiente aprobacion" pasan a Borrador (desde 1.0.6.0 el plugin `AprobacionEspecial` hace que nazcan así; el valor por defecto de la columna NO se cambia porque lo necesitan las Especiales del CSV). **DAT-16:** borra la regla de negocio "Orden inicial" (en borrador; si se activara pondría todo en orden 1) |
-| 10 | `paso10_borrado_programado.py` | Trabajos de **Bulk Deletion diarios**: carga diaria con más de **60 días** (DEC-019) y **fiadores sin nombre** (la carga crea uno vacío por cada fila del CSV sin `NombreFianza`; ninguna cuenta los referencia). Idempotente por nombre del trabajo |
-| 11 | `paso11_reparto_pendiente.py` | **Una sola vez (DEV):** vuelve a escribir el mismo agente en las asignaciones activas que siguen con dueño SYSTEM, para que `RepartoAsignacion` las reparta sin esperar la carga. En PROD no hace falta |
-
-## Orden obligatorio
-
-1 → 2 → 3 → 4. Si se baja el rol (4) antes de compartir (2 y 3), los teléfonos se quedan sin cartera.
-
-## Regla operativa: correr la reconciliación después de cada despliegue
-
-El import de la solución apaga los pasos de plugin (y apagaba el flow) mientras dura, y `paso7_desplegar.py` los vuelve a su estado al terminar. **Los cambios de asignaciones que ocurren en ese intervalo no disparan el reparto y se pierden** (comprobado en DEV con el flow: el alta T1 se perdió). Por eso, **después de cada despliegue**:
+## Uso
 
 ```bash
-python3 scripts/seguridad/paso3_reconciliar.py --aplicar
+python3 scripts/seguridad/<script>.py            # muestra el plan; no cambia nada
+python3 scripts/seguridad/<script>.py --aplicar  # aplica
 ```
 
-La reconciliación solo **agrega** los compartidos que falten. Los compartidos sobrantes de un cierre o reasignación ocurridos durante ese intervalo quedan sin revocar; eso queda pendiente para una reconciliación completa (Fase 4).
+- Se corren desde la raíz del repositorio.
+- Las credenciales salen de `pp_secrets.env` en la raíz (o del archivo indicado en `PP_SECRETS`), con `DATAVERSE_URL`, `PP_CLIENT_ID`, `PP_CLIENT_SECRET` y `PP_TENANT_ID`. [`dvlib.py`](dvlib.py) **no** lee variables de entorno.
+- Los que tocan roles aceptan `--revertir`.
 
-## Resultado verificado en el dispositivo (Android real con Power Apps, User5)
+## Scripts
 
-**Primera sincronización limpia** (con los datos de la app borrados): el teléfono bajó **solo su cartera**.
-
-| Tabla | Antes de la Fase 1 | Después |
+| Script | Cuándo | Qué hace |
 |---|---|---|
-| Cuentas | 1.004 (todo el banco) | 2 |
-| Clientes | 959 | 1 |
-| Direcciones | 2.697 | 1 |
-| Teléfonos | 1.059 | 1 |
+| [`paso5_cartera_sin_cobrador.py`](paso5_cartera_sin_cobrador.py) `--entorno <ENV>` | Instalación | Crea el equipo «CM · Cartera sin cobrador · `<ENV>`» (sin miembros) y su rol mínimo. Termina con error si el equipo tiene miembros |
+| [`paso10_borrado_programado.py`](paso10_borrado_programado.py) | Instalación y al cambiar un plazo | Programa los trabajos diarios de *bulk delete*. Reconoce los trabajos por nombre: cambiar un plazo exige retirar el trabajo viejo (ver [Mantenimiento](../../docs/tecnica/11-mantenimiento.md#cambiar-un-plazo-de-borrado)) |
+| [`paso3_reconciliar.py`](paso3_reconciliar.py) | Después de cada despliegue | Agrega los compartidos de cuenta, cliente y fiador que falten. `--revocar` quita los sobrantes |
+| [`paso1_cascadas_auditoria.py`](paso1_cascadas_auditoria.py), [`paso1c_auditar_historia_especial.py`](paso1c_auditar_historia_especial.py), [`paso4_rol_basic.py`](paso4_rol_basic.py), [`paso6_cobrador_solo_crea.py`](paso6_cobrador_solo_crea.py), [`paso7_sin_flows.py`](paso7_sin_flows.py), [`paso8_sin_trazas.py`](paso8_sin_trazas.py) | Verificación (sin `--aplicar`) | Ya aplicados. Su resultado viaja en la *solution*. Sin `--aplicar` confirman que la configuración sigue igual |
+| [`paso9_limpieza_asignacion.py`](paso9_limpieza_asignacion.py), [`paso11_reparto_pendiente.py`](paso11_reparto_pendiente.py) | No hacen falta | Arreglos de datos de una sola vez. En una instalación nueva no aplican |
+| [`paso14_limpieza_total.py`](paso14_limpieza_total.py) | Solo desarrollo | ⚠️ Borra **todos** los datos de negocio y las cargas de Smelter. Nunca en producción |
+| [`paso2_flow.py`](paso2_flow.py), [`flow-owner-base.json`](flow-owner-base.json), [`paso2_prueba.py`](paso2_prueba.py) | Retirados | El *flow* de dueños lo reemplazó el *plugin* `RepartoAsignacion`. No correr |
+| [`dvlib.py`](dvlib.py), [`roles_cm.py`](roles_cm.py) | Bibliotecas | Cliente de la Web API y ayuda para quitar o devolver privilegios. Los usan los demás scripts |
 
-Efecto colateral: las colecciones del cobrador ya no superan el límite de 500 filas, así que **las tarjetas salen completas** (nombre, CIF, dirección y saldos). F-1 queda resuelto para el rol Localizador.
+## Advertencias
 
-### ⚠ Los teléfonos que ya bajaron el padrón lo conservan
-
-La sincronización incremental solo baja registros que **cambiaron** ([doc](https://learn.microsoft.com/power-apps/mobile/offline-sync-icon#types-of-offline-syncs)). Quitar un permiso no cambia el registro, así que el teléfono no se entera. Hacen falta una **sincronización completa** ("Refresh" en Device status, que esta app todavía no expone: L-7) o un **reinicio** (cerrar sesión, reinstalar o borrado selectivo de Intune).
-
-- **Antes del go-live:** si la Fase 1 entra antes de cargar datos reales, ningún teléfono llega a tener el padrón.
-- **En DEV:** hay que reiniciar los teléfonos que ya tenían datos (User1, User6 y el Android del VPS, que ya está limpio).
-- **Al reasignar o cerrar una asignación:** el teléfono del cobrador anterior conserva la fila hasta la próxima sincronización completa. Mitigación prevista: un botón de sincronización completa con `ShowHostInfo(HostInfo.OfflineSync)` y, en PROD, la política de Intune.
-
-## Lecciones (verificadas)
-
-- El conector "List rows" del flow **falló con FetchXML que tiene `link-entity`**, aunque la Web API lo aceptaba. Se reemplazó por `$filter` OData con navegación: `sanic_cm_as_cuentaid/_sanic_cm_ct_clienteid_value eq …`.
-- Un FetchXML con un GUID vacío (`value=""`) falla: hay que verificar el nulo **antes** de consultar.
-- En `principalobjectaccessset`, filtrar por `principalid` devuelve vacío. Hay que filtrar por `objectid` y comparar el principal del lado del cliente.
-- Asignar como owner a un usuario sin lectura sobre la tabla falla: el cobrador tiene que tener el rol Localizador.
-- `RemovePrivilegeRole` recibe `Privilege` (referencia a la entidad), no `PrivilegeId`.
-- La tabla `flowruns` de Dataverse se actualiza con atraso: no sirve para verificar en tiempo real.
+- ⚠️ **Durante una importación de la *solution* el reparto no corre**: los pasos de *plugin* quedan apagados. Por eso, después de cada despliegue, `paso3_reconciliar.py --aplicar`.
+- ⚠️ **Quitar un permiso no limpia los teléfonos.** La sincronización incremental baja solo registros modificados. Un teléfono que ya bajó datos los conserva hasta una sincronización completa o hasta que se borren los datos de la app.
+- Asignar como dueño a un usuario sin lectura sobre la tabla falla: el localizador necesita el rol Localizador antes de que se le reparta la cartera.

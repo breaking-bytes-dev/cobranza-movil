@@ -1,0 +1,293 @@
+# App del localizador
+
+Este documento describe la *canvas app* (app de Power Apps que se diseña pantalla por pantalla y se programa con fórmulas Power Fx) que usa el localizador en el teléfono: sus pantallas, qué baja al teléfono, cómo se sincroniza y qué pasa con lo que se registra sin señal. Está pensado para quien tiene que modificarla o diagnosticar un problema en campo. La arquitectura general está en [Arquitectura](01-arquitectura.md), la seguridad por fila que decide qué ve cada localizador en [Seguridad](03-seguridad.md) y las reglas del servidor en [Plugins y Custom APIs](04-plugins-y-custom-apis.md).
+
+En el código histórico el localizador aparece como «cobrador» (por ejemplo, el *plugin* —código C# que corre en el servidor de Dataverse ante cada operación— `InteraccionDelCobrador` o el perfil *offline* «Cobranza Movil - Cobrador»).
+
+## Cómo funciona
+
+### Propósito
+
+El localizador ve su cartera (las asignaciones activas que la seguridad por fila le deja leer), visita a los clientes y registra cada visita como una **interacción**, con pagos y actualización de datos del cliente opcionales. Todo funciona **sin señal**: la app trabaja contra una base local del teléfono y la sincroniza con Dataverse cuando hay conexión.
+
+La app es de tipo teléfono (640 × 1136, vertical). Su nombre interno es `sanic_appcobranzamovil_c4e67`.
+
+### Pantallas
+
+| Pantalla | Qué hace |
+|---|---|
+| [`scrInicio`](../../apps/localizador-canvas/Src/scrInicio.pa.yaml) | Pantalla de arranque. Cobrado hoy (C$ y US$), cantidad de pagos, interacciones, cuentas y clientes visitados; desglose de las interacciones del día por cliente o por cuenta. Si el agente está desactivado muestra un bloqueo |
+| [`scrCartera`](../../apps/localizador-canvas/Src/scrCartera.pa.yaml) | La cartera agrupada por cliente: saldo vencido total, filtros por tipo (Todos, Diaria, Incobrable, Especial), búsqueda por nombre o últimos 4, aviso de si la carga diaria del teléfono es la de hoy, y orden manual (▲▼) que se guarda en la asignación |
+| [`scrCliente`](../../apps/localizador-canvas/Src/scrCliente.pa.yaml) | Ficha del cliente con dos pestañas: **Cuentas** (teléfonos con llamada directa, direcciones con enlace a mapas, cuentas a cobrar) e **Interacciones** de todas sus cuentas |
+| [`scrDetalleCuenta`](../../apps/localizador-canvas/Src/scrDetalleCuenta.pa.yaml) | Detalle de una cuenta: saldos, pago mínimo, mora, fechas, fiador, datos de la Especial (tipo, retiro pedido, nota), botón «Ver número» y las interacciones de la cuenta. Desde acá se registra la visita |
+| [`scrInteraccion`](../../apps/localizador-canvas/Src/scrInteraccion.pa.yaml) | Registrar visita: comentario con mensajes rápidos, productos del cliente a los que aplica, pagos (monto, moneda, recibo), actualización de datos y ubicación GPS |
+| [`scrPagos`](../../apps/localizador-canvas/Src/scrPagos.pa.yaml) | Pagos e interacciones de un día elegido (hoy por defecto, hasta 89 días atrás) con calendario y búsqueda |
+| [`scrSincronizacion`](../../apps/localizador-canvas/Src/scrSincronizacion.pa.yaml) | Estado de la sincronización, capturas pendientes de subir, capturas de hoy con su estado y la versión desplegada de la app |
+
+| Componente | Qué hace |
+|---|---|
+| [`cmpNav`](../../apps/localizador-canvas/Src/Components/cmpNav.pa.yaml) | Barra de navegación con Inicio y Cartera |
+| [`cmpHeaderBack`](../../apps/localizador-canvas/Src/Components/cmpHeaderBack.pa.yaml) | Encabezado con título, subtítulo y botón volver (`Back()`) |
+| [`cmpSyncPill`](../../apps/localizador-canvas/Src/Components/cmpSyncPill.pa.yaml) | Indicador del estado de sincronización (`gblSync`); al tocarlo abre `scrSincronizacion` |
+| [`cmpSheet`](../../apps/localizador-canvas/Src/Components/cmpSheet.pa.yaml) | Hoja de ajustes «Aa»: tema día/noche y cuatro tamaños de letra. Se guarda en el teléfono con `SaveData` (clave `cmPrefs`) |
+
+[`App.pa.yaml`](../../apps/localizador-canvas/Src/App.pa.yaml) define:
+
+- **Fórmulas con nombre** (*named formulas*: se recalculan solas cuando cambian sus datos y no bloquean el arranque): `gblAgente` (el agente del usuario), `gblAgenteInactivo`, `gblSync` (estado de sincronización) y `nfVersion` (sello de versión).
+- **Funciones de usuario**: `Moneda()` (texto bimoneda), `PanMasc()` (`•••• 1234`), `EspTipo()` y `EspNota()` (separan tipo y nota de la Especial en el texto `Tipo — nota`).
+- **`OnStart`**: preferencias guardadas, los temas `gblDay` / `gblNight` (tokens de color en `gblC`) y los tamaños de letra `gblT`, que escalan con `gblScale`.
+
+El agente se identifica con `LookUp('CM | TBL | Agentes', 'Email Usuario' = Lower(User().Email))`. El correo del agente (`sanic_cm_ag_emailusuario`) lo deriva el servidor del UPN del usuario vinculado, en minúsculas ([`EmailDesdeUsuario.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/EmailDesdeUsuario.cs)); la app compara en minúsculas porque offline la comparación la hace la base local.
+
+### Navegación
+
+```mermaid
+flowchart LR
+    INI["scrInicio"] -->|"Ver detalle"| PAG["scrPagos"]
+    INI -->|"desglose por cliente"| CLI["scrCliente"]
+    INI -->|"desglose por cuenta"| DET["scrDetalleCuenta"]
+    CAR["scrCartera"] -->|"tarjeta del cliente"| CLI
+    CLI -->|"cuenta"| DET
+    PAG -->|"pago o interacción"| CLI
+    DET -->|"Registrar visita"| INT["scrInteraccion"]
+    INT -->|"guardado: Back()"| DET
+    NAV["cmpNav"] -.-> INI
+    NAV -.-> CAR
+    PILL["cmpSyncPill"] -.-> SYN["scrSincronizacion"]
+```
+
+La app pasa el contexto entre pantallas con variables globales: `varCliente` (CIF del cliente), `varCuenta` (registro de la cuenta), `varAsig` (asignación), `varCliTab`, `varDetTab` y `varDetSrc` (pestaña y pantalla de origen).
+
+### Perfil *offline*: qué baja al teléfono
+
+Un *offline profile* (perfil sin conexión) define qué tablas y filas de Dataverse se copian a la base local del teléfono. La app usa un perfil **personalizado**, «Cobranza Movil - Cobrador», y no el autogenerado. Por qué:
+
+- El autogenerado lo rearma el servicio en cada publicación de la app y puede quedar trabado al publicarse; en ese caso la app no abre en el teléfono.
+- El autogenerado no soporta ALM (llevar los cambios de un ambiente a otro) y no viaja en la *solution* (el paquete con el que se traslada la personalización entre ambientes); un ambiente de producción necesita uno propio.
+
+Lo crea y publica [`paso7_perfil_offline.py`](../../scripts/pan/paso7_perfil_offline.py), que además lo agrega a la *solution* `cm_core_cobranzamovil` y escribe su id en `ManualOfflineProfileId` del `.msapr` de la app.
+
+| Tabla | Fuente en la app | Qué filas bajan |
+|---|---|---|
+| `sanic_cm_tbl_asignacion` | `CM \| TBL \| Asignacions` | Solo activas (`sanic_cm_as_estado = 1`) |
+| `sanic_cm_tbl_interaccion` | `CM \| TBL \| Interaccions` | Modificadas en los últimos 90 días |
+| `sanic_cm_tbl_pago` | `CM \| TBL \| Pagos` | Modificados en los últimos 90 días |
+| `sanic_cm_tbl_actualizaciondatos` | `CM \| TBL \| Actualizacion de datos` | Modificadas en los últimos 90 días |
+| `sanic_cm_tbl_cuenta` | `CM \| TBL \| Cuentas` | Todas las que el usuario puede leer |
+| `sanic_cm_tbl_cliente` | `CM \| TBL \| Clientes` | Todas las que el usuario puede leer |
+| `sanic_cm_tbl_direccion` | `CM \| TBL \| Direccions` | Todas las que el usuario puede leer |
+| `sanic_cm_tbl_telefono` | `CM \| TBL \| Telefonos` | Todas las que el usuario puede leer |
+| `sanic_cm_tbl_cuentapan` | `CM \| TBL \| PAN de cuentas` | Todas las que el usuario puede leer (bóveda del PAN) |
+| `sanic_cm_tbl_agente` | `CM \| TBL \| Agentes` | Todas las que el usuario puede leer |
+| `sanic_cm_tbl_opcionlista` | `CM \| TBL \| Opciones de lista` | Todas (tabla chica de la organización) |
+
+«Todas las que el usuario puede leer» es la regla *All records* del perfil. Lo que recorta de verdad es la seguridad por fila: el localizador es dueño de sus asignaciones y recibe en lectura, por compartido y *cascade*, la cuenta, el cliente, el fiador, las direcciones, los teléfonos y la bóveda ([Seguridad](03-seguridad.md)). El filtro de 90 días acota el historial que ocupa el teléfono; lo más viejo solo se ve con señal. Por eso [`scrPagos`](../../apps/localizador-canvas/Src/scrPagos.pa.yaml) no deja elegir días anteriores a 89 días.
+
+### Cómo se sincroniza
+
+Power Fx no tiene ninguna función que baje datos del servidor: la sincronización la hace el reproductor de Power Apps.
+
+| Momento | Qué pasa |
+|---|---|
+| Al abrir la app | El reproductor sincroniza en segundo plano |
+| Cada ~5 minutos con señal | Sube lo pendiente y baja los cambios del servidor |
+| «Actualizar todo desde el servidor» ([`scrSincronizacion`](../../apps/localizador-canvas/Src/scrSincronizacion.pa.yaml)) | Abre el estado del dispositivo con `ShowHostInfo(HostInfo.OfflineSync)`; ahí el localizador pide la sincronización completa |
+| «↻ Recargar la lista» | Solo `Refresh()` de la base **local**: rearma las pantallas con lo que ya llegó. Funciona sin señal y no baja nada |
+
+`gblSync` traduce `Connection.Sync` a `ok`, `sync`, `pend`, `warn`, `error` u `off`. En el navegador no hay sincronización (`Connection.Sync` vacío) y solo distingue con o sin conexión.
+
+La cartera es una copia en colecciones (`colAsig`, `colClientes`). El temporizador `tmrSync_Cart` de [`scrCartera`](../../apps/localizador-canvas/Src/scrCartera.pa.yaml) revisa `gblSync` cada 5 s (con `AutoPause = false`, sigue andando en otras pantallas) y, cuando una sincronización termina, rearma la cartera. Si el localizador movió clientes y no guardó el orden, no la rearma para no perderlo: la marca para rearmar al volver.
+
+### La cartera se trae por tramos
+
+Cada copia de Dataverse a una colección se corta en el límite de filas de la app. Para no cortar la cartera, el *plugin* [`TramoCartera.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/TramoCartera.cs) le pone a cada cuenta, asignación y pago un **tramo** de 0 a 19 (hash FNV-1a del id de la cuenta; el pago usa el de su interacción). El botón oculto `btnCargarCartera` trae la cartera en 20 consultas más una para lo que todavía no tiene tramo:
+
+```
+ForAll(Sequence(20, 0) As T,
+    Collect(colAsigRaw, Filter('CM | TBL | Asignacions', '[AS] Tramo' = T.Value && '[AS] Estado' = true && …));
+    Collect(colCuentas, Filter('CM | TBL | Cuentas', '[CT] Tramo' = T.Value)));
+```
+
+Asignación y cuenta caen en el mismo tramo porque las dos usan el id de la cuenta. Si algún tramo llega al límite, `varCarteraIncompleta` muestra un error: sincronizar no lo arregla. El relleno de tramos para datos existentes está en [`paso18_tramo_cartera.py`](../../scripts/pan/paso18_tramo_cartera.py).
+
+Las Especiales solo aparecen aprobadas: toda consulta de asignaciones del localizador lleva `'[AS] Tipo' <> Especial || '[AS] Estado de aprobacion' = Aprobado`.
+
+### Qué pasa con lo que se registra sin señal
+
+El botón Guardar de [`scrInteraccion`](../../apps/localizador-canvas/Src/scrInteraccion.pa.yaml) escribe con `Patch()` en la base local; el reproductor lo sube en orden en la próxima sincronización. La app avisa «Guardado en el teléfono. Se sube cuando vuelva la señal».
+
+| Captura | Qué escribe la app | Qué completa o decide el servidor al subir |
+|---|---|---|
+| Interacción | Cuenta, agente, comentario, marcas de pago y datos, latitud y longitud, `Fecha de captura` (`Now()` del teléfono) | [`InteraccionDelCobrador.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/InteraccionDelCobrador.cs) pone el agente del usuario y exige que la cuenta sea de su cartera, con tolerancia por fecha de captura (no más de 5 min adelantada, hasta 48 h atrás) si se la reasignaron mientras estaba sin señal. [`IdentidadEnInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/IdentidadEnInteraccion.cs) copia últimos 4, CIF y clave HMAC de la cuenta. El número `IN-xxxx` lo asigna el servidor |
+| Pago | Interacción (lookup), cuenta, monto, moneda, recibo, `Fecha del pago` | [`CuentaDesdeInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/CuentaDesdeInteraccion.cs) completa la cuenta y el número de interacción. [`ReciboRepetido.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ReciboRepetido.cs) **marca** `sanic_cm_pg_reciborepetido` si el recibo ya existe en cualquier cartera. `TramoCartera` pone el tramo |
+| Actualización de datos | Interacción (lookup), cuenta (`sanic_cm_ad_cuentaid`), la misma fecha de captura (`sanic_cm_ad_fechacaptura`), teléfonos, direcciones y correo | Offline el lookup a la interacción recién creada llega vacío. [`ActualizacionConInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ActualizacionConInteraccion.cs) la vincula por localizador, cuenta y fecha de captura; si no la encuentra, la acepta **marcada** con `sanic_cm_ad_sinvincular`. [`VincularActualizacionPendiente.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/VincularActualizacionPendiente.cs) la cuelga cuando llega la interacción |
+| Orden de la cartera | `'[AS] Orden'` de cada asignación, solo del tramo de clientes movidos, al salir de la Cartera o al tocar ↻ | [`ColumnasAsignacion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ColumnasAsignacion.cs) solo deja al localizador escribir esa columna |
+
+**Por qué se marca en lugar de rechazar:** el reproductor *offline* descarta en silencio lo que el servidor rechaza y no lo reintenta. Un recibo repetido o una actualización sin interacción se aceptan marcados y el BackOffice los ve al transcribir ([App de la oficina](06-app-backoffice.md)). Las columnas de marca las crea [`paso15_marcas_offline.py`](../../scripts/pan/paso15_marcas_offline.py).
+
+El guardado es **reintentable sin duplicar**: el rol del localizador no puede borrar, así que la pantalla recuerda qué ya se guardó (`locIntCreada`, `colPagosGuardados`, `locADGuardada`, `colIntGuardadas`) y al tocar Guardar de nuevo solo escribe lo que falta.
+
+Con varios productos tildados y sin pago ni datos, la app crea una interacción por cuenta. Con pago o datos, la interacción es de una sola cuenta.
+
+`scrSincronizacion` muestra cada captura de hoy como «pendiente de subir» (sin número de interacción), «subida» o «⚠ incompleta» (marcada con pago o datos, pero el pago o la actualización no están en el teléfono).
+
+### Validaciones: app y servidor
+
+| Regla | En la app | En el servidor |
+|---|---|---|
+| Comentario obligatorio | Botón deshabilitado y «Falta: …» | — |
+| Pago: monto mayor que 0 y recibo en cada línea; recibo de hasta 30 caracteres; recibos sin repetir en la visita | Botón deshabilitado | — |
+| Recibo ya registrado | Bloquea si lo encuentra en el teléfono (solo ve sus pagos de 90 días) | `ReciboRepetido` busca en toda la cartera y marca |
+| Pago mayor que el saldo vencido | Pide confirmar con un segundo toque | — |
+| Sin ubicación GPS | Pide confirmar con un segundo toque («Guardar sin ubicación») | — |
+| Datos: al menos uno; teléfonos `^[0-9 +()-]{7,20}$`; correo válido | Botón deshabilitado | — |
+| Agente desactivado | Bloquea la pantalla de inicio y el guardado (`gblAgenteInactivo`) | `InteraccionDelCobrador` rechaza |
+| Cuenta de su cartera, agente correcto, usuario vinculado a un solo agente | — | `InteraccionDelCobrador` rechaza |
+
+La app valida para dar respuesta inmediata sin señal; el servidor valida porque es la única fuente confiable. Los rechazos del servidor sobre capturas *offline* son la excepción deliberada a «marcar en lugar de rechazar»: ver [Trampas](#trampas-y-errores-conocidos).
+
+### Mensajes rápidos
+
+Los botones que agregan texto al comentario salen de la lista administrable `sanic_cm_tbl_opcionlista` («CM | TBL | Opciones de lista»), lista «Mensaje rápido», activas y ordenadas por `[OL] Orden`. El Admin la edita en la pantalla Listas de la [App de la oficina](06-app-backoffice.md) y llega al teléfono en la próxima sincronización.
+
+- La pantalla muestra los 6 primeros; «Ver los N mensajes rápidos» abre una hoja con buscador.
+- Si la tabla está vacía en el teléfono (todavía no sincronizó), se usan seis valores de respaldo escritos en el `OnVisible`.
+- El texto elegido se guarda dentro del comentario: renombrar o desactivar una opción no cambia el historial.
+
+La tabla y sus opciones iniciales las crea [`paso23_listas.py`](../../scripts/pan/paso23_listas.py).
+
+### Número de tarjeta (PAN)
+
+La app muestra siempre `•••• 1234`. «Ver número» en [`scrDetalleCuenta`](../../apps/localizador-canvas/Src/scrDetalleCuenta.pa.yaml) y [`scrInteraccion`](../../apps/localizador-canvas/Src/scrInteraccion.pa.yaml) lee la bóveda con un solo nivel de lookup, guarda el PAN **solo** en una variable de contexto (`locPan`) y un temporizador lo oculta a los 30 s. Nunca va a colecciones, `SaveData` ni variables globales. Las reglas de la bóveda están en [Seguridad](03-seguridad.md).
+
+### Ícono y nombre
+
+| Pieza | Dónde |
+|---|---|
+| Ícono (fuente vectorial) | [`icono/icono.svg`](../../apps/localizador-canvas/icono/icono.svg) |
+| Ícono que se despliega | [`icono/icono.png`](../../apps/localizador-canvas/icono/icono.png) |
+| Color de fondo del ícono | `RGBA(15,107,107,1)`, en `ICONOS` de [`paso7_desplegar.py`](../../scripts/pan/paso7_desplegar.py) |
+| Nombre de la app | `App - Cobranza Movil` (`Name` de `msapp/Properties.json` dentro del `.msapr`) |
+
+La lista de apps de Power Apps toma el ícono de la *solution* (`CanvasApps/<app>_BackgroundImageUri` y `<BackgroundColor>` del `<CanvasApp>`), no del `.msapp`. Por eso `paso7_desplegar.py` reemplaza esas dos piezas en cada despliegue. Para Studio, el `.msapr` lleva su propia copia en `Resources/PublishInfo.json` (`LogoFileName`).
+
+## Piezas y archivos
+
+| Pieza | Archivo |
+|---|---|
+| Fuentes de la app (pantallas, componentes, `App`) | [`apps/localizador-canvas/Src/`](../../apps/localizador-canvas/Src/) |
+| Fuentes de datos, perfil *offline* vinculado y recursos | [`sanic_appcobranzamovil_c4e67_DocumentUri.msapr`](../../apps/localizador-canvas/sanic_appcobranzamovil_c4e67_DocumentUri.msapr) |
+| Notas de mantenimiento de la app | [`apps/localizador-canvas/README.md`](../../apps/localizador-canvas/README.md) |
+| Perfil *offline* | [`paso7_perfil_offline.py`](../../scripts/pan/paso7_perfil_offline.py) |
+| Agregar o refrescar fuentes de datos | [`paso7_fuentes.py`](../../scripts/pan/paso7_fuentes.py) |
+| Chequeo de columnas antes de desplegar | [`paso7_esquema.py`](../../scripts/pan/paso7_esquema.py) |
+| Despliegue | [`paso7_desplegar.py`](../../scripts/pan/paso7_desplegar.py) |
+| Ícono | [`apps/localizador-canvas/icono/`](../../apps/localizador-canvas/icono/) |
+| Pruebas de punta a punta | [`tests/localizador-canvas/`](../../tests/localizador-canvas/) ([Pruebas](10-pruebas.md)) |
+| *Plugins* que reciben lo que sube el teléfono | [`InteraccionDelCobrador.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/InteraccionDelCobrador.cs), [`IdentidadEnInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/IdentidadEnInteraccion.cs), [`CuentaDesdeInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/CuentaDesdeInteraccion.cs), [`ReciboRepetido.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ReciboRepetido.cs), [`ActualizacionConInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ActualizacionConInteraccion.cs), [`VincularActualizacionPendiente.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/VincularActualizacionPendiente.cs), [`TramoCartera.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/TramoCartera.cs), [`ColumnasAsignacion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ColumnasAsignacion.cs) |
+
+## Cómo se modifica
+
+### Cómo modificar la app
+
+Las fuentes viven en el repositorio y se editan como texto; Studio sirve para revisar, no para publicar.
+
+| Pieza | Qué contiene | Cómo se cambia |
+|---|---|---|
+| `Src/*.pa.yaml` y `Src/Components/*.pa.yaml` | Pantallas, controles y fórmulas (formato *SourceCode* de `pac canvas`) | Editar el YAML |
+| `.msapr` (zip) | Fuentes de datos (`msapp/References/DataSources.json`, `msapp/Properties.json`, `msapp/References/QualifiedValues.json`), id del perfil *offline* y recursos | Con scripts, nunca a mano |
+| `.msapp` | El paquete que importa Power Apps | Lo arma `pac canvas pack` desde la carpeta de la app (el `.msapr` más `Src/`) en cada despliegue; no se guarda en el repositorio |
+
+Pasos para un cambio de pantalla:
+
+1. Editar el `.pa.yaml`. Una fórmula que contiene `: ` (dos puntos y espacio) va en bloque `|-`:
+
+   ```yaml
+   # Rompe: YAML interpreta ": " como otro par clave-valor
+   Text: ="Estado: " & gblSync
+   # Correcto
+   Text: |-
+     ="Estado: " & gblSync
+   ```
+
+2. Respetar las reglas que `pac` no valida y Studio sí: nombres de control únicos en toda la app, `Radius*` solo en `GroupContainer` (no en `Label` ni `Classic/Icon`), y `AccessibleLabel` nunca en `Classic/Button`.
+3. Desplegar con [`paso7_desplegar.py`](../../scripts/pan/paso7_desplegar.py) (sin `--aplicar` arma el paquete sin importar). Detalle en [Instalación y despliegue](09-instalacion-y-despliegue.md).
+4. Verificar en la pantalla Sincronización que «Versión de la app» muestre el commit desplegado.
+
+`paso7_desplegar.py` hace, por cada app:
+
+1. Copia la carpeta y reemplaza `nfVersion = "dev";` por `<commit>[+dirty] <fecha UTC>` (el repositorio no cambia).
+2. Frena si un `.pa.yaml` no parsea o usa una propiedad prohibida conocida (lista `PROHIBIDAS`).
+3. `pac canvas pack` y verifica que el `.msapp` tenga al menos 13 `.pa.yaml` (17 en la app de la oficina).
+4. [`paso7_esquema.py`](../../scripts/pan/paso7_esquema.py) frena si una fórmula usa una columna que la foto del esquema del `.msapr` no conoce.
+5. Exporta la *solution*, reemplaza los `.msapp`, actualiza `<DatabaseReferences>` y `<CdsDependencies>` de cada `<CanvasApp>` (sin eso la app publicada no consulta una tabla nueva) y apunta la dependencia del perfil *offline* al personalizado.
+6. Inyecta el ícono, importa con `--publish-changes` y restaura el estado previo de los pasos de *plugin* y los *flows*, que la importación altera.
+
+### Agregar una columna a una pantalla
+
+1. Crear la columna en Dataverse (con un script en [`scripts/pan/`](../../scripts/pan/), ver [Modelo de datos](02-modelo-de-datos.md)).
+2. Refrescar la fuente en el `.msapr`. Las fuentes de datos **no** están en los `.pa.yaml`:
+
+   ```bash
+   python3 scripts/pan/paso7_fuentes.py apps/localizador-canvas/sanic_appcobranzamovil_c4e67_DocumentUri.msapr \
+       --tablas sanic_cm_tbl_cuenta --aplicar
+   ```
+
+   El script repite las consultas de metadatos que hace Studio con «Actualizar». `--comparar <tabla>` regenera una fuente existente y muestra las diferencias con la de Studio, para validar la réplica.
+3. Usar la columna en el `.pa.yaml` por su nombre visible (`'[CT] Dias Mora'`).
+4. Desplegar.
+
+Sin el paso 2, la fórmula queda **inerte sin aviso**: `pac` la empaqueta igual y la app no muestra error. `paso7_esquema.py` lo detecta antes de importar.
+
+### Agregar una tabla nueva a la app
+
+1. Agregarla al `.msapr` con `paso7_fuentes.py --tablas <tabla> --aplicar`.
+2. Sumarla a `TABLAS` (y a `FILTROS` si necesita un filtro propio) en [`paso7_perfil_offline.py`](../../scripts/pan/paso7_perfil_offline.py) y correrlo con `--aplicar`. Con perfil personalizado el servicio **no** la agrega solo: sin este paso, la tabla está vacía en el teléfono.
+3. Desplegar y después correr [`paso3_reconciliar.py`](../../scripts/seguridad/paso3_reconciliar.py) `--aplicar`.
+
+### Cambiar los mensajes rápidos
+
+No requiere desplegar: el Admin los edita en la pantalla Listas de la app de la oficina. Solo hay que cambiar el `.pa.yaml` para modificar los valores de respaldo o cuántos se muestran sin abrir la hoja (`FirstN(colMsjInt, 6)`).
+
+### Cambiar el ícono
+
+Reemplazar `icono/icono.png` (y su fuente `icono.svg`) y, si cambia el color de fondo, el valor de `ICONOS` en `paso7_desplegar.py`. Se aplica en el próximo despliegue.
+
+## Trampas y errores conocidos
+
+### Offline
+
+- ⚠️ **Lo que el servidor rechaza se pierde en silencio.** El reproductor *offline* descarta la fila rechazada y no la reintenta; el localizador vio «Guardado». Por eso los *plugins* marcan en lugar de rechazar. Las excepciones deliberadas son las de `InteraccionDelCobrador` (cuenta fuera de su cartera pasada la tolerancia, agente desactivado, usuario sin agente o con dos). La app bloquea el caso del agente desactivado antes de guardar; los demás solo se ven en el servidor. Antes de agregar un rechazo nuevo en un *plugin* que recibe datos del teléfono, evaluar si corresponde marcar.
+- **Un solo nivel de *lookup*** (columna que apunta a un registro de otra tabla). Offline, filtrar o leer a través de dos lookups (pago → interacción → cuenta) no funciona. Por eso el pago tiene su propio lookup a la cuenta y la bóveda se consulta por `Cuenta.'CM | TBL | Cuenta'`.
+- **LookUp anidado devuelve vacío.** Leer un campo a través de un lookup dentro de otra expresión devuelve vacío sin error. Patrón usado: primero el id (`cta`), después el registro **una vez** (`ctaRec = LookUp('CM | TBL | Cuentas', … = cta)`) y de ahí cada campo ([`scrInicio`](../../apps/localizador-canvas/Src/scrInicio.pa.yaml), [`scrPagos`](../../apps/localizador-canvas/Src/scrPagos.pa.yaml)).
+- **Otras fórmulas que fallan en silencio en el teléfono:** un `ClearCollect` con `AddColumns` que mete el registro de la cuenta queda vacío; un `LookUp` a Cuentas dentro del cuerpo de un `ForAll` no se ejecuta. Por eso las colecciones van sin columnas calculadas y los datos de la cuenta se agregan en el `Items` de la galería.
+- **El lookup a un registro recién creado offline llega vacío.** La actualización de datos manda además la cuenta y la fecha de captura para que el servidor la vincule.
+- **Campos que pone el servidor no existen offline:** el número de interacción está vacío hasta sincronizar (los pagos se buscan por la relación, no por número) y `Created On` lo pone el servidor al subir. Para fechas de captura se usa `Fecha de captura`, que pone el teléfono.
+- **Fecha de captura del teléfono:** el servidor la acota (5 min adelantada, 48 h atrás) para la tolerancia de reasignación. Un teléfono con la hora mal puede hacer que una visita legítima se rechace.
+
+### Fechas
+
+- **DateOnly** (`'Última carga'`, `'[CT] Último pago'`, `'Fecha asignada'`): llegan como fecha sin zona horaria. Se comparan día contra día (`d = Today()`) y se ordenan con `Sort`, no con `Max` (que es numérico).
+- `'[CT] Fecha Pago'` es texto (`aaaa-mm-dd` o `dd/mm/aaaa`). Se formatea a mano porque `DateValue` depende del idioma del teléfono.
+
+### Límites de filas
+
+- Cada copia a una colección se corta en el límite de filas: la cartera se trae por tramos. Si la cartera de un localizador crece tanto que un tramo llega al límite, la app avisa y hay que subir la cantidad de tramos: la constante `TramosCartera` de [`Esquema.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/Esquema.cs), la constante `TRAMOS` de [`paso18_tramo_cartera.py`](../../scripts/pan/paso18_tramo_cartera.py) y el `Sequence(20, 0)` de esta app y de las pantallas de la oficina que usan tramos; después, rellenar con `paso18_tramo_cartera.py --rellenar`.
+- Las demás pantallas no copian tablas enteras: leen cada dirección, teléfono o cuenta de la base local cuando la muestran.
+
+### Controles Modern y clásicos
+
+- Los controles clásicos (`Classic/Button`, `Classic/TextInput`) toman el tamaño de letra de la app (`gblT`) y escalan con «Aa». Los modernos traen su propio tamaño y no escalan: en formularios de captura se usan clásicos.
+- `Classic/Button` se anuncia por su `Text` y no admite `AccessibleLabel`. Un botón cuyo texto es solo un símbolo («Aa», «↻», «✕») usa `ModernButton` con `AccessibleLabel`. Un `Classic/Icon` que actúa como botón necesita `TabIndex: =0`.
+- En `ModernButton` el *padding* son píxeles reales: en botones chicos de un símbolo, *padding* 0.
+
+### Diseño
+
+- Dentro de un contenedor con diseño automático, `.Width` de un hijo (también `Parent.Width` o `Parent.TemplateWidth` en una galería) devuelve píxeles dibujados, no unidades de diseño. Se calcula desde la app o la pantalla: `Width: =App.Width - 60`.
+
+### Despliegue
+
+- ⚠️ La carpeta de fuentes se llama `Src`, con mayúscula. Con otro nombre, `pac canvas pack` en Linux empaqueta **sin** ningún `.pa.yaml` y no avisa: la app publicada no tiene fórmulas. `paso7_desplegar.py` lo frena con el mínimo de 13 archivos.
+- ⚠️ Un YAML roto (por ejemplo `: ` en una fórmula de una línea) se importa «bien», pero el reproductor sigue sirviendo la versión **anterior**. El síntoma es que «Versión de la app» no cambia.
+- ⚠️ No usar los *workflows* [`import-app.yml`](../../.github/workflows/import-app.yml) ni [`import-backoffice.yml`](../../.github/workflows/import-backoffice.yml): importan con `--activate-plugins`, que cambia el estado de los pasos de *plugin* (enciende también los que están apagados a propósito) y no lo restaura. Ver [Instalación y despliegue](09-instalacion-y-despliegue.md).
+- Abrir la app en Studio la deja como «modificada» (actualiza los controles modernos) y la bloquea unos minutos: el despliegue reintenta ante `AppLeaseConflict`. No publicar desde Studio.

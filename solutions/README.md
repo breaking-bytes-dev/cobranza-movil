@@ -1,39 +1,26 @@
-# Soluciones — Estrategia ALM de dos planos
+# Solution de Dataverse
 
-> Adaptada de `bitbreaker01/sigil` (ver [docs/historico/desarrollo/10 §Fase 3](../docs/historico/desarrollo/10-estructura-del-repositorio.md)).
+Cobranza Móvil se distribuye como la *solution* `cm_core_cobranzamovil` («CM | Core | Cobranza Movil», prefijo `sanic`). Una *solution* es el paquete de Dataverse que agrupa tablas, roles, *plugins*, apps y demás componentes para moverlos entre ambientes.
 
-La solución `Cobranza Móvil` vive en **dos planos**, cada uno con un propósito distinto:
+## Dónde está cada cosa
 
-## Plano 1 — GitHub Releases (los desplegables)
+| Qué | Dónde | Para qué |
+|---|---|---|
+| Zips instalables (`*_unmanaged.zip` y `*_managed.zip`) | *Assets* de los GitHub Releases `sol-vX.Y.Z.B` | Instalar o actualizar un ambiente. No se guardan en git |
+| [`unpacked/`](unpacked/) | Esta carpeta | Historial de cambios de metadatos, para ver diferencias entre versiones |
 
-Cada release `sol-vX.Y.Z.B` lleva como **assets** los dos zips exportados desde Dev con `pac solution export`:
+- **No administrada** (*unmanaged*): para el ambiente de desarrollo. Se puede editar y volver a exportar.
+- **Administrada** (*managed*): para producción. Está sellada y no se edita.
 
-| Asset | Rol |
-|-------|-----|
-| `*_unmanaged.zip` | **Fuente de verdad de Dev.** Es lo que se re-importa para reconstruir/continuar. |
-| `*_managed.zip` | **Release sellado** para Test/Prod. No se edita. |
+## Cómo se genera
 
-Los zips **no** entran al árbol de git (`.gitignore`): pesan, no diffean y su lugar es el Release.
+El *workflow* [`solution-release.yml`](../.github/workflows/solution-release.yml) (manual, con la versión de 4 dígitos) fija la versión en el ambiente de desarrollo, exporta las dos variantes y las publica en el Release. Al terminar encadena [`solution-sync.yml`](../.github/workflows/solution-sync.yml), que desempaqueta la no administrada en `unpacked/`, quita `CanvasApps/` y hace *commit*.
 
-## Plano 2 — `unpacked/` (el rastro en git)
+## Reglas
 
-`pac solution unpack` del zip **unmanaged**, con **poda** de los componentes que no son metadata pura:
+- ⚠️ **`unpacked/` no se instala ni se edita.** Es solo un registro para comparar versiones, y puede estar atrasada respecto del ambiente. Un cambio hecho acá no vuelve a Dataverse.
+- **El código fuente de las apps está en [`apps/`](../apps/)**, no en la *solution*: `CanvasApps/` se excluye porque las *canvas apps* no admiten ida y vuelta con el *Solution Packager*.
+- **Los cambios se hacen en el ambiente de desarrollo, dentro de la *solution*.** Después se exporta un Release.
+- Lo que no viaja en la *solution* (equipos, clave K, plantillas de Smelter, trabajos de borrado) lo crean los scripts de [`scripts/`](../scripts/README.md).
 
-- Se **excluye** `CanvasApps/` → la app del localizador **no soporta round-trip** del Solution Packager
-  (misma limitación que sigil documenta para su Code App). Su fuente de verdad es el zip del Release.
-- Queda: tablas (Entity.xml, formularios, vistas), choices, roles, flujos, variables de entorno,
-  `Solution.xml` — todo **diffeable** commit a commit.
-
-> ⚠️ `unpacked/` es **histórico/diff**, NO fuente de reconstrucción. Nunca edites acá esperando que
-> vuelva al entorno.
-
-## Ciclo (cuando la Fase 4 esté activa)
-
-```
-Portal Dev ──(workflow solution-release, manual con input version)──▶ Release sol-vX.Y.Z.B (zips)
-                                                                        │
-                     main ◀──(workflow solution-sync: unpack + poda + commit)──┘
-```
-
-Mientras tanto (manual): `pac solution export` → subir zips al Release → `pac solution unpack` local →
-commit de `unpacked/`.
+Instalación completa y publicación de cambios: [Instalación y despliegue](../docs/tecnica/09-instalacion-y-despliegue.md).
