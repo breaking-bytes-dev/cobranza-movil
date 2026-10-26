@@ -392,7 +392,7 @@ ComponentDefinitions:
                         Height: =16
                         PaddingLeft: =0
                         Size: =8
-                        Text: =If(IsBlank(gblRol), "Sin acceso", Substitute(gblRol, "|", " · "))
+                        Text: =If(!gblRolListo, "Cargando…", IsBlank(gblRol), "Sin acceso", Substitute(gblRol, "|", " · "))
                         Width: =Parent.Width - (gblE.Pad + 36 + gblE.PadSm) - gblE.PadSm
                         Wrap: =false
                         X: =gblE.Pad + 36 + gblE.PadSm

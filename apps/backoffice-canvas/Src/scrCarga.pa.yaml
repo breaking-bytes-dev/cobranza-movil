@@ -2,11 +2,23 @@ Screens:
   scrCarga:
     Properties:
       Fill: =ColorValue("#F2F4F7")
-      OnVisible: =Set(varVueltasCga, 0)
+      OnVisible: |-
+        =Set(varVueltasCga, 0);
+        // Perfiles de CM efectivos del usuario (roles directos y de cualquier equipo, también de grupo de Entra ID), que
+        // resuelve el servidor: "BackOffice|Admin"; vacío = sin acceso. Una sola vez por sesión. Va aquí y no en OnStart:
+        // si la foto de "Environment" no conoce la API, solo esta fórmula queda inerte (los tokens de OnStart no).
+        // El error se lee aparte (ver scrCargaArchivo): dentro de una cadena IfError no se ve.
+        If(!gblRolListo,
+            Set(varRespRolCga, Blank());
+            Set(varRespRolCga, Environment.sanic_cm_MisRoles());
+            Set(gblRolError, IfError(Left(Text(varRespRolCga.Roles), 0), TextoError(Coalesce(FirstError.Message, "sin detalle"))));
+            Set(gblRol, If(IsBlank(gblRolError), Coalesce(Text(varRespRolCga.Roles), ""), ""));
+            Set(gblRolListo, true)
+        )
     Children:
-      # Pantalla de carga (StartScreen). gblRol es una fórmula con nombre que lee de Dataverse el usuario, sus roles y
-      # sus teams: mientras no resuelve, los Visible de scrInicio no tienen valor y se veían TODOS los recuadros más
-      # «Sin acceso». Aquí se espera el rol y recién ahí se entra a Inicio (su OnVisible corre ya con el rol).
+      # Pantalla de carga (StartScreen). Su OnVisible pide los perfiles del usuario a la Custom API sanic_cm_MisRoles
+      # (gblRol) y marca gblRolListo al terminar. Se entra a Inicio recién entonces, así su OnVisible calcula los KPIs
+      # con el rol ya resuelto.
       # Colores literales: gblC se arma en OnStart, que puede no haber terminado todavía.
       - conCentroCga:
           Control: GroupContainer@1.5.0
@@ -68,7 +80,7 @@ Screens:
                   Height: =24
                   Live: =Live.Polite
                   Size: =10
-                  Text: ="Cargando" & Left("...", Mod(varVueltasCga, 4))
+                  Text: ="Cargando tus permisos" & Left("...", Mod(varVueltasCga, 4))
                   Width: =Parent.Width
                   Y: =100
       - tmrCarga:
@@ -78,9 +90,13 @@ Screens:
             Duration: =500
             OnTimerEnd: |-
               =Set(varVueltasCga, varVueltasCga + 1);
-              // Entra cuando el rol resolvió; si el usuario existe pero no tiene rol, a los 3 s (Inicio muestra «Sin acceso»);
-              // y como tope a los 15 s, para no quedar nunca trabado aquí.
-              If(!IsBlank(gblRol) || (!IsBlank(gblUsuarioDV) && varVueltasCga >= 6) || varVueltasCga >= 30,
-                  Navigate(scrInicio, ScreenTransition.None))
+              // Entra cuando terminó de leer los perfiles (con rol, sin rol o con error: Inicio muestra cada caso). Tope de
+              // 30 s para no quedar nunca trabado aquí: entra con el aviso de que no se pudo verificar el acceso.
+              If(!gblRolListo && varVueltasCga >= 60,
+                  Set(gblRolError, "el servidor no respondió a tiempo");
+                  Set(gblRol, "");
+                  Set(gblRolListo, true)
+              );
+              If(gblRolListo, Navigate(scrInicio, ScreenTransition.None))
             Repeat: =true
             Visible: =false

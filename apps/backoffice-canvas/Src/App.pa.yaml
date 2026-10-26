@@ -91,93 +91,14 @@ App:
           Sort('CM | TBL | Carga diarias', '[CD] FechaCarga', SortOrder.Descending)
       ).'[CD] FechaCarga';
 
-      // Identidad: fórmulas con nombre y NO Set en OnStart, porque el OnVisible de
-      // scrInicio puede correr antes de que OnStart termine y los KPIs saldrían vacíos.
-      // Se evalúan a demanda y siempre están disponibles.
-      // gblRol derivado de la seguridad REAL (sin tabla extra).
-      // a) Roles DIRECTOS del usuario: "SR | CM | Admin" -> "Admin".
-      // b) Roles por TEAM: en este proyecto el rol se asigna por membresía al team
-      //    "CM · <perfil> · <ENV>". Canvas no deja navegar Team -> Security Roles dentro de un
-      //    ForAll ("not accessible in this context", verificado en Studio), así que el perfil
-      //    sale del segmento del medio del nombre del team (el sufijo DEV/PRD se ignora).
-      //    ⚠ Renombrar un team CM rompe este mapeo (mismo acople que el prefijo "SR | CM | ").
-      // Por el id de Entra y no por correo: User().Email devuelve el UPN, que puede no coincidir con el correo
-      // principal (ver plugin EmailDesdeUsuario). El id no cambia nunca.
+      // Usuario de Dataverse: fórmula con nombre (y no Set en OnStart) para que esté disponible aunque una pantalla corra
+      // antes de que termine el arranque. Por el id de Entra y no por correo: User().Email devuelve el UPN, que puede no
+      // coincidir con el correo principal (ver plugin EmailDesdeUsuario). El id no cambia nunca.
+      // Los perfiles del usuario (gblRol) los pone scrCarga con la Custom API sanic_cm_MisRoles.
       gblUsuarioDV = LookUp(
           Users,
           'Azure AD Object ID' = User().EntraObjectId
       );
-
-      // Expresión pura (Concat/Split/Distinct, sin Collect/Set): válida en fórmula con nombre.
-      // Guarda de Blank: si el LookUp de gblUsuarioDV todavía no resolvió (carrera al abrir) o el
-      // usuario no existe en Users, sus relaciones son Blank y Filter/Concat fallarían con
-      // "expected a table". Sin usuario => "" => estado "sin acceso".
-      gblRol = If(IsBlank(gblUsuarioDV), "", With(
-          {
-              // a) roles directos "SR | CM | Admin" -> "Admin"
-              rolesDirectos: Concat(
-                  Filter(
-                      gblUsuarioDV.'Security Roles (systemuserroles_association)',
-                      StartsWith(
-                          Name,
-                          "SR | CM | "
-                      )
-                  ),
-                  Substitute(
-                      Name,
-                      "SR | CM | ",
-                      ""
-                  ),
-                  "|"
-              ),
-              // b) roles por team "CM · <perfil> · <ENV>" -> perfil (segmento del medio)
-              //    (If por fila, sin Filter sobre la relación)
-              rolesTeam: Concat(
-                  gblUsuarioDV.'Teams (teammembership_association)',
-                  If(
-                      StartsWith(
-                          'Team Name',
-                          "CM · "
-                      ),
-                      Switch(
-                          Index(
-                              Split(
-                                  'Team Name',
-                                  " · "
-                              ),
-                              2
-                          ).Value,
-                          "Backoffice",
-                          "BackOffice",
-                          "Solicitantes",
-                          "Solicitante",
-                          "Supervisores",
-                          "Supervisor",
-                          "Admin y Carga",
-                          "Admin",
-                          ""
-                      )
-                  ),
-                  "|"
-              )
-          },
-          // Multi-rol => "BackOffice|Admin". El `in` de los guards/nav es case-insensitive.
-          // Sin ningún rol CM => gblRol vacío => estado "sin acceso" de scrInicio.
-          Concat(
-              Distinct(
-                  Filter(
-                      Split(
-                          rolesDirectos & "|" & rolesTeam,
-                          "|"
-                      ),
-                      !IsBlank(Value)
-                  ),
-                  Value
-              ),
-              Value,
-              "|"
-          )
-      ));
     OnStart: |-
       =// ===== App.OnStart =====
       // La nav (componente) no ve las fórmulas con nombre que solo usa ella: la versión va por variable.

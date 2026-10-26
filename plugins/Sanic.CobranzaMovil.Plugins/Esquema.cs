@@ -212,6 +212,10 @@ namespace Sanic.CobranzaMovil.Plugins
         public const string SalidaCerradas = "Cerradas";
         public const string SalidaRestantes = "Restantes";
         public const string SalidaCorte = "Corte";
+
+        // Custom API MisRoles: perfiles de CM del llamador para la app del backoffice.
+        public const string MensajeMisRoles = "sanic_cm_MisRoles";
+        public const string SalidaRoles = "Roles";
         public const string NombrePlantillaPadres = "Cobranza movil · padres";
         public const string NombrePlantillaPartes = "Cobranza movil · partes";
         public const string MapeoTabla = "sanic_tbl_smlt_tablemapping";

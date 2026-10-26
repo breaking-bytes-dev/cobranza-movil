@@ -2,6 +2,7 @@
 - sanic_cm_SolicitarEspecial (plugins/Sanic.CobranzaMovil.Plugins/SolicitarEspecial.cs)
 - sanic_cm_AltaCuenta (plugins/Sanic.CobranzaMovil.Plugins/AltaCuenta.cs)
 - sanic_cm_CerrarFueraDeCartera (plugins/Sanic.CobranzaMovil.Plugins/CerrarFueraDeCartera.cs)
+- sanic_cm_MisRoles (plugins/Sanic.CobranzaMovil.Plugins/MisRoles.cs), perfiles de CM del llamador para la app de la oficina
 - sanic_cm_PartirCarga (plugins/Sanic.CobranzaMovil.Plugins/PartirCarga.cs), para la carga paralela. Requiere las
   plantillas de Smelter "Cobranza movil · padres" y "· partes" (scripts/pan/paso20_plantillas_paralelas.py --aplicar).
 Ver docs/historico/auditoria/01-pendientes.md.
@@ -17,7 +18,8 @@ Por defecto solo MUESTRA el plan (solo hace GET). Aplica con --aplicar.
 Las apps las llaman con Environment.sanic_cm_<API>({...}): hay que agregar la fuente "Environment" en Studio. Sin
 privilegio de ejecucion propio: quien puede llamarlas lo decide cada plugin (SolicitarEspecial: Solicitante, Admin o Servicio
 y que pueda leer la cuenta; AltaCuenta y PartirCarga: solo Admin, Servicio o sin roles de CM, y ademas el llamador tiene que
-ver el job y las plantillas de Smelter, o sea estar en el equipo de carga "CM · Admin y Carga").
+ver el job y las plantillas de Smelter, o sea estar en el equipo de carga "CM · Admin y Carga"; MisRoles: cualquier
+usuario, solo devuelve lo suyo).
 
 Credenciales: las mismas que paso5_plugins.py (variables de entorno o pp_secrets.env). Nunca se imprimen.
 Uso: python3 scripts/pan/paso12_custom_api.py [--aplicar] [--solucion cm_core_cobranzamovil] [--api sanic_cm_AltaCuenta]
@@ -131,6 +133,15 @@ APIS = [
             ('Cerradas', ENTERO, 'Cerradas en este llamado'),
             ('Restantes', ENTERO, 'Las que siguen fuera de la carga despues de este llamado'),
             ('Corte', TEXTO, 'Dia de la ultima carga usado como corte, aaaa-mm-dd'),
+        ]),
+    dict(
+        api='sanic_cm_MisRoles', tipo='MisRoles', version=(1, 0, 10, 8),
+        definicion=definicion('sanic_cm_MisRoles', 'CM - Mis roles',
+                              'Perfiles de CM del usuario que llama (roles directos y por equipo), para el menu y los '
+                              'permisos de la app de la oficina.'),
+        parametros=[],
+        respuesta=[
+            ('Roles', TEXTO, 'Perfiles sin el prefijo "SR | CM | ", ordenados y separados por "|" (vacio si no tiene)'),
         ]),
 ]
 

@@ -999,16 +999,35 @@ Screens:
                               TabIndex: =0
                               Text: =lblAccAgeTitIni.Text
                               Width: =Parent.Width
+      # Mientras scrCarga no terminó de leer los perfiles (gblRolListo), «Cargando…» y no «Sin acceso».
+      - lblCargandoIni:
+          Control: Label@2.5.1
+          Properties:
+            Align: =Align.Center
+            Color: =gblC.teal
+            Font: =Font.'Segoe UI'
+            FontWeight: =FontWeight.Semibold
+            Height: =40
+            Live: =Live.Polite
+            Size: =12
+            Text: ="⏳ Cargando tus permisos…"
+            Visible: =!gblRolListo
+            Width: =Min(420, Parent.Width - 2*gblE.Pad)
+            X: =(Parent.Width - Self.Width) / 2
+            Y: =(Parent.Height - Self.Height) / 2
       - cmpVacioIni:
           Control: CanvasComponent
           ComponentName: cmpVacio
           Properties:
             Height: =200
             Icono: |-
-              ="🔐"
-            Mensaje: ="Tu usuario no tiene un rol de Cobranza Móvil (SR | CM | …). Pedile al Admin que te agregue al team correspondiente."
-            Titulo: ="Sin acceso"
-            Visible: =IsBlank(gblRol)
+              =If(IsBlank(gblRolError), "🔐", "⚠️")
+            Mensaje: |-
+              =If(IsBlank(gblRolError),
+                  "Tu usuario no tiene un rol de Cobranza Móvil (SR | CM | …). Pedile al Admin que te lo asigne o te agregue al equipo correspondiente.",
+                  "No se pudieron leer tus permisos (" & gblRolError & "). Cerrá y volvé a abrir la app; si sigue, avisale al Admin.")
+            Titulo: =If(IsBlank(gblRolError), "Sin acceso", "No se pudo verificar tu acceso")
+            Visible: =gblRolListo && IsBlank(gblRol)
             Width: =Min(420, Parent.Width - 2*gblE.Pad)
             X: =(Parent.Width - Self.Width) / 2
             Y: =(Parent.Height - Self.Height) / 2

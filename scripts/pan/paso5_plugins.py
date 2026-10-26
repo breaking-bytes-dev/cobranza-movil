@@ -15,7 +15,7 @@ PanGuard:
   VincularActualizacionPendiente, ReciboRepetido, EspecialDesdeCuenta, TipoDesdeProducto, IdentidadEnInteraccion,
   TramoCartera y PurgaArchivoCarga.
 
-Las Custom APIs (SolicitarEspecial, AltaCuenta, PartirCarga, CerrarFueraDeCartera) no tienen pasos: sus tipos vienen en
+Las Custom APIs (SolicitarEspecial, AltaCuenta, PartirCarga, CerrarFueraDeCartera, MisRoles) no tienen pasos: sus tipos vienen en
 la misma dll y las define scripts/pan/paso12_custom_api.py DESPUÉS de este paso. PartirCarga necesita además las
 plantillas de Smelter "Cobranza movil · padres" y "· partes" (scripts/pan/paso20_plantillas_paralelas.py --aplicar).
 

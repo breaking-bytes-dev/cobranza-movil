@@ -1,6 +1,6 @@
 # Sanic.CobranzaMovil.Plugins
 
-Ensamblado único con los *plugins* y las *Custom APIs* de Cobranza Móvil. Destino: .NET Framework 4.6.2, C# 7.3, *sandbox* de Dataverse, firmado con nombre seguro y sin dependencias fuera del SDK de Dataverse. Versión actual del ensamblado: 1.0.10.7.
+Ensamblado único con los *plugins* y las *Custom APIs* de Cobranza Móvil. Destino: .NET Framework 4.6.2, C# 7.3, *sandbox* de Dataverse, firmado con nombre seguro y sin dependencias fuera del SDK de Dataverse. Versión actual del ensamblado: 1.0.10.8.
 
 La descripción de cada plugin y cada Custom API (mensaje, etapa, qué hace y por qué) está en [04 · Plugins y Custom APIs](../../docs/tecnica/04-plugins-y-custom-apis.md).
 
