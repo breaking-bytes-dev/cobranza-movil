@@ -313,7 +313,7 @@ Screens:
                   TemplateSize: |-
                     =// Un mensaje por fila, a lo ancho, hasta 2 líneas (100 caracteres); el alto escala con «Aa».
                     Round(gblT.fsm * 3.4 + 14, 0) + 8
-                  Width: =conMaster_4.Width - conMaster_4.PaddingLeft - conMaster_4.PaddingRight
+                  Width: =App.Width - 12
                 Children:
                   - conChip:
                       Control: GroupContainer@1.5.0
@@ -631,7 +631,7 @@ Screens:
                                 Max(42, Round(gblT.fbase * 3, 0)) * 2 + 8 + 24 + 10
                               Width: |-
                                 =// Relativo a la app: los contenedores automáticos estirados no informan su ancho real a las fórmulas.
-                                App.Width - 50
+                                App.Width - 60
                             Children:
                               - conLinea:
                                   Control: GroupContainer@1.5.0
