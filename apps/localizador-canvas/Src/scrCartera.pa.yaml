@@ -601,7 +601,7 @@ Screens:
                         LayoutMinHeight: =16
                         LayoutMinWidth: =16
                         Size: =gblT.fsm
-                        Text: =CountRows(galCartera_clientes.AllItems) & If(varModo="cliente"," clientes"," cuentas")
+                        Text: =If(varModo="cliente", CountRows(galCartera_clientes.AllItems) & " clientes", CountRows(galCartera_cuenta.AllItems) & " cuentas")
                   - Container9_1:
                       Control: GroupContainer@1.5.0
                       Variant: AutoLayout
@@ -1004,28 +1004,197 @@ Screens:
                             "ord", SortOrder.Ascending, "cliNom", SortOrder.Ascending)
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
+                  ShowScrollbar: =false
                   TemplatePadding: =12
+                  TemplateSize: =If(gblScale = 1, 132,gblScale = 1.2,148,gblScale = 1.45,176,198)
                   Visible: =varModo = "cuenta"
                   Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
                 Children:
-                  - Container10_1:
+                  - conCtaCard:
                       Control: GroupContainer@1.5.0
                       Variant: AutoLayout
                       Properties:
-                        Height: =14
-                        LayoutAlignItems: =LayoutAlignItems.Center
-                        LayoutDirection: =LayoutDirection.Horizontal
-                        PaddingBottom: =8
-                        PaddingLeft: =8
-                        PaddingRight: =8
-                        PaddingTop: =8
-                        Width: =Parent.TemplateWidth
+                        BorderColor: =gblC.cardBorder
+                        BorderThickness: =1
+                        Fill: =gblC.surface
+                        Height: =Parent.TemplateHeight
+                        LayoutAlignItems: =LayoutAlignItems.Stretch
+                        LayoutDirection: =LayoutDirection.Vertical
+                        RadiusBottomLeft: =16
+                        RadiusBottomRight: =16
+                        RadiusTopLeft: =16
+                        RadiusTopRight: =16
+                        Width: |-
+                          =// TemplateWidth llega más angosto que la galería (2/3 del ancho en la web): se usa su ancho.
+                          galCartera_cuenta.Width - 2 * galCartera_cuenta.TemplatePadding
+                      Children:
+                        - conCtaBody:
+                            Control: GroupContainer@1.5.0
+                            Variant: AutoLayout
+                            Properties:
+                              DropShadow: =DropShadow.None
+                              LayoutAlignItems: =LayoutAlignItems.Center
+                              LayoutDirection: =LayoutDirection.Horizontal
+                              LayoutGap: =8
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =10
+                              PaddingLeft: =14
+                              PaddingRight: =14
+                              PaddingTop: =12
+                            Children:
+                              - conCtaName:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: AutoLayout
+                                  Properties:
+                                    DropShadow: =DropShadow.None
+                                    LayoutDirection: =LayoutDirection.Vertical
+                                    LayoutGap: =2
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                  Children:
+                                    - lblCtaNombre:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Stretch
+                                          AutoHeight: =true
+                                          Color: =gblC.ink
+                                          FontWeight: =FontWeight.Bold
+                                          LayoutMinHeight: =16
+                                          LayoutMinWidth: =16
+                                          PaddingBottom: =0
+                                          Size: =gblT.fbase
+                                          Text: =Coalesce(ThisItem.cliNom, "Cuenta sin datos")
+                                    - lblCtaPan:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Stretch
+                                          AutoHeight: =true
+                                          Color: =gblC.muted
+                                          FontWeight: =FontWeight.Semibold
+                                          LayoutMinHeight: =16
+                                          LayoutMinWidth: =16
+                                          PaddingTop: =0
+                                          Size: =gblT.fxs
+                                          Text: =PanMasc(ThisItem.ult4)
+                              - txtCtaTipo:
+                                  Control: ModernText@1.0.0
+                                  Properties:
+                                    Align: =Align.Center
+                                    AlignInContainer: =AlignInContainer.Center
+                                    AutoHeight: =true
+                                    Color: =Switch(Text(ThisItem.'[AS] Tipo'), "Diaria",gblC.diariaInk, "Incobrable",gblC.incobInk, gblC.espInk)
+                                    Fill: =Switch(Text(ThisItem.'[AS] Tipo'), "Diaria",gblC.diariaBg, "Incobrable",gblC.incobBg, gblC.espBg)
+                                    FontWeight: =FontWeight.Bold
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    RadiusBottomLeft: =20
+                                    RadiusBottomRight: =20
+                                    RadiusTopLeft: =20
+                                    RadiusTopRight: =20
+                                    Size: =gblT.f2xs
+                                    Text: =ThisItem.'[AS] Tipo'
+                                    Width: =If(gblScale = 1, 108,gblScale = 1.2,128,gblScale = 1.45,156,180)
+                        - conCtaFoot:
+                            Control: GroupContainer@1.5.0
+                            Variant: AutoLayout
+                            Properties:
+                              DropShadow: =DropShadow.None
+                              Fill: =gblC.chipBg
+                              FillPortions: =0
+                              Height: =If(gblScale = 1, 64,gblScale = 1.2,72,gblScale = 1.45,84,96)
+                              LayoutAlignItems: =LayoutAlignItems.Center
+                              LayoutDirection: =LayoutDirection.Horizontal
+                              LayoutGap: =8
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =8
+                              PaddingLeft: =14
+                              PaddingRight: =14
+                              PaddingTop: =8
+                              RadiusBottomLeft: =16
+                              RadiusBottomRight: =16
+                              RadiusTopLeft: =0
+                              RadiusTopRight: =0
+                            Children:
+                              - conCtaSaldo:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: AutoLayout
+                                  Properties:
+                                    DropShadow: =DropShadow.None
+                                    LayoutDirection: =LayoutDirection.Vertical
+                                    LayoutGap: =1
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                  Children:
+                                    - lblCtaSaldoLbl:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Stretch
+                                          AutoHeight: =true
+                                          Color: =gblC.muted2
+                                          FontWeight: =FontWeight.Bold
+                                          LayoutMinHeight: =16
+                                          LayoutMinWidth: =16
+                                          PaddingBottom: =0
+                                          Size: =gblT.f2xs
+                                          Text: ="SALDO VENCIDO"
+                                    - lblCtaSaldoVal:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Stretch
+                                          AutoHeight: =true
+                                          Color: =gblC.ink
+                                          FontWeight: =FontWeight.Bold
+                                          LayoutMinHeight: =16
+                                          LayoutMinWidth: =16
+                                          PaddingTop: =0
+                                          Size: =gblT.fmd
+                                          Text: =Moneda(ThisItem.saldoNio, ThisItem.saldoUsd)
+                              - txtCtaMora:
+                                  Control: ModernText@1.0.0
+                                  Properties:
+                                    Align: =Align.Center
+                                    AlignInContainer: =AlignInContainer.Center
+                                    AutoHeight: =true
+                                    Color: =If(ThisItem.diasMora <= 15, gblC.accentInk, ThisItem.diasMora <= 60, gblC.incobInk, gblC.redInk)
+                                    Fill: =If(ThisItem.diasMora <= 15, gblC.accentBg, ThisItem.diasMora <= 60, gblC.incobBg, gblC.redBg)
+                                    FontWeight: =FontWeight.Bold
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    RadiusBottomLeft: =20
+                                    RadiusBottomRight: =20
+                                    RadiusTopLeft: =20
+                                    RadiusTopRight: =20
+                                    Size: =gblT.fxs
+                                    Text: =ThisItem.diasMora & " días"
+                                    Visible: =!IsBlank(ThisItem.diasMora)
+                                    Width: =If(gblScale = 1, 108,gblScale = 1.2,128,gblScale = 1.45,156,180)
+                  - btnAbrirCta:
+                      Control: ModernButton@1.0.0
+                      Properties:
+                        AccessibleLabel: |-
+                          ="Abrir cuenta " & PanMasc(ThisItem.ult4) & " de " & ThisItem.cliNom
+                        Appearance: =ButtonAppearance.Transparent
+                        Height: =conCtaCard.Height
+                        OnSelect: |-
+                          =// Abre ESTA asignación (el tipo tocado), con la cuenta leída de la base del teléfono, como desde Inicio.
+                          With({ ctaRec: LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = ThisItem.ctaId), aId: ThisItem.'CM | TBL | Asignacion' },
+                              If(IsBlank(ThisItem.ctaId) || IsBlank(ctaRec),
+                                  Notify("Esa cuenta ya no está en tu cartera, su detalle no se puede abrir.", NotificationType.Information),
+                                  Set(varAsig, First(AddColumns(Filter('CM | TBL | Asignacions', 'CM | TBL | Asignacion' = aId), cta, ctaRec)));
+                                  Set(varCuenta, ctaRec); Set(varDetTab,"detalle"); Set(varDetSrc,"cartera");
+                                  Navigate(scrDetalleCuenta, ScreenTransition.Cover)))
+                        Text: =
+                        Width: =conCtaCard.Width
+                        X: =conCtaCard.X
+                        Y: =conCtaCard.Y
       - btnCargarCartera:
           Control: Classic/Button@2.2.0
           Properties:
             OnSelect: |-
               =// La cartera se trae por TRAMOS (el servidor reparte asignaciones y cuentas en 20, TramoCartera): una sola
-              // consulta se cortaría en el límite de 2000 filas de la app. Direcciones y teléfonos no se copian: se leen
+              // consulta se cortaría en el límite de filas por consulta. Direcciones y teléfonos no se copian: se leen
               // de la base del teléfono al mostrarlos.
               UpdateContext({varshowLoader: true});
               Clear(colAsigRaw);
@@ -1036,12 +1205,12 @@ Screens:
               // Lo que todavía no tiene tramo (p. ej. una cuenta recién creada: el servidor lo asigna en segundo plano).
               Collect(colAsigRaw, Filter('CM | TBL | Asignacions', '[AS] Tramo' = Blank() && '[AS] Estado' = true && ('[AS] Tipo' <> 'Choice | CM | Tipo asignacion'.Especial || '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado)));
               Collect(colCuentas, Filter('CM | TBL | Cuentas', '[CT] Tramo' = Blank()));
-              // Si una consulta llegó al límite, falta cartera: se avisa (sincronizar no lo arregla).
+              // Si un tramo llega a 500 filas, la consulta pudo cortarse (el límite puede ser 500 o 2000): se avisa (sincronizar no lo arregla).
               Set(varCarteraIncompleta,
                   Max(ForAll(Sequence(21, 0) As T,
-                      CountRows(Filter(colAsigRaw, If(T.Value = 20, IsBlank('[AS] Tramo'), '[AS] Tramo' = T.Value)))), Value) >= 2000
+                      CountRows(Filter(colAsigRaw, If(T.Value = 20, IsBlank('[AS] Tramo'), '[AS] Tramo' = T.Value)))), Value) >= 500
                   || Max(ForAll(Sequence(21, 0) As T,
-                      CountRows(Filter(colCuentas, If(T.Value = 20, IsBlank('[CT] Tramo'), '[CT] Tramo' = T.Value)))), Value) >= 2000);
+                      CountRows(Filter(colCuentas, If(T.Value = 20, IsBlank('[CT] Tramo'), '[CT] Tramo' = T.Value)))), Value) >= 500);
               If(varCarteraIncompleta,
                   Notify("Tu cartera es más grande de lo que la app puede mostrar y faltan clientes. Avisá a soporte.", NotificationType.Error));
               // Las Especiales solo se gestionan aprobadas (el servidor tampoco deja asignar agente antes).

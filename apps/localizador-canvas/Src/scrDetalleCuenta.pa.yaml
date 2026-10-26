@@ -21,7 +21,8 @@ Screens:
                 && '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
                 && '[AS] Estado' = true && ('[AS] Tipo' <> 'Choice | CM | Tipo asignacion'.Especial || '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado))
         });
-        If(varDetSrc <> "cliente",
+        // Desde Cliente y desde Cartera la asignación tocada ya viene en varAsig.
+        If(varDetSrc <> "cliente" && varDetSrc <> "cartera",
             Set(varAsig, First(AddColumns(Filter('CM | TBL | Asignacions', '[AS] Estado' = true && ('[AS] Tipo' <> 'Choice | CM | Tipo asignacion'.Especial || '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado) && '[AS] Cuenta'.'CM | TBL | Cuenta' = varCuenta.'CM | TBL | Cuenta'),
                 cta, LookUp('CM | TBL | Cuentas', 'CM | TBL | Cuenta' = '[AS] Cuenta'.'CM | TBL | Cuenta')))))
     Children:

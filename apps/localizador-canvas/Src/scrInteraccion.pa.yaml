@@ -298,6 +298,24 @@ Screens:
                   RadiusTopRight: =12
                   Size: =gblT.fbase
                   Type: =TextInputType.Multiline
+            - lblAvisoTarjeta:
+                Control: Label@2.5.1
+                Properties:
+                  AlignInContainer: =AlignInContainer.Stretch
+                  AutoHeight: =true
+                  Color: =gblC.incobInk
+                  Fill: =gblC.incobBg
+                  FontWeight: =FontWeight.Bold
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  PaddingLeft: =8
+                  PaddingRight: =8
+                  Size: =gblT.fxs
+                  Text: |-
+                    ="⚠ No escribas números de tarjeta en el comentario: se van a guardar ocultos (•••• y los últimos 4)."
+                  Visible: |-
+                    =// Solo avisa: no bloquea el guardado (el servidor enmascara). 13 o más dígitos, con espacios o guiones entre medio.
+                    IsMatch(txtComentario.Text, "\d([ -]?\d){12,}", MatchOptions.Contains)
             - galChips:
                 Control: Gallery@2.15.0
                 Variant: Vertical

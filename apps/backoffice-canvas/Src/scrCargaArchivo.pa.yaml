@@ -157,7 +157,7 @@ Screens:
                         Height: =22
                         PaddingLeft: =0
                         Size: =9
-                        Text: ="Un solo archivo .csv, de hasta 128 MB. Nunca se sube nada sin pasar antes por la prueba en seco."
+                        Text: ="Un solo archivo .csv, de hasta 50 MB. Nunca se sube nada sin pasar antes por la prueba en seco."
                         Width: =Parent.Width - 2*gblE.Pad
                         Wrap: =false
                         X: =gblE.Pad
@@ -171,7 +171,7 @@ Screens:
                         Height: =96
                         Items: =Blank()
                         MaxAttachments: =1
-                        MaxAttachmentSize: =128
+                        MaxAttachmentSize: =50
                         MaxAttachmentsText: ="Un solo archivo por carga. Para cambiarlo, quitá el actual con la ✕."
                         NoAttachmentsText: ="Todavía no elegiste ningún archivo."
                         PaddingBottom: =5
