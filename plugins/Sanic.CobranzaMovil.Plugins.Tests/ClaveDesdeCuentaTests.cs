@@ -213,8 +213,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
 
             var ex = Assert.Throws<InvalidPluginExecutionException>(() => h.Ejecutar(new ClaveDesdeCuenta()));
 
-            Assert.Contains(ColClaveAs, ex.Message);
-            Assert.Contains(ColCuentaId, ex.Message);
+            Assert.Contains("La clave de la asignación no coincide", ex.Message);
             Assert.DoesNotContain(ClaveA, ex.Message);
             Assert.DoesNotContain(ClaveB, ex.Message);
             Assert.DoesNotContain(ClaveA, h.TodoElTexto());

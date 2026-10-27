@@ -151,7 +151,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         {
             var e = new Escenario(new[] { Admin }, 10, 10, Dia);
             e.H.Inputs["Lote"] = lote;
-            Assert.Contains("el lote", e.Rechaza().Message);
+            Assert.Contains("El lote", e.Rechaza().Message);
             Assert.Empty(e.Actualizadas);
         }
 

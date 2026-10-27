@@ -598,8 +598,8 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         [Fact]
         public void Sin_cobrador_el_agente_es_obligatorio()
         {
-            Assert.Contains("agente", Rechaza(Crear(Nueva(true, null), new[] { Admin })).Message);
-            Assert.Contains("agente", Rechaza(Crear(Nueva(true, null), new string[0])).Message);
+            Assert.Contains("el localizador", Rechaza(Crear(Nueva(true, null), new[] { Admin })).Message);
+            Assert.Contains("el localizador", Rechaza(Crear(Nueva(true, null), new string[0])).Message);
         }
 
         [Fact]
