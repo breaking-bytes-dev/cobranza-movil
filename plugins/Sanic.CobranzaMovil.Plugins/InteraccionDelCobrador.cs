@@ -225,7 +225,7 @@ namespace Sanic.CobranzaMovil.Plugins
             var agentes = local.ServicioSistema.RetrieveMultiple(q).Entities;
             if (agentes.Count == 0)
             {
-                throw local.Error("tu usuario no esta vinculado a ningun agente; pedile al Admin que lo vincule en Agentes.");
+                throw local.Error("tu usuario no esta vinculado a ningun localizador; pedile al Admin que lo vincule en Localizadores y usuarios.");
             }
 
             var enviado = target.GetAttributeValue<EntityReference>(Esquema.InteraccionAgente);
