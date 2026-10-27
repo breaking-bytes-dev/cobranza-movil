@@ -509,7 +509,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         [Fact]
         public void Un_cobrador_sin_agente_vinculado_se_rechaza()
         {
-            Assert.Contains("agente", Rechaza(Crear(Nueva(true, null), new[] { Localizador })).Message);
+            Assert.Contains("no esta vinculado a ningun localizador", Rechaza(Crear(Nueva(true, null), new[] { Localizador })).Message);
         }
 
         [Fact]
