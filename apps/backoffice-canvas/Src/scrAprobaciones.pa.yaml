@@ -104,7 +104,9 @@ Screens:
                         Fill: =gblC.card
                         FillPortions: =0
                         Font: =Font.'Segoe UI'
+                        Format: ="dd/mm/yyyy"
                         Height: =gblE.AltoInput
+                        InputTextPlaceholder: ="dd/mm/aaaa"
                         OnChange: |-
                           =// Vacío = sin límite por ese lado.
                           Set(varDesdeAprb, Self.SelectedDate);
@@ -136,7 +138,9 @@ Screens:
                         Fill: =gblC.card
                         FillPortions: =0
                         Font: =Font.'Segoe UI'
+                        Format: ="dd/mm/yyyy"
                         Height: =gblE.AltoInput
+                        InputTextPlaceholder: ="dd/mm/aaaa"
                         OnChange: |-
                           =// Vacío = sin límite por ese lado.
                           Set(varHastaAprb, Self.SelectedDate);
@@ -1071,8 +1075,13 @@ Screens:
                                 'Fecha de cierre': Now()
                             }
                         ),
-                        Notify("No se pudo rechazar " & varSelAprb.'[AS] Numero' & ": " & FirstError.Message,
-                            NotificationType.Error),
+                        With({e: TextoError(Coalesce(FirstError.Message, "sin detalle"))},
+                            // Otra persona la resolvió (o ya no está pendiente) mientras estaba abierta: se avisa y se vuelve a leer la cola.
+                            If(("otra persona" in e && "resolvi" in e) || "Actualizá la lista" in e,
+                                Notify(e, NotificationType.Warning);
+                                Select(btnCargarAprb),
+                                Notify("No se pudo rechazar " & varSelAprb.'[AS] Numero' & ": " & e,
+                                    NotificationType.Error))),
                         Remove(colAprobAprb,
                             LookUp(colAprobAprb, '[AS] Numero' = varSelAprb.'[AS] Numero'));
                         Set(varPanelAprb, false);
@@ -1116,8 +1125,13 @@ Screens:
                                 '[AS] Resolutor': gblUsuarioDV
                             }
                         ),
-                        Notify("No se pudo aprobar " & varSelAprb.'[AS] Numero' & ": " & FirstError.Message,
-                            NotificationType.Error),
+                        With({e: TextoError(Coalesce(FirstError.Message, "sin detalle"))},
+                            // Otra persona la resolvió (o ya no está pendiente) mientras estaba abierta: se avisa y se vuelve a leer la cola.
+                            If(("otra persona" in e && "resolvi" in e) || "Actualizá la lista" in e,
+                                Notify(e, NotificationType.Warning);
+                                Select(btnCargarAprb),
+                                Notify("No se pudo aprobar " & varSelAprb.'[AS] Numero' & ": " & e,
+                                    NotificationType.Error))),
                         // El Notify va ANTES de limpiar varAgeAprb (lee el nombre del localizador).
                         Notify("✓ Aprobada — asignada a " & varAgeAprb.'[AG] Nombre' &
                             ". Baja al celular del localizador en la próxima sincronización.",

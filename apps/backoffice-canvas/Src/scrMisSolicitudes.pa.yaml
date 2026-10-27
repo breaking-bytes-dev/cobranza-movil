@@ -120,7 +120,9 @@ Screens:
                         Fill: =gblC.card
                         FillPortions: =0
                         Font: =Font.'Segoe UI'
+                        Format: ="dd/mm/yyyy"
                         Height: =gblE.AltoInput
+                        InputTextPlaceholder: ="dd/mm/aaaa"
                         OnChange: |-
                           =Set(varDesdeSol, Coalesce(Self.SelectedDate, DateAdd(Today(), -1, TimeUnit.Months)));
                           If(varDesdeSol > varHastaSol, Set(varHastaSol, varDesdeSol); Reset(dtpHastaSol));
@@ -151,7 +153,9 @@ Screens:
                         Fill: =gblC.card
                         FillPortions: =0
                         Font: =Font.'Segoe UI'
+                        Format: ="dd/mm/yyyy"
                         Height: =gblE.AltoInput
+                        InputTextPlaceholder: ="dd/mm/aaaa"
                         OnChange: |-
                           =Set(varHastaSol, Coalesce(Self.SelectedDate, Today()));
                           If(varHastaSol < varDesdeSol, Set(varDesdeSol, varHastaSol); Reset(dtpDesdeSol));

@@ -35,11 +35,18 @@ App:
 
       // Texto legible de un error del servidor. FirstError.Message de una Custom API trae el JSON crudo:
       // 'Environment.sanic_cm_PartirCarga failed: {"error":{"code":"0x80040265","message":"PartirCarga: …"}}'.
-      // Devuelve solo el "message" (sin el prefijo "<Plugin>: "); si no hay JSON, el texto tal cual.
+      // Devuelve solo el "message" (o el texto tal cual si no hay JSON) sin el prefijo "<Plugin>: " que ponen
+      // los plugins (una palabra sin espacios seguida de dos puntos al inicio).
       TextoError(e:Text): Text =
           With(
               {m: Match(e, """message""\s*:\s*""(?<t>[^""]*)""")},
-              If(IsBlank(m), e, Trim(Substitute(m.t, "PartirCarga:", "")))
+              With(
+                  {t: Trim(If(IsBlank(m), e, m.t))},
+                  With(
+                      {p: Match(t, "^[A-Za-z][A-Za-z0-9_.]*:\s+")},
+                      If(IsBlank(p), t, Trim(Mid(t, Len(p.FullMatch) + 1)))
+                  )
+              )
           );
 
       // Monto de retiro de una Especial: obligatorio, número, 0 o más (vacío, texto o negativo no).

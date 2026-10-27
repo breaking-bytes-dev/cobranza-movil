@@ -184,7 +184,7 @@ Screens:
                         Size: =10
                         Text: |-
                           =If(!varVerifCargaRec,
-                              "⛔ No se puede verificar si hay una carga del banco en curso (tu usuario no ve las cargas de Smelter o la consulta falló): el cierre en lote queda deshabilitado. Avisá a soporte.",
+                              "⛔ No se puede verificar si hay una carga del banco en curso (tu usuario no tiene permiso para ver las cargas o la consulta falló): el cierre en lote queda deshabilitado. Avisá a soporte.",
                               "⛔ Hay una carga del banco en curso (en cola, procesando o preparándose): esperá a que termine para cerrar en lote. Mientras tanto, las Diarias que todavía no se cargaron se ven «fuera de cartera».")
                         Width: =Parent.Width - 2*gblE.Pad
                         X: =gblE.Pad

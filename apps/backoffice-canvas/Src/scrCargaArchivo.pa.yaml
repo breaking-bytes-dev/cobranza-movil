@@ -288,7 +288,7 @@ Screens:
                         Size: =9
                         Text: |-
                           =If(IsBlank(varPlantillaCar),
-                              "⛔ No se ve la plantilla de Smelter ""Cobranza movil"". Avisá a soporte: tu usuario no está en el equipo de carga.",
+                              "⛔ No se encontró la configuración de la carga «Cobranza movil». Avisá a soporte: tu usuario no está en el equipo de carga.",
                               If(varOcupadoCar, "⏳ Hay una carga en curso: esperá a que termine para empezar otra.",
                                   If(IsBlank(varValidadoCar),
                                       "Para habilitar «Cargar», validá primero el archivo con la prueba en seco.",
@@ -735,11 +735,11 @@ Screens:
                           =If(varEstCar = -1 && varFaseCar = "partir", "⏳ Partiendo el archivo en el servidor: primero productos, fiadores y localizadores; después las partes por cliente.",
                               varEstCar = -1 && varFaseCar = "validar", "⏳ Revisando en el servidor que ningún valor sea más largo que su columna.",
                               varEstCar = -1, "⏳ Preparando la carga: el archivo ya subió, en unos segundos se pone en cola.",
-                              varSigueCar, "⚠ La pantalla dejó de consultar después de 1 hora y media, pero la carga puede seguir en Smelter. Mirá su estado en «Mis últimas cargas» (se actualiza al volver a entrar) o avisá a soporte con el nombre de la carga.",
-                              varVueltasCar > 400 && varFaseCar <> "padres", "⏳ Lleva más de 20 minutos y sigue en Smelter (una carga grande tarda). La pantalla consulta cada 30 segundos; si salís, el resultado queda en «Mis últimas cargas».",
+                              varSigueCar, "⚠ La pantalla dejó de consultar después de 1 hora y media, pero la carga puede seguir en proceso. Mirá su estado en «Mis últimas cargas» (se actualiza al volver a entrar) o avisá a soporte con el nombre de la carga.",
+                              varVueltasCar > 400 && varFaseCar <> "padres", "⏳ Lleva más de 20 minutos y sigue en proceso (una carga grande tarda). La pantalla consulta cada 30 segundos; si salís, el resultado queda en «Mis últimas cargas».",
                               varFaseCar = "padres", "⏳ Paso 1 de 2: productos, fiadores y localizadores (" & Text(varFilasPadCar, "#,##0") & " filas), solo. Si termina bien, se lanzan las " & CountRows(colPartesCar) & " partes en paralelo.",
                               varFaseCar = "partes", "⏳ Paso 2 de 2: " & CountRows(colPartesCar) & " partes en paralelo (" & Text(varFilasArchCar, "#,##0") & " filas). La pantalla consulta el avance cada 3 segundos.",
-                              "⏳ Smelter está trabajando; la pantalla consulta el avance cada 3 segundos.")
+                              "⏳ Procesando la carga; la pantalla revisa el avance cada 3 segundos.")
                         VerticalAlign: =VerticalAlign.Top
                         Visible: =varEstCar < 2
                         Width: =Parent.Width - 2*gblE.Pad

@@ -1004,7 +1004,7 @@ Screens:
                                 '[AS] Agente': varAgeRea
                             }
                         ),
-                        Notify("No se pudo reasignar " & varSelRea.'[AS] Numero' & ": " & FirstError.Message,
+                        Notify("No se pudo reasignar " & varSelRea.'[AS] Numero' & ": " & TextoError(Coalesce(FirstError.Message, "sin detalle")),
                             NotificationType.Error),
                         // El Notify va ANTES de limpiar varAgeRea (lee el nombre del localizador).
                         Notify("🔁 Reasignada a " & varAgeRea.'[AG] Nombre' &

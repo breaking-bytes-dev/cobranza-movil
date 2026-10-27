@@ -831,3 +831,21 @@ Screens:
             VerticalAlign: =VerticalAlign.Middle
             Visible: =gblAgenteInactivo
             Width: =Parent.Width
+      - lblBloqueoSinVinculo:
+          Control: Label@2.5.1
+          Properties:
+            Align: =Align.Center
+            Color: =gblC.redInk
+            Fill: =gblC.screen
+            Font: =gblFont
+            FontWeight: =FontWeight.Semibold
+            Height: =Parent.Height
+            PaddingLeft: =24
+            PaddingRight: =24
+            Size: =gblT.flg
+            Text: |-
+              ="⛔ Tu usuario no está vinculado a ningún localizador." & Char(10) & Char(10) &
+                  "No podés ver tu cartera ni registrar visitas o pagos. Pedile al Admin que lo vincule en Localizadores y usuarios."
+            VerticalAlign: =VerticalAlign.Middle
+            Visible: =gblAgenteSinVinculo
+            Width: =Parent.Width

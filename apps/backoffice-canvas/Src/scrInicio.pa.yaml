@@ -1024,7 +1024,7 @@ Screens:
               =If(IsBlank(gblRolError), "🔐", "⚠️")
             Mensaje: |-
               =If(IsBlank(gblRolError),
-                  "Tu usuario no tiene un rol de Cobranza Móvil (SR | CM | …). Pedile al Admin que te lo asigne o te agregue al equipo correspondiente.",
+                  "Tu usuario todavía no tiene permiso para usar Cobranza Móvil. Pedile al Admin que te dé acceso según tu puesto (por ejemplo Solicitante, Supervisor o Back office).",
                   "No se pudieron leer tus permisos (" & gblRolError & "). Cerrá y volvé a abrir la app; si sigue, avisale al Admin.")
             Titulo: =If(IsBlank(gblRolError), "Sin acceso", "No se pudo verificar tu acceso")
             Visible: =gblRolListo && IsBlank(gblRol)

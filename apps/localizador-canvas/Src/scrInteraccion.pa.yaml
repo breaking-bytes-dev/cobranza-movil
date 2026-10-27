@@ -26,7 +26,11 @@ Screens:
       OnVisible: |-
         =UpdateContext({locPan: Blank(), locGuardando: false, locIntCreada: Blank(), locFechaCaptura: Blank(), locADGuardada: false, locConfirmaExceso: false, locConfirmaSinGps: false});
         Clear(colPagosGuardados);
-        Clear(colIntGuardadas);
+        // Lo que quedó guardado a medias HOY (un error y se salió de la pantalla) se recuerda en colIntParcial y
+        // colIntMultiParcial (globales, sobreviven a la pantalla): se reutiliza para no crear la visita otra vez.
+        With({ p: LookUp(colIntParcial, cta = varCuenta.'CM | TBL | Cuenta' && dia = Today()) },
+            If(!IsBlank(p), UpdateContext({locIntCreada: p.intRec, locFechaCaptura: p.captura, locADGuardada: p.ad})));
+        ClearCollect(colIntGuardadas, ShowColumns(Filter(colIntMultiParcial, dia = Today()), aid));
         // Los productos salen del origen y no de colAsig (que solo existe si antes se pasó por la Cartera).
         // Una consulta por cuenta del cliente, con igualdad sobre el lookup: delegable (sin tope de filas).
         // UNA fila por cuenta (FirstN 1): la interacción y el pago son de la cuenta, no de la asignación. Una cuenta
@@ -48,6 +52,8 @@ Screens:
                 {Value: ThisRecord.'[OL] Texto'}), Blank()));
         If(CountRows(colMsjInt) = 0,
             ClearCollect(colMsjInt, ["Promesa de pago","No localizado","Cliente pagó","No tiene dinero hoy","Negocio cerrado","Pidió arreglo"]));
+        If(!IsBlank(locIntCreada) || CountRows(Filter(colProdInt, 'CM | TBL | Asignacion' in colIntGuardadas.aid)) > 0,
+            Notify("Esta visita ya se guardó a medias. Al tocar Guardar se completa lo que faltó, sin crear otra visita.", NotificationType.Information));
         Set(varVerMsj, false)
     Children:
       - conMaster_4:
@@ -1330,6 +1336,10 @@ Screens:
                         gblAgenteInactivo,
                             UpdateContext({locGuardando: false});
                             Notify("Tu localizador está desactivado: no podés registrar visitas ni pagos. Hablá con tu supervisor.", NotificationType.Error),
+                        /* Usuario sin localizador vinculado (confirmado con conexión) → el servidor lo rechazaría */
+                        gblAgenteSinVinculo,
+                            UpdateContext({locGuardando: false});
+                            Notify("Tu usuario no está vinculado a ningún localizador. Pedile al Admin que lo vincule en Localizadores y usuarios.", NotificationType.Error),
                         /* Sin coordenadas del GPS → se avisa y hay que confirmarlo con un segundo toque */
                         IsBlank(Location.Latitude) && !locConfirmaSinGps,
                             UpdateContext({locGuardando: false, locConfirmaSinGps: true});
@@ -1361,7 +1371,10 @@ Screens:
                                         'Fecha de captura': locFechaCaptura,
                                         '[IN] NombreAgente': Coalesce(gblAgente.'[AG] Nombre', "Sin nombre")
                                         }) },
-                                        IfError(r, Error(FirstError), UpdateContext({locIntCreada: r})))),
+                                        IfError(r, Error(FirstError),
+                                            UpdateContext({locIntCreada: r});
+                                            RemoveIf(colIntParcial, cta = varCuenta.'CM | TBL | Cuenta');
+                                            Collect(colIntParcial, {cta: varCuenta.'CM | TBL | Cuenta', dia: Today(), intRec: r, captura: locFechaCaptura, ad: false})))),
                                 UpdateContext({locGuardando: false});
                                 Notify("No se pudo guardar la interacción: " & FirstError.Message, NotificationType.Error),
 
@@ -1394,10 +1407,12 @@ Screens:
                                             '[AD] Direccion trabajo': inDirTrab.Text,
                                             '[AD] Correo electronico': inCorreo.Text }),
                                         Error(FirstError),
-                                        UpdateContext({locADGuardada: true}))),
+                                        UpdateContext({locADGuardada: true});
+                                        UpdateIf(colIntParcial, cta = varCuenta.'CM | TBL | Cuenta', {ad: true}))),
                                 UpdateContext({locGuardando: false});
                                 Notify("La interacción se guardó, pero no la actualización de datos (" & FirstError.Message & "). Tocá Guardar de nuevo.", NotificationType.Error),
 
+                                RemoveIf(colIntParcial, cta = varCuenta.'CM | TBL | Cuenta');
                                 Set(varCom, "");
                                 Notify(If(Connection.Connected, "✓ Guardado. Se sube en la próxima sincronización.", "✓ Guardado en el teléfono. Se sube cuando vuelva la señal."), NotificationType.Success);
                                 Back()),
@@ -1417,9 +1432,11 @@ Screens:
                                             'Fecha de captura': Now(),
                                             '[IN] NombreAgente': Coalesce(gblAgente.'[AG] Nombre', "Sin nombre") }),
                                         Error(FirstError),
-                                        Collect(colIntGuardadas, {aid: P.'CM | TBL | Asignacion'}))),
+                                        Collect(colIntGuardadas, {aid: P.'CM | TBL | Asignacion'});
+                                        Collect(colIntMultiParcial, {aid: P.'CM | TBL | Asignacion', dia: Today()}))),
                                 UpdateContext({locGuardando: false});
                                 Notify("No se pudieron guardar todas las interacciones (" & FirstError.Message & "). Tocá Guardar de nuevo: solo se guardan las que faltan.", NotificationType.Error),
+                                RemoveIf(colIntMultiParcial, aid in colIntGuardadas.aid);
                                 Set(varCom, "");
                                 Notify(If(Connection.Connected, "✓ Guardado. Se sube en la próxima sincronización.", "✓ Guardado en el teléfono. Se sube cuando vuelva la señal."), NotificationType.Success);
                                 Back())

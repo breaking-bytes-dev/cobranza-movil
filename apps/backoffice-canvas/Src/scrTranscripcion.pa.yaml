@@ -68,6 +68,13 @@ Screens:
                 '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = varActualTrx.'[IN] Cuenta'.'CM | TBL | Cuenta')));
             ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
             ClearCollect(colDirAntesTrx, Filter('CM | TBL | Direccions', '[DR] CIF' = varActualTrx.cifTrx));
+            // El cliente no guarda correo: el anterior es el de su actualización de datos previa más reciente (de cualquiera de sus cuentas).
+            Clear(colCorreoAntesTrx);
+            If(!IsBlank(varADTrx),
+                ForAll(Filter('CM | TBL | Cuentas', 'CIF Cliente' = varActualTrx.cifTrx) As C,
+                    Collect(colCorreoAntesTrx, FirstN(Sort(Filter('CM | TBL | Actualizacion de datos',
+                        '[AD] Cuenta'.'CM | TBL | Cuenta' = C.'CM | TBL | Cuenta' && '[AD] Correo electronico' <> Blank()
+                        && 'Created On' < varADTrx.'Created On'), 'Created On', SortOrder.Descending), 1))));
             ClearCollect(colCambiosTrx, Filter(Table(
                 {campoTrx: "TELÉFONO CASA",     antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Casa").'[TL] Numero',    nuevoTrx: varADTrx.'[AD] Telefono Casa'},
                 {campoTrx: "TELÉFONO CELULAR",  antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Celular").'[TL] Numero', nuevoTrx: varADTrx.'[AD] Telefono Celular'},
@@ -75,7 +82,7 @@ Screens:
                 {campoTrx: "DIRECCIÓN CASA",    antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "Casa").'[DR] Direccion', nuevoTrx: varADTrx.'[AD] Direccion casa'},
                 {campoTrx: "DIRECCIÓN EC",      antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "EC").'[DR] Direccion',   nuevoTrx: varADTrx.'[AD] Direccion EC'},
                 {campoTrx: "DIRECCIÓN TRABAJO", antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "Trabajo").'[DR] Direccion', nuevoTrx: varADTrx.'[AD] Direccion trabajo'},
-                {campoTrx: "CORREO ELECTRÓNICO", antesTrx: Blank(), nuevoTrx: varADTrx.'[AD] Correo electronico'}
+                {campoTrx: "CORREO ELECTRÓNICO", antesTrx: First(Sort(colCorreoAntesTrx, 'Created On', SortOrder.Descending)).'[AD] Correo electronico', nuevoTrx: varADTrx.'[AD] Correo electronico'}
             ), !IsBlank(nuevoTrx))),
             Set(varADTrx, Blank()); Clear(colCambiosTrx)
         )
@@ -153,6 +160,13 @@ Screens:
                       '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = varActualTrx.'[IN] Cuenta'.'CM | TBL | Cuenta')));
                   ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
                   ClearCollect(colDirAntesTrx, Filter('CM | TBL | Direccions', '[DR] CIF' = varActualTrx.cifTrx));
+                  // El cliente no guarda correo: el anterior es el de su actualización de datos previa más reciente (de cualquiera de sus cuentas).
+                  Clear(colCorreoAntesTrx);
+                  If(!IsBlank(varADTrx),
+                      ForAll(Filter('CM | TBL | Cuentas', 'CIF Cliente' = varActualTrx.cifTrx) As C,
+                          Collect(colCorreoAntesTrx, FirstN(Sort(Filter('CM | TBL | Actualizacion de datos',
+                              '[AD] Cuenta'.'CM | TBL | Cuenta' = C.'CM | TBL | Cuenta' && '[AD] Correo electronico' <> Blank()
+                              && 'Created On' < varADTrx.'Created On'), 'Created On', SortOrder.Descending), 1))));
                   ClearCollect(colCambiosTrx, Filter(Table(
                       {campoTrx: "TELÉFONO CASA",     antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Casa").'[TL] Numero',    nuevoTrx: varADTrx.'[AD] Telefono Casa'},
                       {campoTrx: "TELÉFONO CELULAR",  antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Celular").'[TL] Numero', nuevoTrx: varADTrx.'[AD] Telefono Celular'},
@@ -160,7 +174,7 @@ Screens:
                       {campoTrx: "DIRECCIÓN CASA",    antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "Casa").'[DR] Direccion', nuevoTrx: varADTrx.'[AD] Direccion casa'},
                       {campoTrx: "DIRECCIÓN EC",      antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "EC").'[DR] Direccion',   nuevoTrx: varADTrx.'[AD] Direccion EC'},
                       {campoTrx: "DIRECCIÓN TRABAJO", antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "Trabajo").'[DR] Direccion', nuevoTrx: varADTrx.'[AD] Direccion trabajo'},
-                      {campoTrx: "CORREO ELECTRÓNICO", antesTrx: Blank(), nuevoTrx: varADTrx.'[AD] Correo electronico'}
+                      {campoTrx: "CORREO ELECTRÓNICO", antesTrx: First(Sort(colCorreoAntesTrx, 'Created On', SortOrder.Descending)).'[AD] Correo electronico', nuevoTrx: varADTrx.'[AD] Correo electronico'}
                   ), !IsBlank(nuevoTrx))),
                   Set(varADTrx, Blank()); Clear(colCambiosTrx)
               )
@@ -222,6 +236,13 @@ Screens:
                             '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = varActualTrx.'[IN] Cuenta'.'CM | TBL | Cuenta')));
                         ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
                         ClearCollect(colDirAntesTrx, Filter('CM | TBL | Direccions', '[DR] CIF' = varActualTrx.cifTrx));
+                        // El cliente no guarda correo: el anterior es el de su actualización de datos previa más reciente (de cualquiera de sus cuentas).
+                        Clear(colCorreoAntesTrx);
+                        If(!IsBlank(varADTrx),
+                            ForAll(Filter('CM | TBL | Cuentas', 'CIF Cliente' = varActualTrx.cifTrx) As C,
+                                Collect(colCorreoAntesTrx, FirstN(Sort(Filter('CM | TBL | Actualizacion de datos',
+                                    '[AD] Cuenta'.'CM | TBL | Cuenta' = C.'CM | TBL | Cuenta' && '[AD] Correo electronico' <> Blank()
+                                    && 'Created On' < varADTrx.'Created On'), 'Created On', SortOrder.Descending), 1))));
                         ClearCollect(colCambiosTrx, Filter(Table(
                             {campoTrx: "TELÉFONO CASA",     antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Casa").'[TL] Numero',    nuevoTrx: varADTrx.'[AD] Telefono Casa'},
                             {campoTrx: "TELÉFONO CELULAR",  antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Celular").'[TL] Numero', nuevoTrx: varADTrx.'[AD] Telefono Celular'},
@@ -229,7 +250,7 @@ Screens:
                             {campoTrx: "DIRECCIÓN CASA",    antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "Casa").'[DR] Direccion', nuevoTrx: varADTrx.'[AD] Direccion casa'},
                             {campoTrx: "DIRECCIÓN EC",      antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "EC").'[DR] Direccion',   nuevoTrx: varADTrx.'[AD] Direccion EC'},
                             {campoTrx: "DIRECCIÓN TRABAJO", antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "Trabajo").'[DR] Direccion', nuevoTrx: varADTrx.'[AD] Direccion trabajo'},
-                            {campoTrx: "CORREO ELECTRÓNICO", antesTrx: Blank(), nuevoTrx: varADTrx.'[AD] Correo electronico'}
+                            {campoTrx: "CORREO ELECTRÓNICO", antesTrx: First(Sort(colCorreoAntesTrx, 'Created On', SortOrder.Descending)).'[AD] Correo electronico', nuevoTrx: varADTrx.'[AD] Correo electronico'}
                         ), !IsBlank(nuevoTrx))),
                         Set(varADTrx, Blank()); Clear(colCambiosTrx)
                     );
@@ -334,6 +355,13 @@ Screens:
                             '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = varActualTrx.'[IN] Cuenta'.'CM | TBL | Cuenta')));
                         ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
                         ClearCollect(colDirAntesTrx, Filter('CM | TBL | Direccions', '[DR] CIF' = varActualTrx.cifTrx));
+                        // El cliente no guarda correo: el anterior es el de su actualización de datos previa más reciente (de cualquiera de sus cuentas).
+                        Clear(colCorreoAntesTrx);
+                        If(!IsBlank(varADTrx),
+                            ForAll(Filter('CM | TBL | Cuentas', 'CIF Cliente' = varActualTrx.cifTrx) As C,
+                                Collect(colCorreoAntesTrx, FirstN(Sort(Filter('CM | TBL | Actualizacion de datos',
+                                    '[AD] Cuenta'.'CM | TBL | Cuenta' = C.'CM | TBL | Cuenta' && '[AD] Correo electronico' <> Blank()
+                                    && 'Created On' < varADTrx.'Created On'), 'Created On', SortOrder.Descending), 1))));
                         ClearCollect(colCambiosTrx, Filter(Table(
                             {campoTrx: "TELÉFONO CASA",     antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Casa").'[TL] Numero',    nuevoTrx: varADTrx.'[AD] Telefono Casa'},
                             {campoTrx: "TELÉFONO CELULAR",  antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Celular").'[TL] Numero', nuevoTrx: varADTrx.'[AD] Telefono Celular'},
@@ -341,7 +369,7 @@ Screens:
                             {campoTrx: "DIRECCIÓN CASA",    antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "Casa").'[DR] Direccion', nuevoTrx: varADTrx.'[AD] Direccion casa'},
                             {campoTrx: "DIRECCIÓN EC",      antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "EC").'[DR] Direccion',   nuevoTrx: varADTrx.'[AD] Direccion EC'},
                             {campoTrx: "DIRECCIÓN TRABAJO", antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "Trabajo").'[DR] Direccion', nuevoTrx: varADTrx.'[AD] Direccion trabajo'},
-                            {campoTrx: "CORREO ELECTRÓNICO", antesTrx: Blank(), nuevoTrx: varADTrx.'[AD] Correo electronico'}
+                            {campoTrx: "CORREO ELECTRÓNICO", antesTrx: First(Sort(colCorreoAntesTrx, 'Created On', SortOrder.Descending)).'[AD] Correo electronico', nuevoTrx: varADTrx.'[AD] Correo electronico'}
                         ), !IsBlank(nuevoTrx))),
                         Set(varADTrx, Blank()); Clear(colCambiosTrx)
                     )
@@ -461,6 +489,13 @@ Screens:
                             '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = varActualTrx.'[IN] Cuenta'.'CM | TBL | Cuenta')));
                         ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
                         ClearCollect(colDirAntesTrx, Filter('CM | TBL | Direccions', '[DR] CIF' = varActualTrx.cifTrx));
+                        // El cliente no guarda correo: el anterior es el de su actualización de datos previa más reciente (de cualquiera de sus cuentas).
+                        Clear(colCorreoAntesTrx);
+                        If(!IsBlank(varADTrx),
+                            ForAll(Filter('CM | TBL | Cuentas', 'CIF Cliente' = varActualTrx.cifTrx) As C,
+                                Collect(colCorreoAntesTrx, FirstN(Sort(Filter('CM | TBL | Actualizacion de datos',
+                                    '[AD] Cuenta'.'CM | TBL | Cuenta' = C.'CM | TBL | Cuenta' && '[AD] Correo electronico' <> Blank()
+                                    && 'Created On' < varADTrx.'Created On'), 'Created On', SortOrder.Descending), 1))));
                         ClearCollect(colCambiosTrx, Filter(Table(
                             {campoTrx: "TELÉFONO CASA",     antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Casa").'[TL] Numero',    nuevoTrx: varADTrx.'[AD] Telefono Casa'},
                             {campoTrx: "TELÉFONO CELULAR",  antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Celular").'[TL] Numero', nuevoTrx: varADTrx.'[AD] Telefono Celular'},
@@ -468,7 +503,7 @@ Screens:
                             {campoTrx: "DIRECCIÓN CASA",    antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "Casa").'[DR] Direccion', nuevoTrx: varADTrx.'[AD] Direccion casa'},
                             {campoTrx: "DIRECCIÓN EC",      antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "EC").'[DR] Direccion',   nuevoTrx: varADTrx.'[AD] Direccion EC'},
                             {campoTrx: "DIRECCIÓN TRABAJO", antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "Trabajo").'[DR] Direccion', nuevoTrx: varADTrx.'[AD] Direccion trabajo'},
-                            {campoTrx: "CORREO ELECTRÓNICO", antesTrx: Blank(), nuevoTrx: varADTrx.'[AD] Correo electronico'}
+                            {campoTrx: "CORREO ELECTRÓNICO", antesTrx: First(Sort(colCorreoAntesTrx, 'Created On', SortOrder.Descending)).'[AD] Correo electronico', nuevoTrx: varADTrx.'[AD] Correo electronico'}
                         ), !IsBlank(nuevoTrx))),
                         Set(varADTrx, Blank()); Clear(colCambiosTrx)
                     );
@@ -1187,6 +1222,13 @@ Screens:
                                             '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = varActualTrx.'[IN] Cuenta'.'CM | TBL | Cuenta')));
                                         ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
                                         ClearCollect(colDirAntesTrx, Filter('CM | TBL | Direccions', '[DR] CIF' = varActualTrx.cifTrx));
+                                        // El cliente no guarda correo: el anterior es el de su actualización de datos previa más reciente (de cualquiera de sus cuentas).
+                                        Clear(colCorreoAntesTrx);
+                                        If(!IsBlank(varADTrx),
+                                            ForAll(Filter('CM | TBL | Cuentas', 'CIF Cliente' = varActualTrx.cifTrx) As C,
+                                                Collect(colCorreoAntesTrx, FirstN(Sort(Filter('CM | TBL | Actualizacion de datos',
+                                                    '[AD] Cuenta'.'CM | TBL | Cuenta' = C.'CM | TBL | Cuenta' && '[AD] Correo electronico' <> Blank()
+                                                    && 'Created On' < varADTrx.'Created On'), 'Created On', SortOrder.Descending), 1))));
                                         ClearCollect(colCambiosTrx, Filter(Table(
                                             {campoTrx: "TELÉFONO CASA",     antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Casa").'[TL] Numero',    nuevoTrx: varADTrx.'[AD] Telefono Casa'},
                                             {campoTrx: "TELÉFONO CELULAR",  antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Celular").'[TL] Numero', nuevoTrx: varADTrx.'[AD] Telefono Celular'},
@@ -1194,7 +1236,7 @@ Screens:
                                             {campoTrx: "DIRECCIÓN CASA",    antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "Casa").'[DR] Direccion', nuevoTrx: varADTrx.'[AD] Direccion casa'},
                                             {campoTrx: "DIRECCIÓN EC",      antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "EC").'[DR] Direccion',   nuevoTrx: varADTrx.'[AD] Direccion EC'},
                                             {campoTrx: "DIRECCIÓN TRABAJO", antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "Trabajo").'[DR] Direccion', nuevoTrx: varADTrx.'[AD] Direccion trabajo'},
-                                            {campoTrx: "CORREO ELECTRÓNICO", antesTrx: Blank(), nuevoTrx: varADTrx.'[AD] Correo electronico'}
+                                            {campoTrx: "CORREO ELECTRÓNICO", antesTrx: First(Sort(colCorreoAntesTrx, 'Created On', SortOrder.Descending)).'[AD] Correo electronico', nuevoTrx: varADTrx.'[AD] Correo electronico'}
                                         ), !IsBlank(nuevoTrx))),
                                         Set(varADTrx, Blank()); Clear(colCambiosTrx)
                                     );
@@ -1242,6 +1284,13 @@ Screens:
                                             '[AD] Sin vincular' = true && '[AD] Cuenta'.'CM | TBL | Cuenta' = varActualTrx.'[IN] Cuenta'.'CM | TBL | Cuenta')));
                                         ClearCollect(colTelAntesTrx, Filter('CM | TBL | Telefonos', '[TL] CIF' = varActualTrx.cifTrx));
                                         ClearCollect(colDirAntesTrx, Filter('CM | TBL | Direccions', '[DR] CIF' = varActualTrx.cifTrx));
+                                        // El cliente no guarda correo: el anterior es el de su actualización de datos previa más reciente (de cualquiera de sus cuentas).
+                                        Clear(colCorreoAntesTrx);
+                                        If(!IsBlank(varADTrx),
+                                            ForAll(Filter('CM | TBL | Cuentas', 'CIF Cliente' = varActualTrx.cifTrx) As C,
+                                                Collect(colCorreoAntesTrx, FirstN(Sort(Filter('CM | TBL | Actualizacion de datos',
+                                                    '[AD] Cuenta'.'CM | TBL | Cuenta' = C.'CM | TBL | Cuenta' && '[AD] Correo electronico' <> Blank()
+                                                    && 'Created On' < varADTrx.'Created On'), 'Created On', SortOrder.Descending), 1))));
                                         ClearCollect(colCambiosTrx, Filter(Table(
                                             {campoTrx: "TELÉFONO CASA",     antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Casa").'[TL] Numero',    nuevoTrx: varADTrx.'[AD] Telefono Casa'},
                                             {campoTrx: "TELÉFONO CELULAR",  antesTrx: LookUp(colTelAntesTrx, '[TL] Tipo' = "Celular").'[TL] Numero', nuevoTrx: varADTrx.'[AD] Telefono Celular'},
@@ -1249,7 +1298,7 @@ Screens:
                                             {campoTrx: "DIRECCIÓN CASA",    antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "Casa").'[DR] Direccion', nuevoTrx: varADTrx.'[AD] Direccion casa'},
                                             {campoTrx: "DIRECCIÓN EC",      antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "EC").'[DR] Direccion',   nuevoTrx: varADTrx.'[AD] Direccion EC'},
                                             {campoTrx: "DIRECCIÓN TRABAJO", antesTrx: LookUp(colDirAntesTrx, '[DR] Tipo' = "Trabajo").'[DR] Direccion', nuevoTrx: varADTrx.'[AD] Direccion trabajo'},
-                                            {campoTrx: "CORREO ELECTRÓNICO", antesTrx: Blank(), nuevoTrx: varADTrx.'[AD] Correo electronico'}
+                                            {campoTrx: "CORREO ELECTRÓNICO", antesTrx: First(Sort(colCorreoAntesTrx, 'Created On', SortOrder.Descending)).'[AD] Correo electronico', nuevoTrx: varADTrx.'[AD] Correo electronico'}
                                         ), !IsBlank(nuevoTrx))),
                                         Set(varADTrx, Blank()); Clear(colCambiosTrx)
                                     )

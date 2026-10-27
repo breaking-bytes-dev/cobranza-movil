@@ -170,7 +170,7 @@ Screens:
                         Font: =Font.'Segoe UI'
                         Height: =gblE.AltoInput
                         MaxLength: =200
-                        HintText: ="Si el CIF ya existe se usa el de Dataverse"
+                        HintText: ="Si el cliente ya existe, se usan sus datos guardados"
                         RadiusBottomLeft: =10
                         RadiusBottomRight: =10
                         RadiusTopLeft: =10
@@ -1293,7 +1293,7 @@ Screens:
                         PaddingLeft: =0
                         Size: =9
                         Text: |-
-                          =If(varOcupadoAlt, "⏳ Hay un alta en curso: esperá a que Smelter termine.",
+                          =If(varOcupadoAlt, "⏳ Hay un alta en curso: esperá a que termine.",
                               If(varValidoAlt,
                                   "✓ Prueba en seco limpia. El formulario quedó bloqueado con estos datos: si son correctos, tocá «Cargar de verdad».",
                                   "Para habilitar «Cargar de verdad», validá primero los datos con la prueba en seco."))
@@ -1372,11 +1372,11 @@ Screens:
                                 EsPrueba: varEsPruebaAlt
                             })
                     );
-                    Set(varErrorAlt, IfError(If(IsBlank(varRespAlt.JobId), "el servidor no devolvió el job", Left(Text(varRespAlt.JobId), 0)), Coalesce(FirstError.Message, "sin detalle")));
+                    Set(varErrorAlt, IfError(If(IsBlank(varRespAlt.JobId), "el servidor no devolvió el alta", Left(Text(varRespAlt.JobId), 0)), TextoError(Coalesce(FirstError.Message, "sin detalle"))));
                     If(IsBlank(varErrorAlt),
                         Set(varAvisosAlt, varRespAlt.Advertencias);
                         Set(varJobAlt, LookUp('TBL | SMLT | Import Jobs', 'TBL | SMLT | Import Job' = GUID(varRespAlt.JobId)));
-                        Set(varErrorAlt, If(IsBlank(varJobAlt), "no se encontró el job recién creado", ""))
+                        Set(varErrorAlt, If(IsBlank(varJobAlt), "no se encontró el alta recién creada", ""))
                     );
                     // El mensaje del servidor nunca trae el número; igual, si apareciera una secuencia de 13 dígitos, no se muestra.
                     Set(varErrorAlt,
@@ -1568,12 +1568,12 @@ Screens:
                         Size: =9
                         Text: |-
                           =If(varOcupadoAlt,
-                              If(varEstAlt = -1, "⏳ Preparando: el job ya existe, en unos segundos se pone en cola.",
-                                  "⏳ Smelter está trabajando; la pantalla consulta el avance cada 3 segundos."),
+                              If(varEstAlt = -1, "⏳ Preparando: el alta ya se recibió, en unos segundos se pone en cola.",
+                                  "⏳ Procesando el alta; la pantalla revisa el avance cada 3 segundos."),
                               If(!IsBlank(varHechaAlt),
                                   "✓ Alta hecha: " & varHechaAlt & If(StartsWith(varHechaAlt, "Especial"), ". Quedó Pendiente de aprobación.", "."),
                                   If(varEstAlt >= 3 || (varEstAlt = 2 && Coalesce(varJobAlt.'[IJ] Fail Count', 0) > 0),
-                                      "Smelter marcó la fila con error. Revisá los datos o avisá a soporte con el nombre: " & varJobAlt.'[IJ] Name',
+                                      "El alta tuvo un error. Revisá los datos o avisá a soporte con este nombre: " & varJobAlt.'[IJ] Name',
                                       If(varValidoAlt, "✓ Prueba en seco limpia.", ""))))
                         Width: =Parent.Width - 2*gblE.Pad
                         Wrap: =false

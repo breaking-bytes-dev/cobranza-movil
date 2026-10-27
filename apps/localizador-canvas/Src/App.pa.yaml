@@ -27,6 +27,9 @@ App:
       gblAgente = LookUp('CM | TBL | Agentes', 'Email Usuario' = Lower(User().Email));
       // Localizador desactivado por el Admin: la app bloquea el registro (el servidor también lo rechaza).
       gblAgenteInactivo = !IsBlank(gblAgente) && !gblAgente.'[AG] Activo';
+      // Usuario sin localizador vinculado: solo se da por confirmado con conexión y la base del teléfono al día. Sin
+      // señal o a mitad de una sincronización no se bloquea: el agente puede no haber llegado todavía al teléfono.
+      gblAgenteSinVinculo = gblSync = "ok" && IsBlank(gblAgente);
       // Estado de sincronización del dispositivo; es una señal y se recalcula sola. En el navegador no hay
       // sincronización (Connection.Sync vacío): ahí solo se distingue con o sin conexión.
       gblSync = If(IsBlank(Connection.Sync), If(Connection.Connected, "ok", "off"),

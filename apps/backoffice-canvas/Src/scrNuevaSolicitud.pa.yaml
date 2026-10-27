@@ -480,7 +480,7 @@ Screens:
                   Height: =16
                   PaddingLeft: =0
                   Size: =8
-                  Text: ="Al menos una moneda con monto mayor a cero."
+                  Text: ="Completá las dos monedas con 0 o más (0 si no hay retiro en esa moneda)."
                   Width: =Parent.Width - 2*gblE.Pad
                   Wrap: =false
                   X: =gblE.Pad
@@ -596,7 +596,7 @@ Screens:
                                 RetiroUsd: Value(Trim(txtRetiroUsdNva.Text))
                             })
                         );
-                        Set(varErrNva, IfError(If(IsBlank(varRespNva.Resultado), "el servidor no devolvió resultado", Left(Text(varRespNva.Resultado), 0)), Coalesce(FirstError.Message, "sin detalle")));
+                        Set(varErrNva, IfError(If(IsBlank(varRespNva.Resultado), "el servidor no devolvió resultado", Left(Text(varRespNva.Resultado), 0)), TextoError(Coalesce(FirstError.Message, "sin detalle"))));
                         If(IsBlank(varErrNva),
                             If(varRespNva.Resultado = "ya existe",
                                 // Activa (de esta persona o de otra): no se crea otra. Se dice en qué estado está y quién la pidió.

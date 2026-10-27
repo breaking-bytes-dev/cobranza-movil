@@ -329,7 +329,7 @@ Screens:
                         Height: =Parent.Height - 2*gblE.PadSm
                         PaddingLeft: =0
                         Size: =9
-                        Text: ="El archivo del banco se sube desde «Cargar archivo». El detalle de errores por fila lo ve soporte en Smelter; el historial por día llega en una fase posterior."
+                        Text: ="El archivo del banco se sube desde «Cargar archivo». Si una carga tuvo filas con error, pedile el detalle a soporte."
                         Width: =Parent.Width - 2*gblE.Pad
                         X: =gblE.Pad
                         Y: =gblE.PadSm
