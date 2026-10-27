@@ -35,7 +35,7 @@ module.exports = async function faseA(suite) {
     await inf.correr('D-02a', 'Inicio Admin: KPIs en la PRIMERA carga (frío) tienen valor', 'Admin', async (e) => {
       k = await c.kpisInicio(app, 'Monitoreo de carga', 'scrMonitoreo');
       e.nota(`KPIs frío: ${JSON.stringify(k.frio)} · tibio: ${JSON.stringify(k.tibio)}`);
-      const api = { 'DIARIAS FUERA DE CARTERA': await v.desaparecidas(), 'AGENTES SIN USUARIO': await v.agentesSinUsuario() };
+      const api = { 'DIARIAS FUERA DE CARTERA': await v.desaparecidas(), 'LOCALIZADORES SIN USUARIO': await v.agentesSinUsuario() };
       for (const et of Object.keys(api)) e.check(c.num(k.frio[et]) === api[et], `"${et}" en la PRIMERA carga = API`, api[et], k.frio[et]);
       const cob = await v.cobradoHoy(); const subF = (await pl.texto(app, 'lblSubEncCmp').catch(() => '')) || '';
       e.nota(`subtítulo en tibio: ${subF}`);
@@ -48,7 +48,7 @@ module.exports = async function faseA(suite) {
       const desap = await v.desaparecidas(); const ag = await v.agentesSinUsuario();
       const cob = await v.cobradoHoy(); const cargaHoy = await v.cargaHoy();
       e.check(c.num(k.tibio['DIARIAS FUERA DE CARTERA']) === desap, 'DIARIAS FUERA DE CARTERA = API', desap, k.tibio['DIARIAS FUERA DE CARTERA']);
-      e.check(c.num(k.tibio['AGENTES SIN USUARIO']) === ag, 'AGENTES SIN USUARIO = API', ag, k.tibio['AGENTES SIN USUARIO']);
+      e.check(c.num(k.tibio['LOCALIZADORES SIN USUARIO']) === ag, 'LOCALIZADORES SIN USUARIO = API', ag, k.tibio['LOCALIZADORES SIN USUARIO']);
       if (cargaHoy === 0) e.check(k.tibio['CARGA DE HOY'] === 'sin carga', 'CARGA DE HOY = "sin carga" (no hay carga hoy)', 'sin carga', k.tibio['CARGA DE HOY']);
       const sub = await pl.texto(app, 'lblSubEncCmp');
       e.check(sub.endsWith(v.moneda(cob.nio, cob.usd)), 'Cobrado hoy = Sum API (Moneda)', v.moneda(cob.nio, cob.usd), sub);

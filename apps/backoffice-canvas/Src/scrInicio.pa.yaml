@@ -268,7 +268,7 @@ Screens:
                       Properties:
                         Detalle: ="no pueden entrar a la app"
                         EsHero: =false
-                        Etiqueta: ="AGENTES SIN USUARIO"
+                        Etiqueta: ="LOCALIZADORES SIN USUARIO"
                         Height: =96
                         Valor: =Text(varNAgSinUsrIni)
                         Width: =If(nfMovil, (Parent.Width - gblE.PadSm) / 2, (Parent.Width - 2*gblE.PadSm) / 3)

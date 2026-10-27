@@ -254,7 +254,7 @@ Screens:
                         Height: =22
                         PaddingLeft: =0
                         Size: =9
-                        Text: ="Reasignalas en «Reasignar» o reactivá el localizador en «Localizadores y usuarios»."
+                        Text: ="Reactivá el localizador en «Localizadores y usuarios» o pedí al banco que corrija el localizador en el archivo. Las Especiales e Incobrables también se pueden mover en «Reasignar»."
                         Visible: =!varRevAgMon
                         Width: =Parent.Width - 2*gblE.Pad
                         X: =gblE.Pad
