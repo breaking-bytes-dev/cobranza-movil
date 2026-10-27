@@ -387,7 +387,7 @@ Lo que ves:
 
 ### Botones
 
-- **↻ Recargar la lista**: vuelve a leer lo que ya está en el teléfono y rearma las pantallas (también la Cartera). No baja nada nuevo y funciona sin señal. Aparece «Lista recargada con los datos del teléfono.».
+- **↻ Recargar la lista**: vuelve a leer lo que ya está en el teléfono y rearma las pantallas (también la Cartera) y vuelve a contar **Pendientes por subir** (visitas y pagos). No baja nada nuevo y funciona sin señal. Aparece «Lista recargada con los datos del teléfono.».
 - **⟳ Actualizar todo desde el servidor** (solo con señal; sin señal dice «Sin conexión — no se puede actualizar»): abre la pantalla de estado del dispositivo de Power Apps.
   1. Tocá **⟳ Actualizar todo desde el servidor**.
   2. En la pantalla que se abre, tocá **Buscar actualizaciones** (en inglés, *Check for updates*). Ahí también ves la fecha de la última sincronización y el detalle de cualquier aviso o error.

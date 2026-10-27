@@ -1070,8 +1070,8 @@ Screens:
                               Tooltip: |-
                                 =Switch(LookUp(colAccionCar, Id = ThisItem.'TBL | SMLT | Import Job').Accion,
                                     "relanzar", "La primera etapa terminó bien, pero sus partes nunca se pusieron en cola (se salió de la pantalla). Las pone en cola ahora.",
-                                    "cerrar", "Esta carga nunca se puso en cola (se salió de la pantalla antes de tiempo). La marca Falló para que no bloquee Reconciliación; no se cargó nada de ella.",
-                                    "La primera etapa no terminó bien (o nunca arrancó): las partes no se pueden lanzar. Las marca Falló para que no bloqueen Reconciliación.")
+                                    "cerrar", "Marca la carga como Falló, sin cargar nada de ella. Nunca se puso en cola (se salió de la pantalla antes de tiempo); así deja de bloquear Reconciliación.",
+                                    "Marca las partes que faltan como Falló, sin cargar nada de ellas. La primera etapa no terminó bien (o nunca arrancó) y las partes no se pueden lanzar; así dejan de bloquear Reconciliación.")
                               Visible: =!IsBlank(LookUp(colAccionCar, Id = ThisItem.'TBL | SMLT | Import Job'))
                               Width: =14 + 7*Len(Self.Text)
                               X: =chpHistEstadoCar.X - Self.Width - gblE.PadSm
@@ -1262,6 +1262,21 @@ Screens:
             Repeat: =true
             Start: =varPollCar
             Visible: =false
+      - recCierraNavCar:
+          Control: Rectangle@2.3.0
+          Properties:
+            AccessibleLabel: ="Cerrar menú"
+            Fill: =Color.Transparent
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
+            Height: =Parent.Height
+            OnSelect: |-
+              =// Capa transparente detrás del menú en pantalla angosta: tocar afuera lo cierra.
+              // Va justo antes de cmpNavCar para quedar debajo del menú y encima del resto.
+              Set(gblNavMovilAbierta, false)
+            TabIndex: =0
+            Visible: =nfMovil && gblNavMovilAbierta
+            Width: =Parent.Width
       - cmpNavCar:
           Control: CanvasComponent
           ComponentName: cmpNavLateral

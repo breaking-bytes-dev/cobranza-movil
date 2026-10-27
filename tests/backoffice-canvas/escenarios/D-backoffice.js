@@ -34,15 +34,15 @@ async function flujoTranscripcion(e, app, suite, yo) {
       e.evid(await pl.foto(app, 'F-01-detalle-pago'));
       // SEGURIDAD: solo se marca si la seleccionada es la interacción QA esperada
       if (!pos.includes(int1.sanic_cm_in_numerointeraccion)) throw new Error('Seguridad: la interacción seleccionada no es la QA');
-      // Tab NO graba (Power Apps no distingue Enter de Tab; el campo solo lleva el foco a "Grabar")
+      // Tab NO graba (Power Apps no distingue Enter de Tab; el campo solo lleva el foco a «✓ y siguiente»)
       await pl.escribir(app, 'txtCodigoTrx', 'qae2e1', { enter: false, tab: true });
       const n0 = await c.esperarNotif(app, /grabada|error/i, 5000);
       const r0 = await dv.get(`sanic_cm_tbl_interaccions(${int1.sanic_cm_tbl_interaccionid})?$select=sanic_cm_in_estadograbacion`);
-      e.check(!n0 && r0.sanic_cm_in_estadograbacion !== 2, 'Tab NO graba: solo lleva el foco a "Grabar"', 'sin aviso y sigue Pendiente', `${n0 || 'sin aviso'} · estado ${r0.sanic_cm_in_estadograbacion}`);
-      // Enter sobre "Grabar" (que quedó con el foco) graba
+      e.check(!n0 && r0.sanic_cm_in_estadograbacion !== 2, 'Tab NO graba: solo lleva el foco a «✓ y siguiente»', 'sin aviso y sigue Pendiente', `${n0 || 'sin aviso'} · estado ${r0.sanic_cm_in_estadograbacion}`);
+      // Enter sobre «✓ y siguiente» (que quedó con el foco) graba
       await app.page.keyboard.press('Enter');
       const n1 = await c.esperarNotif(app, /grabada|error/i, 15000);
-      e.check(new RegExp(`${int1.sanic_cm_in_numerointeraccion} grabada — siguiente: QA-E2E CLIENTE UNO`).test(n1 || ''), 'Enter sobre Grabar graba y anuncia la siguiente', `✓ ${int1.sanic_cm_in_numerointeraccion} grabada — siguiente: QA-E2E CLIENTE UNO`, n1);
+      e.check(new RegExp(`${int1.sanic_cm_in_numerointeraccion} grabada — siguiente: QA-E2E CLIENTE UNO`).test(n1 || ''), 'Enter sobre «✓ y siguiente» graba y anuncia la siguiente', `✓ ${int1.sanic_cm_in_numerointeraccion} grabada — siguiente: QA-E2E CLIENTE UNO`, n1);
       await app.red.quieta(app.page, { quietoMs: 4000, maxMs: 30000 });
       const r1 = await dv.get(`sanic_cm_tbl_interaccions(${int1.sanic_cm_tbl_interaccionid})?$select=sanic_cm_in_estadograbacion,sanic_cm_in_codigograbacion,sanic_cm_in_fechagrabacion,_sanic_cm_in_grabadopor_value`);
       e.check(r1.sanic_cm_in_estadograbacion === 2, 'Dataverse: estado = Grabado', 2, r1.sanic_cm_in_estadograbacion);

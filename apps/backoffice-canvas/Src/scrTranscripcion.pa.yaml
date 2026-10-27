@@ -1132,7 +1132,7 @@ Screens:
                               MaxLength: =10
                               OnChange: |-
                                 =// Power Apps no distingue Enter de Tab ni de un clic afuera: los tres confirman el valor y disparan OnChange.
-                                // Por eso NO se graba aquí (un Tab o un clic grabarían sin querer): el foco pasa a "Grabar" y se graba
+                                // Por eso NO se graba aquí (un Tab o un clic grabarían sin querer): el foco pasa a «✓ y siguiente» y se graba
                                 // con Enter (o clic) sobre el botón.
                                 If(!IsBlank(Trim(Self.Text)) && !IsBlank(varActualTrx), SetFocus(btnGrabarTrx))
                               RadiusBottomLeft: =10
@@ -1320,10 +1320,25 @@ Screens:
                               Height: =28
                               PaddingLeft: =0
                               Size: =8
-                              Text: ="Enter lleva a Grabar · Enter otra vez graba y avanza · la cola se navega con clic"
+                              Text: ="Enter lleva a «✓ y siguiente» · Enter otra vez graba y avanza · la cola se navega con clic"
                               Width: =Parent.Width - Self.X - gblE.Pad
                               X: =btnSaltarTrx.X + btnSaltarTrx.Width + 8
                               Y: =20
+      - recCierraNavTrx:
+          Control: Rectangle@2.3.0
+          Properties:
+            AccessibleLabel: ="Cerrar menú"
+            Fill: =Color.Transparent
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
+            Height: =Parent.Height
+            OnSelect: |-
+              =// Capa transparente detrás del menú en pantalla angosta: tocar afuera lo cierra.
+              // Va justo antes de cmpNavTrx para quedar debajo del menú y encima del resto.
+              Set(gblNavMovilAbierta, false)
+            TabIndex: =0
+            Visible: =nfMovil && gblNavMovilAbierta
+            Width: =Parent.Width
       - cmpNavTrx:
           Control: CanvasComponent
           ComponentName: cmpNavLateral

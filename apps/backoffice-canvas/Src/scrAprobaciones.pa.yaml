@@ -1045,6 +1045,22 @@ Screens:
                   Width: =Parent.Width - 2*gblE.Pad
                   X: =gblE.Pad
                   Y: =lblMotKAprb.Y + 20
+            - lblAyudaAprobarAprb:
+                Control: Label@2.5.1
+                Properties:
+                  Color: =gblC.muted
+                  FocusedBorderColor: =gblC.teal
+                  FocusedBorderThickness: =2
+                  Font: =Font.'Segoe UI'
+                  Height: =18
+                  PaddingLeft: =0
+                  Size: =9
+                  Text: ="Borrá el motivo para aprobar."
+                  Visible: =!IsBlank(Trim(txtMotRechAprb.Text))
+                  Width: =Parent.Width - 2*gblE.Pad
+                  Wrap: =false
+                  X: =gblE.Pad
+                  Y: =txtMotRechAprb.Y + txtMotRechAprb.Height + 4
             - btnRechazarAprb:
                 Control: Classic/Button@2.2.0
                 Properties:
@@ -1102,7 +1118,9 @@ Screens:
                   Color: =Color.White
                   DisabledColor: =Color.White
                   DisabledFill: =ColorFade(gblC.teal, 60%)
-                  DisplayMode: =If(!IsBlank(varAgeAprb), DisplayMode.Edit, DisplayMode.Disabled)
+                  DisplayMode: |-
+                    =// Con motivo de rechazo escrito no se aprueba: el texto se perdería sin aviso.
+                    If(!IsBlank(varAgeAprb) && IsBlank(Trim(txtMotRechAprb.Text)), DisplayMode.Edit, DisplayMode.Disabled)
                   Fill: =gblC.teal
                   FocusedBorderColor: =gblC.ink
                   FocusedBorderThickness: =2
@@ -1145,9 +1163,28 @@ Screens:
                     )
                   Size: =10
                   Text: ="✓ Aprobar y asignar"
+                  Tooltip: |-
+                    =If(!IsBlank(Trim(txtMotRechAprb.Text)), "Borrá el motivo para aprobar",
+                        IsBlank(varAgeAprb), "Elegí un localizador para aprobar",
+                        "Aprueba la solicitud y la asigna al localizador elegido")
                   Width: =btnRechazarAprb.Width
                   X: =btnRechazarAprb.X + btnRechazarAprb.Width + gblE.Pad
                   Y: =btnRechazarAprb.Y
+      - recCierraNavAprb:
+          Control: Rectangle@2.3.0
+          Properties:
+            AccessibleLabel: ="Cerrar menú"
+            Fill: =Color.Transparent
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
+            Height: =Parent.Height
+            OnSelect: |-
+              =// Capa transparente detrás del menú en pantalla angosta: tocar afuera lo cierra.
+              // Va justo antes de cmpNavAprb para quedar debajo del menú y encima del resto.
+              Set(gblNavMovilAbierta, false)
+            TabIndex: =0
+            Visible: =nfMovil && gblNavMovilAbierta
+            Width: =Parent.Width
       - cmpNavAprb:
           Control: CanvasComponent
           ComponentName: cmpNavLateral

@@ -21,9 +21,9 @@ module.exports = async function faseG(suite) {
       e.nota(`Especial ${previa.sanic_cm_as_numero}: aprobación ${previa.sanic_cm_as_estadoaprobacion} · estado ${previa.sanic_cm_as_estado} · owner ${previa._ownerid_value} (User2 = ${yo})`);
       // KPIs en TIBIO (salir y volver): en la primera carga pueden venir vacíos y eso se prueba en otra fase.
       const k = (await c.kpisInicio(app, 'Mis solicitudes', 'scrMisSolicitudes(kpi)')).tibio;
-      const [p, a, r] = [await v.especialesDe(yo, 2), await v.especialesDe(yo, 3), await v.especialesDe(yo, 4)];
+      const [p, a, r] = [await v.especialesDe(yo, 2), await v.aprobadasActivasDe(yo), await v.especialesDe(yo, 4)];
       e.check(c.num(k.PENDIENTES) === p, 'PENDIENTES = API', p, k.PENDIENTES);
-      e.check(c.num(k.APROBADAS) === a, 'APROBADAS = API (incluye la aprobada por el Supervisor)', a, k.APROBADAS);
+      e.check(c.num(k.APROBADAS) === a, 'APROBADAS = API (solo las aprobadas activas; la cerrada ya no cuenta)', a, k.APROBADAS);
       e.check(c.num(k.RECHAZADAS) === r, 'RECHAZADAS = API', r, k.RECHAZADAS);
       await c.ir(app, 'Mis solicitudes', 'scrMisSolicitudes');
       const filas = (await pl.ctl(app, 'lblCuentaFilaSol').locator('visible=true').allInnerTexts()).map(x => x.trim());

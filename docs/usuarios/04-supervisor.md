@@ -99,7 +99,7 @@ Mientras la cola se carga, aparece **⏳ Cargando la cola de aprobación…**.
    ![Búsqueda de localizador con los resultados que coinciden, cada uno con nombre y correo](img/sup-04-aprobaciones-buscar-localizador.png)
 
 5. El localizador elegido queda en una tarjeta con su nombre y correo. Si te equivocaste, tocá **Cambiar** y buscá otro.
-6. Tocá **✓ Aprobar y asignar**. El botón solo se habilita cuando ya elegiste un localizador.
+6. Tocá **✓ Aprobar y asignar**. El botón solo se habilita cuando ya elegiste un localizador y **Motivo de rechazo** está vacío.
 
 **Qué esperar después:**
 
@@ -111,9 +111,7 @@ Mientras la cola se carga, aparece **⏳ Cargando la cola de aprobación…**.
 **Errores comunes:**
 
 - **No aparece el localizador que buscás.** El buscador solo muestra localizadores **activos** que tienen un usuario vinculado, y busca por el **comienzo** del nombre. Si ves **Ningún localizador activo con usuario empieza con «…».**, revisá cómo escribiste el nombre. Si el localizador está desactivado o no tiene usuario, pedile al Admin que lo revise en **Localizadores y usuarios**: sin usuario, la Especial no llegaría a ningún teléfono.
-- **El botón ✓ Aprobar y asignar está apagado.** Todavía no tocaste un localizador de la lista.
-
-⚠️ Al aprobar no hace falta escribir nada en **Motivo de rechazo**. Si escribiste algo ahí y después aprobás, ese texto no se guarda.
+- **El botón ✓ Aprobar y asignar está apagado.** Todavía no tocaste un localizador de la lista, o hay texto en **Motivo de rechazo**. Con un motivo escrito ves **Borrá el motivo para aprobar.** debajo del cuadro: borralo y el botón se habilita.
 
 ## Cómo rechazar una Especial
 
@@ -234,7 +232,7 @@ Para salir, tocá **Cerrar** o la **X**.
    - **7 días**, **30 días** o **90 días**. Al entrar se usa **30 días**.
    - **Activas y cerradas**, **Activas** o **Cerradas**.
 3. Si querés, acotá con **Todos los localizadores**, **Todos los solicitantes** o el buscador **CIF, nombre del cliente o últimos 4 de la cuenta**.
-4. **Limpiar** vuelve a **Todos los localizadores**, **Todos los solicitantes** y borra la búsqueda. Los botones de estado, días y vigencia quedan como estaban.
+4. **Limpiar** deja todo como al entrar a la pantalla: **Todas**, **30 días**, **Activas y cerradas**, **Todos los localizadores**, **Todos los solicitantes** y sin búsqueda.
 
 Debajo de los filtros ves el total: **… especiales resueltas · últimos … días**.
 

@@ -195,7 +195,7 @@ Más detalle: [Cómo seguir tus solicitudes](03-solicitante.md#cómo-seguir-tus-
 
 ### No veo una solicitud vieja
 
-**Mis solicitudes** muestra el último mes. Cambiá las fechas en **Creadas del … al …** o tocá **Limpiar** para volver a los filtros iniciales.
+**Mis solicitudes** muestra el último mes. Cambiá las fechas en **Solicitadas del … al …** o tocá **Limpiar** para volver a los filtros iniciales.
 
 ## Supervisor
 

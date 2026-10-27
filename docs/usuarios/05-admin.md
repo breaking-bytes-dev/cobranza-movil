@@ -102,12 +102,12 @@ Y un mensaje que va contando el avance, por ejemplo:
 
 Abajo de todo, **Mis últimas cargas** muestra tus 20 cargas más recientes: nombre, fecha y hora, y cuántas filas, éxitos, fallos y omitidas tuvo cada una, con su estado (**Terminada**, **Con errores**, **Falló**, **Procesando**, **En cola** o **Sin lanzar**). Una carga real aparece en varias filas: «· padres» y una por cada «· parte». Si todavía no cargaste nada, dice **Todavía no hay cargas tuyas**.
 
-Si una carga quedó a medias (por ejemplo, porque se cerró la app antes de tiempo), su fila muestra un botón para resolverla:
+Si una carga quedó a medias (por ejemplo, porque se cerró la app antes de tiempo), su fila muestra un botón para resolverla. Si pasás el mouse sobre el botón, una ayuda explica qué hace:
 
 | Botón | Cuándo aparece | Qué hace |
 |---|---|---|
 | **▶ Relanzar partes (N)** | El paso 1 terminó bien pero las partes nunca se pusieron en marcha | Las pone en marcha ahora |
-| **✕ Descartar partes (N)** | El paso 1 no terminó bien o nunca arrancó | Marca las partes como **Falló**, sin cargar nada de ellas |
+| **✕ Descartar partes (N)** | El paso 1 no terminó bien o nunca arrancó | Marca las partes que faltan como **Falló**, sin cargar nada de ellas |
 | **✕ Descartar carga** | La carga nunca se puso en marcha | La marca como **Falló**, sin cargar nada de ella |
 
 Después de descartar, volvé a cargar el archivo completo. Volver a cargar el mismo archivo es seguro: no duplica clientes, cuentas ni asignaciones.

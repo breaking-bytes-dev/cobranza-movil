@@ -417,14 +417,23 @@ Screens:
                         Font: =Font.'Segoe UI'
                         Height: =gblE.AltoInput
                         OnSelect: |-
-                          =Set(varAgHes, "Todos los localizadores"); Set(varAgRecHes, Blank());
+                          =// Los mismos valores que al entrar a la pantalla (OnVisible).
+                          Set(varEstHes, "todas");
+                          Set(varAprAHes, 'Choice | CM | Estado aprobacion especial'.Aprobado);
+                          Set(varAprBHes, 'Choice | CM | Estado aprobacion especial'.Rechazada);
+                          Set(varDiasHes, 30);
+                          Set(varDesdeHes, DateAdd(Today(), -30, TimeUnit.Days));
+                          Set(varVigHes, "todas");
+                          Set(varVigAHes, true);
+                          Set(varVigBHes, false);
+                          Set(varAgHes, "Todos los localizadores"); Set(varAgRecHes, Blank());
                           Set(varPideHes, "Todos los solicitantes"); Set(varPideRecHes, Blank());
                           Set(varBuscaHes, ""); Clear(colBuscaHes);
                           Reset(drpAgHes); Reset(drpPideHes); Reset(txtBuscaHes);
                           Set(varPanelHes, false)
                         Size: =10
                         Text: ="Limpiar"
-                        Tooltip: ="Todos los localizadores y solicitantes, sin búsqueda"
+                        Tooltip: ="Todas, últimos 30 días, activas y cerradas, todos los localizadores y solicitantes, sin búsqueda"
                         Width: =If(nfMovil, Parent.Width, 90)
             - lblTotalHes:
                 Control: Label@2.5.1
@@ -1216,6 +1225,21 @@ Screens:
                   Width: =120
                   X: =gblE.Pad
                   Y: =Parent.Height - gblE.AltoBoton - gblE.Pad
+      - recCierraNavHes:
+          Control: Rectangle@2.3.0
+          Properties:
+            AccessibleLabel: ="Cerrar menú"
+            Fill: =Color.Transparent
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
+            Height: =Parent.Height
+            OnSelect: |-
+              =// Capa transparente detrás del menú en pantalla angosta: tocar afuera lo cierra.
+              // Va justo antes de cmpNavHes para quedar debajo del menú y encima del resto.
+              Set(gblNavMovilAbierta, false)
+            TabIndex: =0
+            Visible: =nfMovil && gblNavMovilAbierta
+            Width: =Parent.Width
       - cmpNavHes:
           Control: CanvasComponent
           ComponentName: cmpNavLateral

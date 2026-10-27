@@ -118,7 +118,7 @@ async function f10(ctx) {
     await ctx.paso('F10-04', 'KPIs de Inicio', async () => {
       await ui.ir(app, 'Inicio', 'scrInicio(tibio)');
       const k = await pl.kpis(app);
-      const [p, a, r] = [await v.especialesDe(U.sol, 2), await v.especialesDe(U.sol, 3), await v.especialesDe(U.sol, 4)];
+      const [p, a, r] = [await v.especialesDe(U.sol, 2), await v.aprobadasActivasDe(U.sol), await v.especialesDe(U.sol, 4)];
       ctx.chk('F10-04', c.num(k['PENDIENTES']) === p && c.num(k['APROBADAS']) === a && c.num(k['RECHAZADAS']) === r && a >= 1 && r >= 1,
         `Inicio Solicitante: PENDIENTES/APROBADAS/RECHAZADAS = API (${k['PENDIENTES']}/${k['APROBADAS']}/${k['RECHAZADAS']} vs ${p}/${a}/${r})`);
     });

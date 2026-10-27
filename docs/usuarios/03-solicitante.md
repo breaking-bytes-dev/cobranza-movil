@@ -44,7 +44,7 @@ Arriba vas a ver **Hola,** con tu nombre y el texto **Tus solicitudes Especiales
 | Tarjeta | Qué cuenta |
 |---|---|
 | **PENDIENTES** («esperando aprobación») | Tus solicitudes que todavía no aprobó ni rechazó un Supervisor. |
-| **APROBADAS** («en gestión de campo») | Tus solicitudes que un Supervisor aprobó. Incluye las que ya se cerraron. |
+| **APROBADAS** («en gestión de campo») | Tus solicitudes que un Supervisor aprobó y que siguen activas. Las que ya se cerraron no cuentan: las ves en **Mis solicitudes** con el filtro **Cerrada**. |
 | **RECHAZADAS** («revisá el motivo») | Tus solicitudes que un Supervisor rechazó. |
 
 En **ACCESOS** tenés **Nueva solicitud** («pedir una asignación Especial») y **Mis solicitudes** («seguimiento y estados»).
@@ -170,9 +170,9 @@ Solo ves las Especiales que pediste vos. Las que pidieron otras personas, o las 
 
 ### Cómo filtrar la lista
 
-La lista abre con las solicitudes **creadas en el último mes**, en todos los estados. Los filtros se aplican en cuanto los cambiás:
+La lista abre con las solicitudes **pedidas en el último mes**, en todos los estados. Los filtros se aplican en cuanto los cambiás:
 
-- **Creadas del … al …**: el rango de fechas en que se crearon las solicitudes.
+- **Solicitadas del … al …**: el rango de la fecha en que se pidió cada solicitud, la misma que ves como **Solicitada** en el detalle. Si una solicitud se reactivó, cuenta la fecha nueva.
 - **Todos los estados**: elegí **Pendiente aprobación**, **Aprobada**, **Rechazada** o **Cerrada** para ver solo ese estado. **Aprobada** muestra solo las que siguen activas; las aprobadas que ya terminaron están en **Cerrada**.
 - **Todos los localizadores**: elegí un localizador para ver solo las que se le asignaron.
 - **CIF**: escribí el CIF del cliente (o su comienzo).
@@ -227,8 +227,6 @@ No hay un botón de «reactivar». Simplemente hacé una solicitud nueva sobre l
 - Si la Especial anterior todavía está **Pendiente aprobación** o **Aprobada**, no se puede: vas a ver el aviso **Ya existe una Especial ACTIVA…**.
 
 ⚠️ Si la Especial anterior la había pedido otra persona, al reactivarla pasa a ser tuya y deja de aparecer en la lista de esa persona. Lo mismo te pasa a vos si otra persona vuelve a pedir una Especial que pediste antes y ya se cerró.
-
-💡 Una solicitud reactivada muestra la fecha nueva en **Solicitada**, pero el filtro **Creadas del … al …** usa la fecha en que se creó por primera vez. Si no la encontrás en **Mis solicitudes**, ampliá la fecha de inicio o tocá **Limpiar** y buscala por **Cuenta (últimos 4)** con un rango más amplio.
 
 ## Qué pasa después de que enviás
 

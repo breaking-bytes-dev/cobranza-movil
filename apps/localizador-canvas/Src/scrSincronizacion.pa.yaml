@@ -306,7 +306,8 @@ Screens:
                   OnSelect: |-
                     =// Refresh relee la base del TELÉFONO (no baja nada del servidor): rearma las pantallas con lo que ya llegó.
                     // Funciona sin señal. Lo que baja del servidor es «Actualizar todo desde el servidor».
-                    Refresh('CM | TBL | Interaccions'); Refresh('CM | TBL | Pagos'); Refresh('CM | TBL | Actualizacion de datos'); Refresh('CM | TBL | Asignacions'); Refresh('CM | TBL | Cuentas'); Refresh('CM | TBL | PAN de cuentas'); Set(varRecargarCartera, true); Set(varCliCargado, Blank()); Set(varPend, CountRows(Filter('CM | TBL | Interaccions', IsBlank('[IN] Numero de Interaccion')))); Notify("Lista recargada con los datos del teléfono.", NotificationType.Information)
+                    // Pendientes: el mismo cálculo que el OnVisible (visitas y pagos sin número).
+                    Refresh('CM | TBL | Interaccions'); Refresh('CM | TBL | Pagos'); Refresh('CM | TBL | Actualizacion de datos'); Refresh('CM | TBL | Asignacions'); Refresh('CM | TBL | Cuentas'); Refresh('CM | TBL | PAN de cuentas'); Set(varRecargarCartera, true); Set(varCliCargado, Blank()); Set(varPend, CountRows(Filter('CM | TBL | Interaccions', IsBlank('[IN] Numero de Interaccion'))) + CountRows(Filter('CM | TBL | Pagos', IsBlank('[PG] Numero')))); Notify("Lista recargada con los datos del teléfono.", NotificationType.Information)
                   RadiusBottomLeft: =14
                   RadiusBottomRight: =14
                   RadiusTopLeft: =14

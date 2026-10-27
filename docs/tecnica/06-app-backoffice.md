@@ -13,7 +13,7 @@ Este documento describe la *canvas app* web que usa la oficina: BackOffice, Soli
 | Supervisor | Aprobar o rechazar Especiales, reasignar, mirar la cartera de cada localizador y el historial de Especiales |
 | Admin | Carga diaria, monitoreo, reconciliación, alta de cuentas, cierres, agentes, datos maestros y listas |
 
-La app es de escritorio (1366 × 768) y se adapta a pantallas angostas: `nfMovil = App.ActiveScreen.Width < 920` oculta el menú lateral y muestra una barra con botón de menú. Su nombre interno es `sanic_appcmbackofficecanvas_d0162` y su nombre visible «App - CM - Backoffice Canvas». No usa perfil *offline*: trabaja siempre conectada. Todas sus fuentes de Dataverse tienen límite de 2.000 filas (`MaxGetRowsCount` en el `.msapr`).
+La app es de escritorio (1366 × 768) y se adapta a pantallas angostas: `nfMovil = App.ActiveScreen.Width < 920` oculta el menú lateral y muestra una barra con botón de menú. Con el menú abierto (`gblNavMovilAbierta`), cada pantalla muestra una capa transparente `recCierraNav…` a pantalla completa, justo antes de `cmpNav…` en el orden de controles (debajo del menú y encima del resto): tocarla cierra el menú. Su nombre interno es `sanic_appcmbackofficecanvas_d0162` y su nombre visible «App - CM - Backoffice Canvas». No usa perfil *offline*: trabaja siempre conectada. Todas sus fuentes de Dataverse tienen límite de 2.000 filas (`MaxGetRowsCount` en el `.msapr`).
 
 ### Cómo se determina el rol del usuario
 
@@ -60,7 +60,7 @@ Indicadores y accesos según el rol (`cmpKpi`). Los conteos van directo al orige
 | Rol | Indicadores |
 |---|---|
 | BackOffice | En cola (pendientes de transcribir), con pago, transcritas hoy por el usuario |
-| Solicitante | Sus Especiales pendientes, aprobadas y rechazadas |
+| Solicitante | Sus Especiales pendientes, aprobadas activas (mismo criterio que el filtro «Aprobada» de Mis solicitudes) y rechazadas |
 | Supervisor | Especiales pendientes de aprobación |
 | Admin | Carga de hoy, Diarias fuera de cartera, agentes activos sin usuario (sin correo derivado) |
 
@@ -70,10 +70,10 @@ El cobrado de hoy solo se calcula para BackOffice, Admin y Supervisor: el Solici
 
 Cola FIFO de interacciones pendientes de grabar en el *core*, con filtro por localizador. Por cada interacción muestra cliente, CIF, producto, número de tarjeta, comentario, ubicación, pagos (con aviso «⚠ REPETIDO» si `sanic_cm_pg_reciborepetido`) y la actualización de datos con el «antes» (teléfonos y direcciones actuales) y el «nuevo».
 
-- La persona escribe el código de grabación del *core* y toca Grabar (`btnGrabarTrx`). El único `Patch` pone Estado de grabación = Grabado y el código en mayúsculas. Si falla, la interacción no sale de la cola.
+- La persona escribe el código de grabación del *core* y toca «✓ y siguiente» (`btnGrabarTrx`). El único `Patch` pone Estado de grabación = Grabado y el código en mayúsculas. Si falla, la interacción no sale de la cola.
 - [`GrabacionInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/GrabacionInteraccion.cs) pone la fecha y el usuario de grabación, exige el código y rechaza grabar una interacción que otra persona ya grabó.
 - La actualización de datos se busca primero vinculada a la interacción y, si no está, entre las que entraron sin vincular (`sanic_cm_ad_sinvincular`) de la misma cuenta. Si tampoco, avisa que los datos no llegaron.
-- Enter en el código no graba: Power Apps no distingue Enter, Tab ni clic afuera, así que el `OnChange` solo pasa el foco al botón Grabar.
+- Enter en el código no graba: Power Apps no distingue Enter, Tab ni clic afuera, así que el `OnChange` solo pasa el foco al botón «✓ y siguiente». La ayuda de teclado (`lblHintTrx`) nombra el botón con su texto real.
 
 #### Transcritas — [`scrTranscritas`](../../apps/backoffice-canvas/Src/scrTranscritas.pa.yaml)
 
@@ -87,11 +87,13 @@ El Solicitante busca la cuenta (últimos 4 exactos, o CIF o nombre que empiezan 
 
 Las Especiales que pidió el usuario, con filtros por fechas (último mes por defecto), estado, localizador, CIF y cuenta. Solo lectura.
 
+- Las fechas filtran por `'[AS] Fecha asignada'` (*DateOnly*, la que se muestra como «Solicitada»), no por `Created On`: al reactivar una Especial, [`SolicitarEspecial.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/SolicitarEspecial.cs) le pone la fecha de hoy y así cae en el rango de su fecha nueva. La comparación de una columna de solo fecha contra fechas delega en Dataverse.
+
 #### Aprobaciones — [`scrAprobaciones`](../../apps/backoffice-canvas/Src/scrAprobaciones.pa.yaml)
 
 Cola FIFO de Especiales pendientes, con filtros por fecha, solicitante y búsqueda. El Supervisor aprueba eligiendo el localizador o rechaza con motivo.
 
-- Aprobar escribe estado Aprobado, agente y resolutor. [`AprobacionEspecial.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/AprobacionEspecial.cs) exige Supervisor o Admin y [`RepartoAsignacion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/RepartoAsignacion.cs) (asíncrono) pasa el dueño al usuario del agente: la asignación baja al teléfono en la próxima sincronización.
+- Aprobar escribe estado Aprobado, agente y resolutor. El botón se deshabilita si hay texto en «Motivo de rechazo» (`lblAyudaAprobarAprb` pide borrarlo), para que ese texto no se pierda sin aviso. [`AprobacionEspecial.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/AprobacionEspecial.cs) exige Supervisor o Admin y [`RepartoAsignacion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/RepartoAsignacion.cs) (asíncrono) pasa el dueño al usuario del agente: la asignación baja al teléfono en la próxima sincronización.
 - Rechazar escribe estado Rechazada, motivo, resolutor y además **cierra** la asignación; si quedara activa, bloquearía volver a pedirla.
 
 #### Reasignar — [`scrReasignar`](../../apps/backoffice-canvas/Src/scrReasignar.pa.yaml)
@@ -157,8 +159,8 @@ Todas las pantallas muestran `•••• 1234` (`CuentaMasc('Últimos 4')`). E
 
 | Pantalla | Control | Comportamiento |
 |---|---|---|
-| Por transcribir | `chpCifTrx` | PAN completo de la interacción seleccionada; tocarlo lo copia al portapapeles (`Copy()`, el único de la app) |
-| Transcritas | `chpRoTsc` (panel de detalle) | PAN completo de la interacción seleccionada |
+| Por transcribir | `lblCuentaGrandeTrx` | PAN completo de la interacción seleccionada; tocarlo lo copia al portapapeles (`Copy()`, el único de la app) |
+| Transcritas | `lblVCuentaTsc` (panel de detalle) | PAN completo de la interacción seleccionada |
 
 La fórmula es la misma en los dos:
 

@@ -66,7 +66,7 @@ module.exports = async function faseB(suite) {
       e.check(sub === 'Tus solicitudes Especiales', 'subtítulo del Solicitante = "Tus solicitudes Especiales" (no "Cobrado hoy")', 'Tus solicitudes Especiales', sub);
       const k = await c.kpisInicio(app, 'Mis solicitudes', 'scrMisSolicitudes');
       e.nota(`frío: ${JSON.stringify(k.frio)} · tibio: ${JSON.stringify(k.tibio)}`);
-      const [p, a, r] = [await v.especialesDe(yo, 2), await v.especialesDe(yo, 3), await v.especialesDe(yo, 4)];
+      const [p, a, r] = [await v.especialesDe(yo, 2), await v.aprobadasActivasDe(yo), await v.especialesDe(yo, 4)];
       for (const [et, val] of [['PENDIENTES', p], ['APROBADAS', a], ['RECHAZADAS', r]]) {
         e.check(c.num(k.frio[et]) === val, `${et} en la PRIMERA carga = API`, val, k.frio[et]);
         e.check(c.num(k.tibio[et]) === val, `${et} (tibio) = API`, val, k.tibio[et]);

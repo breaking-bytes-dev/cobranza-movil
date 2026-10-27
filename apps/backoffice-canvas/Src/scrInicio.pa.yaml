@@ -51,11 +51,13 @@ Screens:
                         '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
                         && '[AS] Solicitado por'.User = gblUsuarioDV.User
                         && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.'Pendiente aprobacion')),
+                // Solo las aprobadas activas, como el filtro «Aprobada» de Mis solicitudes (las cerradas no cuentan).
                 Set(varNSaprIni,
                     CountIf('CM | TBL | Asignacions',
                         '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
                         && '[AS] Solicitado por'.User = gblUsuarioDV.User
-                        && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado)),
+                        && '[AS] Estado de aprobacion' = 'Choice | CM | Estado aprobacion especial'.Aprobado
+                        && '[AS] Estado' = true)),
                 Set(varNSrecIni,
                     CountIf('CM | TBL | Asignacions',
                         '[AS] Tipo' = 'Choice | CM | Tipo asignacion'.Especial
@@ -1031,6 +1033,21 @@ Screens:
             Width: =Min(420, Parent.Width - 2*gblE.Pad)
             X: =(Parent.Width - Self.Width) / 2
             Y: =(Parent.Height - Self.Height) / 2
+      - recCierraNavIni:
+          Control: Rectangle@2.3.0
+          Properties:
+            AccessibleLabel: ="Cerrar menú"
+            Fill: =Color.Transparent
+            FocusedBorderColor: =gblC.teal
+            FocusedBorderThickness: =2
+            Height: =Parent.Height
+            OnSelect: |-
+              =// Capa transparente detrás del menú en pantalla angosta: tocar afuera lo cierra.
+              // Va justo antes de cmpNavIni para quedar debajo del menú y encima del resto.
+              Set(gblNavMovilAbierta, false)
+            TabIndex: =0
+            Visible: =nfMovil && gblNavMovilAbierta
+            Width: =Parent.Width
       - cmpNavIni:
           Control: CanvasComponent
           ComponentName: cmpNavLateral

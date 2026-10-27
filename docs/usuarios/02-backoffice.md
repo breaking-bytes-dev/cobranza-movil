@@ -154,7 +154,7 @@ También podés hacer clic en cualquier fila de **PENDIENTES** para abrirla dire
 
 ### Trabajar con el teclado
 
-Para ir rápido, la pantalla está pensada para usarse con el teclado. Abajo lo recuerda: **Enter lleva a Grabar · Enter otra vez graba y avanza · la cola se navega con clic**.
+Para ir rápido, la pantalla está pensada para usarse con el teclado. Abajo lo recuerda: **Enter lleva a «✓ y siguiente» · Enter otra vez graba y avanza · la cola se navega con clic**.
 
 1. Escribí el código en **Código del core**.
 2. Apretá **Enter**: el cursor pasa al botón **✓ y siguiente**.

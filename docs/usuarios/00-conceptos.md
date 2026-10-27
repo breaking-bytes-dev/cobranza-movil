@@ -17,7 +17,7 @@ La app de la oficina es una sola para los cuatro perfiles de oficina. Cada perso
 
 ![Inicio de la app de la oficina para BackOffice: menú a la izquierda y tarjetas «EN COLA», «TRANSCRITAS HOY» y «CON PAGO»](img/bo-01-inicio.png)
 
-💡 Si la app de la oficina se abre en una pantalla angosta (por ejemplo, en una tablet o en una ventana chica), el menú se esconde. Tocá **☰** arriba a la izquierda para abrirlo.
+💡 Si la app de la oficina se abre en una pantalla angosta (por ejemplo, en una tablet o en una ventana chica), el menú se esconde. Tocá **☰** arriba a la izquierda para abrirlo. Para cerrarlo sin elegir una opción, tocá cualquier parte fuera del menú.
 
 ![App de la oficina en pantalla angosta con el menú abierto sobre el contenido](img/gen-06-backoffice-angosto-menu.png)
 

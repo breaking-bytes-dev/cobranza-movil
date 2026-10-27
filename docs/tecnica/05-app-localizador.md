@@ -95,7 +95,7 @@ Power Fx no tiene ninguna función que baje datos del servidor: la sincronizaci�
 | Al abrir la app | El reproductor sincroniza en segundo plano |
 | Cada ~5 minutos con señal | Sube lo pendiente y baja los cambios del servidor |
 | «Actualizar todo desde el servidor» ([`scrSincronizacion`](../../apps/localizador-canvas/Src/scrSincronizacion.pa.yaml)) | Abre el estado del dispositivo con `ShowHostInfo(HostInfo.OfflineSync)`; ahí el localizador pide la sincronización completa |
-| «↻ Recargar la lista» | Solo `Refresh()` de la base **local**: rearma las pantallas con lo que ya llegó. Funciona sin señal y no baja nada |
+| «↻ Recargar la lista» | Solo `Refresh()` de la base **local**: rearma las pantallas con lo que ya llegó y recalcula `varPend` igual que el `OnVisible` (interacciones y pagos sin número). Funciona sin señal y no baja nada |
 
 `gblSync` traduce `Connection.Sync` a `ok`, `sync`, `pend`, `warn`, `error` u `off`. En el navegador no hay sincronización (`Connection.Sync` vacío) y solo distingue con o sin conexión.
 
