@@ -127,7 +127,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         public void Un_rol_que_no_solicita_no_puede_pedirla(string rol)
         {
             var e = new Escenario(new[] { rol });
-            Assert.Contains("solo un Solicitante", e.Rechaza().Message);
+            Assert.Contains("Solo un Solicitante", e.Rechaza().Message);
             Assert.Null(e.Creada);
             Assert.Null(e.Actualizada);
             Assert.Equal(0, e.ConsultasDeAsignaciones());
@@ -336,7 +336,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             var e = new Escenario(new[] { Solicitante });
             e.H.Service.Setup(s => s.Retrieve(Cuenta, CuentaId, It.IsAny<ColumnSet>()))
                 .Throws(new FaultException<OrganizationServiceFault>(new OrganizationServiceFault(), "sin acceso"));
-            Assert.Contains("no existe o no tenes acceso", e.Rechaza().Message);
+            Assert.Contains("no existe o no tenés acceso", e.Rechaza().Message);
             Assert.Equal(0, e.ConsultasDeAsignaciones());
             Assert.Null(e.Creada);
         }
@@ -346,7 +346,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         {
             var e = new Escenario(new[] { Solicitante });
             e.H.Inputs.Remove("CuentaId");
-            Assert.Contains("falta la cuenta", e.Rechaza().Message);
+            Assert.Contains("Falta la cuenta", e.Rechaza().Message);
 
             var n = new Escenario(new[] { Solicitante });
             n.H.Inputs["Notas"] = "   ";
@@ -360,7 +360,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             var e = new Escenario(new[] { Solicitante });
             e.H.Inputs["Notas"] = "pagar con 4111 1111 1111 1111";
             var ex = e.Rechaza();
-            Assert.Contains("numero de tarjeta", ex.Message);
+            Assert.Contains("número de tarjeta", ex.Message);
             Assert.DoesNotContain("4111", ex.Message);
             Assert.DoesNotContain("4111", e.H.TodoElTexto());
             Assert.Null(e.Creada);
@@ -404,7 +404,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             e.H.Service.Setup(s => s.Create(It.IsAny<Entity>()))
                 .Throws(new FaultException<OrganizationServiceFault>(new OrganizationServiceFault { ErrorCode = -2147088238 }, "duplicado 4111111111111111"));
             var ex = e.Rechaza();
-            Assert.Contains("no se pudo crear la Especial", ex.Message);
+            Assert.Contains("No se pudo crear la Especial", ex.Message);
             Assert.DoesNotContain("4111", e.H.TodoElTexto());
             Assert.Contains("-2147088238", e.H.TodoElTexto());
         }

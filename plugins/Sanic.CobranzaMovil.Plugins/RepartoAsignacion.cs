@@ -60,7 +60,7 @@ namespace Sanic.CobranzaMovil.Plugins
             local.ExigirRegistro(Esquema.Asignacion, Esquema.EtapaPostOperation, Esquema.MensajeCreate, Esquema.MensajeUpdate);
             if (local.Context.Mode != Esquema.ModoAsincrono)
             {
-                throw local.Error("el paso debe registrarse asincrono: sincrono correria dentro del trozo de la carga de Smelter.");
+                throw local.ErrorTecnico("el paso debe registrarse asincrono: sincrono correria dentro del trozo de la carga de Smelter.");
             }
 
             var svc = local.ServicioSistema;

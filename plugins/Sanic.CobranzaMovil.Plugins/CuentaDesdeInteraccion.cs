@@ -29,7 +29,7 @@ namespace Sanic.CobranzaMovil.Plugins
             var interaccion = target.GetAttributeValue<EntityReference>(Esquema.PagoInteraccion);
             if (interaccion == null)
             {
-                throw local.Error("el pago tiene que estar vinculado a una interaccion.");
+                throw local.Error("El pago tiene que estar vinculado a una interacción.");
             }
 
             var faltaCuenta = target.GetAttributeValue<EntityReference>(Esquema.PagoCuentaId) == null;

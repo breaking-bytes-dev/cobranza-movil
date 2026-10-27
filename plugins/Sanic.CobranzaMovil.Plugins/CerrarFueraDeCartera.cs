@@ -35,12 +35,12 @@ namespace Sanic.CobranzaMovil.Plugins
             if (!string.Equals(ctx.MessageName, Esquema.MensajeCerrarFueraDeCartera, StringComparison.Ordinal)
                 || ctx.Stage != Esquema.EtapaMainOperation)
             {
-                throw local.Error("registro incorrecto: este plugin respalda la Custom API " + Esquema.MensajeCerrarFueraDeCartera + ".");
+                throw local.ErrorTecnico("registro incorrecto: este plugin respalda la Custom API " + Esquema.MensajeCerrarFueraDeCartera + ".");
             }
 
             if (!RolesCm.DelLlamador(local).SinRestriccion)
             {
-                throw local.Error("solo el Admin puede cerrar en lote las asignaciones fuera de la carga.");
+                throw local.Error("Solo el Admin puede cerrar en lote las asignaciones fuera de la carga.");
             }
 
             var corteApp = Entrada<string>(ctx, Esquema.ParamCorte);
@@ -49,28 +49,28 @@ namespace Sanic.CobranzaMovil.Plugins
                 || !DateTime.TryParseExact(corteApp.Trim(), "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture,
                     System.Globalization.DateTimeStyles.None, out corte))
             {
-                throw local.Error("falta el corte (dia de la ultima carga, aaaa-mm-dd).");
+                throw local.Error("Falta el corte (día de la última carga, aaaa-mm-dd).");
             }
             var esperadas = Entrada<int?>(ctx, Esquema.ParamEsperadas);
-            if (!esperadas.HasValue || esperadas.Value < 0) throw local.Error("falta la cantidad confirmada.");
+            if (!esperadas.HasValue || esperadas.Value < 0) throw local.Error("Falta la cantidad confirmada.");
             // Opcional: Dataverse manda 0 cuando la app no lo pasa, asi que 0 = el lote por defecto.
             var lote = Entrada<int?>(ctx, Esquema.ParamLote) ?? 0;
             if (lote == 0) lote = LotePorDefecto;
-            if (lote < 1 || lote > LoteMaximo) throw local.Error("el lote debe ser de 1 a " + LoteMaximo + ".");
+            if (lote < 1 || lote > LoteMaximo) throw local.Error("El lote tiene que ser de 1 a " + LoteMaximo + ".");
             var soloContar = Entrada<bool?>(ctx, Esquema.ParamSoloContar) == true;
 
             var corteServidor = UltimaCarga(local.ServicioSistema);
-            if (!corteServidor.HasValue) throw local.Error("no hay ninguna carga diaria: no hay nada que comparar.");
+            if (!corteServidor.HasValue) throw local.Error("No hay ninguna carga diaria: no hay nada que comparar.");
             if (corteServidor.Value != corte.Date)
             {
-                throw local.Error("la ultima carga cambio desde que abriste la pantalla. Actualiza Reconciliacion y volve a confirmar.");
+                throw local.Error("La última carga cambió desde que abriste la pantalla. Actualizá Reconciliación y volvé a confirmar.");
             }
 
             var pendientes = Contar(local.Service, corte.Date);
             if (pendientes > esperadas.Value)
             {
-                throw local.Error("hay " + pendientes + " Diarias fuera de la carga, mas de las " + esperadas.Value
-                    + " que confirmaste. Actualiza Reconciliacion y volve a confirmar.");
+                throw local.Error("Hay " + pendientes + " Diarias fuera de la carga, más de las " + esperadas.Value
+                    + " que confirmaste. Actualizá Reconciliación y volvé a confirmar.");
             }
             if (soloContar || pendientes == 0)
             {
@@ -97,7 +97,7 @@ namespace Sanic.CobranzaMovil.Plugins
                 catch (FaultException<OrganizationServiceFault> ex)
                 {
                     local.Trace("el cierre fallo despues de {0} filas con el codigo {1}.", cerradas, ex.Detail == null ? 0 : ex.Detail.ErrorCode);
-                    throw local.Error("no se pudo cerrar el lote (no se cerro ninguna de este tramo). Volve a intentar.");
+                    throw local.Error("No se pudo cerrar el lote (no se cerró ninguna de este tramo). Volvé a intentar.");
                 }
                 cerradas++;
             }

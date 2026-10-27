@@ -33,11 +33,11 @@ namespace Sanic.CobranzaMovil.Plugins
             var ctx = local.Context;
 
             if (!local.EsMensaje(Esquema.MensajeCreate, Esquema.MensajeUpdate))
-                throw local.Error("solo se registra en Create y Update.");
+                throw local.ErrorTecnico("solo se registra en Create y Update.");
 
             string[] columnas;
             if (!ColumnasPorEntidad.TryGetValue(ctx.PrimaryEntityName ?? string.Empty, out columnas))
-                throw local.Error("la entidad '" + ctx.PrimaryEntityName + "' no tiene reglas configuradas.");
+                throw local.ErrorTecnico("la entidad '" + ctx.PrimaryEntityName + "' no tiene reglas configuradas.");
 
             var target = local.ObtenerTarget();
 
@@ -61,8 +61,8 @@ namespace Sanic.CobranzaMovil.Plugins
 
             // Solo nombres de columna: ni el valor ni fragmentos suyos.
             local.Trace("rechazado. columnas={0}", string.Join(",", infractoras));
-            throw local.Error("la columna " + string.Join(", ", infractoras) + " no admite un numero de cuenta completo. "
-                + "Solo se permite el valor enmascarado con los ultimos 4 digitos.");
+            throw local.Error("No se puede guardar un número de tarjeta completo: solo se permite el número enmascarado, "
+                + "con los últimos 4 dígitos.");
         }
 
         private static string AComoTexto(object valor)

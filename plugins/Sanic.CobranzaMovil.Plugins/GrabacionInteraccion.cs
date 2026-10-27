@@ -60,12 +60,13 @@ namespace Sanic.CobranzaMovil.Plugins
                 var prohibidas = columnas.Where(c => Array.IndexOf(permitidas, c) < 0).OrderBy(c => c, StringComparer.Ordinal).ToList();
                 if (prohibidas.Count > 0)
                 {
-                    throw local.Error("tu rol no puede cambiar " + string.Join(", ", prohibidas) + " de una interaccion.");
+                    local.Trace("rechazado: columnas no permitidas para el rol: {0}.", string.Join(", ", prohibidas));
+                    throw local.Error("Tu rol no puede cambiar esos datos de la interacción.");
                 }
                 if (yaGrabada && columnas.Any(c => Array.IndexOf(ColumnasGrabacion, c) >= 0))
                 {
-                    throw local.Error("la interaccion ya fue grabada en el CORE (por otra persona o en otra pestana); "
-                        + "no se puede volver a grabar ni cambiar su codigo. Actualiza la lista.");
+                    throw local.Error("La interacción ya fue grabada en el CORE (por otra persona o en otra pestaña): "
+                        + "no se puede volver a grabar ni cambiar su código. Actualizá la lista.");
                 }
             }
 
@@ -79,7 +80,7 @@ namespace Sanic.CobranzaMovil.Plugins
                     : previa.GetAttributeValue<string>(Esquema.InteraccionCodigoGrabacion);
                 if (string.IsNullOrWhiteSpace(codigo))
                 {
-                    throw local.Error("para marcarla Grabada hace falta el codigo de grabacion del CORE.");
+                    throw local.Error("Para marcarla como grabada hace falta el código de grabación del CORE.");
                 }
                 target[Esquema.InteraccionFechaGrabacion] = DateTime.UtcNow;
                 target[Esquema.InteraccionGrabadoPor] = new EntityReference(Esquema.Usuario, local.Context.UserId);

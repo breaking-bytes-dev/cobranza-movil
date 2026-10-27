@@ -23,7 +23,7 @@ namespace Sanic.CobranzaMovil.Plugins
                 local.Trace("\"Solicitado por\" es otra persona; el llamador no tiene restriccion.");
                 return;
             }
-            throw local.Error("\"Solicitado por\" solo puede ser quien pide la Especial.");
+            throw local.Error("En «Solicitado por» solo puede ir quien pide la Especial.");
         }
     }
 }

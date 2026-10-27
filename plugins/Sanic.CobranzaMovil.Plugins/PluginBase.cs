@@ -37,7 +37,7 @@ namespace Sanic.CobranzaMovil.Plugins
             catch (Exception ex)
             {
                 local.Trace("error inesperado de tipo {0}", ex.GetType().Name);
-                throw new InvalidPluginExecutionException(Nombre + ": error inesperado al validar el registro. Avise al administrador.");
+                throw new InvalidPluginExecutionException("Ocurrió un error inesperado. Avisá al administrador.");
             }
         }
     }
@@ -91,7 +91,14 @@ namespace Sanic.CobranzaMovil.Plugins
             if (tracing != null) tracing.Trace(nombre + ": " + formato, args);
         }
 
+        /// <summary>Error para la persona: el texto se muestra tal cual, sin el nombre del plugin.</summary>
         public InvalidPluginExecutionException Error(string mensaje)
+        {
+            return new InvalidPluginExecutionException(mensaje);
+        }
+
+        /// <summary>Error de registro o configuracion: lleva el nombre del plugin para quien lo administra.</summary>
+        public InvalidPluginExecutionException ErrorTecnico(string mensaje)
         {
             return new InvalidPluginExecutionException(nombre + ": " + mensaje);
         }
@@ -105,7 +112,7 @@ namespace Sanic.CobranzaMovil.Plugins
                 var target = inputs["Target"] as Entity;
                 if (target != null) return target;
             }
-            throw Error("el contexto no trae un Target de tipo entidad.");
+            throw ErrorTecnico("el contexto no trae un Target de tipo entidad.");
         }
 
         /// <summary>Imagen previa "PreImage". Falla cerrado si el paso se registro sin ella.</summary>
@@ -117,7 +124,7 @@ namespace Sanic.CobranzaMovil.Plugins
                 var previa = imagenes[Esquema.NombreImagenPrevia];
                 if (previa != null) return previa;
             }
-            throw Error("el paso Update no trae la imagen previa " + Esquema.NombreImagenPrevia + ".");
+            throw ErrorTecnico("el paso Update no trae la imagen previa " + Esquema.NombreImagenPrevia + ".");
         }
 
         /// <summary>Exige entidad, etapa y alguno de los mensajes esperados; un registro mal configurado se detecta de inmediato.</summary>
@@ -127,7 +134,7 @@ namespace Sanic.CobranzaMovil.Plugins
                 || Context.Stage != etapa
                 || !EsMensaje(mensajes))
             {
-                throw Error("registro incorrecto del paso. Se espera " + string.Join("/", mensajes) + " sobre " + entidad
+                throw ErrorTecnico("registro incorrecto del paso. Se espera " + string.Join("/", mensajes) + " sobre " + entidad
                     + " en la etapa " + etapa + ".");
             }
         }

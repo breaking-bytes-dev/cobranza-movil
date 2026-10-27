@@ -46,7 +46,9 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
 
             var ex = Assert.Throws<InvalidPluginExecutionException>(() => h.Ejecutar(new PanGuard()));
 
-            Assert.Contains(columna, ex.Message);
+            Assert.Contains("número de tarjeta completo", ex.Message);
+            Assert.DoesNotContain(columna, ex.Message);
+            Assert.Contains(columna, h.TodoElTexto());
             AfirmarSinValor(ex.Message, pan);
             AfirmarSinValor(h.TodoElTexto(), pan);
         }
@@ -62,8 +64,9 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
 
             var ex = Assert.Throws<InvalidPluginExecutionException>(() => h.Ejecutar(new PanGuard()));
 
-            Assert.Contains("sanic_cm_cp_name", ex.Message);
-            Assert.DoesNotContain("sanic_cm_cp_pan", ex.Message);
+            Assert.Contains("sanic_cm_cp_name", h.TodoElTexto());
+            Assert.DoesNotContain("sanic_cm_cp_pan", h.TodoElTexto());
+            Assert.DoesNotContain("sanic_cm_cp_name", ex.Message);
         }
 
         [Fact]
@@ -122,7 +125,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
 
             var ex = Assert.Throws<InvalidPluginExecutionException>(() => h.Ejecutar(new PanGuard()));
 
-            Assert.Contains("sanic_cm_ct_numerodecuenta", ex.Message);
+            Assert.Contains("sanic_cm_ct_numerodecuenta", h.TodoElTexto());
             AfirmarSinValor(ex.Message, "4111111111111111");
         }
 

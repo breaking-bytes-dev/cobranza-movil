@@ -96,7 +96,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         public void Una_fila_con_mas_columnas_que_el_encabezado_es_un_error()
         {
             var ex = Assert.Throws<FormatException>(() => ArchivoCsv.Leer(U("A,B\n1,2\nVALOR-SECRETO,2,3\n"), ','));
-            Assert.Contains("la fila 3 tiene 3 columnas", ex.Message);
+            Assert.Contains("La fila 3 tiene 3 columnas", ex.Message);
             Assert.DoesNotContain("VALOR-SECRETO", ex.Message);
         }
 
@@ -111,7 +111,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         public void Rechaza_UTF16_y_el_archivo_vacio()
         {
             Assert.Contains("UTF-16", Assert.Throws<FormatException>(() => ArchivoCsv.Leer(new byte[] { 0xFF, 0xFE, 0x41, 0 }, ',')).Message);
-            Assert.Contains("vacio", Assert.Throws<FormatException>(() => ArchivoCsv.Leer(new byte[0], ',')).Message);
+            Assert.Contains("vacío", Assert.Throws<FormatException>(() => ArchivoCsv.Leer(new byte[0], ',')).Message);
             Assert.Throws<FormatException>(() => ArchivoCsv.Leer(U("A,B\n"), '"'));
         }
 

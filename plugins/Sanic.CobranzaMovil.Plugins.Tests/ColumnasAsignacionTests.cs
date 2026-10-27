@@ -91,9 +91,11 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         [InlineData("sanic_cm_as_ultimacarga")]
         public void El_Supervisor_no_cambia_columnas_que_no_usa(string columna)
         {
-            var ex = Rechaza(Cambio("sanic_cm_as_estadoaprobacion", columna), Supervisor);
-            Assert.Contains(columna, ex.Message);
-            Assert.DoesNotContain("sanic_cm_as_estadoaprobacion", ex.Message);
+            var h = Actualizar(Cambio("sanic_cm_as_estadoaprobacion", columna), Supervisor);
+            var ex = Assert.Throws<InvalidPluginExecutionException>(() => h.Ejecutar(new ColumnasAsignacion()));
+            Assert.Equal("Tu rol no puede cambiar esos datos de la asignación.", ex.Message);
+            Assert.Contains(columna, h.TodoElTexto());
+            Assert.DoesNotContain("sanic_cm_as_estadoaprobacion", h.TodoElTexto());
         }
 
         [Fact]
@@ -148,13 +150,14 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         }
 
         [Fact]
-        public void El_mensaje_cita_columnas_y_nunca_valores()
+        public void La_traza_cita_columnas_el_mensaje_no_y_nunca_valores()
         {
             var t = new Entity(Asignacion, Guid.NewGuid());
             t["sanic_cm_as_notas"] = "4111 1111 1111 1111 nota";
             var h = Actualizar(t, Localizador);
             var ex = Assert.Throws<InvalidPluginExecutionException>(() => h.Ejecutar(new ColumnasAsignacion()));
-            Assert.Contains("sanic_cm_as_notas", ex.Message);
+            Assert.DoesNotContain("sanic_cm_as_notas", ex.Message);
+            Assert.Contains("sanic_cm_as_notas", h.TodoElTexto());
             Assert.DoesNotContain("4111", ex.Message);
             Assert.DoesNotContain("4111", h.TodoElTexto());
         }

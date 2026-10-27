@@ -57,14 +57,14 @@ namespace Sanic.CobranzaMovil.Plugins
             }
             if (interaccion == null)
             {
-                throw local.Error("la actualizacion de datos tiene que estar vinculada a una interaccion.");
+                throw local.Error("La actualización de datos tiene que estar vinculada a una interacción.");
             }
 
             var fila = local.Service.Retrieve(Esquema.Interaccion, interaccion.Id, new ColumnSet(Esquema.InteraccionCuentaId));
             var cuentaDeInteraccion = fila == null ? null : fila.GetAttributeValue<EntityReference>(Esquema.InteraccionCuentaId);
             if (cuentaDeInteraccion == null)
             {
-                throw local.Error("la interaccion de la actualizacion de datos no tiene cuenta: no se sabe de que cliente es.");
+                throw local.Error("La interacción de la actualización de datos no tiene cuenta: no se sabe de qué cliente es.");
             }
 
             var cuenta = target.GetAttributeValue<EntityReference>(Esquema.ActualizacionCuentaId);
@@ -78,7 +78,7 @@ namespace Sanic.CobranzaMovil.Plugins
             }
             else if (cuenta.Id != cuentaDeInteraccion.Id)
             {
-                throw local.Error("la interaccion de la actualizacion de datos es de otra cuenta.");
+                throw local.Error("La interacción de la actualización de datos es de otra cuenta.");
             }
             target[Esquema.ActualizacionSinVincular] = false;
             local.Trace("interaccion con cuenta; ok.");

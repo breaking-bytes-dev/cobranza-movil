@@ -502,7 +502,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         {
             var e = new Escenario(rol);
             Entradas(e, 3);
-            Assert.Contains("solo un Admin", e.Rechaza().Message);
+            Assert.Contains("Solo un Admin", e.Rechaza().Message);
             e.NoEscribioNada();
             e.H.Service.Verify(s => s.Retrieve(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<ColumnSet>()), Times.Never());
         }
@@ -533,7 +533,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             Entradas(e, 3);
             e.H.Service.Setup(s => s.Retrieve(Job, e.JobId, It.IsAny<ColumnSet>()))
                 .Throws(new FaultException<OrganizationServiceFault>(new OrganizationServiceFault(), "no existe"));
-            Assert.Contains("no existe la importacion", e.Rechaza().Message);
+            Assert.Contains("No existe la importación", e.Rechaza().Message);
             e.NoEscribioNada();
         }
 
@@ -576,8 +576,8 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             Entradas(e, 3);
             e.PadresVisible = false;
             var m = e.Rechaza().Message;
-            Assert.Contains("faltan las plantillas", m);
-            Assert.Contains("copiandolas de \"Cobranza movil\" en Smelter", m);
+            Assert.Contains("Faltan las plantillas", m);
+            Assert.Contains("copiándolas de \"Cobranza movil\" en Smelter", m);
             Assert.DoesNotContain("scripts", m);
             e.NoEscribioNada();
         }
@@ -588,7 +588,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             var e = new Escenario(Admin);
             Entradas(e, 3);
             e.EstadoPadres = 2;
-            Assert.Contains("no esta activa", e.Rechaza().Message);
+            Assert.Contains("no está activa", e.Rechaza().Message);
             e.NoEscribioNada();
         }
 
@@ -628,7 +628,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             // RIGHT(...) juntaria dos cuentas distintas en un mismo registro: no se puede partir por la cuenta.
             var cuenta = e.Principal_.Single(m => m.Tabla == "sanic_cm_tbl_cuenta");
             cuenta.Cols[0][4] = "RIGHT(NumeroCuenta, 4)";
-            Assert.Contains("transformacion", e.Rechaza().Message);
+            Assert.Contains("transformación", e.Rechaza().Message);
             e.NoEscribioNada();
         }
 
@@ -669,8 +669,9 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             e.Original = ArchivoDe(Fila(0), Fila(1), Fila(100)); // "Dir, 100": 8 caracteres
             e.Largos["sanic_cm_tbl_fiador"]["sanic_cm_fi_direccion"] = 7;
             var m = e.Rechaza().Message;
-            Assert.Contains("hay 1 valor(es) mas largos", m);
-            Assert.Contains("fila 3, columna DireccionFianza (sanic_cm_tbl_fiador.sanic_cm_fi_direccion): 8 caracteres, maximo 7", m);
+            Assert.Contains("Hay 1 valor(es) más largos", m);
+            Assert.Contains("fila 3, columna DireccionFianza: 8 caracteres, máximo 7", m);
+            Assert.DoesNotContain("sanic_cm_fi_direccion", m);
             Assert.DoesNotContain("Dir, 100", m);
             e.NoEscribioNada();
         }
@@ -682,9 +683,9 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             Entradas(e, 3);
             e.Largos["sanic_cm_tbl_producto"]["sanic_cm_pr_codigo"] = 3; // "PRQn": 4 en las 400 filas
             var m = e.Rechaza().Message;
-            Assert.Contains("hay 400 valor(es)", m);
+            Assert.Contains("Hay 400 valor(es)", m);
             Assert.Equal(5, System.Text.RegularExpressions.Regex.Matches(m, "fila \\d+, columna").Count);
-            Assert.Contains("y 395 mas", m);
+            Assert.Contains("y 395 más", m);
             e.NoEscribioNada();
         }
 
@@ -750,7 +751,8 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             e.Original = ArchivoDe(Fila(0), Fila(1), Fila(100));
             e.Largos["sanic_cm_tbl_fiador"]["sanic_cm_fi_direccion"] = 7;
             var m = e.Rechaza().Message;
-            Assert.Contains("fila 3, columna DireccionFianza (sanic_cm_tbl_fiador.sanic_cm_fi_direccion): 8 caracteres, maximo 7", m);
+            Assert.Contains("fila 3, columna DireccionFianza: 8 caracteres, máximo 7", m);
+            Assert.DoesNotContain("sanic_cm_fi_direccion", m);
             Assert.DoesNotContain("Dir, 100", m);
             e.NoEscribioNada();
         }
@@ -808,7 +810,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         {
             var e = new Escenario(rol);
             SoloValidar(e);
-            Assert.Contains("solo un Admin", e.Rechaza().Message);
+            Assert.Contains("Solo un Admin", e.Rechaza().Message);
         }
 
         [Fact]
@@ -830,7 +832,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             var e = new Escenario(Admin);
             Entradas(e, 3);
             e.FallaUploadEnParte = 2;
-            Assert.Contains("no quedo nada a medias", e.Rechaza().Message);
+            Assert.Contains("no quedó nada a medias", e.Rechaza().Message);
             Assert.Equal(e.IdsCreados.Take(2), e.Borrados);
             Assert.Empty(e.Updates);
             Assert.False(e.Archivos.ContainsKey(e.JobId));
@@ -843,7 +845,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             var e = new Escenario(Admin);
             Entradas(e, 3);
             e.FallaUpdate = true;
-            Assert.Contains("no quedo nada a medias", e.Rechaza().Message);
+            Assert.Contains("no quedó nada a medias", e.Rechaza().Message);
             Assert.Equal(e.IdsCreados, e.Borrados);
             Assert.Equal("banco.csv", e.Archivos[e.JobId].Key);
             Assert.Equal(e.Original, e.Archivos[e.JobId].Value);

@@ -73,7 +73,8 @@ namespace Sanic.CobranzaMovil.Plugins
                 local.Trace("{0} columna(s) permitidas para el rol.", columnas.Count);
                 return;
             }
-            throw local.Error("tu rol no puede cambiar " + string.Join(", ", prohibidas) + " de una asignacion.");
+            local.Trace("rechazado: columnas no permitidas para el rol: {0}.", string.Join(", ", prohibidas));
+            throw local.Error("Tu rol no puede cambiar esos datos de la asignación.");
         }
     }
 }

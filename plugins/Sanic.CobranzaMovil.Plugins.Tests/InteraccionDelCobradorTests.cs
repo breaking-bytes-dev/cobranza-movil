@@ -509,7 +509,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         [Fact]
         public void Un_cobrador_sin_agente_vinculado_se_rechaza()
         {
-            Assert.Contains("no esta vinculado a ningun localizador", Rechaza(Crear(Nueva(true, null), new[] { Localizador })).Message);
+            Assert.Contains("no está vinculado a ningún localizador", Rechaza(Crear(Nueva(true, null), new[] { Localizador })).Message);
         }
 
         [Fact]
@@ -520,7 +520,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             Crear(t, new[] { Localizador }, AgenteDe(Guid.NewGuid(), "B"), AgenteDe(a, "A")).Ejecutar(new InteraccionDelCobrador());
             Assert.Equal(a, t.GetAttributeValue<EntityReference>(InAgente).Id);
 
-            Assert.Contains("mas de un agente", Rechaza(Crear(Nueva(true, Guid.NewGuid()), new[] { Localizador },
+            Assert.Contains("más de un localizador", Rechaza(Crear(Nueva(true, Guid.NewGuid()), new[] { Localizador },
                 AgenteDe(Guid.NewGuid(), "B"), AgenteDe(Guid.NewGuid(), "A"))).Message);
         }
 

@@ -59,8 +59,7 @@ namespace Sanic.CobranzaMovil.Plugins
             if (!string.Equals(claveTarget, claveCuenta, StringComparison.Ordinal))
             {
                 local.Trace("rechazado: {0} no coincide con la clave de la cuenta.", Esquema.AsignacionClavePan);
-                throw local.Error(Esquema.AsignacionClavePan + " no coincide con la clave de la cuenta indicada en "
-                    + Esquema.AsignacionCuentaId + ".");
+                throw local.Error("La clave de la asignación no coincide con la de su cuenta.");
             }
 
             local.Trace("{0} ya coincide con la cuenta.", Esquema.AsignacionClavePan);

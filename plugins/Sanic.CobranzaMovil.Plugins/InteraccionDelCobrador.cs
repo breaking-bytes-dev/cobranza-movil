@@ -55,7 +55,7 @@ namespace Sanic.CobranzaMovil.Plugins
             var target = local.ObtenerTarget();
             if (target.GetAttributeValue<EntityReference>(Esquema.InteraccionCuentaId) == null)
             {
-                throw local.Error("la interaccion tiene que tener la cuenta.");
+                throw local.Error("La interacción tiene que tener la cuenta.");
             }
 
             var roles = RolesCm.DelLlamador(local);
@@ -72,7 +72,7 @@ namespace Sanic.CobranzaMovil.Plugins
 
             if (target.GetAttributeValue<EntityReference>(Esquema.InteraccionAgente) == null)
             {
-                throw local.Error("la interaccion tiene que tener el agente.");
+                throw local.Error("La interacción tiene que tener el localizador.");
             }
         }
 
@@ -112,8 +112,8 @@ namespace Sanic.CobranzaMovil.Plugins
                 }
             }
 
-            throw local.Error("esa cuenta no esta en tu cartera: solo podes registrar visitas y pagos de las cuentas que tenes asignadas. "
-                + "Si te la reasignaron recien, sincroniza y volve a intentar; si la capturaste sin senal, tiene que sincronizarse "
+            throw local.Error("Esa cuenta no está en tu cartera: solo podés registrar visitas y pagos de las cuentas que tenés asignadas. "
+                + "Si te la reasignaron recién, sincronizá y volvé a intentar; si la capturaste sin señal, tiene que sincronizarse "
                 + "dentro de las 48 horas.");
         }
 
@@ -225,7 +225,7 @@ namespace Sanic.CobranzaMovil.Plugins
             var agentes = local.ServicioSistema.RetrieveMultiple(q).Entities;
             if (agentes.Count == 0)
             {
-                throw local.Error("tu usuario no esta vinculado a ningun localizador; pedile al Admin que lo vincule en Localizadores y usuarios.");
+                throw local.Error("Tu usuario no está vinculado a ningún localizador; pedile al Admin que lo vincule en Localizadores y usuarios.");
             }
 
             var enviado = target.GetAttributeValue<EntityReference>(Esquema.InteraccionAgente);
@@ -234,12 +234,12 @@ namespace Sanic.CobranzaMovil.Plugins
                 : agentes.FirstOrDefault(a => enviado != null && a.Id == enviado.Id);
             if (agente == null)
             {
-                throw local.Error("tu usuario esta vinculado a mas de un agente; pedile al Admin que deje uno solo.");
+                throw local.Error("Tu usuario está vinculado a más de un localizador; pedile al Admin que deje uno solo.");
             }
 
             if (agente.GetAttributeValue<bool?>(Esquema.AgenteActivo) != true)
             {
-                throw local.Error("tu localizador esta desactivado: no podes registrar visitas ni pagos. Habla con tu supervisor.");
+                throw local.Error("Tu localizador está desactivado: no podés registrar visitas ni pagos. Hablá con tu supervisor.");
             }
 
             target[Esquema.InteraccionAgente] = new EntityReference(Esquema.Agente, agente.Id);

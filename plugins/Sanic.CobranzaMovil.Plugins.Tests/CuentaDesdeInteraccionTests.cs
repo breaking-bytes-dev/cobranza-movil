@@ -84,7 +84,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             var h = new Harness("Create", Pago).ConTarget(target);
 
             var ex = Assert.Throws<InvalidPluginExecutionException>(() => h.Ejecutar(new CuentaDesdeInteraccion()));
-            Assert.Contains("interaccion", ex.Message);
+            Assert.Contains("interacción", ex.Message);
             Assert.Equal(0, h.RetrievesAlServicio());
         }
 

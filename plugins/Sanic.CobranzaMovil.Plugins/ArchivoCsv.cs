@@ -113,15 +113,15 @@ namespace Sanic.CobranzaMovil.Plugins
         /// <summary>Lee el archivo. <paramref name="delimitador"/> es un caracter ASCII (el de la plantilla).</summary>
         public static ArchivoCsv Leer(byte[] datos, char delimitador)
         {
-            if (datos == null || datos.Length == 0) throw new FormatException("el archivo esta vacio.");
+            if (datos == null || datos.Length == 0) throw new FormatException("El archivo está vacío.");
             if (delimitador == '"' || delimitador == '\r' || delimitador == '\n' || delimitador > 127)
             {
-                throw new FormatException("el delimitador de la plantilla no se puede usar para partir (tiene que ser un caracter ASCII).");
+                throw new FormatException("El delimitador de la plantilla no se puede usar para partir (tiene que ser un carácter ASCII).");
             }
             if ((datos.Length >= 2 && ((datos[0] == 0xFF && datos[1] == 0xFE) || (datos[0] == 0xFE && datos[1] == 0xFF)))
                 || (datos.Length >= 4 && datos[0] == 0 && datos[1] == 0 && datos[2] == 0xFE && datos[3] == 0xFF))
             {
-                throw new FormatException("el archivo esta en UTF-16 o UTF-32: tiene que venir en UTF-8.");
+                throw new FormatException("El archivo está en UTF-16 o UTF-32: tiene que venir en UTF-8.");
             }
             var bom = datos.Length >= 3 && datos[0] == BomUtf8[0] && datos[1] == BomUtf8[1] && datos[2] == BomUtf8[2];
             var d = (byte)delimitador;
@@ -146,10 +146,10 @@ namespace Sanic.CobranzaMovil.Plugins
             }
             if (entreComillas)
             {
-                throw new FormatException("el archivo tiene comillas sin cerrar (fila " + (registros.Count + 1).ToString(CultureInfo.InvariantCulture) + ").");
+                throw new FormatException("El archivo tiene comillas sin cerrar (fila " + (registros.Count + 1).ToString(CultureInfo.InvariantCulture) + ").");
             }
             Agregar(registros, datos, inicio, n, d);
-            if (registros.Count == 0) throw new FormatException("el archivo no tiene encabezado.");
+            if (registros.Count == 0) throw new FormatException("El archivo no tiene encabezado.");
 
             var encabezado = registros[0];
             registros.RemoveAt(0);
@@ -157,10 +157,10 @@ namespace Sanic.CobranzaMovil.Plugins
             {
                 if (registros[i].Campos.Count > encabezado.Campos.Count)
                 {
-                    throw new FormatException("la fila " + (i + 2).ToString(CultureInfo.InvariantCulture) + " tiene "
+                    throw new FormatException("La fila " + (i + 2).ToString(CultureInfo.InvariantCulture) + " tiene "
                         + registros[i].Campos.Count.ToString(CultureInfo.InvariantCulture) + " columnas y el encabezado "
                         + encabezado.Campos.Count.ToString(CultureInfo.InvariantCulture)
-                        + " (una comilla suelta o un delimitador de mas): no se puede partir con seguridad.");
+                        + " (una comilla suelta o un delimitador de más): no se puede partir con seguridad.");
                 }
             }
             return new ArchivoCsv(datos, bom, encabezado, registros);

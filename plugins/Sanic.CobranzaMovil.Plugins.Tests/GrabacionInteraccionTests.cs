@@ -94,8 +94,8 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         public void Grabar_sin_codigo_se_rechaza()
         {
             var previa = Previa(Pendiente, null);
-            Assert.Contains("codigo", Rechaza(Actualizar(Grabar(previa, null), previa, BackOffice)).Message);
-            Assert.Contains("codigo", Rechaza(Actualizar(Grabar(previa, "  "), previa, BackOffice)).Message);
+            Assert.Contains("código", Rechaza(Actualizar(Grabar(previa, null), previa, BackOffice)).Message);
+            Assert.Contains("código", Rechaza(Actualizar(Grabar(previa, "  "), previa, BackOffice)).Message);
         }
 
         [Fact]
@@ -135,9 +135,12 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             var previa = Previa(Pendiente, null);
             var t = Grabar(previa, "TRX-1");
             t[Comentario] = "otro";
-            var ex = Rechaza(Actualizar(t, previa, BackOffice));
-            Assert.Contains(Comentario, ex.Message);
+            var h = Actualizar(t, previa, BackOffice);
+            var ex = Rechaza(h);
+            Assert.Equal("Tu rol no puede cambiar esos datos de la interacción.", ex.Message);
+            Assert.Contains(Comentario, h.TodoElTexto());
             Assert.DoesNotContain("otro", ex.Message);
+            Assert.DoesNotContain("otro", h.TodoElTexto());
         }
 
         [Fact]

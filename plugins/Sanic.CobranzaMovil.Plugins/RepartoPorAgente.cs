@@ -37,7 +37,7 @@ namespace Sanic.CobranzaMovil.Plugins
             local.ExigirRegistro(Esquema.Agente, Esquema.EtapaPostOperation, Esquema.MensajeUpdate);
             if (local.Context.Mode != Esquema.ModoAsincrono)
             {
-                throw local.Error("el paso debe registrarse asincrono: recorre todas las asignaciones del agente.");
+                throw local.ErrorTecnico("el paso debe registrarse asincrono: recorre todas las asignaciones del agente.");
             }
 
             var svc = local.ServicioSistema;

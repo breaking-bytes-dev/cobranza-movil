@@ -45,7 +45,7 @@ namespace Sanic.CobranzaMovil.Plugins
         private const int EstadoActivo = 1;
         // Las derivadas no se regeneran solas: el Admin las vuelve a copiar de la principal
         private const string ComoResincronizar = "un Admin tiene que resincronizar a mano las plantillas \"" + Esquema.NombrePlantillaPadres
-            + "\" y \"" + Esquema.NombrePlantillaPartes + "\" copiandolas de \"" + Esquema.NombrePlantillaCobranza
+            + "\" y \"" + Esquema.NombrePlantillaPartes + "\" copiándolas de \"" + Esquema.NombrePlantillaCobranza
             + "\" en Smelter (exportar la plantilla principal e importarla con el nombre de cada una).";
         /// <summary>Cuantos valores largos cita el error (el resto se cuenta).</summary>
         public const int MaximoCasosLargo = 5;
@@ -65,19 +65,19 @@ namespace Sanic.CobranzaMovil.Plugins
             if (!string.Equals(ctx.MessageName, Esquema.MensajePartirCarga, StringComparison.Ordinal)
                 || ctx.Stage != Esquema.EtapaMainOperation)
             {
-                throw local.Error("registro incorrecto: este plugin respalda la Custom API " + Esquema.MensajePartirCarga + ".");
+                throw local.ErrorTecnico("registro incorrecto: este plugin respalda la Custom API " + Esquema.MensajePartirCarga + ".");
             }
 
             var roles = RolesCm.DelLlamador(local);
             if (!roles.SinRestriccion)
             {
-                throw local.Error("solo un Admin puede partir una carga.");
+                throw local.Error("Solo un Admin puede partir una carga.");
             }
 
             var inputs = ctx.InputParameters;
             if (!inputs.Contains(Esquema.ParamJobId) || !(inputs[Esquema.ParamJobId] is Guid) || (Guid)inputs[Esquema.ParamJobId] == Guid.Empty)
             {
-                throw local.Error("falta el job de la carga (JobId).");
+                throw local.Error("Falta la importación de la carga (JobId).");
             }
             var jobId = (Guid)inputs[Esquema.ParamJobId];
             var soloValidar = inputs.Contains(Esquema.ParamSoloValidar) && inputs[Esquema.ParamSoloValidar] is bool && (bool)inputs[Esquema.ParamSoloValidar];
@@ -86,12 +86,12 @@ namespace Sanic.CobranzaMovil.Plugins
             {
                 if (!inputs.Contains(Esquema.ParamPartes) || !(inputs[Esquema.ParamPartes] is int))
                 {
-                    throw local.Error("falta la cantidad de partes (Partes, entero).");
+                    throw local.Error("Falta la cantidad de partes (Partes, número entero).");
                 }
                 partes = (int)inputs[Esquema.ParamPartes];
                 if (partes < 1 || partes > MaximoPartes)
                 {
-                    throw local.Error("Partes tiene que estar entre 1 y " + MaximoPartes + ".");
+                    throw local.Error("La cantidad de partes tiene que estar entre 1 y " + MaximoPartes + ".");
                 }
             }
 
@@ -108,14 +108,14 @@ namespace Sanic.CobranzaMovil.Plugins
             {
                 job = null;
             }
-            if (job == null) throw local.Error("no existe la importacion o tu usuario no la ve (equipo de carga).");
+            if (job == null) throw local.Error("No existe la importación o tu usuario no la ve (equipo de carga).");
             if (!soloValidar && job.GetAttributeValue<bool?>(Esquema.JobSmelterEsPrueba) == true)
             {
-                throw local.Error("la importacion es una prueba en seco: solo se parte la carga real.");
+                throw local.Error("La importación es una prueba en seco: solo se parte la carga real.");
             }
             if (job.GetAttributeValue<OptionSetValue>(Esquema.JobSmelterEstado) != null)
             {
-                throw local.Error("la importacion ya tiene estado (se proceso o esta en cola): solo se parte un job sin estado.");
+                throw local.Error("La importación ya tiene estado (se procesó o está en cola): solo se parte una importación sin estado.");
             }
             var plantillaJob = job.GetAttributeValue<EntityReference>(Esquema.JobSmelterPlantilla);
             var nombreJob = (job.GetAttributeValue<string>(Esquema.JobSmelterNombre) ?? string.Empty).Trim();
@@ -126,10 +126,10 @@ namespace Sanic.CobranzaMovil.Plugins
             plantillas.TryGetValue(Esquema.NombrePlantillaCobranza, out principal);
             plantillas.TryGetValue(Esquema.NombrePlantillaPadres, out padresTpl);
             plantillas.TryGetValue(Esquema.NombrePlantillaPartes, out partesTpl);
-            if (principal == null) throw local.Error("no se ve la plantilla \"" + Esquema.NombrePlantillaCobranza + "\": tu usuario no esta en el equipo de carga.");
+            if (principal == null) throw local.Error("No se ve la plantilla \"" + Esquema.NombrePlantillaCobranza + "\": tu usuario no está en el equipo de carga.");
             if (plantillaJob == null || plantillaJob.Id != principal.Id)
             {
-                throw local.Error("la importacion no es de la plantilla \"" + Esquema.NombrePlantillaCobranza + "\".");
+                throw local.Error("La importación no es de la plantilla \"" + Esquema.NombrePlantillaCobranza + "\".");
             }
             if (soloValidar)
             {
@@ -138,7 +138,7 @@ namespace Sanic.CobranzaMovil.Plugins
             }
             if (padresTpl == null || partesTpl == null)
             {
-                throw local.Error("faltan las plantillas \"" + Esquema.NombrePlantillaPadres + "\" y \"" + Esquema.NombrePlantillaPartes
+                throw local.Error("Faltan las plantillas \"" + Esquema.NombrePlantillaPadres + "\" y \"" + Esquema.NombrePlantillaPartes
                     + "\" (o tu usuario no las ve): " + ComoResincronizar);
             }
             var mapeos = Mapeos(svc, principal.Id, padresTpl.Id, partesTpl.Id);
@@ -147,9 +147,9 @@ namespace Sanic.CobranzaMovil.Plugins
             var dePartes = deLaPrincipal.Where(m => !EsPadre(m.Tabla)).ToList();
             foreach (var t in TablasPadres)
             {
-                if (!dePadres.Any(m => m.Tabla == t)) throw local.Error("la plantilla principal no carga la tabla " + t + ".");
+                if (!dePadres.Any(m => m.Tabla == t)) throw local.Error("La plantilla principal no carga la tabla " + t + ".");
             }
-            if (dePartes.Count == 0) throw local.Error("la plantilla principal no carga ninguna tabla aparte de producto, fiador y agente.");
+            if (dePartes.Count == 0) throw local.Error("La plantilla principal no carga ninguna tabla aparte de producto, fiador y localizador.");
             ExigirCopia(local, principal, padresTpl, dePadres, mapeos.Where(m => m.Plantilla == padresTpl.Id).ToList());
             ExigirCopia(local, principal, partesTpl, dePartes, mapeos.Where(m => m.Plantilla == partesTpl.Id).ToList());
             // 3) El archivo ------------------------------------------------------------------------------------------------
@@ -199,7 +199,7 @@ namespace Sanic.CobranzaMovil.Plugins
                 local.Trace("fallo la escritura ({0}, codigo {1}); se deshace.", ex.GetType().Name,
                     falla == null || falla.Detail == null ? 0 : falla.Detail.ErrorCode);
                 Deshacer(local, creados, jobId, archivoReemplazado, nombreArchivo, original);
-                throw local.Error("no se pudo partir la carga; no quedo nada a medias y la importacion original sigue igual. Volve a intentar.");
+                throw local.Error("No se pudo partir la carga; no quedó nada a medias y la importación original sigue igual. Volvé a intentar.");
             }
 
             var salida = ctx.OutputParameters;
@@ -240,11 +240,11 @@ namespace Sanic.CobranzaMovil.Plugins
         {
             if (principal.GetAttributeValue<bool?>(Esquema.PlantillaSmelterEncabezado) != true)
             {
-                throw local.Error("la plantilla principal no tiene fila de encabezado: no se puede leer el archivo por columnas.");
+                throw local.Error("La plantilla principal no tiene fila de encabezado: no se puede leer el archivo por columnas.");
             }
             var delim = principal.GetAttributeValue<string>(Esquema.PlantillaSmelterDelimitador);
             if (string.IsNullOrEmpty(delim)) delim = ",";
-            if (delim.Length != 1) throw local.Error("el delimitador de la plantilla tiene que ser un solo caracter.");
+            if (delim.Length != 1) throw local.Error("El delimitador de la plantilla tiene que ser un solo carácter.");
 
             original = Descargar(local, svc, jobId, out nombreArchivo);
             ArchivoCsv csv;
@@ -256,7 +256,7 @@ namespace Sanic.CobranzaMovil.Plugins
             {
                 throw local.Error(ex.Message); // los mensajes de ArchivoCsv no citan valores
             }
-            if (csv.Filas.Count == 0) throw local.Error("el archivo no tiene filas de datos.");
+            if (csv.Filas.Count == 0) throw local.Error("El archivo no tiene filas de datos.");
             return csv;
         }
 
@@ -304,7 +304,7 @@ namespace Sanic.CobranzaMovil.Plugins
                 if (g.Key == null) continue;
                 if (g.Count() > 1)
                 {
-                    throw new InvalidPluginExecutionException("PartirCarga: hay " + g.Count() + " plantillas llamadas \"" + g.Key + "\": deje una sola.");
+                    throw new InvalidPluginExecutionException("Hay " + g.Count() + " plantillas llamadas \"" + g.Key + "\": dejá una sola.");
                 }
                 res[g.Key] = g.First();
             }
@@ -408,7 +408,7 @@ namespace Sanic.CobranzaMovil.Plugins
             var estado = derivada.GetAttributeValue<OptionSetValue>(Esquema.PlantillaSmelterEstado);
             if (estado != null && estado.Value != EstadoActivo)
             {
-                throw local.Error("la plantilla \"" + nombre + "\" no esta activa: Smelter no la usaria.");
+                throw local.Error("La plantilla \"" + nombre + "\" no está activa: Smelter no la usaría.");
             }
             var config = new[] { Esquema.PlantillaSmelterDelimitador, Esquema.PlantillaSmelterEncabezado, Esquema.PlantillaSmelterLote, Esquema.PlantillaSmelterOrigen };
             var igualConfig = config.All(c => string.Equals(Texto(principal, c), Texto(derivada, c), StringComparison.Ordinal));
@@ -416,7 +416,7 @@ namespace Sanic.CobranzaMovil.Plugins
             var b = reales.Select(m => m.Firma).OrderBy(f => f, StringComparer.Ordinal);
             if (!igualConfig || !a.SequenceEqual(b, StringComparer.Ordinal))
             {
-                throw local.Error("la plantilla \"" + nombre + "\" no coincide con \"" + Esquema.NombrePlantillaCobranza
+                throw local.Error("La plantilla \"" + nombre + "\" no coincide con \"" + Esquema.NombrePlantillaCobranza
                     + "\": " + ComoResincronizar);
             }
         }
@@ -435,11 +435,11 @@ namespace Sanic.CobranzaMovil.Plugins
             var cif = cliente == null ? null : cliente.Columnas.FirstOrDefault(c => c.Destino == Esquema.ClienteCif && !string.IsNullOrWhiteSpace(c.Fuente));
             if (cliente == null || cif == null || !cliente.Dedup.Contains(Esquema.ClienteCif))
             {
-                throw local.Error("la plantilla principal no deduplica el cliente por " + Esquema.ClienteCif + " desde una columna del archivo: no se puede partir por CIF.");
+                throw local.Error("La plantilla principal no deduplica el cliente por CIF desde una columna del archivo: no se puede partir por CIF.");
             }
             if (csv.Indice(cif.Fuente) < 0)
             {
-                throw local.Error("el encabezado del archivo no tiene la columna " + cif.Fuente.Trim() + " (CIF del cliente).");
+                throw local.Error("El encabezado del archivo no tiene la columna " + cif.Fuente.Trim() + " (CIF del cliente).");
             }
         }
 
@@ -492,16 +492,15 @@ namespace Sanic.CobranzaMovil.Plugins
                     total++;
                     if (casos.Count < MaximoCasosLargo)
                     {
-                        casos.Add("fila " + (f + 1) + ", columna " + x.Fuente + " (" + x.Tabla + "." + x.Destino + "): " + largo
-                            + " caracteres, maximo " + x.Maximo);
+                        casos.Add("fila " + (f + 1) + ", columna " + x.Fuente + ": " + largo + " caracteres, máximo " + x.Maximo);
                     }
                 }
             }
             if (total == 0) return;
             local.Trace("{0} valor(es) mas largos que su columna ({1}); no se parte.", total,
                 string.Join(", ", medidas.Select(x => x.Tabla + "." + x.Destino).Distinct()));
-            throw local.Error("hay " + total + " valor(es) mas largos de lo que admite su columna; no se creo nada y la importacion sigue igual. Corregi el archivo: "
-                + string.Join("; ", casos) + (total > casos.Count ? "; y " + (total - casos.Count) + " mas" : string.Empty) + ".");
+            throw local.Error("Hay " + total + " valor(es) más largos de lo que admite su columna; no se creó nada y la importación sigue igual. Corregí el archivo: "
+                + string.Join("; ", casos) + (total > casos.Count ? "; y " + (total - casos.Count) + " más" : string.Empty) + ".");
         }
 
         /// <summary>MaxLength de las columnas de texto (y texto largo) de la tabla, por nombre logico.</summary>
@@ -514,7 +513,7 @@ namespace Sanic.CobranzaMovil.Plugins
             }
             catch (FaultException<OrganizationServiceFault>)
             {
-                throw local.Error("no se pudo leer la metadata de " + tabla + " para medir el largo de los valores.");
+                throw local.Error("No se pudieron leer los metadatos de la tabla " + tabla + " para medir el largo de los valores.");
             }
             var res = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             if (meta == null || meta.Attributes == null) return res;
@@ -539,19 +538,19 @@ namespace Sanic.CobranzaMovil.Plugins
         {
             if (m.Dedup.Count == 0)
             {
-                if (padres) throw local.Error("la tabla " + m.Tabla + " no tiene columnas de dedup: no se puede elegir su ultima fila.");
+                if (padres) throw local.Error("La tabla " + m.Tabla + " no tiene columnas de deduplicación: no se puede elegir su última fila.");
                 return null;
             }
             var clave = new ParticionCarga.Clave { Tabla = m.Tabla };
             foreach (var destino in m.Dedup)
             {
                 var col = m.Columnas.FirstOrDefault(c => string.Equals(c.Destino, destino, StringComparison.OrdinalIgnoreCase));
-                if (col == null) throw local.Error("la columna de dedup " + destino + " de " + m.Tabla + " no tiene mapeo en la plantilla.");
+                if (col == null) throw local.Error("La columna de deduplicación " + destino + " de " + m.Tabla + " no tiene mapeo en la plantilla.");
                 var columnas = new List<int>();
                 if (!string.IsNullOrWhiteSpace(col.Fuente))
                 {
                     var i = csv.Indice(col.Fuente);
-                    if (i < 0) throw local.Error("el encabezado del archivo no tiene la columna " + col.Fuente.Trim() + " (dedup de " + m.Tabla + ").");
+                    if (i < 0) throw local.Error("El encabezado del archivo no tiene la columna " + col.Fuente.Trim() + " (deduplicación de " + m.Tabla + ").");
                     columnas.Add(i);
                 }
                 if (!string.IsNullOrWhiteSpace(col.Transformacion))
@@ -560,7 +559,7 @@ namespace Sanic.CobranzaMovil.Plugins
                         .Select(x => csv.Indice(x.Value)).Where(i => i >= 0).Distinct().ToList();
                     if (!padres && !TransformacionSegura(col, referidas, csv))
                     {
-                        throw local.Error("la clave " + destino + " de " + m.Tabla + " usa una transformacion que no se puede partir con seguridad.");
+                        throw local.Error("La clave " + destino + " de " + m.Tabla + " usa una transformación que no se puede partir con seguridad.");
                     }
                     columnas.AddRange(referidas.Where(i => !columnas.Contains(i)));
                 }
@@ -570,7 +569,7 @@ namespace Sanic.CobranzaMovil.Plugins
             if (clave.Componentes.Count == 0)
             {
                 if (padres) return clave; // todas las filas son el mismo registro: va la ultima
-                throw local.Error("la tabla " + m.Tabla + " escribe siempre el mismo registro: no se puede partir.");
+                throw local.Error("La tabla " + m.Tabla + " escribe siempre el mismo registro: no se puede partir.");
             }
             return clave;
         }
@@ -599,13 +598,13 @@ namespace Sanic.CobranzaMovil.Plugins
             }
             catch (FaultException<OrganizationServiceFault>)
             {
-                throw local.Error("la importacion no tiene archivo.");
+                throw local.Error("La importación no tiene archivo.");
             }
             var token = ini.Results.Contains("FileContinuationToken") ? ini["FileContinuationToken"] as string : null;
             var tamano = ini.Results.Contains("FileSizeInBytes") ? Convert.ToInt64(ini["FileSizeInBytes"], CultureInfo.InvariantCulture) : 0L;
             nombreArchivo = ini.Results.Contains("FileName") ? ini["FileName"] as string : null;
-            if (string.IsNullOrEmpty(token) || tamano <= 0) throw local.Error("la importacion no tiene archivo.");
-            if (tamano > TamanoMaximo) throw local.Error("el archivo pasa de " + (TamanoMaximo / (1024 * 1024)) + " MB: no se parte.");
+            if (string.IsNullOrEmpty(token) || tamano <= 0) throw local.Error("La importación no tiene archivo.");
+            if (tamano > TamanoMaximo) throw local.Error("El archivo pasa de " + (TamanoMaximo / (1024 * 1024)) + " MB: no se parte.");
 
             var datos = new byte[tamano];
             long leidos = 0;
@@ -617,7 +616,7 @@ namespace Sanic.CobranzaMovil.Plugins
                 bajar["BlockLength"] = largo;
                 bajar["FileContinuationToken"] = token;
                 var parte = svc.Execute(bajar)["Data"] as byte[];
-                if (parte == null || parte.Length == 0) throw local.Error("no se pudo leer el archivo completo.");
+                if (parte == null || parte.Length == 0) throw local.Error("No se pudo leer el archivo completo.");
                 var n = (int)Math.Min(parte.Length, tamano - leidos);
                 Buffer.BlockCopy(parte, 0, datos, (int)leidos, n);
                 leidos += n;

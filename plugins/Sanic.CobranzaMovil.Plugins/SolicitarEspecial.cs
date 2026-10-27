@@ -33,24 +33,24 @@ namespace Sanic.CobranzaMovil.Plugins
             if (!string.Equals(ctx.MessageName, Esquema.MensajeSolicitarEspecial, StringComparison.Ordinal)
                 || ctx.Stage != Esquema.EtapaMainOperation)
             {
-                throw local.Error("registro incorrecto: este plugin respalda la Custom API " + Esquema.MensajeSolicitarEspecial + ".");
+                throw local.ErrorTecnico("registro incorrecto: este plugin respalda la Custom API " + Esquema.MensajeSolicitarEspecial + ".");
             }
 
             var roles = RolesCm.DelLlamador(local);
             if (!roles.SinRolesCm && !roles.TieneAlguno(RolesQueSolicitan))
             {
-                throw local.Error("solo un Solicitante (o un Admin) puede pedir una asignacion Especial.");
+                throw local.Error("Solo un Solicitante (o un Admin) puede pedir una Especial.");
             }
 
             var cuentaId = Entrada<Guid>(ctx, Esquema.ParamCuentaId);
-            if (cuentaId == Guid.Empty) throw local.Error("falta la cuenta.");
+            if (cuentaId == Guid.Empty) throw local.Error("Falta la cuenta.");
             var notas = Entrada<string>(ctx, Esquema.ParamNotas);
             notas = notas == null ? null : notas.Trim();
-            if (string.IsNullOrEmpty(notas)) throw local.Error("faltan las notas de la solicitud (tipo y motivo).");
-            if (notas.Length > LargoMaximoNotas) throw local.Error("las notas pasan de " + LargoMaximoNotas + " caracteres.");
+            if (string.IsNullOrEmpty(notas)) throw local.Error("Faltan las notas de la solicitud (tipo y motivo).");
+            if (notas.Length > LargoMaximoNotas) throw local.Error("Las notas pasan de " + LargoMaximoNotas + " caracteres.");
             if (PanDetector.ContieneSecuenciaDeDigitos(notas, DigitosDePan))
             {
-                throw local.Error("las notas no pueden llevar un numero de tarjeta.");
+                throw local.Error("Las notas no pueden llevar un número de tarjeta.");
             }
             var retiroNio = Retiro(local, ctx, Esquema.ParamRetiroNio);
             var retiroUsd = Retiro(local, ctx, Esquema.ParamRetiroUsd);
@@ -109,8 +109,8 @@ namespace Sanic.CobranzaMovil.Plugins
             {
                 // Lo mas probable: otra persona la pidio al mismo tiempo (clave alternativa). Solo se traza el codigo.
                 local.Trace("el alta fallo con el codigo {0}.", ex.Detail == null ? 0 : ex.Detail.ErrorCode);
-                throw local.Error("no se pudo crear la Especial. Volve a intentar: si otra persona la pidio recien, "
-                    + "la respuesta va a decir quien.");
+                throw local.Error("No se pudo crear la Especial. Volvé a intentar: si otra persona la pidió recién, "
+                    + "la respuesta va a decir quién.");
             }
             Responder(local, id, Esquema.ResultadoCreada, null, new OptionSetValue(Esquema.AprobacionPendiente));
         }
@@ -147,9 +147,10 @@ namespace Sanic.CobranzaMovil.Plugins
         {
             var inputs = ctx.InputParameters;
             if (inputs == null || !inputs.Contains(nombre) || inputs[nombre] == null) return null;
-            if (!(inputs[nombre] is decimal)) throw local.Error("el parametro " + nombre + " debe ser decimal.");
+            var que = nombre == Esquema.ParamRetiroUsd ? "El retiro en dólares" : "El retiro en córdobas";
+            if (!(inputs[nombre] is decimal)) throw local.Error(que + " tiene que ser un número.");
             var v = (decimal)inputs[nombre];
-            if (v < 0 || v > RetiroMaximo) throw local.Error("el parametro " + nombre + " esta fuera de rango.");
+            if (v < 0 || v > RetiroMaximo) throw local.Error(que + " está fuera de rango.");
             return v;
         }
 
@@ -165,7 +166,7 @@ namespace Sanic.CobranzaMovil.Plugins
             {
                 // sin acceso o inexistente: mismo mensaje, para no revelar cual de las dos
             }
-            throw local.Error("la cuenta no existe o no tenes acceso a ella.");
+            throw local.Error("La cuenta no existe o no tenés acceso a ella.");
         }
 
         private static List<Entity> EspecialesDeLaCuenta(IOrganizationService svc, Guid cuentaId)

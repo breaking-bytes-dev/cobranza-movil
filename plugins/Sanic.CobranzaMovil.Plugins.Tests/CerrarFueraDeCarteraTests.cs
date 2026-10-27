@@ -90,7 +90,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         public void Solo_el_Admin_puede_cerrar(string rol)
         {
             var e = new Escenario(new[] { rol }, 5, 5, Dia);
-            Assert.Contains("solo el Admin", e.Rechaza().Message);
+            Assert.Contains("Solo el Admin", e.Rechaza().Message);
             Assert.Empty(e.Actualizadas);
         }
 
@@ -159,7 +159,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         public void No_cierra_si_llego_otra_carga()
         {
             var e = new Escenario(new[] { Admin }, 10, 10, Dia.AddDays(1));
-            Assert.Contains("la ultima carga cambio", e.Rechaza().Message);
+            Assert.Contains("La última carga cambió", e.Rechaza().Message);
             Assert.Empty(e.Actualizadas);
         }
 
@@ -168,7 +168,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         {
             var e = new Escenario(new[] { Admin }, 120, 120, Dia);
             e.H.Inputs["Esperadas"] = 100;
-            Assert.Contains("mas de las 100", e.Rechaza().Message);
+            Assert.Contains("más de las 100", e.Rechaza().Message);
             Assert.Empty(e.Actualizadas);
         }
 
@@ -190,14 +190,14 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         {
             var e = new Escenario(new[] { Admin }, 1, 1, Dia);
             e.H.Inputs["Corte"] = corte;
-            Assert.Contains("falta el corte", e.Rechaza().Message);
+            Assert.Contains("Falta el corte", e.Rechaza().Message);
         }
 
         [Fact]
         public void Sin_cargas_diarias_no_cierra()
         {
             var e = new Escenario(new[] { Admin }, 1, 1, null);
-            Assert.Contains("no hay ninguna carga", e.Rechaza().Message);
+            Assert.Contains("No hay ninguna carga", e.Rechaza().Message);
         }
 
         [Fact]
@@ -206,7 +206,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             var e = new Escenario(new[] { Admin }, 3, 3, Dia);
             e.H.Service.Setup(s => s.Update(It.IsAny<Entity>()))
                 .Throws(new System.ServiceModel.FaultException<OrganizationServiceFault>(new OrganizationServiceFault { ErrorCode = -1 }));
-            Assert.Contains("no se pudo cerrar el lote", e.Rechaza().Message);
+            Assert.Contains("No se pudo cerrar el lote", e.Rechaza().Message);
         }
     }
 }

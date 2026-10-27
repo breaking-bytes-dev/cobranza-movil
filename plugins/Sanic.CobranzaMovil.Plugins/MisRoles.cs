@@ -31,7 +31,7 @@ namespace Sanic.CobranzaMovil.Plugins
             if (!string.Equals(ctx.MessageName, Esquema.MensajeMisRoles, StringComparison.Ordinal)
                 || ctx.Stage != Esquema.EtapaMainOperation)
             {
-                throw local.Error("registro incorrecto: este plugin respalda la Custom API " + Esquema.MensajeMisRoles + ".");
+                throw local.ErrorTecnico("registro incorrecto: este plugin respalda la Custom API " + Esquema.MensajeMisRoles + ".");
             }
 
             var perfiles = Perfiles(RolesCm.DelLlamador(local));

@@ -1,5 +1,6 @@
 using System;
 using Microsoft.Xrm.Sdk;
+using Microsoft.Xrm.Sdk.Query;
 
 namespace Sanic.CobranzaMovil.Plugins
 {
@@ -14,6 +15,9 @@ namespace Sanic.CobranzaMovil.Plugins
     /// Frena a las PERSONAS con algun rol de CM (prefijo "SR | CM | ") que no sea Supervisor/Admin/Servicio. No frena a
     /// quien no tiene roles de CM: SYSTEM (identidad de la carga de Smelter) y los administradores del entorno. Las
     /// Especiales del CSV no llegan al localizador hasta que se aprueban: eso lo cuidan el reparto y la app.
+    ///
+    /// Una Especial solo se aprueba o rechaza mientras sigue Pendiente en la base (<see cref="ExigirQueSigaPendiente"/>):
+    /// si dos supervisores la resuelven a la vez, el segundo no pisa la decision del primero.
     ///
     /// Ademas: las Diarias e Incobrables solo las trae la carga (<see cref="SoloLaCargaTraeDiariasEIncobrables"/>) y, en
     /// el alta, una persona de CM solo puede ponerse a si misma en "Solicitado por" (<see cref="SolicitadoPor"/>).
@@ -57,18 +61,51 @@ namespace Sanic.CobranzaMovil.Plugins
             }
             SoloLaCargaTraeDiariasEIncobrables(local, target, previa, rolesDelLlamador);
 
-            if (!CambioControlado(target, previa))
+            // Resolver se controla aunque el valor sea el mismo: asi llega el segundo supervisor que aprueba.
+            var resuelve = ResuelveUnaEspecial(target, previa);
+            if (!resuelve && !CambioControlado(target, previa))
             {
                 local.Trace("no es un cambio controlado; sin control.");
                 return;
             }
 
-            if (PuedeAprobar(rolesDelLlamador()))
+            if (!PuedeAprobar(rolesDelLlamador()))
             {
-                local.Trace("el llamador puede aprobar Especiales.");
+                throw local.Error("Solo un Supervisor puede aprobar, rechazar o asignar el localizador de una Especial.");
+            }
+            local.Trace("el llamador puede aprobar Especiales.");
+            if (resuelve) ExigirQueSigaPendiente(local, target.Id);
+        }
+
+        /// <summary>Update que pasa una Especial a Aprobado o Rechazada (el Create no tiene estado anterior).</summary>
+        private static bool ResuelveUnaEspecial(Entity target, Entity previa)
+        {
+            if (previa == null || !target.Contains(Esquema.AsignacionEstadoAprobacion)) return false;
+            var nuevo = target.GetAttributeValue<OptionSetValue>(Esquema.AsignacionEstadoAprobacion);
+            if (nuevo == null || (nuevo.Value != Esquema.AprobacionAprobado && nuevo.Value != Esquema.AprobacionRechazada)) return false;
+            var tipo = Opcion(target, previa, Esquema.AsignacionTipo);
+            return tipo.HasValue && tipo.Value == Esquema.TipoEspecial;
+        }
+
+        /// <summary>
+        /// El estado se lee de la base, no de lo que manda el cliente: la pantalla del segundo supervisor puede tener
+        /// la lista vieja. Cerrar, reactivar o volver a Pendiente no pasan por aca (no ponen Aprobado ni Rechazada).
+        /// </summary>
+        private static void ExigirQueSigaPendiente(LocalContext local, Guid id)
+        {
+            var fila = local.Service.Retrieve(Esquema.Asignacion, id, new ColumnSet(Esquema.AsignacionEstadoAprobacion));
+            var actual = fila == null ? null : fila.GetAttributeValue<OptionSetValue>(Esquema.AsignacionEstadoAprobacion);
+            if (actual != null && actual.Value == Esquema.AprobacionPendiente)
+            {
+                local.Trace("la Especial sigue pendiente: se puede resolver.");
                 return;
             }
-            throw local.Error("solo un Supervisor puede aprobar, rechazar o asignar el agente de una asignacion Especial.");
+            local.Trace("la Especial ya no esta pendiente (estado {0}); no se resuelve otra vez.", actual == null ? 0 : actual.Value);
+            if (actual != null && (actual.Value == Esquema.AprobacionAprobado || actual.Value == Esquema.AprobacionRechazada))
+            {
+                throw local.Error("Esta Especial ya la resolvió otra persona. Actualizá la lista.");
+            }
+            throw local.Error("Esta Especial no está pendiente de aprobación. Actualizá la lista.");
         }
 
         /// <summary>
@@ -103,7 +140,7 @@ namespace Sanic.CobranzaMovil.Plugins
             }
             var r = roles();
             if (r.SinRolesCm || r.Tiene(RolesCm.Servicio)) return;
-            throw local.Error("las asignaciones Diarias e Incobrables solo llegan por la carga del banco; una persona no puede crearlas ni convertir otra en una.");
+            throw local.Error("Las asignaciones Diarias e Incobrables solo llegan por la carga del banco: no se pueden crear a mano ni convertir otra asignación en una de ellas.");
         }
 
         private static bool CambioControlado(Entity target, Entity previa)

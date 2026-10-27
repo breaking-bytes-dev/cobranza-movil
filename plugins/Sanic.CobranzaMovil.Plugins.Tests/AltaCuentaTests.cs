@@ -282,7 +282,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         public void Solo_el_Admin_da_de_alta(string rol)
         {
             var e = new Escenario(rol);
-            Assert.Contains("solo un Admin", e.Rechaza().Message);
+            Assert.Contains("Solo un Admin", e.Rechaza().Message);
             e.NoCreoNada();
             e.Sistema.Verify(s => s.Retrieve(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<ColumnSet>()), Times.Never());
         }
@@ -310,7 +310,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         {
             var e = new Escenario(Admin);
             e.H.Inputs["NumeroCuenta"] = pan;
-            Assert.Contains("entre 13 y 19 digitos", e.Rechaza().Message);
+            Assert.Contains("entre 13 y 19 dígitos", e.Rechaza().Message);
             e.NoCreoNada();
         }
 
@@ -321,7 +321,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             var malo = Pan.Substring(0, Pan.Length - 1) + ((Pan[Pan.Length - 1] - '0' + 1) % 10);
             e.H.Inputs["NumeroCuenta"] = malo;
             var ex = e.Rechaza();
-            Assert.Contains("digito verificador", ex.Message);
+            Assert.Contains("dígito verificador", ex.Message);
             Assert.DoesNotContain(malo, ex.Message);
             Assert.DoesNotContain(malo, e.H.TodoElTexto());
             e.NoCreoNada();
@@ -340,7 +340,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         public void Agente_inexistente_o_inactivo_se_rechaza()
         {
             var e = new Escenario(Admin) { AgenteFila = null };
-            Assert.Contains("el agente no existe", e.Rechaza().Message);
+            Assert.Contains("El localizador no existe", e.Rechaza().Message);
             e.NoCreoNada();
 
             var i = new Escenario(Admin);
@@ -353,7 +353,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         public void Producto_inexistente_se_rechaza()
         {
             var e = new Escenario(Admin) { ProductoFila = null };
-            Assert.Contains("el producto no existe", e.Rechaza().Message);
+            Assert.Contains("El producto no existe", e.Rechaza().Message);
             e.NoCreoNada();
         }
 
@@ -429,7 +429,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             var e = new Escenario(Admin);
             e.H.Inputs[campo] = "pago con 4111 1111 1111 1111";
             var ex = e.Rechaza();
-            Assert.Contains(campo + " no puede llevar un numero de tarjeta", ex.Message);
+            Assert.Contains(campo + " no puede llevar un número de tarjeta", ex.Message);
             Assert.DoesNotContain("4111", ex.Message);
             Assert.DoesNotContain("4111", e.H.TodoElTexto());
             e.NoCreoNada();
@@ -574,7 +574,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             var e = new Escenario(Admin) { ClienteExistente = Fila(Cliente, ClienteId, "sanic_cm_cl_nombre", "Nombre Real") };
             e.CuentasDelCliente.Add(new Entity(Cuenta, Guid.NewGuid()));
             var ex = e.Rechaza();
-            Assert.Contains("ese cliente ya tiene una cuenta ••••" + Ultimos4, ex.Message);
+            Assert.Contains("Ese cliente ya tiene una cuenta ••••" + Ultimos4, ex.Message);
             Assert.Contains("Nueva solicitud", ex.Message);
             e.NoCreoNada();
         }
@@ -700,7 +700,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         {
             var e = new Escenario(Admin) { FallaSubida = true };
             var ex = e.Rechaza();
-            Assert.Contains("no se pudo subir", ex.Message);
+            Assert.Contains("No se pudo subir", ex.Message);
             Assert.Contains("-2147220970", e.H.TodoElTexto());
             e.H.Service.Verify(s => s.Delete(Job, e.JobId), Times.Once());
             Assert.False(e.H.Outputs.Contains("JobId"));

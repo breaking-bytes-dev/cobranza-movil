@@ -50,9 +50,26 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             return new Harness("Create", Asignacion).ConTarget(target).RolesDelLlamador(roles);
         }
 
+        /// <summary>Update en el que la base tiene el mismo estado de aprobacion que la imagen previa.</summary>
         private static Harness Actualizar(Entity target, Entity previa, params string[] roles)
         {
-            return new Harness("Update", Asignacion).ConTarget(target).ConPreImage(previa).RolesDelLlamador(roles);
+            return ActualizarConBase(target, previa, previa.GetAttributeValue<OptionSetValue>(Estado).Value, roles);
+        }
+
+        /// <summary>Update en el que la base ya tiene otro estado (otra persona la resolvio despues de la imagen).</summary>
+        private static Harness ActualizarConBase(Entity target, Entity previa, int estadoEnLaBase, params string[] roles)
+        {
+            var enLaBase = new Entity(Asignacion, previa.Id);
+            enLaBase[Estado] = new OptionSetValue(estadoEnLaBase);
+            return new Harness("Update", Asignacion).ConTarget(target).ConPreImage(previa).RolesDelLlamador(roles)
+                .RetrieveDevuelve(enLaBase, Estado);
+        }
+
+        private static Entity Resolver(Guid id, int estado)
+        {
+            var t = new Entity(Asignacion, id);
+            t[Estado] = new OptionSetValue(estado);
+            return t;
         }
 
         private static void Rechaza(Harness h)
@@ -262,16 +279,149 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         }
 
         [Fact]
-        public void Reenviar_el_mismo_agente_y_estado_no_es_un_cambio()
+        public void Reenviar_el_mismo_agente_no_es_un_cambio()
         {
             var id = Guid.NewGuid();
             var agente = Guid.NewGuid();
             var t = new Entity(Asignacion, id);
             t[AgenteId] = new EntityReference(Agente, agente);
-            t[Estado] = new OptionSetValue(Aprobado);
             var h = Actualizar(t, Previa(id, Especial, Aprobado, agente), Localizador);
             h.Ejecutar(new AprobacionEspecial());
             Assert.Equal(0, h.ConsultasAlServicio());
+            Assert.Equal(0, h.RetrievesAlServicio());
+        }
+
+        [Fact]
+        public void Reenviar_Aprobado_es_resolver_y_solo_lo_hace_un_Supervisor()
+        {
+            var id = Guid.NewGuid();
+            var agente = Guid.NewGuid();
+            var t = Resolver(id, Aprobado);
+            t[AgenteId] = new EntityReference(Agente, agente);
+            Rechaza(Actualizar(t, Previa(id, Especial, Aprobado, agente), Localizador));
+        }
+
+        // ------------------------------------------------------------------ Resolver solo una Especial pendiente
+
+        private static void YaResuelta(Harness h)
+        {
+            var ex = Assert.Throws<InvalidPluginExecutionException>(() => h.Ejecutar(new AprobacionEspecial()));
+            Assert.Equal("Esta Especial ya la resolvió otra persona. Actualizá la lista.", ex.Message);
+        }
+
+        [Theory]
+        [InlineData(Aprobado)]
+        [InlineData(Rechazada)]
+        public void El_Supervisor_resuelve_una_Especial_que_sigue_pendiente_en_la_base(int decision)
+        {
+            var id = Guid.NewGuid();
+            var t = Resolver(id, decision);
+            if (decision == Aprobado) t[AgenteId] = new EntityReference(Agente, Guid.NewGuid());
+            var h = Actualizar(t, Previa(id, Especial, Pendiente, null), Supervisor);
+            h.Ejecutar(new AprobacionEspecial());
+            Assert.Equal(1, h.RetrievesAlServicio());
+        }
+
+        [Theory]
+        [InlineData(Aprobado, Aprobado)]
+        [InlineData(Aprobado, Rechazada)]
+        [InlineData(Rechazada, Aprobado)]
+        [InlineData(Rechazada, Rechazada)]
+        public void El_segundo_supervisor_no_pisa_la_decision_del_primero(int enLaBase, int decision)
+        {
+            // La imagen previa dice Pendiente a proposito: el estado que vale es el que se lee de la base.
+            var id = Guid.NewGuid();
+            var t = Resolver(id, decision);
+            t[AgenteId] = new EntityReference(Agente, Guid.NewGuid());
+            YaResuelta(ActualizarConBase(t, Previa(id, Especial, Pendiente, null), enLaBase, Supervisor));
+        }
+
+        [Fact]
+        public void Tampoco_se_vuelve_a_resolver_sin_roles_de_CM_ni_como_Admin()
+        {
+            var id = Guid.NewGuid();
+            YaResuelta(ActualizarConBase(Resolver(id, Rechazada), Previa(id, Especial, Pendiente, null), Aprobado));
+            YaResuelta(ActualizarConBase(Resolver(id, Rechazada), Previa(id, Especial, Pendiente, null), Aprobado, Admin));
+        }
+
+        [Fact]
+        public void Una_Especial_en_Borrador_no_se_resuelve()
+        {
+            var id = Guid.NewGuid();
+            var h = ActualizarConBase(Resolver(id, Aprobado), Previa(id, Especial, Pendiente, null), Borrador, Supervisor);
+            var ex = Assert.Throws<InvalidPluginExecutionException>(() => h.Ejecutar(new AprobacionEspecial()));
+            Assert.Contains("no está pendiente de aprobación", ex.Message);
+        }
+
+        [Fact]
+        public void Rechazar_y_cerrar_en_el_mismo_cambio_como_la_app_pasa_si_sigue_pendiente()
+        {
+            var id = Guid.NewGuid();
+            var t = Resolver(id, Rechazada);
+            t["sanic_cm_as_estado"] = false;
+            t["sanic_cm_as_motivo"] = "Rechazada";
+            Actualizar(t, Previa(id, Especial, Pendiente, null), Supervisor).Ejecutar(new AprobacionEspecial());
+        }
+
+        [Fact]
+        public void Cerrar_despues_una_aprobada_no_lee_la_base()
+        {
+            var id = Guid.NewGuid();
+            var t = new Entity(Asignacion, id);
+            t["sanic_cm_as_estado"] = false;
+            t["sanic_cm_as_motivo"] = "Pagada";
+            var h = Actualizar(t, Previa(id, Especial, Aprobado, Guid.NewGuid()), Supervisor);
+            h.Ejecutar(new AprobacionEspecial());
+            Assert.Equal(0, h.RetrievesAlServicio());
+        }
+
+        [Fact]
+        public void Reasignar_el_localizador_de_una_aprobada_no_es_resolverla()
+        {
+            var id = Guid.NewGuid();
+            var t = new Entity(Asignacion, id);
+            t[AgenteId] = new EntityReference(Agente, Guid.NewGuid());
+            var h = Actualizar(t, Previa(id, Especial, Aprobado, Guid.NewGuid()), Supervisor);
+            h.Ejecutar(new AprobacionEspecial());
+            Assert.Equal(0, h.RetrievesAlServicio());
+        }
+
+        [Theory]
+        [InlineData(Rechazada)]
+        [InlineData(Aprobado)]
+        public void Reactivar_una_cerrada_vuelve_a_Pendiente_sin_leer_la_base(int antes)
+        {
+            // Asi la reactiva SolicitarEspecial con el servicio del sistema: Pendiente, sin agente ni resolutor.
+            var id = Guid.NewGuid();
+            var t = new Entity(Asignacion, id);
+            t["sanic_cm_as_estado"] = true;
+            t[Estado] = new OptionSetValue(Pendiente);
+            t[AgenteId] = null;
+            t["sanic_cm_as_resolutorid"] = null;
+            var h = Actualizar(t, Previa(id, Especial, antes, Guid.NewGuid()));
+            h.Ejecutar(new AprobacionEspecial());
+            Assert.Equal(0, h.RetrievesAlServicio());
+        }
+
+        [Fact]
+        public void La_Especial_del_archivo_o_del_alta_nace_sin_leer_la_base()
+        {
+            var delArchivo = Crear(Nueva(Especial, Pendiente, conAgente: true));
+            delArchivo.Ejecutar(new AprobacionEspecial());
+            Assert.Equal(0, delArchivo.RetrievesAlServicio());
+
+            var aprobadaAlCrear = Crear(Nueva(Especial, Aprobado, conAgente: true), Supervisor);
+            aprobadaAlCrear.Ejecutar(new AprobacionEspecial());
+            Assert.Equal(0, aprobadaAlCrear.RetrievesAlServicio());
+        }
+
+        [Fact]
+        public void Una_Diaria_no_pasa_por_el_control_de_pendiente()
+        {
+            var id = Guid.NewGuid();
+            var h = Actualizar(Resolver(id, Aprobado), Previa(id, Diaria, Borrador, Guid.NewGuid()));
+            h.Ejecutar(new AprobacionEspecial());
+            Assert.Equal(0, h.RetrievesAlServicio());
         }
 
         [Fact]

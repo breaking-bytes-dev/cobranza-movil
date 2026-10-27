@@ -147,9 +147,12 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             var previa = Previa(Guid.NewGuid(), Especial, Pendiente, null);
             var t = new Entity(Asignacion, previa.Id);
             t[Aprobacion] = new OptionSetValue(Aprobado);
-            var h = Persona("Update", t, Supervisor).ConPreImage(previa);
+            var enLaBase = new Entity(Asignacion, previa.Id);
+            enLaBase[Aprobacion] = new OptionSetValue(Pendiente);
+            var h = Persona("Update", t, Supervisor).ConPreImage(previa).RetrieveDevuelve(enLaBase, Aprobacion);
             h.Ejecutar(new AprobacionEspecial());
             Assert.Equal(2, h.ConsultasAlServicio());
+            Assert.Equal(1, h.RetrievesAlServicio()); // el estado de aprobacion se lee de la base
         }
 
         [Theory]
@@ -195,7 +198,8 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             t[Tipo] = new OptionSetValue(Especial);
             var h = Persona("Update", t, Localizador);
             var ex = Assert.Throws<InvalidPluginExecutionException>(() => h.Ejecutar(new ColumnasAsignacion()));
-            Assert.Contains(Tipo, ex.Message);
+            Assert.Contains("esos datos de la asignación", ex.Message);
+            Assert.Contains(Tipo, h.TodoElTexto());
             Assert.Equal(2, h.ConsultasAlServicio());
         }
 

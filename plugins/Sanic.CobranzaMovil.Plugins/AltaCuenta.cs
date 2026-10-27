@@ -60,13 +60,13 @@ namespace Sanic.CobranzaMovil.Plugins
             if (!string.Equals(ctx.MessageName, Esquema.MensajeAltaCuenta, StringComparison.Ordinal)
                 || ctx.Stage != Esquema.EtapaMainOperation)
             {
-                throw local.Error("registro incorrecto: este plugin respalda la Custom API " + Esquema.MensajeAltaCuenta + ".");
+                throw local.ErrorTecnico("registro incorrecto: este plugin respalda la Custom API " + Esquema.MensajeAltaCuenta + ".");
             }
 
             var roles = RolesCm.DelLlamador(local);
             if (!roles.SinRestriccion)
             {
-                throw local.Error("solo un Admin puede dar de alta una cuenta.");
+                throw local.Error("Solo un Admin puede dar de alta una cuenta.");
             }
 
             // 1) Lo que manda la persona ------------------------------------------------------------------------------
@@ -77,11 +77,11 @@ namespace Sanic.CobranzaMovil.Plugins
             var pan = FilaDeCarga.Canonizar(Entrada<string>(ctx, "NumeroCuenta"));
             if (pan == null)
             {
-                throw local.Error("el numero de tarjeta tiene que tener entre 13 y 19 digitos (se aceptan espacios o guiones).");
+                throw local.Error("El número de tarjeta tiene que tener entre 13 y 19 dígitos (se aceptan espacios o guiones).");
             }
             if (!FilaDeCarga.LuhnValido(pan))
             {
-                throw local.Error("el numero de tarjeta no es valido: no pasa el digito verificador.");
+                throw local.Error("El número de tarjeta no es válido: no pasa el dígito verificador.");
             }
             var ultimos4 = pan.Substring(pan.Length - 4);
             var tipo = TipoAsignacion(local);
@@ -114,11 +114,11 @@ namespace Sanic.CobranzaMovil.Plugins
             fila["Ciclo"] = Texto(local, "Ciclo", LargoCiclo, false, true);
             fila["TipoEspecial"] = Texto(local, "TipoEspecial", LargoTexto, false, true);
             fila["Nota"] = Texto(local, "Nota", LargoNota, false, true);
-            var agenteId = Id(local, Esquema.ParamAgenteId, "el agente");
+            var agenteId = Id(local, Esquema.ParamAgenteId, "el localizador");
             var productoId = Id(local, Esquema.ParamProductoId, "el producto");
             if (!(ctx.InputParameters.Contains(Esquema.ParamEsPrueba) && ctx.InputParameters[Esquema.ParamEsPrueba] is bool))
             {
-                throw local.Error("falta indicar si es una prueba en seco (" + Esquema.ParamEsPrueba + ").");
+                throw local.Error("Falta indicar si es una prueba en seco (" + Esquema.ParamEsPrueba + ").");
             }
             var esPrueba = (bool)ctx.InputParameters[Esquema.ParamEsPrueba];
 
@@ -127,16 +127,16 @@ namespace Sanic.CobranzaMovil.Plugins
             var agente = Leer(sistema, Esquema.Agente, agenteId, Esquema.AgenteNombre, Esquema.AgenteActivo);
             if (agente == null || string.IsNullOrWhiteSpace(agente.GetAttributeValue<string>(Esquema.AgenteNombre)))
             {
-                throw local.Error("el agente no existe.");
+                throw local.Error("El localizador no existe.");
             }
             if (agente.GetAttributeValue<bool?>(Esquema.AgenteActivo) != true)
             {
-                throw local.Error("el agente esta inactivo: elegi un agente activo.");
+                throw local.Error("El localizador está inactivo: elegí un localizador activo.");
             }
             var producto = Leer(sistema, Esquema.Producto, productoId, Esquema.ProductoCodigo, Esquema.ProductoTipo);
             if (producto == null || string.IsNullOrWhiteSpace(producto.GetAttributeValue<string>(Esquema.ProductoCodigo)))
             {
-                throw local.Error("el producto no existe.");
+                throw local.Error("El producto no existe.");
             }
 
             var cliente = Primera(sistema, Esquema.Cliente, Esquema.ClienteCif, cif,
@@ -148,8 +148,8 @@ namespace Sanic.CobranzaMovil.Plugins
                     || telefonos.Values.Any(v => !string.IsNullOrEmpty(v));
                 if (CuentasConUltimos4(sistema, ultimos4, cliente.Id, true) > 0)
                 {
-                    throw local.Error("ese cliente ya tiene una cuenta ••••" + ultimos4
-                        + "; si es la misma, pedi la Especial desde Nueva solicitud.");
+                    throw local.Error("Ese cliente ya tiene una cuenta ••••" + ultimos4
+                        + "; si es la misma, pedí la Especial desde Nueva solicitud.");
                 }
                 nombre = cliente.GetAttributeValue<string>(Esquema.ClienteNombre);
                 departamento = cliente.GetAttributeValue<string>(Esquema.ClienteDepartamento);
@@ -165,7 +165,7 @@ namespace Sanic.CobranzaMovil.Plugins
             }
             else if (string.IsNullOrEmpty(nombre))
             {
-                throw local.Error("el cliente es nuevo: falta su nombre.");
+                throw local.Error("El cliente es nuevo: falta su nombre.");
             }
             var otras = CuentasConUltimos4(sistema, ultimos4, cliente == null ? Guid.Empty : cliente.Id, false);
             if (otras > 0)
@@ -196,8 +196,8 @@ namespace Sanic.CobranzaMovil.Plugins
             var plantilla = Primera(local.Service, Esquema.PlantillaSmelter, Esquema.PlantillaSmelterNombre, Esquema.NombrePlantillaCobranza);
             if (plantilla == null)
             {
-                throw local.Error("no se ve la plantilla de Smelter \"" + Esquema.NombrePlantillaCobranza
-                    + "\": tu usuario no esta en el equipo de carga.");
+                throw local.Error("No se ve la plantilla de Smelter \"" + Esquema.NombrePlantillaCobranza
+                    + "\": tu usuario no está en el equipo de carga.");
             }
 
             // 3) La fila, con el formato del archivo del banco ---------------------------------------------------------
@@ -238,7 +238,7 @@ namespace Sanic.CobranzaMovil.Plugins
             catch (FaultException<OrganizationServiceFault> ex)
             {
                 local.Trace("crear el job fallo con el codigo {0}.", ex.Detail == null ? 0 : ex.Detail.ErrorCode);
-                throw local.Error("no se pudo crear la importacion en Smelter. Revisa que tu usuario este en el equipo de carga.");
+                throw local.Error("No se pudo crear la importación en Smelter. Revisá que tu usuario esté en el equipo de carga.");
             }
             try
             {
@@ -249,7 +249,7 @@ namespace Sanic.CobranzaMovil.Plugins
             {
                 local.Trace("subir el archivo fallo con el codigo {0}.", ex.Detail == null ? 0 : ex.Detail.ErrorCode);
                 Borrar(local, jobId);
-                throw local.Error("no se pudo subir la fila a Smelter. Volve a intentar.");
+                throw local.Error("No se pudo subir la fila a Smelter. Volvé a intentar.");
             }
 
             var salida = ctx.OutputParameters;
@@ -276,17 +276,17 @@ namespace Sanic.CobranzaMovil.Plugins
             v = v == null ? string.Empty : v.Trim();
             if (v.Length == 0)
             {
-                if (obligatorio) throw local.Error("falta " + nombre + ".");
+                if (obligatorio) throw local.Error("Falta " + nombre + ".");
                 return string.Empty;
             }
             if (v.Length > largo) throw local.Error(nombre + " pasa de " + largo + " caracteres.");
             if (v.IndexOfAny(new[] { '"', '\r', '\n' }) >= 0)
             {
-                throw local.Error(nombre + " no puede llevar comillas ni saltos de linea.");
+                throw local.Error(nombre + " no puede llevar comillas ni saltos de línea.");
             }
             if (sinPan && PanDetector.ContieneSecuenciaDeDigitos(v, DigitosDePan))
             {
-                throw local.Error(nombre + " no puede llevar un numero de tarjeta.");
+                throw local.Error(nombre + " no puede llevar un número de tarjeta.");
             }
             return v;
         }
@@ -296,7 +296,7 @@ namespace Sanic.CobranzaMovil.Plugins
             var v = Entrada<string>(local.Context, "TipoAsignacion");
             v = v == null ? string.Empty : v.Trim();
             var tipo = Tipos.FirstOrDefault(t => string.Equals(t, v, StringComparison.OrdinalIgnoreCase));
-            if (tipo == null) throw local.Error("TipoAsignacion tiene que ser Diaria, Incobrable o Especial.");
+            if (tipo == null) throw local.Error("El tipo de asignación tiene que ser Diaria, Incobrable o Especial.");
             return tipo;
         }
 
@@ -305,21 +305,21 @@ namespace Sanic.CobranzaMovil.Plugins
             var inputs = local.Context.InputParameters;
             if (!inputs.Contains(nombre) || inputs[nombre] == null)
             {
-                if (obligatorio) throw local.Error("falta " + nombre + ".");
+                if (obligatorio) throw local.Error("Falta " + nombre + ".");
                 return string.Empty;
             }
-            if (!(inputs[nombre] is decimal)) throw local.Error("el parametro " + nombre + " debe ser decimal.");
+            if (!(inputs[nombre] is decimal)) throw local.Error(nombre + " tiene que ser un número.");
             var v = (decimal)inputs[nombre];
-            if (v < 0 || v > MontoMaximo) throw local.Error("el parametro " + nombre + " esta fuera de rango.");
+            if (v < 0 || v > MontoMaximo) throw local.Error(nombre + " está fuera de rango.");
             return v.ToString("0.00", CultureInfo.InvariantCulture);
         }
 
         private static string Entero(LocalContext local, string nombre)
         {
             var inputs = local.Context.InputParameters;
-            if (!inputs.Contains(nombre) || !(inputs[nombre] is int)) throw local.Error("falta " + nombre + " (entero).");
+            if (!inputs.Contains(nombre) || !(inputs[nombre] is int)) throw local.Error("Falta " + nombre + " (número entero).");
             var v = (int)inputs[nombre];
-            if (v < 0 || v > EnteroMaximo) throw local.Error("el parametro " + nombre + " esta fuera de rango.");
+            if (v < 0 || v > EnteroMaximo) throw local.Error(nombre + " está fuera de rango.");
             return v.ToString(CultureInfo.InvariantCulture);
         }
 
@@ -342,7 +342,7 @@ namespace Sanic.CobranzaMovil.Plugins
             var inputs = local.Context.InputParameters;
             if (!inputs.Contains(nombre) || !(inputs[nombre] is Guid) || (Guid)inputs[nombre] == Guid.Empty)
             {
-                throw local.Error("falta " + que + " (" + nombre + ").");
+                throw local.Error("Falta " + que + " (" + nombre + ").");
             }
             return (Guid)inputs[nombre];
         }

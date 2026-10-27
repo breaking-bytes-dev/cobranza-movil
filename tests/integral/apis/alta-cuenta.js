@@ -60,12 +60,12 @@ async function fueraDeCartera() {
   try {
     // --- rechazos ---
     let r = await alta(U.sol, { ...base, NumeroCuenta: panE, TipoAsignacion: 'Especial', EsPrueba: true });
-    chk('ALT-01', !r.ok && /solo un Admin/.test(r.msg), `Solicitante (User2) rechazado: ${r.msg || 'PASÓ'}`);
+    chk('ALT-01', !r.ok && /Solo un Admin/.test(r.msg), `Solicitante (User2) rechazado: ${r.msg || 'PASÓ'}`);
     const malo = panE.slice(0, -1) + String((Number(panE.slice(-1)) + 1) % 10);
     r = await alta(U.adm, { ...base, NumeroCuenta: malo, TipoAsignacion: 'Especial', EsPrueba: true });
-    chk('ALT-02', !r.ok && /digito verificador/.test(r.msg) && !/\d{13,19}/.test(r.msg), `PAN sin Luhn rechazado y el mensaje no trae el número: ${r.msg || 'PASÓ'}`);
+    chk('ALT-02', !r.ok && /dígito verificador/.test(r.msg) && !/\d{13,19}/.test(r.msg), `PAN sin Luhn rechazado y el mensaje no trae el número: ${r.msg || 'PASÓ'}`);
     r = await alta(U.adm, { ...base, NumeroCuenta: panE, TipoAsignacion: 'Especial', EsPrueba: true, Nota: 'tarjeta 4111111111111111' });
-    chk('ALT-03', !r.ok && /numero de tarjeta/.test(r.msg), `Nota con un número de tarjeta rechazada: ${r.msg || 'PASÓ'}`);
+    chk('ALT-03', !r.ok && /número de tarjeta/.test(r.msg), `Nota con un número de tarjeta rechazada: ${r.msg || 'PASÓ'}`);
     const jobsAntes = (await dv.get(`sanic_tbl_smlt_importjobs?$select=sanic_tbl_smlt_importjobid&$filter=contains(sanic_smlt_ij_name,'${CIF}')`)).value.length;
     chk('ALT-04', jobsAntes === 0, `los rechazos no crearon jobs (${jobsAntes})`);
 
