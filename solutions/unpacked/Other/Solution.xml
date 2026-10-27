@@ -6,7 +6,7 @@
       <LocalizedName description="CM | Core | Cobranza Movil" languagecode="1033" />
     </LocalizedNames>
     <Descriptions />
-    <Version>1.1.0.0</Version>
+    <Version>1.2.0.0</Version>
     <Managed>0</Managed>
     <Publisher>
       <UniqueName>Sistemas_Abiertos_Nicaragua</UniqueName>
@@ -54,7 +54,7 @@
       <RootComponent type="9" schemaName="sanic_choice_cm_monedaenpago" behavior="0" />
       <RootComponent type="9" schemaName="sanic_choice_cm_tipoasignacion" behavior="0" />
       <RootComponent type="9" schemaName="sanic_cm_choice_estadograbacioninteraccion" behavior="0" />
-      <RootComponent type="91" id="{ec98c49b-17c0-f111-a05a-70a8a5b09c9f}" schemaName="Sanic.CobranzaMovil.Plugins, Version=1.0.10.9, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" behavior="0" />
+      <RootComponent type="91" id="{ec98c49b-17c0-f111-a05a-70a8a5b09c9f}" schemaName="Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" behavior="0" />
       <RootComponent type="92" id="{0a2b7718-f2cc-f111-a05b-00224808ffcd}" behavior="0" />
       <RootComponent type="92" id="{0d2b7718-f2cc-f111-a05b-00224808ffcd}" behavior="0" />
       <RootComponent type="92" id="{24cd194a-dac7-f111-a05a-000d3a3b5b91}" behavior="0" />

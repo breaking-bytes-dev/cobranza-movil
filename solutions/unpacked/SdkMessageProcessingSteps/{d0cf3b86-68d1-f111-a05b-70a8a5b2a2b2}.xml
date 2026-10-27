@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <SdkMessageProcessingStep Name="Sanic.CobranzaMovil.Plugins.PanEnTextoLibre: Create of sanic_cm_tbl_actualizaciondatos" SdkMessageProcessingStepId="{d0cf3b86-68d1-f111-a05b-70a8a5b2a2b2}" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <SdkMessageId>9ebdbb1b-ea3e-db11-86a7-000a3a5473e8</SdkMessageId>
-  <PluginTypeName>Sanic.CobranzaMovil.Plugins.PanEnTextoLibre, Sanic.CobranzaMovil.Plugins, Version=1.0.10.9, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c</PluginTypeName>
+  <PluginTypeName>Sanic.CobranzaMovil.Plugins.PanEnTextoLibre, Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c</PluginTypeName>
   <PluginTypeId>c7cd3b86-68d1-f111-a05b-70a8a5b2a2b2</PluginTypeId>
   <PrimaryEntity>sanic_cm_tbl_actualizaciondatos</PrimaryEntity>
   <AsyncAutoDelete>0</AsyncAutoDelete>

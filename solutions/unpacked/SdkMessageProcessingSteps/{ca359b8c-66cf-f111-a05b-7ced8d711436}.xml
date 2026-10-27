@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <SdkMessageProcessingStep Name="Sanic.CobranzaMovil.Plugins.TipoDesdeProducto: Update of sanic_cm_tbl_cuenta" SdkMessageProcessingStepId="{ca359b8c-66cf-f111-a05b-7ced8d711436}" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <SdkMessageId>20bebb1b-ea3e-db11-86a7-000a3a5473e8</SdkMessageId>
-  <PluginTypeName>Sanic.CobranzaMovil.Plugins.TipoDesdeProducto, Sanic.CobranzaMovil.Plugins, Version=1.0.10.9, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c</PluginTypeName>
+  <PluginTypeName>Sanic.CobranzaMovil.Plugins.TipoDesdeProducto, Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c</PluginTypeName>
   <PluginTypeId>2c56f56d-66cf-f111-a05b-7ced8d711436</PluginTypeId>
   <PrimaryEntity>sanic_cm_tbl_cuenta</PrimaryEntity>
   <AsyncAutoDelete>0</AsyncAutoDelete>

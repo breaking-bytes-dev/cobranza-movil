@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <SdkMessageProcessingStep Name="Sanic.CobranzaMovil.Plugins.PurgaArchivoCarga: Update of sanic_tbl_smlt_importjob" SdkMessageProcessingStepId="{5a3edc96-68d1-f111-a05b-70a8a5b2a2b2}" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <SdkMessageId>20bebb1b-ea3e-db11-86a7-000a3a5473e8</SdkMessageId>
-  <PluginTypeName>Sanic.CobranzaMovil.Plugins.PurgaArchivoCarga, Sanic.CobranzaMovil.Plugins, Version=1.0.10.9, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c</PluginTypeName>
+  <PluginTypeName>Sanic.CobranzaMovil.Plugins.PurgaArchivoCarga, Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c</PluginTypeName>
   <PluginTypeId>f6ce3b86-68d1-f111-a05b-70a8a5b2a2b2</PluginTypeId>
   <PrimaryEntity>sanic_tbl_smlt_importjob</PrimaryEntity>
   <AsyncAutoDelete>1</AsyncAutoDelete>

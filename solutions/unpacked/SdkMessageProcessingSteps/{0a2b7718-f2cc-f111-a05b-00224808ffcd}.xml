@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <SdkMessageProcessingStep Name="Sanic.CobranzaMovil.Plugins.VincularActualizacionPendiente: Create of sanic_cm_tbl_interaccion" SdkMessageProcessingStepId="{0a2b7718-f2cc-f111-a05b-00224808ffcd}" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <SdkMessageId>9ebdbb1b-ea3e-db11-86a7-000a3a5473e8</SdkMessageId>
-  <PluginTypeName>Sanic.CobranzaMovil.Plugins.VincularActualizacionPendiente, Sanic.CobranzaMovil.Plugins, Version=1.0.10.9, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c</PluginTypeName>
+  <PluginTypeName>Sanic.CobranzaMovil.Plugins.VincularActualizacionPendiente, Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c</PluginTypeName>
   <PluginTypeId>9a34beff-f1cc-f111-a05b-00224808ffcd</PluginTypeId>
   <PrimaryEntity>sanic_cm_tbl_interaccion</PrimaryEntity>
   <AsyncAutoDelete>1</AsyncAutoDelete>
