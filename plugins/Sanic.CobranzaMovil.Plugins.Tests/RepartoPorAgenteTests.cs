@@ -29,6 +29,7 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             public readonly Guid AgenteId = Guid.NewGuid();
             public readonly Guid Cobrador = Guid.NewGuid();
             public readonly Guid EquipoSinCobrador = Guid.NewGuid();
+            public readonly Guid TrabajoId = Guid.NewGuid();
 
             public readonly Dictionary<string, Entity> Filas = new Dictionary<string, Entity>();
             public readonly List<Entity> Pendientes = new List<Entity>(); // lo que devuelve la consulta de asignaciones
@@ -44,6 +45,8 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
                 H = new Harness(mensaje, entidad, etapa);
                 H.Context.SetupGet(c => c.Mode).Returns(modo);
                 H.Context.SetupGet(c => c.PrimaryEntityId).Returns(AgenteId);
+                H.Context.SetupGet(c => c.OperationId).Returns(TrabajoId);
+                Intento(0);
                 var target = new Entity(Agente, AgenteId);
                 target["sanic_cm_ag_usuarioid"] = new EntityReference(Usuario, Cobrador);
                 H.ConTarget(target);
@@ -75,6 +78,19 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
                     var codigo = Falla(e);
                     if (codigo.HasValue) throw Fault(codigo.Value);
                 });
+            }
+
+            /// <summary>Reintentos ya consumidos por el trabajo asincrono que corre.</summary>
+            public void Intento(int reintentos)
+            {
+                var trabajo = new Entity("asyncoperation", TrabajoId);
+                trabajo["retrycount"] = reintentos;
+                Filas["asyncoperation|" + TrabajoId] = trabajo;
+            }
+
+            public List<Entity> ToquesAlAgente
+            {
+                get { return Updates.Where(u => u.LogicalName == Agente).ToList(); }
             }
 
             public Entity Agente_ { get { return Filas[Agente + "|" + AgenteId]; } }
@@ -259,6 +275,67 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         {
             Assert.True(RepartoPorAgente.TiempoMaximo < TimeSpan.FromSeconds(120));
             Assert.True(RepartoPorAgente.MaximoPorEjecucion * 0.3 <= 120);
+        }
+
+        [Fact]
+        public void En_el_ultimo_intento_con_pendientes_encola_un_trabajo_nuevo_en_vez_de_fallar()
+        {
+            var m = new Mundo();
+            m.Intento(RepartoPorAgente.UltimoReintento);
+            m.Pendientes.Clear();
+            for (var i = 0; i < RepartoPorAgente.MaximoPorEjecucion + 1; i++) m.Pendientes.Add(new Entity(Asignacion, Guid.NewGuid()));
+            m.Ejecutar();
+
+            var toque = Assert.Single(m.ToquesAlAgente);
+            Assert.Equal(m.AgenteId, toque.Id);
+            Assert.Equal(m.Cobrador, toque.GetAttributeValue<EntityReference>("sanic_cm_ag_usuarioid").Id);
+        }
+
+        [Fact]
+        public void Desvinculado_en_el_ultimo_intento_encola_con_el_usuario_vacio()
+        {
+            var m = new Mundo();
+            m.Desvinculado();
+            m.Intento(RepartoPorAgente.UltimoReintento);
+            m.Ejecutar(new RepartoPorAgente(TimeSpan.Zero));
+
+            var toque = Assert.Single(m.ToquesAlAgente);
+            Assert.True(toque.Contains("sanic_cm_ag_usuarioid"));
+            Assert.Null(toque["sanic_cm_ag_usuarioid"]);
+        }
+
+        [Fact]
+        public void Antes_del_ultimo_intento_pide_reintento_sin_encolar()
+        {
+            var m = new Mundo();
+            m.Intento(RepartoPorAgente.UltimoReintento - 1);
+            var ex = Assert.Throws<InvalidPluginExecutionException>(() => m.Ejecutar(new RepartoPorAgente(TimeSpan.Zero)));
+
+            Assert.Equal(OperationStatus.Retry, ex.Status);
+            Assert.Empty(m.ToquesAlAgente);
+        }
+
+        [Fact]
+        public void En_el_ultimo_intento_sin_mover_ninguna_no_encola_y_falla()
+        {
+            // Evita una cadena infinita cuando las escrituras fallan siempre.
+            var m = new Mundo();
+            m.Intento(RepartoPorAgente.UltimoReintento);
+            m.Falla = e => e.LogicalName == Asignacion ? unchecked((int)0x80040265) : (int?)null;
+            Assert.Throws<InvalidPluginExecutionException>(() => m.Ejecutar());
+
+            Assert.Empty(m.ToquesAlAgente);
+        }
+
+        [Fact]
+        public void Sin_poder_leer_el_trabajo_pide_reintento_como_siempre()
+        {
+            var m = new Mundo();
+            m.Filas.Remove("asyncoperation|" + m.TrabajoId);
+            var ex = Assert.Throws<InvalidPluginExecutionException>(() => m.Ejecutar(new RepartoPorAgente(TimeSpan.Zero)));
+
+            Assert.Equal(OperationStatus.Retry, ex.Status);
+            Assert.Empty(m.ToquesAlAgente);
         }
 
         [Fact]

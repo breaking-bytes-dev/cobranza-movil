@@ -13,9 +13,9 @@
     <AssemblyName>Sanic.CobranzaMovil.Plugins</AssemblyName>
     <RootNamespace>Sanic.CobranzaMovil.Plugins</RootNamespace>
     <LangVersion>7.3</LangVersion>
-    <AssemblyVersion>1.0.11.1</AssemblyVersion>
-    <FileVersion>1.0.11.1</FileVersion>
-    <Version>1.0.11.1</Version>
+    <AssemblyVersion>1.0.11.2</AssemblyVersion>
+    <FileVersion>1.0.11.2</FileVersion>
+    <Version>1.0.11.2</Version>
     <Company>Sanic</Company>
     <Product>Cobranza Movil</Product>
     <Description>Plugins de Cobranza Movil: PanGuard, PanEnTextoLibre, ClaveDesdeCuenta, CuentaDesdeInteraccion, IdentidadEnInteraccion, AprobacionEspecial, ActualizacionConInteraccion, VincularActualizacionPendiente, EmailDesdeUsuario, RepartoAsignacion, RepartoPorAgente, ColumnasAsignacion, CargaSobreAsignacion, Reclasificacion, EspecialDesdeCuenta, TramoCartera, TipoDesdeProducto, InteraccionDelCobrador, GrabacionInteraccion, ReciboRepetido y PurgaArchivoCarga; Custom APIs SolicitarEspecial, AltaCuenta, PartirCarga y CerrarFueraDeCartera.</Description>

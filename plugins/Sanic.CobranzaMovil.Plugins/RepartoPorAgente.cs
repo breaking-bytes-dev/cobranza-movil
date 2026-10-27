@@ -16,7 +16,10 @@ namespace Sanic.CobranzaMovil.Plugins
     /// Asi la logica del reparto vive en un solo lugar.
     ///
     /// Hasta <see cref="MaximoPorEjecucion"/> por ejecucion y sin pasar de <see cref="TiempoMaximo"/> (el limite de
-    /// Dataverse es 2 minutos y cada reparto tarda ~0,3 s): si quedan mas, o si alguna escritura falla, termina pidiendo reintento al servicio asincrono; la consulta del reintento ya no trae las que se movieron.
+    /// Dataverse es 2 minutos y cada reparto tarda ~0,3 s): si quedan mas, o si alguna escritura falla, termina pidiendo
+    /// reintento al servicio asincrono; la consulta del reintento ya no trae las que se movieron. El servicio da 5 ejecuciones
+    /// por trabajo: en la ultima, si esta vuelta movio algo, vuelve a escribir el mismo usuario en el agente para encolar un
+    /// trabajo nuevo. Si una vuelta no mueve nada no se encadena (falla como siempre); Dataverse corta las cadenas largas.
     /// Corre con el servicio del SISTEMA (ninguna persona tiene por que poder escribir asignaciones ajenas).
     /// Registro: PostOperation ASINCRONO, Update de sanic_cm_tbl_agente filtrado por sanic_cm_ag_usuarioid.
     /// Nunca traza ni cita identificadores ni valores de registros.
@@ -37,6 +40,12 @@ namespace Sanic.CobranzaMovil.Plugins
         {
             this.presupuesto = presupuesto;
         }
+
+        /// <summary>Reintentos que da el servicio asincrono antes de dar el trabajo por fallido (5 ejecuciones).</summary>
+        public const int UltimoReintento = 4;
+
+        private const string TrabajoAsincrono = "asyncoperation";
+        private const string Reintentos = "retrycount";
 
         private static readonly int ErrorNoExiste = unchecked((int)0x80040217);
         private static readonly int ErrorReparto = unchecked((int)0x80040265);
@@ -115,9 +124,34 @@ namespace Sanic.CobranzaMovil.Plugins
             local.Trace("asignaciones a repartir: {0} escritas, {1} fallidas, quedan {2} o mas.", aEscribir - fallidas, fallidas, quedan);
             if (fallidas > 0 || quedan > 0)
             {
+                if (aEscribir - fallidas > 0 && EsUltimoIntento(local))
+                {
+                    var toque = new Entity(Esquema.Agente, agenteId);
+                    toque[Esquema.AgenteUsuario] = usuario;
+                    svc.Update(toque);
+                    local.Trace("ultimo intento del trabajo: se encola un reparto nuevo para lo que falta.");
+                    return;
+                }
+
                 throw new InvalidPluginExecutionException(OperationStatus.Retry, ErrorReparto,
                     Nombre + ": quedaron asignaciones del agente sin repartir (" + fallidas + " fallidas"
                     + (quedan > 0 ? ", " + quedan + " o mas pendientes" : "") + "). Se reintenta.");
+            }
+        }
+
+        /// <summary>True si este trabajo ya no tiene reintentos. Ante cualquier duda, false: se pide reintento como siempre.</summary>
+        private static bool EsUltimoIntento(LocalContext local)
+        {
+            var trabajo = local.Context.OperationId;
+            if (trabajo == Guid.Empty) return false;
+            try
+            {
+                var fila = local.ServicioSistema.Retrieve(TrabajoAsincrono, trabajo, new ColumnSet(Reintentos));
+                return fila.GetAttributeValue<int>(Reintentos) >= UltimoReintento;
+            }
+            catch (FaultException<OrganizationServiceFault>)
+            {
+                return false;
             }
         }
     }
