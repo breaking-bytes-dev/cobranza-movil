@@ -26,11 +26,13 @@ Screens:
       OnVisible: |-
         =UpdateContext({locPan: Blank(), locGuardando: false, locIntCreada: Blank(), locFechaCaptura: Blank(), locADGuardada: false, locConfirmaExceso: false, locConfirmaSinGps: false});
         Clear(colPagosGuardados);
-        // Lo que quedó guardado a medias HOY (un error y se salió de la pantalla) se recuerda en colIntParcial y
-        // colIntMultiParcial (globales, sobreviven a la pantalla): se reutiliza para no crear la visita otra vez.
-        With({ p: LookUp(colIntParcial, cta = varCuenta.'CM | TBL | Cuenta' && dia = Today()) },
-            If(!IsBlank(p), UpdateContext({locIntCreada: p.intRec, locFechaCaptura: p.captura, locADGuardada: p.ad})));
-        ClearCollect(colIntGuardadas, ShowColumns(Filter(colIntMultiParcial, dia = Today()), aid));
+        // Lo que quedó guardado a medias HOY (un error y se salió de la pantalla o se cerró la app) se recuerda en
+        // colIntParcial y colIntMultiParcial (globales y guardadas en el teléfono, solo ids como texto): se reutiliza
+        // para no crear la visita otra vez.
+        With({ p: LookUp(colIntParcial, cta = Text(varCuenta.'CM | TBL | Cuenta') && dia = Today()) },
+            If(!IsBlank(p), UpdateContext({locIntCreada: LookUp('CM | TBL | Interaccions', 'CM | TBL | Interaccion' = GUID(p.iid)),
+                locFechaCaptura: p.captura, locADGuardada: p.ad})));
+        ClearCollect(colIntGuardadas, ForAll(Filter(colIntMultiParcial, dia = Today()), {aid: GUID(aid)}));
         // Los productos salen del origen y no de colAsig (que solo existe si antes se pasó por la Cartera).
         // Una consulta por cuenta del cliente, con igualdad sobre el lookup: delegable (sin tope de filas).
         // UNA fila por cuenta (FirstN 1): la interacción y el pago son de la cuenta, no de la asignación. Una cuenta
@@ -1373,8 +1375,9 @@ Screens:
                                         }) },
                                         IfError(r, Error(FirstError),
                                             UpdateContext({locIntCreada: r});
-                                            RemoveIf(colIntParcial, cta = varCuenta.'CM | TBL | Cuenta');
-                                            Collect(colIntParcial, {cta: varCuenta.'CM | TBL | Cuenta', dia: Today(), intRec: r, captura: locFechaCaptura, ad: false})))),
+                                            RemoveIf(colIntParcial, cta = Text(varCuenta.'CM | TBL | Cuenta'));
+                                            Collect(colIntParcial, {cta: Text(varCuenta.'CM | TBL | Cuenta'), dia: Today(), iid: Text(r.'CM | TBL | Interaccion'), captura: locFechaCaptura, ad: false});
+                                            IfError(SaveData(colIntParcial, "cmIntParcial"), Blank())))),
                                 UpdateContext({locGuardando: false});
                                 Notify("No se pudo guardar la interacción: " & FirstError.Message, NotificationType.Error),
 
@@ -1408,11 +1411,13 @@ Screens:
                                             '[AD] Correo electronico': inCorreo.Text }),
                                         Error(FirstError),
                                         UpdateContext({locADGuardada: true});
-                                        UpdateIf(colIntParcial, cta = varCuenta.'CM | TBL | Cuenta', {ad: true}))),
+                                        UpdateIf(colIntParcial, cta = Text(varCuenta.'CM | TBL | Cuenta'), {ad: true});
+                                        IfError(SaveData(colIntParcial, "cmIntParcial"), Blank()))),
                                 UpdateContext({locGuardando: false});
                                 Notify("La interacción se guardó, pero no la actualización de datos (" & FirstError.Message & "). Tocá Guardar de nuevo.", NotificationType.Error),
 
-                                RemoveIf(colIntParcial, cta = varCuenta.'CM | TBL | Cuenta');
+                                RemoveIf(colIntParcial, cta = Text(varCuenta.'CM | TBL | Cuenta'));
+                                IfError(SaveData(colIntParcial, "cmIntParcial"), Blank());
                                 Set(varCom, "");
                                 Notify(If(Connection.Connected, "✓ Guardado. Se sube en la próxima sincronización.", "✓ Guardado en el teléfono. Se sube cuando vuelva la señal."), NotificationType.Success);
                                 Back()),
@@ -1433,10 +1438,12 @@ Screens:
                                             '[IN] NombreAgente': Coalesce(gblAgente.'[AG] Nombre', "Sin nombre") }),
                                         Error(FirstError),
                                         Collect(colIntGuardadas, {aid: P.'CM | TBL | Asignacion'});
-                                        Collect(colIntMultiParcial, {aid: P.'CM | TBL | Asignacion', dia: Today()}))),
+                                        Collect(colIntMultiParcial, {aid: Text(P.'CM | TBL | Asignacion'), dia: Today()}))),
                                 UpdateContext({locGuardando: false});
+                                IfError(SaveData(colIntMultiParcial, "cmIntMultiParcial"), Blank());
                                 Notify("No se pudieron guardar todas las interacciones (" & FirstError.Message & "). Tocá Guardar de nuevo: solo se guardan las que faltan.", NotificationType.Error),
-                                RemoveIf(colIntMultiParcial, aid in colIntGuardadas.aid);
+                                RemoveIf(colIntMultiParcial, GUID(aid) in colIntGuardadas.aid);
+                                IfError(SaveData(colIntMultiParcial, "cmIntMultiParcial"), Blank());
                                 Set(varCom, "");
                                 Notify(If(Connection.Connected, "✓ Guardado. Se sube en la próxima sincronización.", "✓ Guardado en el teléfono. Se sube cuando vuelva la señal."), NotificationType.Success);
                                 Back())

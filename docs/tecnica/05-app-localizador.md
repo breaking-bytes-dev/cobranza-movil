@@ -128,7 +128,7 @@ El botón Guardar de [`scrInteraccion`](../../apps/localizador-canvas/Src/scrInt
 
 **Por qué se marca en lugar de rechazar:** el reproductor *offline* descarta en silencio lo que el servidor rechaza y no lo reintenta. Un recibo repetido o una actualización sin interacción se aceptan marcados y el BackOffice los ve al transcribir ([App de la oficina](06-app-backoffice.md)). Las columnas de marca (`sanic_cm_pg_reciborepetido`, `sanic_cm_ad_sinvincular`) viajan en la *solution*.
 
-El guardado es **reintentable sin duplicar**: el rol del localizador no puede borrar, así que la pantalla recuerda qué ya se guardó (`locIntCreada`, `colPagosGuardados`, `locADGuardada`, `colIntGuardadas`) y al tocar Guardar de nuevo solo escribe lo que falta.
+El guardado es **reintentable sin duplicar**: el rol del localizador no puede borrar, así que la pantalla recuerda qué ya se guardó (`locIntCreada`, `colPagosGuardados`, `locADGuardada`, `colIntGuardadas`) y al tocar Guardar de nuevo solo escribe lo que falta. Lo de la visita a medias del día (`colIntParcial`, `colIntMultiParcial`: solo ids como texto, fecha de captura y marcas, nunca datos del cliente ni de la tarjeta) se guarda en el teléfono con `SaveData` (claves `cmIntParcial`, `cmIntMultiParcial`), así sobrevive al cierre de la app; `App.OnStart` lo carga y descarta lo que no es de hoy. Los pagos ya guardados (`colPagosGuardados`) no se persisten.
 
 Con varios productos tildados y sin pago ni datos, la app crea una interacción por cuenta. Con pago o datos, la interacción es de una sola cuenta.
 

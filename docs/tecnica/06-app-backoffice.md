@@ -102,7 +102,7 @@ Cambia el localizador de una asignación. El Supervisor ve Especiales activas y 
 
 #### Cartera por localizador — [`scrCarteraLocalizador`](../../apps/backoffice-canvas/Src/scrCarteraLocalizador.pa.yaml)
 
-Lista de localizadores con conteos por tipo (`CountIf`) y una alerta roja si superan `nfUmbralCarga` asignaciones activas (500, criterio de operación definido en `App.Formulas`). Al tocar uno, carga su cartera por tramos. «Incluir inactivos» muestra localizadores desactivados que todavía tienen cartera, para reasignarla. Solo lectura.
+Lista de localizadores con conteos por tipo (`CountIf`) y una alerta roja si superan `nfUmbralCarga` asignaciones activas (500, criterio de operación definido en `App.Formulas`). Al tocar uno, carga su cartera por tramos. «Incluir inactivos» muestra localizadores desactivados que todavía tienen cartera, para reasignarla. Solo lectura. El aviso «Sin localizadores» solo sale si la galería está vacía y además el conteo delegable `varNAgCpl` (mismo criterio que la galería, recalculado al cambiar «Incluir inactivos» y en ↻ Actualizar) es 0, o hay texto de búsqueda: así no aparece mientras carga o si falla la consulta. La carga de la cartera va envuelta en `IfError`; si falla, `colAsigCpl` queda vacía y el panel dice que no se pudo cargar (lo distingue de «sin asignaciones» con el `CountIf` previo `varNAsigCpl`).
 
 #### Historial de Especiales — [`scrHistorialEspeciales`](../../apps/backoffice-canvas/Src/scrHistorialEspeciales.pa.yaml)
 

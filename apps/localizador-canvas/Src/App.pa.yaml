@@ -57,6 +57,13 @@ App:
       // Última versión de la solución que informó el servidor (la actualiza Sincronización con conexión).
       ClearCollect(colVersion, {v: ""});
       IfError(LoadData(colVersion, "cmVersion", true), Blank());
+      // Visitas guardadas a medias (solo ids como texto, ver scrInteraccion). Las de otro día ya no sirven.
+      IfError(LoadData(colIntParcial, "cmIntParcial", true), Blank());
+      RemoveIf(colIntParcial, dia <> Today());
+      IfError(SaveData(colIntParcial, "cmIntParcial"), Blank());
+      IfError(LoadData(colIntMultiParcial, "cmIntMultiParcial", true), Blank());
+      RemoveIf(colIntMultiParcial, dia <> Today());
+      IfError(SaveData(colIntMultiParcial, "cmIntMultiParcial"), Blank());
 
       // ===================== TEMA DÍA (paleta original + tokens semánticos) =====================
       Set(gblDay, {

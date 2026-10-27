@@ -458,6 +458,6 @@ Qué hacer: avisale a tu supervisor o a soporte enseguida. Sincronizar no lo arr
 | «⚠ Carga diaria del …: todavía no es la de hoy. Sincronizá.» | Tu teléfono tiene la cartera de otro día | Conectate y usá **Actualizar todo desde el servidor** |
 | En **Actualizar todo desde el servidor**, el error incluye «Tu usuario no está vinculado a ningún localizador; pedile al Admin que lo vincule en Localizadores y usuarios» | Tu usuario no está vinculado a tu localizador: el sistema no acepta tus visitas | Avisale al Admin para que lo vincule en **Localizadores y usuarios** |
 
-⚠️ Después de un guardado a medias, **no salgas de la pantalla** antes de tocar guardar de nuevo. Si salís, se borra lo que escribiste y, al volver a registrarla, la visita se guarda dos veces.
+⚠️ Después de un guardado a medias, lo mejor es **quedarte en la pantalla** y tocar guardar de nuevo. Si salís o se cierra la app, se borra lo que escribiste, pero el teléfono recuerda durante ese día la parte que ya se guardó: al volver a registrarla ves «Esta visita ya se guardó a medias…» y no se crea otra visita. Los pagos que ya se habían guardado no los vuelvas a anotar.
 
 Para más dudas, revisá las [Preguntas frecuentes](06-preguntas-frecuentes.md).

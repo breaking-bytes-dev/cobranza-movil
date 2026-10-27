@@ -17,6 +17,8 @@ Screens:
         Set(varPanelCpl, false);
         Set(varAgeCpl, Blank());
         Set(varInactCpl, false);
+        // Total con el mismo criterio de la galería: el aviso «Sin localizadores» solo sale si de verdad no hay.
+        Set(varNAgCpl, CountIf('CM | TBL | Agentes', varInactCpl || '[AG] Activo' = true));
         Reset(txtBuscarCpl)
     Children:
       - cmpEncCpl:
@@ -91,7 +93,8 @@ Screens:
                   OnSelect: |-
                     =// Un localizador desactivado puede quedar con cartera abierta (desactivar no la cierra ni la
                     // mueve). Con este chip el supervisor lo ve y la reasigna.
-                    Set(varInactCpl, !varInactCpl)
+                    Set(varInactCpl, !varInactCpl);
+                    Set(varNAgCpl, CountIf('CM | TBL | Agentes', varInactCpl || '[AG] Activo' = true))
                   RadiusBottomLeft: =10
                   RadiusBottomRight: =10
                   RadiusTopLeft: =10
@@ -117,6 +120,7 @@ Screens:
                     =// Vuelve a pedir agentes y conteos (los CountIf de cada fila se recalculan).
                     Refresh('CM | TBL | Agentes');
                     Refresh('CM | TBL | Asignacions');
+                    Set(varNAgCpl, CountIf('CM | TBL | Agentes', varInactCpl || '[AG] Activo' = true));
                     // Refresh no devuelve el error: se confirma con una lectura mínima de cada tabla (ver scrCargaArchivo).
                     IfError(
                         CountRows(FirstN('CM | TBL | Agentes', 1)) + CountRows(FirstN('CM | TBL | Asignacions', 1)) >= 0,
@@ -173,44 +177,48 @@ Screens:
                           Set(varNAsigCpl, CountIf('CM | TBL | Asignacions',
                               '[AS] Agente'.'CM | TBL | Agente' = varAgeCpl.'CM | TBL | Agente' && '[AS] Estado' = true));
                           Clear(colAsigCpl);
-                          // El tramo va CONSTANTE en cada consulta (T.Value); un If() en el filtro la vuelve no delegable (1 consulta, cortada).
-                          ForAll(Sequence(20, 0) As T, Collect(colAsigCpl,
-                              AddColumns(
-                                  Filter('CM | TBL | Asignacions',
-                                      '[AS] Agente'.'CM | TBL | Agente' = varAgeCpl.'CM | TBL | Agente'
-                                      && '[AS] Estado' = true
-                                      && '[AS] Tramo' = T.Value),
-                                  clienteCpl, Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
-                                  ult4Cpl, Coalesce(ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
-                                  cifCpl, Coalesce(ThisRecord.'[AS] Cuenta'.'CIF Cliente', ""),
-                                  moraCpl, Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
-                                  nioCpl, Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO', 0),
-                                  usdCpl, Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD', 0),
-                                  ordCpl, Switch(ThisRecord.'[AS] Tipo',
-                                      'Choice | CM | Tipo asignacion'.Diaria, 1,
-                                      'Choice | CM | Tipo asignacion'.Incobrable, 2,
-                                      'Choice | CM | Tipo asignacion'.Especial, 3,
-                                      4)
-                              )));
-                          Collect(colAsigCpl,
-                              AddColumns(
-                                  Filter('CM | TBL | Asignacions',
-                                      '[AS] Agente'.'CM | TBL | Agente' = varAgeCpl.'CM | TBL | Agente'
-                                      && '[AS] Estado' = true
-                                      && '[AS] Tramo' = Blank()),
-                                  clienteCpl, Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
-                                  ult4Cpl, Coalesce(ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
-                                  cifCpl, Coalesce(ThisRecord.'[AS] Cuenta'.'CIF Cliente', ""),
-                                  moraCpl, Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
-                                  nioCpl, Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO', 0),
-                                  usdCpl, Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD', 0),
-                                  ordCpl, Switch(ThisRecord.'[AS] Tipo',
-                                      'Choice | CM | Tipo asignacion'.Diaria, 1,
-                                      'Choice | CM | Tipo asignacion'.Incobrable, 2,
-                                      'Choice | CM | Tipo asignacion'.Especial, 3,
-                                      4)
-                              )
-                          );
+                          IfError(
+                              // El tramo va CONSTANTE en cada consulta (T.Value); un If() en el filtro la vuelve no delegable (1 consulta, cortada).
+                              ForAll(Sequence(20, 0) As T, Collect(colAsigCpl,
+                                  AddColumns(
+                                      Filter('CM | TBL | Asignacions',
+                                          '[AS] Agente'.'CM | TBL | Agente' = varAgeCpl.'CM | TBL | Agente'
+                                          && '[AS] Estado' = true
+                                          && '[AS] Tramo' = T.Value),
+                                      clienteCpl, Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
+                                      ult4Cpl, Coalesce(ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
+                                      cifCpl, Coalesce(ThisRecord.'[AS] Cuenta'.'CIF Cliente', ""),
+                                      moraCpl, Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
+                                      nioCpl, Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO', 0),
+                                      usdCpl, Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD', 0),
+                                      ordCpl, Switch(ThisRecord.'[AS] Tipo',
+                                          'Choice | CM | Tipo asignacion'.Diaria, 1,
+                                          'Choice | CM | Tipo asignacion'.Incobrable, 2,
+                                          'Choice | CM | Tipo asignacion'.Especial, 3,
+                                          4)
+                                  )));
+                              Collect(colAsigCpl,
+                                  AddColumns(
+                                      Filter('CM | TBL | Asignacions',
+                                          '[AS] Agente'.'CM | TBL | Agente' = varAgeCpl.'CM | TBL | Agente'
+                                          && '[AS] Estado' = true
+                                          && '[AS] Tramo' = Blank()),
+                                      clienteCpl, Upper(Coalesce(ThisRecord.'[AS] Cuenta'.'Nombre Cliente', "—")),
+                                      ult4Cpl, Coalesce(ThisRecord.'[AS] Cuenta'.'Últimos 4', ""),
+                                      cifCpl, Coalesce(ThisRecord.'[AS] Cuenta'.'CIF Cliente', ""),
+                                      moraCpl, Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Dias Mora', 0),
+                                      nioCpl, Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido NIO', 0),
+                                      usdCpl, Coalesce(ThisRecord.'[AS] Cuenta'.'[CT] Saldo Vencido USD', 0),
+                                      ordCpl, Switch(ThisRecord.'[AS] Tipo',
+                                          'Choice | CM | Tipo asignacion'.Diaria, 1,
+                                          'Choice | CM | Tipo asignacion'.Incobrable, 2,
+                                          'Choice | CM | Tipo asignacion'.Especial, 3,
+                                          4)
+                                  )
+                              ),
+                              // Si falla, la lista queda vacía y lblSinAsigCpl explica que no se pudo cargar.
+                              Clear(colAsigCpl);
+                              Notify("No se pudo cargar la cartera: " & TextoError(Coalesce(FirstError.Message, "sin detalle")), NotificationType.Error));
                           Set(varCargandoCpl, false)
                         ShowScrollbar: =false
                         TemplateFill: =If(ThisItem.IsSelected && varPanelCpl, gblC.tealSuave, gblC.card)
@@ -427,10 +435,14 @@ Screens:
                           ="🏍️"
                         Mensaje: |-
                           =If(IsBlank(Trim(txtBuscarCpl.Text)),
-                              "Todavía no hay localizadores activos.",
-                              "Ningún localizador activo empieza con «" & Trim(txtBuscarCpl.Text) & "».")
+                              If(varInactCpl, "No hay localizadores registrados.",
+                                 "No hay localizadores activos. Tocá «Incluir inactivos» para ver los desactivados que todavía tienen cartera."),
+                              "Ningún localizador " & If(varInactCpl, "", "activo ") & "empieza con «" & Trim(txtBuscarCpl.Text) & "»." &
+                              If(varInactCpl, " Revisá cómo lo escribiste.", " Revisá cómo lo escribiste o tocá «Incluir inactivos»."))
                         Titulo: ="Sin localizadores"
-                        Visible: =galAgentesCpl.AllItemsCount = 0
+                        Visible: |-
+                          =// Con la galería vacía mientras carga o si falló la consulta, varNAgCpl no es 0: no se avisa en falso.
+                          galAgentesCpl.AllItemsCount = 0 && (varNAgCpl = 0 || !IsBlank(Trim(txtBuscarCpl.Text)))
                         Width: =Min(420, Parent.Width - 2*gblE.Pad)
                         X: =(Parent.Width - Self.Width) / 2
                         Y: =(Parent.Height - Self.Height) / 2
@@ -773,8 +785,13 @@ Screens:
                   PaddingLeft: =0
                   Size: =10
                   Text: |-
-                    =If(CountRows(colAsigCpl) = 0, "Este localizador no tiene asignaciones activas.",
-                        "Ninguna asignación coincide con el filtro.")
+                    =If(CountRows(colAsigCpl) = 0,
+                        If(varNAsigCpl > 0,
+                           "No se pudo cargar la cartera (" & varNAsigCpl & " asignaciones activas). Tocá ↻ Actualizar y volvé a elegir el localizador.",
+                           "Este localizador no tiene asignaciones activas."),
+                        "Ninguna asignación" & Switch(varTipoCpl, "Diarias", " Diaria", "Incobrables", " Incobrable", "Especiales", " Especial", "") &
+                        If(IsBlank(varBuscaAsigCpl), "", " coincide con «" & varBuscaAsigCpl & "»") &
+                        ". Cambiá el tipo o la búsqueda.")
                   Visible: =!varCargandoCpl && galAsigCpl.AllItemsCount = 0
                   Width: =Parent.Width - 2*gblE.Pad
                   X: =gblE.Pad

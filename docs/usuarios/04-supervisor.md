@@ -216,8 +216,10 @@ Para salir, tocá **Cerrar** o la **X**.
 **Otros mensajes:**
 
 - **Este localizador no tiene asignaciones activas.** No tiene cartera en este momento.
-- **Ninguna asignación coincide con el filtro.** Cambiá el tipo o la búsqueda.
-- **Sin localizadores** — **Todavía no hay localizadores activos.** o **Ningún localizador activo empieza con «…».** Revisá el nombre que escribiste.
+- **No se pudo cargar la cartera (… asignaciones activas).** El localizador sí tiene cartera, pero la app no pudo leerla. Tocá **↻ Actualizar** y volvé a elegir el localizador.
+- **Ninguna asignación … coincide con «…».** (por ejemplo, **Ninguna asignación Diaria.**) Ninguna asignación cumple el tipo o la búsqueda que elegiste. Cambiá el tipo o la búsqueda.
+- **Sin localizadores** — **No hay localizadores activos.** Tocá **Incluir inactivos** para ver los desactivados que todavía tienen cartera. Con **✓ Incluye inactivos** dice **No hay localizadores registrados.**
+- **Sin localizadores** — **Ningún localizador activo empieza con «…».** Revisá cómo lo escribiste o tocá **Incluir inactivos**.
 - **↻ Actualizar** vuelve a leer los localizadores y sus contadores. Si todo sale bien ves **Lista actualizada**.
 
 💡 Desactivar a un localizador no cierra ni mueve su cartera. Si ves a alguien **⛔ Inactivo** con Especiales activas, pasalas a otro localizador desde **Reasignar**. Sus Incobrables las reasigna el Admin, y sus Diarias se reparten con el archivo del banco.
@@ -272,6 +274,7 @@ Cada fila muestra el cliente, la cuenta oculta con el número **AS-…**, **Últ
 | **No se pudo aprobar AS-…** (o **rechazar**) y dice **Esta Especial ya la resolvió otra persona** | Otro supervisor la aprobó o la rechazó mientras la tenías abierta. Su decisión se mantiene. | Tocá **↻ Actualizar**; la vas a ver en **Historial de Especiales**. |
 | **No se pudo reasignar AS-…: …** | El sistema no guardó el cambio de localizador. El panel queda abierto. | Tocá **Cancelar**, luego **↻ Actualizar**, y volvé a intentar. Si sigue, avisale al Admin. |
 | **No se pudo actualizar la lista: …** | Falló la lectura en **Cartera por localizador**. | Revisá tu conexión y volvé a tocar **↻ Actualizar**. |
+| **No se pudo cargar la cartera: …** | Falló la lectura de la cartera del localizador que tocaste en **Cartera por localizador**. | Revisá tu conexión, tocá **↻ Actualizar** y volvé a elegir el localizador. |
 | El localizador no ve la Especial que aprobaste o reasignaste. | Todavía no sincronizó su teléfono. | Pedile que abra la app con señal y espere unos minutos (ver [Qué ve el localizador](#qué-ve-el-localizador-cuando-aprobás-o-reasignás)). |
 | Después de **↻ Actualizar**, una solicitud que estabas por revisar ya no está en la cola. | Otra persona la resolvió o la Especial se cerró mientras estaba pendiente. | Si la resolvió otra persona, la vas a ver en **Historial de Especiales**. |
 
