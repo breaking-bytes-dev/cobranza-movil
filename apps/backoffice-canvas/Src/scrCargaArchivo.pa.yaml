@@ -329,7 +329,7 @@ Screens:
                             }
                         )
                     );
-                    Set(varErrCar, IfError(Left(Text(varNuevoCar.'TBL | SMLT | Import Job'), 0), Coalesce(FirstError.Message, "sin detalle")));
+                    Set(varErrCar, IfError(Left(Text(varNuevoCar.'TBL | SMLT | Import Job'), 0), TextoError(Coalesce(FirstError.Message, "sin detalle"))));
                     If(IsBlank(varErrCar),
                         Set(varNuevoCar,
                             Patch('TBL | SMLT | Import Jobs', varNuevoCar,
@@ -341,7 +341,7 @@ Screens:
                                 }
                             )
                         );
-                        Set(varErrCar, IfError(Left(Text(varNuevoCar.'TBL | SMLT | Import Job'), 0), Coalesce(FirstError.Message, "sin detalle")))
+                        Set(varErrCar, IfError(Left(Text(varNuevoCar.'TBL | SMLT | Import Job'), 0), TextoError(Coalesce(FirstError.Message, "sin detalle"))))
                     );
                     If(IsBlank(varErrCar),
                         Set(varJobCar, varNuevoCar);
@@ -421,7 +421,7 @@ Screens:
                             If(IsBlank(j.'[IJ] Status') && j.'[IJ] Import Template'.'TBL | SMLT | Import Template' = varPlantillaCar.'TBL | SMLT | Import Template',
                                 Set(varMarcaCar, Patch('TBL | SMLT | Import Jobs', j,
                                     {'[IJ] Status': '[IJ] Status (TBL | SMLT | Import Jobs)'.Failed}));
-                                Set(varErrTmrCar, IfError(Left(Text(varMarcaCar.'TBL | SMLT | Import Job'), 0), Coalesce(FirstError.Message, "sin detalle")));
+                                Set(varErrTmrCar, IfError(Left(Text(varMarcaCar.'TBL | SMLT | Import Job'), 0), TextoError(Coalesce(FirstError.Message, "sin detalle"))));
                                 If(IsBlank(varErrTmrCar),
                                     Set(varJobCar, varMarcaCar),
                                     Notify("Tampoco se pudo marcar la carga como fallida: " & varErrTmrCar, NotificationType.Warning))
@@ -471,7 +471,7 @@ Screens:
                             If(IsBlank(j.'[IJ] Status') && j.'[IJ] Import Template'.'TBL | SMLT | Import Template' = varPlantillaCar.'TBL | SMLT | Import Template',
                                 Set(varMarcaCar, Patch('TBL | SMLT | Import Jobs', j,
                                     {'[IJ] Status': '[IJ] Status (TBL | SMLT | Import Jobs)'.Failed}));
-                                Set(varErrTmrCar, IfError(Left(Text(varMarcaCar.'TBL | SMLT | Import Job'), 0), Coalesce(FirstError.Message, "sin detalle")));
+                                Set(varErrTmrCar, IfError(Left(Text(varMarcaCar.'TBL | SMLT | Import Job'), 0), TextoError(Coalesce(FirstError.Message, "sin detalle"))));
                                 If(IsBlank(varErrTmrCar),
                                     Set(varJobCar, varMarcaCar),
                                     Notify("Tampoco se pudo marcar la carga como fallida: " & varErrTmrCar, NotificationType.Warning))
@@ -943,7 +943,7 @@ Screens:
                                 // Cada lectura y cada Patch se verifica aparte (ver btnEnviarCar): en una cadena, IfError solo ve
                                 // el último paso y avisaría «se pusieron en cola» aunque los Patch hubieran fallado.
                                 Set(varPadSelCar, LookUp('TBL | SMLT | Import Jobs', 'TBL | SMLT | Import Job' = varAccSelCar.Id));
-                                Set(varErrHistCar, IfError(Left(Text(varPadSelCar.'TBL | SMLT | Import Job'), 0), Coalesce(FirstError.Message, "sin detalle")));
+                                Set(varErrHistCar, IfError(Left(Text(varPadSelCar.'TBL | SMLT | Import Job'), 0), TextoError(Coalesce(FirstError.Message, "sin detalle"))));
                                 If(IsBlank(varErrHistCar),
                                     IfError(
                                     CountRows(ClearCollect(colRelCar,
@@ -960,7 +960,7 @@ Screens:
                                             )
                                         )
                                     )) >= 0,
-                                    Set(varErrHistCar, Coalesce(FirstError.Message, "sin detalle"))
+                                    Set(varErrHistCar, TextoError(Coalesce(FirstError.Message, "sin detalle")))
                                     )
                                 );
                                 If(IsBlank(varErrHistCar),
@@ -982,7 +982,7 @@ Screens:
                                                     IfError(
                                                         Left(Text(Patch('TBL | SMLT | Import Jobs', P,
                                                             {'[IJ] Status': '[IJ] Status (TBL | SMLT | Import Jobs)'.Queued}).'TBL | SMLT | Import Job'), 0),
-                                                        Coalesce(FirstError.Message, "sin detalle") & " ")
+                                                        TextoError(Coalesce(FirstError.Message, "sin detalle")) & " ")
                                                 )
                                             );
                                             Set(varErrHistCar, Concat(varResPatchCar, Value));
@@ -994,7 +994,7 @@ Screens:
                                                     IfError(
                                                         Left(Text(Patch('TBL | SMLT | Import Jobs', P,
                                                             {'[IJ] Status': '[IJ] Status (TBL | SMLT | Import Jobs)'.Failed}).'TBL | SMLT | Import Job'), 0),
-                                                        Coalesce(FirstError.Message, "sin detalle") & " ")
+                                                        TextoError(Coalesce(FirstError.Message, "sin detalle")) & " ")
                                                 )
                                             );
                                             Set(varErrHistCar, Concat(varResPatchCar, Value));
@@ -1005,7 +1005,7 @@ Screens:
                                                     IfError(
                                                         Left(Text(Patch('TBL | SMLT | Import Jobs', P,
                                                             {'[IJ] Status': '[IJ] Status (TBL | SMLT | Import Jobs)'.Failed}).'TBL | SMLT | Import Job'), 0),
-                                                        Coalesce(FirstError.Message, "sin detalle") & " ")
+                                                        TextoError(Coalesce(FirstError.Message, "sin detalle")) & " ")
                                                 )
                                             );
                                             Set(varErrHistCar, Concat(varResPatchCar, Value));
@@ -1013,7 +1013,7 @@ Screens:
                                                 Set(varErrHistCar, varErrHistCar & IfError(
                                                     Left(Text(Patch('TBL | SMLT | Import Jobs', varPadSelCar,
                                                         {'[IJ] Status': '[IJ] Status (TBL | SMLT | Import Jobs)'.Failed}).'TBL | SMLT | Import Job'), 0),
-                                                    Coalesce(FirstError.Message, "sin detalle"))));
+                                                    TextoError(Coalesce(FirstError.Message, "sin detalle")))));
                                             If(IsBlank(varErrHistCar),
                                                 Notify("Se descartaron " & CountRows(colRelCar) & " partes sin lanzar: no se cargó ninguna cuenta de esta carga. Volvé a cargar el archivo.", NotificationType.Information))
                                     )
@@ -1122,7 +1122,7 @@ Screens:
                               {'[IJ] Status': '[IJ] Status (TBL | SMLT | Import Jobs)'.Queued}
                           )
                       );
-                      Set(varErrTmrCar, IfError(Left(Text(varMarcaCar.'TBL | SMLT | Import Job'), 0), Coalesce(FirstError.Message, "sin detalle")));
+                      Set(varErrTmrCar, IfError(Left(Text(varMarcaCar.'TBL | SMLT | Import Job'), 0), TextoError(Coalesce(FirstError.Message, "sin detalle"))));
                       Set(varArmarCar, Blank());
                       If(IsBlank(varErrTmrCar),
                           Set(varJobCar, varMarcaCar);
@@ -1135,7 +1135,7 @@ Screens:
               Refresh('TBL | SMLT | Import Jobs');
               // Una lectura fallida no pisa varJobCar (seguiría el sondeo con un error adentro): se avisa y se reintenta.
               Set(varLeidoCar, LookUp('TBL | SMLT | Import Jobs', 'TBL | SMLT | Import Job' = varJobCar.'TBL | SMLT | Import Job'));
-              Set(varErrTmrCar, IfError(Left(Text(varLeidoCar.'TBL | SMLT | Import Job'), 0), Coalesce(FirstError.Message, "sin detalle")));
+              Set(varErrTmrCar, IfError(Left(Text(varLeidoCar.'TBL | SMLT | Import Job'), 0), TextoError(Coalesce(FirstError.Message, "sin detalle"))));
               If(IsBlank(varErrTmrCar),
                   Set(varJobCar, varLeidoCar);
                   If(varFaseCar = "partes",
@@ -1145,7 +1145,7 @@ Screens:
                                   LookUp('TBL | SMLT | Import Jobs', 'TBL | SMLT | Import Job' = P.Id)
                               )
                           )) >= 0,
-                          Notify("No se pudo consultar el avance: " & FirstError.Message, NotificationType.Warning)
+                          Notify("No se pudo consultar el avance: " & TextoError(FirstError.Message), NotificationType.Warning)
                       )
                   ),
                   Notify("No se pudo consultar el avance: " & varErrTmrCar, NotificationType.Warning)
@@ -1166,7 +1166,7 @@ Screens:
                                   IfError(
                                       Left(Text(Patch('TBL | SMLT | Import Jobs', P,
                                           {'[IJ] Status': '[IJ] Status (TBL | SMLT | Import Jobs)'.Queued}).'TBL | SMLT | Import Job'), 0),
-                                      Coalesce(FirstError.Message, "sin detalle") & " ")
+                                      TextoError(Coalesce(FirstError.Message, "sin detalle")) & " ")
                               )
                           );
                           Set(varErrTmrCar, Concat(varResPatchCar, Value));
@@ -1190,7 +1190,7 @@ Screens:
                                   Patch('TBL | SMLT | Import Jobs', P,
                                       {'[IJ] Status': '[IJ] Status (TBL | SMLT | Import Jobs)'.Failed})
                               ),
-                              Notify("No se pudieron marcar las partes sin lanzar: " & FirstError.Message, NotificationType.Warning)
+                              Notify("No se pudieron marcar las partes sin lanzar: " & TextoError(FirstError.Message), NotificationType.Warning)
                           );
                           Set(varFaseCar, "fin");
                           Set(varEstCar, 4)

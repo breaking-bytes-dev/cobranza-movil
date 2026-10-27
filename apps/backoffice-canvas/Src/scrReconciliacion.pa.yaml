@@ -578,7 +578,7 @@ Screens:
                                           }
                                       )
                                   ),
-                                  Notify("No se pudo cerrar el lote de " & CountRows(colDesapRec) & " Diarias: " & FirstError.Message,
+                                  Notify("No se pudo cerrar el lote de " & CountRows(colDesapRec) & " Diarias: " & TextoError(FirstError.Message),
                                       NotificationType.Error),
                                   Notify("🧹 " & CountRows(colDesapRec) & " Diarias cerradas — motivo: fuera de cartera",
                                       NotificationType.Success, 2500);
@@ -670,7 +670,7 @@ Screens:
                           Lote: 250
                       })
                   );
-                  Set(varErrCierreRec, IfError(If(IsBlank(varRespCierreRec.Corte), "el servidor no respondió", ""), Coalesce(FirstError.Message, "sin detalle")));
+                  Set(varErrCierreRec, IfError(If(IsBlank(varRespCierreRec.Corte), "el servidor no respondió", ""), TextoError(Coalesce(FirstError.Message, "sin detalle"))));
                   If(IsBlank(varErrCierreRec),
                       Set(varCerradasRec, varCerradasRec + varRespCierreRec.Cerradas);
                       Set(varRestRec, varRespCierreRec.Restantes)
