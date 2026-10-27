@@ -92,7 +92,12 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
 
             public void Ejecutar()
             {
-                H.Ejecutar(new RepartoPorAgente());
+                Ejecutar(new RepartoPorAgente());
+            }
+
+            public void Ejecutar(RepartoPorAgente plugin)
+            {
+                H.Ejecutar(plugin);
             }
         }
 
@@ -226,17 +231,34 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
         // ------------------------------------------------------------------ volumen y fallas
 
         [Fact]
-        public void Con_mas_de_mil_escribe_mil_y_pide_reintento_para_el_resto()
+        public void Con_mas_del_maximo_escribe_el_maximo_y_pide_reintento_para_el_resto()
         {
-            // 2 minutos por ejecucion: se corta en 1000 y el reintento retoma (las ya movidas no vuelven a salir).
+            // Se corta en el maximo y el reintento retoma (las ya movidas no vuelven a salir).
             var m = new Mundo();
             m.Pendientes.Clear();
-            for (var i = 0; i < 1001; i++) m.Pendientes.Add(new Entity(Asignacion, Guid.NewGuid()));
+            for (var i = 0; i < RepartoPorAgente.MaximoPorEjecucion + 1; i++) m.Pendientes.Add(new Entity(Asignacion, Guid.NewGuid()));
             var ex = Assert.Throws<InvalidPluginExecutionException>(() => m.Ejecutar());
 
             Assert.Equal(OperationStatus.Retry, ex.Status);
-            Assert.Equal(1000, m.Updates.Count);
-            Assert.Equal(1001, m.ConsultaDeAsignaciones.TopCount);
+            Assert.Equal(RepartoPorAgente.MaximoPorEjecucion, m.Updates.Count);
+            Assert.Equal(RepartoPorAgente.MaximoPorEjecucion + 1, m.ConsultaDeAsignaciones.TopCount);
+        }
+
+        [Fact]
+        public void Sin_tiempo_escribe_una_y_pide_reintento_antes_del_limite_de_Dataverse()
+        {
+            var m = new Mundo();
+            var ex = Assert.Throws<InvalidPluginExecutionException>(() => m.Ejecutar(new RepartoPorAgente(TimeSpan.Zero)));
+
+            Assert.Equal(OperationStatus.Retry, ex.Status);
+            Assert.Single(m.Updates);
+        }
+
+        [Fact]
+        public void El_lote_entra_holgado_en_el_limite_de_dos_minutos()
+        {
+            Assert.True(RepartoPorAgente.TiempoMaximo < TimeSpan.FromSeconds(120));
+            Assert.True(RepartoPorAgente.MaximoPorEjecucion * 0.3 <= 120);
         }
 
         [Fact]

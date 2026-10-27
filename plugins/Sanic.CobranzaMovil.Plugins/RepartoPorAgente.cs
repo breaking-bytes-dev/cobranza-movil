@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.ServiceModel;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Query;
@@ -14,15 +15,28 @@ namespace Sanic.CobranzaMovil.Plugins
     /// vuelve a escribir el MISMO agente: eso dispara RepartoAsignacion, que mueve el dueno, comparte y revoca.
     /// Asi la logica del reparto vive en un solo lugar.
     ///
-    /// Hasta <see cref="MaximoPorEjecucion"/> por ejecucion (2 minutos): si quedan mas, o si alguna escritura falla,
-    /// termina pidiendo reintento al servicio asincrono; la consulta del reintento ya no trae las que se movieron.
+    /// Hasta <see cref="MaximoPorEjecucion"/> por ejecucion y sin pasar de <see cref="TiempoMaximo"/> (el limite de
+    /// Dataverse es 2 minutos y cada reparto tarda ~0,3 s): si quedan mas, o si alguna escritura falla, termina pidiendo reintento al servicio asincrono; la consulta del reintento ya no trae las que se movieron.
     /// Corre con el servicio del SISTEMA (ninguna persona tiene por que poder escribir asignaciones ajenas).
     /// Registro: PostOperation ASINCRONO, Update de sanic_cm_tbl_agente filtrado por sanic_cm_ag_usuarioid.
     /// Nunca traza ni cita identificadores ni valores de registros.
     /// </summary>
     public sealed class RepartoPorAgente : PluginBase
     {
-        public const int MaximoPorEjecucion = 1000;
+        public const int MaximoPorEjecucion = 300;
+        public static readonly TimeSpan TiempoMaximo = TimeSpan.FromSeconds(90);
+
+        private readonly TimeSpan presupuesto;
+
+        public RepartoPorAgente() : this(TiempoMaximo)
+        {
+        }
+
+        /// <summary>Para pruebas: otro tope de tiempo.</summary>
+        public RepartoPorAgente(TimeSpan presupuesto)
+        {
+            this.presupuesto = presupuesto;
+        }
 
         private static readonly int ErrorNoExiste = unchecked((int)0x80040217);
         private static readonly int ErrorReparto = unchecked((int)0x80040265);
@@ -71,8 +85,16 @@ namespace Sanic.CobranzaMovil.Plugins
 
             var aEscribir = Math.Min(filas.Count, MaximoPorEjecucion);
             var fallidas = 0;
+            var reloj = Stopwatch.StartNew();
             for (var i = 0; i < aEscribir; i++)
             {
+                if (i > 0 && reloj.Elapsed >= presupuesto)
+                {
+                    // Cortar antes del limite de Dataverse: el reintento retoma las que faltan.
+                    aEscribir = i;
+                    break;
+                }
+
                 var toque = new Entity(Esquema.Asignacion, filas[i].Id);
                 toque[Esquema.AsignacionAgente] = new EntityReference(Esquema.Agente, agenteId);
                 try
@@ -95,7 +117,7 @@ namespace Sanic.CobranzaMovil.Plugins
             {
                 throw new InvalidPluginExecutionException(OperationStatus.Retry, ErrorReparto,
                     Nombre + ": quedaron asignaciones del agente sin repartir (" + fallidas + " fallidas"
-                    + (quedan > 0 ? ", mas de " + MaximoPorEjecucion + " pendientes" : "") + "). Se reintenta.");
+                    + (quedan > 0 ? ", " + quedan + " o mas pendientes" : "") + "). Se reintenta.");
             }
         }
     }

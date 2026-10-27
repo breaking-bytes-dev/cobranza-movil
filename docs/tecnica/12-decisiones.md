@@ -134,7 +134,7 @@ Las decisiones están agrupadas por área:
 
 ### 4.2 Cambiar el usuario de un agente reescribe sus asignaciones
 
-- **Decisión:** al vincular, cambiar o quitar el usuario de un agente, [`RepartoPorAgente.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/RepartoPorAgente.cs) vuelve a escribir el **mismo** agente en sus asignaciones activas mal repartidas, hasta 1.000 por ejecución, y pide reintento si quedan más.
+- **Decisión:** al vincular, cambiar o quitar el usuario de un agente, [`RepartoPorAgente.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/RepartoPorAgente.cs) vuelve a escribir el **mismo** agente en sus asignaciones activas mal repartidas, hasta 300 por ejecución o 90 segundos, y pide reintento si quedan más. El tope de tiempo existe porque un lote de 1.000 superaba el límite de 2 minutos y el corte de Dataverse no dispara el reintento.
 - **Por qué:** el reparto solo corre al tocar la asignación; sin esto, las Incobrables y Especiales nunca cambiarían de dueño. Así la lógica del reparto vive en un solo lugar.
 - **Alternativa descartada:** duplicar la lógica de dueño y compartidos en el plugin del agente.
 - **Qué se rompe si se cambia:** si `RepartoAsignacion` deja de dispararse por el Update del agente de la asignación, este mecanismo deja de funcionar en silencio.
