@@ -140,6 +140,7 @@ Dentro de la etapa PreOperation todos tienen el mismo *rank*, por lo que el orde
 | Código / prueba | [`AprobacionEspecial.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/AprobacionEspecial.cs) · [`AprobacionEspecialTests.cs`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/AprobacionEspecialTests.cs), [`CargaComoSistemaTests.cs`](../../plugins/Sanic.CobranzaMovil.Plugins.Tests/CargaComoSistemaTests.cs) |
 
 - Sobre una Especial, solo Supervisor, Admin o Servicio pueden aprobarla, rechazarla, ponerle o cambiarle el agente, o convertir en Especial una asignación con agente.
+- Aprobar o rechazar (un Update que trae `Aprobado` o `Rechazada`, aunque sea el mismo valor) solo pasa si la Especial sigue `Pendiente` **en la base**: el plugin la vuelve a leer con `Retrieve` y, si otra persona ya la resolvió, rechaza con «Esta Especial ya la resolvió otra persona. Actualizá la lista.». Vale para todos, también sin roles de CM. Cerrar, reactivar (vuelve a `Pendiente`) o cambiar el localizador de una aprobada no pasan por este control.
 - Solo la carga (o el Servicio) puede crear una Diaria o Incobrable, o convertir otra asignación en una; cualquier persona con rol de CM, Admin incluido, recibe error.
 - En el Create, una Diaria o Incobrable nace con aprobación en Borrador (el valor por defecto de la columna es Pendiente, que necesitan las Especiales).
 - En el Create, una persona solo puede ponerse a sí misma en «Solicitado por» (ver `SolicitadoPor` en [Clases de apoyo](#clases-de-apoyo)).

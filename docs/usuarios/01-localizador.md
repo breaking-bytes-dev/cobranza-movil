@@ -27,7 +27,7 @@ Errores comunes:
 
 - La cartera aparece vacía: tu usuario no está ligado a tu nombre de localizador, o todavía no terminó de bajar. Esperá unos minutos con señal; si sigue vacía, avisale al Admin.
 - Aparece «⚠ No hay carga diaria en el teléfono. Sincronizá.»: el teléfono no terminó de bajar tu cartera (o no tenés cuentas Diarias asignadas). Ver [Cómo revisar la sincronización](#cómo-revisar-la-sincronización).
-- La sincronización da error y el detalle incluye «tu usuario no esta vinculado a ningun localizador; pedile al Admin que lo vincule en Localizadores y usuarios»: el sistema no acepta tus visitas hasta que el Admin vincule tu usuario. Avisale enseguida.
+- La sincronización da error y el detalle incluye «Tu usuario no está vinculado a ningún localizador; pedile al Admin que lo vincule en Localizadores y usuarios»: el sistema no acepta tus visitas hasta que el Admin vincule tu usuario. Avisale enseguida.
 
 ## Cómo moverte por la app
 
@@ -456,7 +456,7 @@ Qué hacer: avisale a tu supervisor o a soporte enseguida. Sincronizar no lo arr
 | «El número de tarjeta no está disponible en este dispositivo. Sincronizá y volvé a intentar.» | El teléfono no tiene todavía el número completo | Conectate, esperá la sincronización y probá de nuevo |
 | «N asignación(es) sin datos de la cuenta. Sincronizá para completarlas.» | Faltan datos de algunas cuentas en el teléfono | Conectate y usá **Actualizar todo desde el servidor** |
 | «⚠ Carga diaria del …: todavía no es la de hoy. Sincronizá.» | Tu teléfono tiene la cartera de otro día | Conectate y usá **Actualizar todo desde el servidor** |
-| En **Actualizar todo desde el servidor**, el error incluye «tu usuario no esta vinculado a ningun localizador; pedile al Admin que lo vincule en Localizadores y usuarios» | Tu usuario no está vinculado a tu localizador: el sistema no acepta tus visitas | Avisale al Admin para que lo vincule en **Localizadores y usuarios** |
+| En **Actualizar todo desde el servidor**, el error incluye «Tu usuario no está vinculado a ningún localizador; pedile al Admin que lo vincule en Localizadores y usuarios» | Tu usuario no está vinculado a tu localizador: el sistema no acepta tus visitas | Avisale al Admin para que lo vincule en **Localizadores y usuarios** |
 
 ⚠️ Después de un guardado a medias, **no salgas de la pantalla** antes de tocar guardar de nuevo. Si salís, se borra lo que escribiste y, al volver a registrarla, la visita se guarda dos veces.
 

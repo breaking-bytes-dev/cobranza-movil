@@ -70,7 +70,7 @@ Las decisiones están agrupadas por área:
 - **Decisión:** [`ColumnasAsignacion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/ColumnasAsignacion.cs) y [`GrabacionInteraccion.cs`](../../plugins/Sanic.CobranzaMovil.Plugins/GrabacionInteraccion.cs) limitan qué columnas escribe cada rol: el localizador solo el orden de su cartera; el Supervisor aprobación, agente y cierre; el BackOffice solo las columnas de grabación.
 - **Por qué:** la seguridad de columna (FLS) también aplicaría a la carga de Smelter, y el modo offline no la respeta.
 - **Alternativa descartada:** perfiles de seguridad de columna.
-- **Qué se rompe si se cambia:** una pantalla nueva que escriba otra columna de la asignación falla con «tu rol no puede cambiar …» hasta que se agregue a la lista `Permitidas` del plugin.
+- **Qué se rompe si se cambia:** una pantalla nueva que escriba otra columna de la asignación falla con «Tu rol no puede cambiar esos datos de la asignación.» (la traza nombra las columnas) hasta que se agregue a la lista `Permitidas` del plugin.
 
 ### 2.3 El localizador solo registra en su cartera
 

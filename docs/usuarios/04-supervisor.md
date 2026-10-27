@@ -271,6 +271,7 @@ Cada fila muestra el cliente, la cuenta oculta con el número **AS-…**, **Últ
 | **No se pudo leer la cola: …** | Falló la lectura de **Aprobaciones**, por ejemplo por la conexión. | Revisá tu conexión y tocá **↻ Actualizar**. |
 | **No se pudo aprobar AS-…: …** | El sistema no guardó la aprobación. La solicitud sigue en la cola. | Tocá **↻ Actualizar** y volvé a intentar. Si el mensaje dice que **solo un Supervisor puede aprobar, rechazar o asignar…** o que **tu rol no puede cambiar…**, tu usuario no tiene el permiso correcto: avisale al Admin. |
 | **No se pudo rechazar AS-…: …** | El sistema no guardó el rechazo. La solicitud sigue en la cola. | Igual que el caso anterior. |
+| **No se pudo aprobar AS-…** (o **rechazar**) y dice **Esta Especial ya la resolvió otra persona** | Otro supervisor la aprobó o la rechazó mientras la tenías abierta. Su decisión se mantiene. | Tocá **↻ Actualizar**; la vas a ver en **Historial de Especiales**. |
 | **No se pudo reasignar AS-…: …** | El sistema no guardó el cambio de localizador. El panel queda abierto. | Tocá **Cancelar**, luego **↻ Actualizar**, y volvé a intentar. Si sigue, avisale al Admin. |
 | **No se pudo actualizar la lista: …** | Falló la lectura en **Cartera por localizador**. | Revisá tu conexión y volvé a tocar **↻ Actualizar**. |
 | El localizador no ve la Especial que aprobaste o reasignaste. | Todavía no sincronizó su teléfono. | Pedile que abra la app con señal y espere unos minutos (ver [Qué ve el localizador](#qué-ve-el-localizador-cuando-aprobás-o-reasignás)). |
