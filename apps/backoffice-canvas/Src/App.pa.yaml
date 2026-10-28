@@ -41,7 +41,8 @@ App:
           With(
               {m: Match(e, """message""\s*:\s*""(?<t>[^""]*)""")},
               With(
-                  {t: Trim(If(IsBlank(m), e, m.t))},
+                  // El mensaje sacado del JSON trae los escapes sin decodificar (ó en vez de ó): se pasan por ParseJSON.
+                  {t: Trim(If(IsBlank(m), e, IfError(Text(ParseJSON("""" & m.t & """")), m.t)))},
                   With(
                       {p: Match(t, "^[A-Za-z][A-Za-z0-9_.]*:\s+")},
                       If(IsBlank(p), t, Trim(Mid(t, Len(p.FullMatch) + 1)))
