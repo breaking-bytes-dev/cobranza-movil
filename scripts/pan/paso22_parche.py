@@ -12,6 +12,7 @@ Uso:
   python3 scripts/pan/paso22_parche.py --app cobrador [--aplicar]  agrega la app del localizador (o backoffice)
   python3 scripts/pan/paso22_parche.py --tabla sanic_cm_tbl_pago [--aplicar]
   python3 scripts/pan/paso22_parche.py --plugins [--aplicar]     agrega el ensamblado de plugins (sin sus pasos)
+  python3 scripts/pan/paso22_parche.py --rol 'SR | CM | Localizador' [--aplicar]
   python3 scripts/pan/paso22_parche.py --quitar --app backoffice [--aplicar]"""
 import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'seguridad'))
@@ -19,7 +20,7 @@ from dvlib import rq, get
 
 PARCHE, BASE = 'cm_parche', 'cm_core_cobranzamovil'
 APPS = {'cobrador': 'sanic_appcobranzamovil_c4e67', 'backoffice': 'sanic_appcmbackofficecanvas_d0162'}
-TIPOS = {1: 'tabla', 91: 'ensamblado', 300: 'canvas app'}
+TIPOS = {1: 'tabla', 20: 'rol', 91: 'ensamblado', 300: 'canvas app'}
 ENSAMBLADO = 'Sanic.CobranzaMovil.Plugins'
 APLICAR, QUITAR = '--aplicar' in sys.argv, '--quitar' in sys.argv
 
@@ -56,6 +57,10 @@ for t in arg('--tabla'):
     v = get(f"EntityDefinitions(LogicalName='{t}')?$select=MetadataId")
     pedidos.append((1, v['MetadataId'], t))
 
+for r in arg('--rol'):
+    v = get(f"roles?$select=roleid&$filter=name eq '{r}' and _parentroleid_value eq null")['value']
+    if not v: raise SystemExit(f'no existe el rol {r}')
+    pedidos.append((20, v[0]['roleid'], r))
 if '--plugins' in sys.argv:
     v = get(f"pluginassemblies?$select=pluginassemblyid,version&$filter=name eq '{ENSAMBLADO}'")['value']
     if not v: raise SystemExit(f'no existe el ensamblado {ENSAMBLADO}')
@@ -77,6 +82,7 @@ for tipo, cid, nombre in pedidos:
 if parche:
     comps = get(f"solutioncomponents?$select=objectid,componenttype&$filter=_solutionid_value eq {parche['solutionid']}")['value']
     nombres = {c['canvasappid']: c['name'] for c in get('canvasapps?$select=canvasappid,name')['value']}
+    nombres.update({r['roleid']: r['name'] for r in get("roles?$select=roleid,name&$filter=_parentroleid_value eq null")['value']})
     nombres.update({a['pluginassemblyid']: f"{a['name']} {a['version']}" for a in get('pluginassemblies?$select=pluginassemblyid,name,version')['value']})
     print(f'{PARCHE}: {len(comps)} componente(s)')
     for c in comps:
