@@ -122,6 +122,12 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
             /// <summary>MaxLength de las columnas de texto (metadata de Dataverse), por tabla; lookups y opciones no tienen largo.</summary>
             public readonly Dictionary<string, Dictionary<string, int>> Largos = LargosPorDefecto();
             public readonly List<string> TablasConsultadas = new List<string>();
+            /// <summary>Columnas del Table Mapping en Smelter 1.4 (ya sin sanic_smlt_tm_isjunctiontable).</summary>
+            public readonly HashSet<string> ColumnasDeMapeoTabla = new HashSet<string>
+            {
+                "sanic_smlt_tm_importtemplateid", "sanic_smlt_tm_name", "sanic_smlt_tm_targettable", "sanic_smlt_tm_dedupcolumns",
+                "sanic_smlt_tm_processingorder", "sanic_smlt_tm_createifnotexists", "sanic_smlt_tm_updateifexists", "sanic_smlt_tm_insertonly",
+            };
             /// <summary>Ultimo archivo confirmado por job (nombre y bytes).</summary>
             public readonly Dictionary<Guid, KeyValuePair<string, byte[]>> Archivos = new Dictionary<Guid, KeyValuePair<string, byte[]>>();
             private readonly Dictionary<string, Guid> destinoDelToken = new Dictionary<string, Guid>();
@@ -148,7 +154,13 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
 
                 H.Service.Setup(s => s.Retrieve(Job, JobId, It.IsAny<ColumnSet>())).Returns(() => JobFila);
                 H.Service.Setup(s => s.RetrieveMultiple(It.Is<QueryBase>(q => Tabla(q) == Plantilla))).Returns(() => Plantillas());
-                H.Service.Setup(s => s.RetrieveMultiple(It.Is<QueryBase>(q => Tabla(q) == MapeoTabla))).Returns(() => MapeosDeTabla());
+                H.Service.Setup(s => s.RetrieveMultiple(It.Is<QueryBase>(q => Tabla(q) == MapeoTabla))).Returns<QueryBase>(q =>
+                {
+                    // Como Dataverse: pedir una columna que la tabla no tiene es un fault, no un valor vacío.
+                    var faltan = ((QueryExpression)q).ColumnSet.Columns.Except(ColumnasDeMapeoTabla).ToList();
+                    if (faltan.Count > 0) throw new FaultException<OrganizationServiceFault>(new OrganizationServiceFault(), "no existe " + faltan[0]);
+                    return MapeosDeTabla();
+                });
                 H.Service.Setup(s => s.RetrieveMultiple(It.Is<QueryBase>(q => Tabla(q) == MapeoColumna))).Returns(() => MapeosDeColumna());
                 H.Service.Setup(s => s.Create(It.IsAny<Entity>())).Returns<Entity>(e =>
                 {
@@ -287,7 +299,6 @@ namespace Sanic.CobranzaMovil.Plugins.Tests
                     e["sanic_smlt_tm_processingorder"] = par.Value.Orden;
                     e["sanic_smlt_tm_createifnotexists"] = true;
                     e["sanic_smlt_tm_updateifexists"] = par.Value.Actualizar;
-                    e["sanic_smlt_tm_isjunctiontable"] = false;
                     cache.Add(new KeyValuePair<Entity, Tm>(e, par.Value));
                 }
                 return cache;
