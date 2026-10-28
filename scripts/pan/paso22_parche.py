@@ -11,6 +11,7 @@ Uso:
   python3 scripts/pan/paso22_parche.py                          lista lo que tiene el parche
   python3 scripts/pan/paso22_parche.py --app cobrador [--aplicar]  agrega la app del localizador (o backoffice)
   python3 scripts/pan/paso22_parche.py --tabla sanic_cm_tbl_pago [--aplicar]
+  python3 scripts/pan/paso22_parche.py --plugins [--aplicar]     agrega el ensamblado de plugins (sin sus pasos)
   python3 scripts/pan/paso22_parche.py --quitar --app backoffice [--aplicar]"""
 import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'seguridad'))
@@ -18,7 +19,8 @@ from dvlib import rq, get
 
 PARCHE, BASE = 'cm_parche', 'cm_core_cobranzamovil'
 APPS = {'cobrador': 'sanic_appcobranzamovil_c4e67', 'backoffice': 'sanic_appcmbackofficecanvas_d0162'}
-TIPOS = {1: 'tabla', 300: 'canvas app'}
+TIPOS = {1: 'tabla', 91: 'ensamblado', 300: 'canvas app'}
+ENSAMBLADO = 'Sanic.CobranzaMovil.Plugins'
 APLICAR, QUITAR = '--aplicar' in sys.argv, '--quitar' in sys.argv
 
 def arg(nombre):
@@ -54,10 +56,18 @@ for t in arg('--tabla'):
     v = get(f"EntityDefinitions(LogicalName='{t}')?$select=MetadataId")
     pedidos.append((1, v['MetadataId'], t))
 
+if '--plugins' in sys.argv:
+    v = get(f"pluginassemblies?$select=pluginassemblyid,version&$filter=name eq '{ENSAMBLADO}'")['value']
+    if not v: raise SystemExit(f'no existe el ensamblado {ENSAMBLADO}')
+    pedidos.append((91, v[0]['pluginassemblyid'], f"{ENSAMBLADO} {v[0]['version']}"))
+
 for tipo, cid, nombre in pedidos:
     if QUITAR:
         print(f'quitar {TIPOS[tipo]} {nombre} de {PARCHE}')
-        if APLICAR: ok(rq('POST', 'RemoveSolutionComponent', {'ComponentId': cid, 'ComponentType': tipo, 'SolutionUniqueName': PARCHE}), 'quitado')
+        if APLICAR:
+            # La Web API no recibe ComponentId: el id del componente va como solutioncomponentid de una referencia.
+            ok(rq('POST', 'RemoveSolutionComponent', {'ComponentType': tipo, 'SolutionUniqueName': PARCHE, 'SolutionComponent': {
+                '@odata.type': 'Microsoft.Dynamics.CRM.solutioncomponent', 'solutioncomponentid': cid}}), 'quitado')
     else:
         print(f'agregar {TIPOS[tipo]} {nombre} a {PARCHE} (sin componentes requeridos)')
         if APLICAR: ok(rq('POST', 'AddSolutionComponent', {'ComponentId': cid, 'ComponentType': tipo, 'SolutionUniqueName': PARCHE,
@@ -67,6 +77,7 @@ for tipo, cid, nombre in pedidos:
 if parche:
     comps = get(f"solutioncomponents?$select=objectid,componenttype&$filter=_solutionid_value eq {parche['solutionid']}")['value']
     nombres = {c['canvasappid']: c['name'] for c in get('canvasapps?$select=canvasappid,name')['value']}
+    nombres.update({a['pluginassemblyid']: f"{a['name']} {a['version']}" for a in get('pluginassemblies?$select=pluginassemblyid,name,version')['value']})
     print(f'{PARCHE}: {len(comps)} componente(s)')
     for c in comps:
         print(f"  - {TIPOS.get(c['componenttype'], c['componenttype'])}: {nombres.get(c['objectid'], c['objectid'])}")

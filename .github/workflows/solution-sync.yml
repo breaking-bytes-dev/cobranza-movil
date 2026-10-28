@@ -29,6 +29,8 @@ concurrency:
 
 jobs:
   sync:
+    # Solo los releases de la solución completa: un parche (parche-v*) traería un unpacked parcial.
+    if: ${{ github.event_name != 'release' || startsWith(github.event.release.tag_name, 'sol-v') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
