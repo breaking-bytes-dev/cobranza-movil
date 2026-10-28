@@ -28,6 +28,9 @@ from dvlib import rq, get
 APLICAR = '--aplicar' in sys.argv
 SOLUCION = 'cm_core_cobranzamovil'
 TIPO_BORRADO = 1
+# Sin estado explícito Dataverse guarda statuscode 1, que no existe en la tabla y hace fallar la importación de la
+# solución. El PATCH del estado exige repetir el tipo; si no, valida como archivado y lo rechaza.
+ESTADO = {'type': TIPO_BORRADO, 'statecode': 0, 'statuscode': 10}
 CARGA_DIAS, GRACIA_DIAS, APP_DIAS, INTERACCION_DIAS, RECIEN_DIAS = 7, 14, 730, 735, 2
 OPERACION_BULK_DELETE, TERMINADO, CANCELADO = 13, 3, 32
 RETIRADOS = ['CM - Carga diaria de mas de 60 dias', 'CM - Fiadores sin nombre']
@@ -92,7 +95,7 @@ def sueltos(nombre):
     return [j for j in get(f"asyncoperations?$select=asyncoperationid&$filter=operationtype eq {OPERACION_BULK_DELETE} "
                            f"and name eq '{nombre}' and statecode ne {TERMINADO}")['value'] if j['asyncoperationid'] not in propios]
 def configurado(nombre):
-    return get(f"retentionconfigs?$select=retentionconfigid&$filter=name eq '{nombre}' and type eq {TIPO_BORRADO}")['value']
+    return get(f"retentionconfigs?$select=retentionconfigid,statuscode&$filter=name eq '{nombre}' and type eq {TIPO_BORRADO}")['value']
 def cancelar(nombre, motivo):
     global err
     for j in sueltos(nombre):
@@ -105,15 +108,21 @@ err = 0
 for nombre in RETIRADOS: cancelar(nombre, 'obsoleto')
 for nombre, tabla, conds, uniones in TRABAJOS:
     hoy = cumplen(tabla, conds, uniones)
-    if configurado(nombre):
+    if (cfg := configurado(nombre)):
         print(f'"{nombre}": ya está en la solución. Hoy cumplen: {hoy}')
+        for r in cfg:
+            if r['statuscode'] != ESTADO['statuscode']:
+                print(f'  estado {r["statuscode"]} inválido: se pasa a {ESTADO["statuscode"]}.')
+                if APLICAR:
+                    st, b = rq('PATCH', f"retentionconfigs({r['retentionconfigid']})", ESTADO)
+                    print('   ✓' if st < 300 else f'   ✗ {st} {str(b)[:200]}'); err += st >= 300
     else:
         print(f'"{nombre}": se crea en la solución (diario). Hoy cumplen: {hoy}')
         if APLICAR:
             inicio = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=1)).strftime('%Y-%m-%dT09:00:00Z')
             criterio = {'QuerySet': [fx(tabla, conds, uniones, contar=False)], 'SendEmailNotification': False,
                         'ToRecipients': [], 'CCRecipients': []}
-            cuerpo = {'name': nombre, 'uniquename': nombre, 'type': TIPO_BORRADO, 'entitylogicalname': tabla,
+            cuerpo = {'name': nombre, 'uniquename': nombre, **ESTADO, 'entitylogicalname': tabla,
                       'recurrence': 'FREQ=DAILY;INTERVAL=1', 'starttime': inicio, 'criteria': json.dumps(criterio)}
             st, b = rq('POST', 'retentionconfigs', cuerpo, {'MSCRM.SolutionUniqueName': SOLUCION})
             if st >= 300:
