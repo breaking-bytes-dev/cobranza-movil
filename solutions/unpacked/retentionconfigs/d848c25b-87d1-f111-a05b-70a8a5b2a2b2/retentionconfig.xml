@@ -7,7 +7,7 @@
   <recurrence>FREQ=DAILY;INTERVAL=1</recurrence>
   <starttime>10/27/2026 9:00:00 AM</starttime>
   <statecode>0</statecode>
-  <statuscode>1</statuscode>
+  <statuscode>10</statuscode>
   <timezoneruleversionnumber>4</timezoneruleversionnumber>
   <type>1</type>
   <uniquename>CM - Actualizaciones de datos de mas de 2 anos</uniquename>
