@@ -1,86 +1,86 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<PluginAssembly FullName="Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginAssemblyId="ec98c49b-17c0-f111-a05a-70a8a5b09c9f" CustomizationLevel="1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<PluginAssembly FullName="Sanic.CobranzaMovil.Plugins, Version=1.0.11.3, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginAssemblyId="ec98c49b-17c0-f111-a05a-70a8a5b09c9f" CustomizationLevel="1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <IsolationMode>2</IsolationMode>
   <SourceType>0</SourceType>
   <IntroducedVersion>1.1.0.0</IntroducedVersion>
   <FileName>/PluginAssemblies/SanicCobranzaMovilPlugins-EC98C49B-17C0-F111-A05A-70A8A5B09C9F/SanicCobranzaMovilPlugins.dll</FileName>
   <PluginTypes>
-    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.ActualizacionConInteraccion, Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="99bc81ed-02c1-f111-a05a-70a8a5b09c9f" Name="Sanic.CobranzaMovil.Plugins.ActualizacionConInteraccion">
+    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.ActualizacionConInteraccion, Sanic.CobranzaMovil.Plugins, Version=1.0.11.3, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="99bc81ed-02c1-f111-a05a-70a8a5b09c9f" Name="Sanic.CobranzaMovil.Plugins.ActualizacionConInteraccion">
       <FriendlyName>ActualizacionConInteraccion</FriendlyName>
     </PluginType>
-    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.AltaCuenta, Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="52170118-39c8-f111-a05a-000d3a3b5b91" Name="Sanic.CobranzaMovil.Plugins.AltaCuenta">
+    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.AltaCuenta, Sanic.CobranzaMovil.Plugins, Version=1.0.11.3, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="52170118-39c8-f111-a05a-000d3a3b5b91" Name="Sanic.CobranzaMovil.Plugins.AltaCuenta">
       <FriendlyName>AltaCuenta</FriendlyName>
     </PluginType>
-    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.AprobacionEspecial, Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="9cbc81ed-02c1-f111-a05a-70a8a5b09c9f" Name="Sanic.CobranzaMovil.Plugins.AprobacionEspecial">
+    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.AprobacionEspecial, Sanic.CobranzaMovil.Plugins, Version=1.0.11.3, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="9cbc81ed-02c1-f111-a05a-70a8a5b09c9f" Name="Sanic.CobranzaMovil.Plugins.AprobacionEspecial">
       <FriendlyName>AprobacionEspecial</FriendlyName>
     </PluginType>
-    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.CargaSobreAsignacion, Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="2cb5452f-dac7-f111-a05a-000d3a3b5b91" Name="Sanic.CobranzaMovil.Plugins.CargaSobreAsignacion">
+    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.CargaSobreAsignacion, Sanic.CobranzaMovil.Plugins, Version=1.0.11.3, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="2cb5452f-dac7-f111-a05a-000d3a3b5b91" Name="Sanic.CobranzaMovil.Plugins.CargaSobreAsignacion">
       <FriendlyName>CargaSobreAsignacion</FriendlyName>
     </PluginType>
-    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.CerrarFueraDeCartera, Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="33c9c49a-dfd0-f111-a05b-70a8a5b2a2b2" Name="Sanic.CobranzaMovil.Plugins.CerrarFueraDeCartera">
+    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.CerrarFueraDeCartera, Sanic.CobranzaMovil.Plugins, Version=1.0.11.3, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="33c9c49a-dfd0-f111-a05b-70a8a5b2a2b2" Name="Sanic.CobranzaMovil.Plugins.CerrarFueraDeCartera">
       <FriendlyName>CerrarFueraDeCartera</FriendlyName>
     </PluginType>
-    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.ClaveDesdeCuenta, Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="ef98c49b-17c0-f111-a05a-70a8a5b09c9f" Name="Sanic.CobranzaMovil.Plugins.ClaveDesdeCuenta">
+    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.ClaveDesdeCuenta, Sanic.CobranzaMovil.Plugins, Version=1.0.11.3, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="ef98c49b-17c0-f111-a05a-70a8a5b09c9f" Name="Sanic.CobranzaMovil.Plugins.ClaveDesdeCuenta">
       <FriendlyName>ClaveDesdeCuenta</FriendlyName>
     </PluginType>
-    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.ColumnasAsignacion, Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="2db5452f-dac7-f111-a05a-000d3a3b5b91" Name="Sanic.CobranzaMovil.Plugins.ColumnasAsignacion">
+    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.ColumnasAsignacion, Sanic.CobranzaMovil.Plugins, Version=1.0.11.3, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="2db5452f-dac7-f111-a05a-000d3a3b5b91" Name="Sanic.CobranzaMovil.Plugins.ColumnasAsignacion">
       <FriendlyName>ColumnasAsignacion</FriendlyName>
     </PluginType>
-    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.CuentaDesdeInteraccion, Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="f098c49b-17c0-f111-a05a-70a8a5b09c9f" Name="Sanic.CobranzaMovil.Plugins.CuentaDesdeInteraccion">
+    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.CuentaDesdeInteraccion, Sanic.CobranzaMovil.Plugins, Version=1.0.11.3, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="f098c49b-17c0-f111-a05a-70a8a5b09c9f" Name="Sanic.CobranzaMovil.Plugins.CuentaDesdeInteraccion">
       <FriendlyName>CuentaDesdeInteraccion</FriendlyName>
     </PluginType>
-    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.EmailDesdeUsuario, Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="f5d2ba1e-29c1-f111-a05a-70a8a5b09c9f" Name="Sanic.CobranzaMovil.Plugins.EmailDesdeUsuario">
+    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.EmailDesdeUsuario, Sanic.CobranzaMovil.Plugins, Version=1.0.11.3, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="f5d2ba1e-29c1-f111-a05a-70a8a5b09c9f" Name="Sanic.CobranzaMovil.Plugins.EmailDesdeUsuario">
       <FriendlyName>EmailDesdeUsuario</FriendlyName>
     </PluginType>
-    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.EspecialDesdeCuenta, Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="c279d8c2-04cd-f111-a05b-00224808ffcd" Name="Sanic.CobranzaMovil.Plugins.EspecialDesdeCuenta">
+    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.EspecialDesdeCuenta, Sanic.CobranzaMovil.Plugins, Version=1.0.11.3, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="c279d8c2-04cd-f111-a05b-00224808ffcd" Name="Sanic.CobranzaMovil.Plugins.EspecialDesdeCuenta">
       <FriendlyName>EspecialDesdeCuenta</FriendlyName>
     </PluginType>
-    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.GrabacionInteraccion, Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="2eb5452f-dac7-f111-a05a-000d3a3b5b91" Name="Sanic.CobranzaMovil.Plugins.GrabacionInteraccion">
+    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.GrabacionInteraccion, Sanic.CobranzaMovil.Plugins, Version=1.0.11.3, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="2eb5452f-dac7-f111-a05a-000d3a3b5b91" Name="Sanic.CobranzaMovil.Plugins.GrabacionInteraccion">
       <FriendlyName>GrabacionInteraccion</FriendlyName>
     </PluginType>
-    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.IdentidadEnInteraccion, Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="e04ea5a8-64cd-f111-a05b-7ced8d706b47" Name="Sanic.CobranzaMovil.Plugins.IdentidadEnInteraccion">
+    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.IdentidadEnInteraccion, Sanic.CobranzaMovil.Plugins, Version=1.0.11.3, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="e04ea5a8-64cd-f111-a05b-7ced8d706b47" Name="Sanic.CobranzaMovil.Plugins.IdentidadEnInteraccion">
       <FriendlyName>IdentidadEnInteraccion</FriendlyName>
     </PluginType>
-    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.InteraccionDelCobrador, Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="945b5d35-dac7-f111-a05a-000d3a3b5b91" Name="Sanic.CobranzaMovil.Plugins.InteraccionDelCobrador">
+    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.InteraccionDelCobrador, Sanic.CobranzaMovil.Plugins, Version=1.0.11.3, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="945b5d35-dac7-f111-a05a-000d3a3b5b91" Name="Sanic.CobranzaMovil.Plugins.InteraccionDelCobrador">
       <FriendlyName>InteraccionDelCobrador</FriendlyName>
     </PluginType>
-    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.MisRoles, Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="a4604625-7fd1-f111-a05b-70a8a5b2a2b2" Name="Sanic.CobranzaMovil.Plugins.MisRoles">
+    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.MisRoles, Sanic.CobranzaMovil.Plugins, Version=1.0.11.3, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="a4604625-7fd1-f111-a05b-70a8a5b2a2b2" Name="Sanic.CobranzaMovil.Plugins.MisRoles">
       <FriendlyName>MisRoles</FriendlyName>
     </PluginType>
-    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.PanEnTextoLibre, Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="c7cd3b86-68d1-f111-a05b-70a8a5b2a2b2" Name="Sanic.CobranzaMovil.Plugins.PanEnTextoLibre">
+    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.PanEnTextoLibre, Sanic.CobranzaMovil.Plugins, Version=1.0.11.3, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="c7cd3b86-68d1-f111-a05b-70a8a5b2a2b2" Name="Sanic.CobranzaMovil.Plugins.PanEnTextoLibre">
       <FriendlyName>PanEnTextoLibre</FriendlyName>
     </PluginType>
-    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.PanGuard, Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="f198c49b-17c0-f111-a05a-70a8a5b09c9f" Name="Sanic.CobranzaMovil.Plugins.PanGuard">
+    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.PanGuard, Sanic.CobranzaMovil.Plugins, Version=1.0.11.3, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="f198c49b-17c0-f111-a05a-70a8a5b09c9f" Name="Sanic.CobranzaMovil.Plugins.PanGuard">
       <FriendlyName>PanGuard</FriendlyName>
     </PluginType>
-    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.PartirCarga, Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="26f70b72-52ce-f111-a05b-7ced8d711436" Name="Sanic.CobranzaMovil.Plugins.PartirCarga">
+    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.PartirCarga, Sanic.CobranzaMovil.Plugins, Version=1.0.11.3, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="26f70b72-52ce-f111-a05b-7ced8d711436" Name="Sanic.CobranzaMovil.Plugins.PartirCarga">
       <FriendlyName>PartirCarga</FriendlyName>
     </PluginType>
-    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.PurgaArchivoCarga, Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="f6ce3b86-68d1-f111-a05b-70a8a5b2a2b2" Name="Sanic.CobranzaMovil.Plugins.PurgaArchivoCarga">
+    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.PurgaArchivoCarga, Sanic.CobranzaMovil.Plugins, Version=1.0.11.3, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="f6ce3b86-68d1-f111-a05b-70a8a5b2a2b2" Name="Sanic.CobranzaMovil.Plugins.PurgaArchivoCarga">
       <FriendlyName>PurgaArchivoCarga</FriendlyName>
     </PluginType>
-    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.ReciboRepetido, Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="9934beff-f1cc-f111-a05b-00224808ffcd" Name="Sanic.CobranzaMovil.Plugins.ReciboRepetido">
+    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.ReciboRepetido, Sanic.CobranzaMovil.Plugins, Version=1.0.11.3, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="9934beff-f1cc-f111-a05b-00224808ffcd" Name="Sanic.CobranzaMovil.Plugins.ReciboRepetido">
       <FriendlyName>ReciboRepetido</FriendlyName>
     </PluginType>
-    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.Reclasificacion, Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="955b5d35-dac7-f111-a05a-000d3a3b5b91" Name="Sanic.CobranzaMovil.Plugins.Reclasificacion">
+    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.Reclasificacion, Sanic.CobranzaMovil.Plugins, Version=1.0.11.3, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="955b5d35-dac7-f111-a05a-000d3a3b5b91" Name="Sanic.CobranzaMovil.Plugins.Reclasificacion">
       <FriendlyName>Reclasificacion</FriendlyName>
     </PluginType>
-    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.RepartoAsignacion, Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="2759ee4e-cac6-f111-a05a-000d3a3b5b91" Name="Sanic.CobranzaMovil.Plugins.RepartoAsignacion">
+    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.RepartoAsignacion, Sanic.CobranzaMovil.Plugins, Version=1.0.11.3, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="2759ee4e-cac6-f111-a05a-000d3a3b5b91" Name="Sanic.CobranzaMovil.Plugins.RepartoAsignacion">
       <FriendlyName>RepartoAsignacion</FriendlyName>
     </PluginType>
-    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.RepartoPorAgente, Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="1541cb2f-9ec7-f111-a05a-000d3a3b5b91" Name="Sanic.CobranzaMovil.Plugins.RepartoPorAgente">
+    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.RepartoPorAgente, Sanic.CobranzaMovil.Plugins, Version=1.0.11.3, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="1541cb2f-9ec7-f111-a05a-000d3a3b5b91" Name="Sanic.CobranzaMovil.Plugins.RepartoPorAgente">
       <FriendlyName>RepartoPorAgente</FriendlyName>
     </PluginType>
-    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.SolicitarEspecial, Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="ec1da211-39c8-f111-a05a-000d3a3b5b91" Name="Sanic.CobranzaMovil.Plugins.SolicitarEspecial">
+    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.SolicitarEspecial, Sanic.CobranzaMovil.Plugins, Version=1.0.11.3, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="ec1da211-39c8-f111-a05a-000d3a3b5b91" Name="Sanic.CobranzaMovil.Plugins.SolicitarEspecial">
       <FriendlyName>SolicitarEspecial</FriendlyName>
     </PluginType>
-    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.TipoDesdeProducto, Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="2c56f56d-66cf-f111-a05b-7ced8d711436" Name="Sanic.CobranzaMovil.Plugins.TipoDesdeProducto">
+    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.TipoDesdeProducto, Sanic.CobranzaMovil.Plugins, Version=1.0.11.3, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="2c56f56d-66cf-f111-a05b-7ced8d711436" Name="Sanic.CobranzaMovil.Plugins.TipoDesdeProducto">
       <FriendlyName>TipoDesdeProducto</FriendlyName>
     </PluginType>
-    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.TramoCartera, Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="e2a35e34-7ccd-f111-a05b-7ced8d706b47" Name="Sanic.CobranzaMovil.Plugins.TramoCartera">
+    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.TramoCartera, Sanic.CobranzaMovil.Plugins, Version=1.0.11.3, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="e2a35e34-7ccd-f111-a05b-7ced8d706b47" Name="Sanic.CobranzaMovil.Plugins.TramoCartera">
       <FriendlyName>TramoCartera</FriendlyName>
     </PluginType>
-    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.VincularActualizacionPendiente, Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="9a34beff-f1cc-f111-a05b-00224808ffcd" Name="Sanic.CobranzaMovil.Plugins.VincularActualizacionPendiente">
+    <PluginType AssemblyQualifiedName="Sanic.CobranzaMovil.Plugins.VincularActualizacionPendiente, Sanic.CobranzaMovil.Plugins, Version=1.0.11.3, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c" PluginTypeId="9a34beff-f1cc-f111-a05b-00224808ffcd" Name="Sanic.CobranzaMovil.Plugins.VincularActualizacionPendiente">
       <FriendlyName>VincularActualizacionPendiente</FriendlyName>
     </PluginType>
   </PluginTypes>

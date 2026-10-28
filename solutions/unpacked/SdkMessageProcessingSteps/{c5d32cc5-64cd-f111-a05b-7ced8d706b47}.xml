@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <SdkMessageProcessingStep Name="Sanic.CobranzaMovil.Plugins.IdentidadEnInteraccion: Create of sanic_cm_tbl_interaccion" SdkMessageProcessingStepId="{c5d32cc5-64cd-f111-a05b-7ced8d706b47}" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <SdkMessageId>9ebdbb1b-ea3e-db11-86a7-000a3a5473e8</SdkMessageId>
-  <PluginTypeName>Sanic.CobranzaMovil.Plugins.IdentidadEnInteraccion, Sanic.CobranzaMovil.Plugins, Version=1.0.11.2, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c</PluginTypeName>
+  <PluginTypeName>Sanic.CobranzaMovil.Plugins.IdentidadEnInteraccion, Sanic.CobranzaMovil.Plugins, Version=1.0.11.3, Culture=neutral, PublicKeyToken=f8f4ed03d9cead0c</PluginTypeName>
   <PluginTypeId>e04ea5a8-64cd-f111-a05b-7ced8d706b47</PluginTypeId>
   <PrimaryEntity>sanic_cm_tbl_interaccion</PrimaryEntity>
   <AsyncAutoDelete>0</AsyncAutoDelete>
