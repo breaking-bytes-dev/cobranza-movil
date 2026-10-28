@@ -233,7 +233,6 @@ namespace Sanic.CobranzaMovil.Plugins
         public const string MapeoTablaOrden = "sanic_smlt_tm_processingorder";
         public const string MapeoTablaCrear = "sanic_smlt_tm_createifnotexists";
         public const string MapeoTablaActualizar = "sanic_smlt_tm_updateifexists";
-        public const string MapeoTablaIntermedia = "sanic_smlt_tm_isjunctiontable";
         public const string MapeoColumna = "sanic_tbl_smlt_columnmapping";
         public const string MapeoColumnaTabla = "sanic_smlt_cm_tablemappingid";
         public const string MapeoColumnaNombre = "sanic_smlt_cm_name";

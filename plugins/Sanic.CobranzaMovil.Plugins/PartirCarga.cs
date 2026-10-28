@@ -316,7 +316,7 @@ namespace Sanic.CobranzaMovil.Plugins
             var qt = new QueryExpression(Esquema.MapeoTabla)
             {
                 ColumnSet = new ColumnSet(Esquema.MapeoTablaPlantilla, Esquema.MapeoTablaNombre, Esquema.MapeoTablaDestino, Esquema.MapeoTablaDedup,
-                    Esquema.MapeoTablaOrden, Esquema.MapeoTablaCrear, Esquema.MapeoTablaActualizar, Esquema.MapeoTablaIntermedia),
+                    Esquema.MapeoTablaOrden, Esquema.MapeoTablaCrear, Esquema.MapeoTablaActualizar),
             };
             qt.Criteria.AddCondition(Esquema.MapeoTablaPlantilla, ConditionOperator.In, plantillas.Cast<object>().ToArray());
             var mapeos = new Dictionary<Guid, Mapeo>();
@@ -333,7 +333,7 @@ namespace Sanic.CobranzaMovil.Plugins
                     Dedup = dedup,
                     Firma = Firmar(e.GetAttributeValue<string>(Esquema.MapeoTablaDestino), e.GetAttributeValue<string>(Esquema.MapeoTablaNombre),
                         string.Join(",", dedup), Numero(e, Esquema.MapeoTablaOrden), e.GetAttributeValue<bool?>(Esquema.MapeoTablaCrear),
-                        e.GetAttributeValue<bool?>(Esquema.MapeoTablaActualizar), e.GetAttributeValue<bool?>(Esquema.MapeoTablaIntermedia)),
+                        e.GetAttributeValue<bool?>(Esquema.MapeoTablaActualizar)),
                 };
             }
 
